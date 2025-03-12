@@ -119,7 +119,7 @@ async def test_list_directory_with_gitignore(mock_list_files):
     # Mock list_files to return filtered files
     mock_list_files.return_value = [
         str(TEST_DIR / "test_normal.txt"),
-        str(TEST_DIR / ".gitignore")
+        str(TEST_DIR / ".gitignore"),
     ]
 
     files = await list_directory()

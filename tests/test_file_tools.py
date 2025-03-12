@@ -214,7 +214,9 @@ def test_list_files_with_gitignore():
     assert str(TEST_DIR / "normal.txt").replace("\\", "/") in files
     assert str(TEST_DIR / ".gitignore").replace("\\", "/") in files
     assert str(TEST_DIR / "test.ignore").replace("\\", "/") not in files
-    assert str(TEST_DIR / "ignored_dir/ignored_file.txt").replace("\\", "/") not in files
+    assert (
+        str(TEST_DIR / "ignored_dir/ignored_file.txt").replace("\\", "/") not in files
+    )
     assert str(TEST_DIR / ".git/HEAD").replace("\\", "/") not in files
 
 
@@ -315,7 +317,7 @@ def test_list_files_recursive():
         str(TEST_DIR / TEST_FILE.name),
         str(TEST_DIR / ".gitignore"),
         str(TEST_DIR / "subdir" / "subfile.txt"),
-        str(TEST_DIR / "subdir" / "nested" / "nested_file.txt")
+        str(TEST_DIR / "subdir" / "nested" / "nested_file.txt"),
     ]
 
     # Replace backslashes with forward slashes for consistent path comparison
@@ -329,9 +331,9 @@ def test_list_files_recursive():
     # Check that ignored paths are not in the list
     ignored_paths = [
         str(TEST_DIR / "test.ignore"),
-        str(TEST_DIR / "ignored_dir" / "ignored_file.txt")
+        str(TEST_DIR / "ignored_dir" / "ignored_file.txt"),
     ]
-    
+
     ignored_paths = [path.replace("\\", "/") for path in ignored_paths]
 
     for path in ignored_paths:
