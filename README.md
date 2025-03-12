@@ -140,27 +140,6 @@ The server exposes the following MCP tools:
 - Path traversal attacks are prevented
 - Files are written atomically to prevent data corruption
 
-## Project Structure
-
-```
-mcp_server_filesystem/
-├── .gitignore             # Git ignore file
-├── README.md              # Project documentation
-├── PROJECT_STRUCTURE.md   # Detailed structure documentation
-├── pyproject.toml         # Project configuration
-├── requirements.txt       # Project dependencies
-├── src/                   # Source code directory
-│   ├── __init__.py        # Package initialization
-│   ├── file_tools.py      # Implementation of file operations
-│   ├── main.py            # Entry point to run the server
-│   └── server.py          # FastMCP server implementation
-└── tests/                 # Tests directory
-    ├── __init__.py        # Test package initialization
-    ├── test_file_tools.py # Tests for file operations
-    ├── test_server.py     # Tests for API endpoints
-    └── testdata/          # Test data directory
-```
-
 ## Development
 
 ### Setting Up Development Environment
