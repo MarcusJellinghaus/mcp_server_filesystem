@@ -2,6 +2,21 @@
 
 A simple Model Context Protocol (MCP) server providing file system operations. This server offers a clean API for performing file system operations within a specified project directory, following the MCP protocol design.
 
+## Overview
+
+This MCP server enables AI assistants like Claude (via Claude Desktop) or other MCP-compatible systems to interact with your local file system. With these capabilities, AI assistants can:
+
+- Read your existing code and project files
+- Write new files with generated content
+- Update and modify existing files
+- Review repositories to provide analysis and recommendations
+- Debug and fix issues in your codebase
+- Generate complete implementations based on your specifications
+
+All operations are securely contained within your specified project directory, giving you control while enabling powerful AI collaboration on your local files.
+
+By connecting your AI assistant to your filesystem, you can transform your workflow from manual coding to a more intuitive prompting approach - describe what you need in natural language and let the AI generate, modify, and organize code directly in your project files.
+
 ## Features
 
 - `list_directory`: List all files and directories in the project directory
