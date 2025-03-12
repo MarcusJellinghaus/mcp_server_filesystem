@@ -74,6 +74,29 @@ Claude will now be able to list, read, and write files in your specified project
 
 For more information on logging and troubleshooting, see the [MCP Documentation](https://modelcontextprotocol.io/quickstart/user#getting-logs-from-claude-for-desktop).
 
+## Using MCP Inspector
+
+MCP Inspector allows you to debug and test your MCP server:
+
+1. Start MCP Inspector by running:
+
+```bash
+npx @modelcontextprotocol/inspector \
+  uv \
+  --directory C:\path\to\mcp_server_filesystem \
+  run \
+  src\main.py
+```
+
+2. In the MCP Inspector web UI, configure with the following:
+   - Python interpreter: `C:\path\to\mcp_server_filesystem\.venv\Scripts\python.exe`
+   - Arguments: `C:\path\to\mcp_server_filesystem\src\main.py --project-dir C:\path\to\your\project`
+   - Environment variables:
+     - Name: `PYTHONPATH`
+     - Value: `C:\path\to\mcp_server_filesystem\`
+
+3. This will launch the server and provide a debug interface for testing the available tools.
+
 ## Available Tools
 
 The server exposes the following MCP tools:
@@ -149,7 +172,9 @@ set PYTHONPATH=. && mcp dev src/server.py
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+The MIT License is a permissive license that allows reuse with minimal restrictions. It permits use, copying, modification, and distribution with proper attribution.
 
 ## Links
 
