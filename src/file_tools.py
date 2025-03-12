@@ -4,7 +4,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from pathspec import PathSpec
 from pathspec.patterns import GitWildMatchPattern
@@ -90,20 +90,52 @@ def normalize_path(path: str) -> tuple[Path, str]:
         ) from e
 
 
+def _get_gitignore_spec(directory_path: Path) -> Optional[PathSpec]:
+    """
+    Get a PathSpec object based on .gitignore files.
+    
+    Args:
+        directory_path: Absolute path to the directory
+        
+    Returns:
+        A PathSpec object or None if no patterns found
+    """
+    project_dir = get_project_dir()
+    gitignore_patterns = [".git/"]  # Always ignore .git directory
+    
+    # Read the root .gitignore if it exists
+    project_gitignore = project_dir / ".gitignore"
+    if project_gitignore.exists() and project_gitignore.is_file():
+        with open(project_gitignore, "r", encoding="utf-8") as f:
+            gitignore_patterns.extend(f.read().splitlines())
+    
+    # Check if a local .gitignore file exists in the specified directory
+    local_gitignore = directory_path / ".gitignore"
+    if local_gitignore.exists() and local_gitignore.is_file():
+        with open(local_gitignore, "r", encoding="utf-8") as f:
+            gitignore_patterns.extend(f.read().splitlines())
+    
+    # Create PathSpec object for pattern matching if we have patterns
+    if gitignore_patterns:
+        return PathSpec.from_lines(GitWildMatchPattern, gitignore_patterns)
+    
+    return None
+
+
 def list_files(directory: str, use_gitignore: bool = True) -> list[str]:
     """
-    List all files in a directory.
+    List all files in a directory and its subdirectories.
 
     Args:
         directory: Path to the directory to list files from (relative to project directory)
         use_gitignore: Whether to filter results based on .gitignore patterns (default: True)
 
     Returns:
-        A list of filenames in the directory (relative to project directory)
+        A list of filenames in the directory and subdirectories (relative to project directory)
 
     Raises:
         FileNotFoundError: If the directory does not exist
-        PermissionError: If access to the directory is denied
+        NotADirectoryError: If the path is not a directory
         ValueError: If the directory is outside the project directory
     """
     # Normalize the path to be relative to the project directory
@@ -118,72 +150,38 @@ def list_files(directory: str, use_gitignore: bool = True) -> list[str]:
         raise NotADirectoryError(f"Path '{directory}' is not a directory")
 
     try:
-        # Get all files in the directory
-        logger.debug(f"Listing files in directory: {rel_path}")
-        all_files = [str(f.name) for f in abs_path.iterdir()]
-        logger.debug(f"Found {len(all_files)} unfiltered files in {rel_path}")
+        # Get gitignore spec if needed
+        spec = None
+        if use_gitignore:
+            spec = _get_gitignore_spec(abs_path)
 
-        # If gitignore filtering is not requested, return all files
-        if not use_gitignore:
-            logger.debug(f"Gitignore filtering disabled, returning all files")
-            return all_files
+        # Collect all files recursively
+        result_files = []
+        project_dir = get_project_dir()
+        
+        for root, dirs, files in os.walk(abs_path):
+            root_path = Path(root)
+            rel_root = root_path.relative_to(project_dir)
+            
+            # Filter out ignored directories
+            if spec:
+                dirs_copy = dirs.copy()
+                for d in dirs_copy:
+                    check_path = str(rel_root / d)
+                    if spec.match_file(check_path) or spec.match_file(f"{check_path}/"):
+                        dirs.remove(d)
+            
+            # Add files that aren't ignored
+            for file in files:
+                rel_file_path = str(rel_root / file)
+                
+                if spec and spec.match_file(rel_file_path):
+                    continue
+                
+                result_files.append(rel_file_path)
+        
+        return result_files
 
-        # Check if a .gitignore file exists in the directory
-        gitignore_path = abs_path / ".gitignore"
-        if not gitignore_path.exists() or not gitignore_path.is_file():
-            # No .gitignore file found, return all files
-            logger.debug(f"No .gitignore file found in {rel_path}, returning all files")
-            return all_files
-
-        try:
-            # Read and parse .gitignore file
-            logger.debug(f"Reading .gitignore file from {rel_path}")
-            with open(gitignore_path, "r", encoding="utf-8") as f:
-                gitignore_patterns = f.read().splitlines()
-
-            # Always ignore .git directory if .gitignore exists
-            if not any(
-                pattern.strip() == ".git/" or pattern.strip() == ".git"
-                for pattern in gitignore_patterns
-            ):
-                logger.debug(f"Adding .git/ to gitignore patterns")
-                gitignore_patterns.append(".git/")
-
-            # Create PathSpec object for pattern matching
-            logger.debug(
-                f"Creating gitignore PathSpec with {len(gitignore_patterns)} patterns"
-            )
-            spec = PathSpec.from_lines(GitWildMatchPattern, gitignore_patterns)
-
-            # Filter files based on gitignore patterns
-            filtered_files = []
-            for item in all_files:
-                # Check both the file name and the directory-style name with trailing slash
-                # This ensures directories are properly matched by gitignore patterns
-                if not spec.match_file(item) and not spec.match_file(f"{item}/"):
-                    # If it's a directory, make extra sure it's not excluded
-                    if (abs_path / item).is_dir():
-                        # Additional check specifically for directories
-                        if not any(
-                            pattern.endswith("/") and pattern.rstrip("/") == item
-                            for pattern in gitignore_patterns
-                        ):
-                            filtered_files.append(item)
-                    else:
-                        # Regular file
-                        filtered_files.append(item)
-
-            logger.debug(
-                f"Filtered {len(all_files)} files down to {len(filtered_files)} files"
-            )
-            return filtered_files
-
-        except Exception as e:
-            # If there's an error parsing .gitignore, log it and return all files
-            logger.warning(
-                f"Error applying gitignore filter: {str(e)}. Returning all files."
-            )
-            return all_files
     except Exception as e:
         logger.error(f"Error listing files in directory {rel_path}: {str(e)}")
         raise

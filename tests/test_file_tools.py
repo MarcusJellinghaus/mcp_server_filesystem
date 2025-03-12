@@ -60,13 +60,18 @@ def teardown_function():
         if ignored_dir.exists():
             shutil.rmtree(ignored_dir)
 
+        # Remove subdir if it exists (for recursive tests)
+        subdir = abs_test_dir / "subdir"
+        if subdir.exists():
+            shutil.rmtree(subdir)
+
         # Remove any leftover temporary files
         for item in abs_test_dir.iterdir():
             if item.is_file() and (
                 item.name.startswith("tmp") or item.name.endswith(".txt")
             ):
                 item.unlink()
-            elif item.is_dir() and item.name not in [".git", "ignored_dir"]:
+            elif item.is_dir() and item.name not in [".git", "ignored_dir", "subdir"]:
                 shutil.rmtree(item)
     except Exception as e:
         print(f"Error during teardown: {e}")
@@ -149,8 +154,9 @@ def test_read_file_not_found():
     non_existent_file = TEST_DIR / "non_existent.txt"
 
     # Ensure the file doesn't exist
-    if non_existent_file.exists():
-        non_existent_file.unlink()
+    abs_non_existent = Path(os.environ["MCP_PROJECT_DIR"]) / non_existent_file
+    if abs_non_existent.exists():
+        abs_non_existent.unlink()
 
     # Test reading a non-existent file
     with pytest.raises(FileNotFoundError):
@@ -171,7 +177,9 @@ def test_list_files():
     files = list_files(str(TEST_DIR))
 
     # Verify the file is in the list
-    assert TEST_FILE.name in files
+    expected_file_path = str(TEST_DIR / TEST_FILE.name).replace("\\", "/")
+    files = [path.replace("\\", "/") for path in files]
+    assert expected_file_path in files
 
 
 def test_list_files_with_gitignore():
@@ -200,13 +208,14 @@ def test_list_files_with_gitignore():
 
     # Test listing files with gitignore filtering
     files = list_files(str(TEST_DIR))
+    files = [path.replace("\\", "/") for path in files]
 
     # The .gitignore should exclude *.ignore files, the ignored_dir/, and .git/
-    assert "normal.txt" in files
-    assert ".gitignore" in files
-    assert "test.ignore" not in files
-    assert "ignored_dir" not in files
-    assert ".git" not in files
+    assert str(TEST_DIR / "normal.txt").replace("\\", "/") in files
+    assert str(TEST_DIR / ".gitignore").replace("\\", "/") in files
+    assert str(TEST_DIR / "test.ignore").replace("\\", "/") not in files
+    assert str(TEST_DIR / "ignored_dir/ignored_file.txt").replace("\\", "/") not in files
+    assert str(TEST_DIR / ".git/HEAD").replace("\\", "/") not in files
 
 
 def test_list_files_without_gitignore():
@@ -235,13 +244,14 @@ def test_list_files_without_gitignore():
 
     # Test listing files without gitignore filtering
     files = list_files(str(TEST_DIR), use_gitignore=False)
+    files = [path.replace("\\", "/") for path in files]
 
     # When gitignore is disabled, all files should be included
-    assert "normal.txt" in files
-    assert ".gitignore" in files
-    assert "test.ignore" in files
-    assert "ignored_dir" in files
-    assert ".git" in files
+    assert str(TEST_DIR / "normal.txt").replace("\\", "/") in files
+    assert str(TEST_DIR / ".gitignore").replace("\\", "/") in files
+    assert str(TEST_DIR / "test.ignore").replace("\\", "/") in files
+    assert str(TEST_DIR / "ignored_dir/ignored_file.txt").replace("\\", "/") in files
+    assert str(TEST_DIR / ".git/HEAD").replace("\\", "/") in files
 
 
 def test_list_files_directory_not_found():
@@ -249,12 +259,80 @@ def test_list_files_directory_not_found():
     non_existent_dir = TEST_DIR / "non_existent_dir"
 
     # Ensure the directory doesn't exist
-    if non_existent_dir.exists():
-        if non_existent_dir.is_dir():
-            os.rmdir(non_existent_dir)
+    abs_non_existent = Path(os.environ["MCP_PROJECT_DIR"]) / non_existent_dir
+    if abs_non_existent.exists():
+        if abs_non_existent.is_dir():
+            shutil.rmtree(abs_non_existent)
         else:
-            non_existent_dir.unlink()
+            abs_non_existent.unlink()
 
     # Test listing files in a non-existent directory
     with pytest.raises(FileNotFoundError):
         list_files(str(non_existent_dir))
+
+
+def test_list_files_recursive():
+    """Test listing files recursively in a directory structure."""
+    # Create absolute paths for test operations
+    abs_test_dir = Path(os.environ["MCP_PROJECT_DIR"]) / TEST_DIR
+    abs_test_file = abs_test_dir / TEST_FILE.name
+
+    # Ensure the test directory exists
+    abs_test_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create a test file
+    with open(abs_test_file, "w", encoding="utf-8") as f:
+        f.write(TEST_CONTENT)
+
+    # Create subdirectories and files
+    sub_dir = abs_test_dir / "subdir"
+    sub_dir.mkdir(exist_ok=True)
+    sub_file = sub_dir / "subfile.txt"
+    with open(sub_file, "w", encoding="utf-8") as f:
+        f.write("Subfile content")
+
+    nested_dir = sub_dir / "nested"
+    nested_dir.mkdir(exist_ok=True)
+    nested_file = nested_dir / "nested_file.txt"
+    with open(nested_file, "w", encoding="utf-8") as f:
+        f.write("Nested file content")
+
+    # Create a .gitignore to ignore some patterns
+    with open(abs_test_dir / ".gitignore", "w", encoding="utf-8") as f:
+        f.write("*.ignore\nignored_dir/\n")
+
+    # Create an ignored file and directory
+    (abs_test_dir / "test.ignore").touch()
+    ignored_dir = abs_test_dir / "ignored_dir"
+    ignored_dir.mkdir(exist_ok=True)
+    (ignored_dir / "ignored_file.txt").touch()
+
+    # Test listing files
+    files = list_files(str(TEST_DIR))
+
+    # Verify expected paths are in the list
+    expected_paths = [
+        str(TEST_DIR / TEST_FILE.name),
+        str(TEST_DIR / ".gitignore"),
+        str(TEST_DIR / "subdir" / "subfile.txt"),
+        str(TEST_DIR / "subdir" / "nested" / "nested_file.txt")
+    ]
+
+    # Replace backslashes with forward slashes for consistent path comparison
+    files = [path.replace("\\", "/") for path in files]
+    expected_paths = [path.replace("\\", "/") for path in expected_paths]
+
+    # Check that all expected paths are in the list
+    for path in expected_paths:
+        assert path in files, f"Expected {path} to be in the list"
+
+    # Check that ignored paths are not in the list
+    ignored_paths = [
+        str(TEST_DIR / "test.ignore"),
+        str(TEST_DIR / "ignored_dir" / "ignored_file.txt")
+    ]
+    
+    ignored_paths = [path.replace("\\", "/") for path in ignored_paths]
+
+    for path in ignored_paths:
+        assert path not in files, f"Did not expect {path} to be in the list"

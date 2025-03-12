@@ -67,7 +67,7 @@ async def test_read_file():
 
 
 @pytest.mark.asyncio
-@patch("src.file_tools.list_files")
+@patch("src.server.list_files_util")
 async def test_list_directory(mock_list_files):
     """Test the list_directory tool."""
     # Create absolute path for test file
@@ -78,14 +78,14 @@ async def test_list_directory(mock_list_files):
         f.write(TEST_CONTENT)
 
     # Mock the list_files function to return our test file
-    mock_list_files.return_value = [TEST_FILE.name]
+    mock_list_files.return_value = [str(TEST_FILE)]
 
     files = await list_directory()
 
     # Verify the function was called with correct parameters
     mock_list_files.assert_called_once_with(".", use_gitignore=True)
 
-    assert TEST_FILE.name in files
+    assert str(TEST_FILE) in files
 
 
 @pytest.mark.asyncio
@@ -102,7 +102,7 @@ async def test_read_file_not_found():
 
 
 @pytest.mark.asyncio
-@patch("src.file_tools.list_files")
+@patch("src.server.list_files_util")
 async def test_list_directory_directory_not_found(mock_list_files):
     """Test the list_directory tool with a non-existent directory."""
     # Mock list_files to raise FileNotFoundError
@@ -113,25 +113,26 @@ async def test_list_directory_directory_not_found(mock_list_files):
 
 
 @pytest.mark.asyncio
-@patch("src.file_tools.list_files")
+@patch("src.server.list_files_util")
 async def test_list_directory_with_gitignore(mock_list_files):
     """Test the list_directory tool with gitignore filtering."""
     # Mock list_files to return filtered files
-    mock_list_files.return_value = ["test_normal.txt", ".gitignore"]
+    mock_list_files.return_value = [
+        str(TEST_DIR / "test_normal.txt"),
+        str(TEST_DIR / ".gitignore")
+    ]
 
     files = await list_directory()
 
     # Verify the function was called with gitignore=True
     mock_list_files.assert_called_once_with(".", use_gitignore=True)
 
-    assert "test_normal.txt" in files
-    assert ".gitignore" in files
-    assert "test.ignore" not in files
-    assert ".git" not in files
+    assert str(TEST_DIR / "test_normal.txt") in files
+    assert str(TEST_DIR / ".gitignore") in files
 
 
 @pytest.mark.asyncio
-@patch("src.file_tools.list_files")
+@patch("src.server.list_files_util")
 async def test_list_directory_error_handling(mock_list_files):
     """Test error handling in the list_directory tool."""
     # Mock list_files to raise an exception
