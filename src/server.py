@@ -94,80 +94,11 @@ async def write_file(file_path: str, content: str) -> bool:
         logger.error(f"Error writing to file: {str(e)}")
         raise
 
-@mcp.tool()
-async def check_path_exists(path: str) -> dict:
-    """Check if a path exists and determine if it's a file or directory.
-    
-    Args:
-        path: Path to check (relative to project directory)
-    
-    Returns:
-        A dictionary with 'exists', 'is_file', and 'is_dir' properties
-    """
-    logger.info(f"Checking if path exists: {path}")
-    try:
-        abs_path, _ = normalize_path(path)
-        exists = abs_path.exists()
-        return {
-            "exists": exists,
-            "is_file": exists and abs_path.is_file(),
-            "is_dir": exists and abs_path.is_dir()
-        }
-    except Exception as e:
-        logger.error(f"Error checking path: {str(e)}")
-        raise
 
-@mcp.tool()
-async def create_directory(directory: str) -> bool:
-    """Create a directory and any necessary parent directories.
-    
-    Args:
-        directory: Path of the directory to create (relative to project directory)
-    
-    Returns:
-        True if the directory was created successfully
-    """
-    logger.info(f"Creating directory: {directory}")
-    try:
-        abs_path, _ = normalize_path(directory)
-        if abs_path.exists():
-            if not abs_path.is_dir():
-                raise ValueError(f"Path exists but is not a directory: {directory}")
-            return True  # Directory already exists
-        
-        abs_path.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Successfully created directory: {directory}")
-        return True
-    except Exception as e:
-        logger.error(f"Error creating directory: {str(e)}")
-        raise
 
-@mcp.tool()
-async def delete_file(file_path: str) -> bool:
-    """Delete a file.
-    
-    Args:
-        file_path: Path to the file to delete (relative to project directory)
-    
-    Returns:
-        True if the file was deleted successfully
-    """
-    logger.info(f"Deleting file: {file_path}")
-    try:
-        abs_path, _ = normalize_path(file_path)
-        if not abs_path.exists():
-            logger.warning(f"File does not exist, nothing to delete: {file_path}")
-            return False
-        
-        if not abs_path.is_file():
-            raise ValueError(f"Path exists but is not a file: {file_path}")
-        
-        abs_path.unlink()
-        logger.info(f"Successfully deleted file: {file_path}")
-        return True
-    except Exception as e:
-        logger.error(f"Error deleting file: {str(e)}")
-        raise
+
+
+
 
 # Run the server when the script is executed directly
 if __name__ == "__main__":
