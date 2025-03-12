@@ -1,23 +1,8 @@
-"""MCP server implementation with file operation tools."""
-
+from mcp.server.fastmcp import FastMCP
 import logging
-import traceback
-from typing import Any
-
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-
-from src.file_tools import list_files, read_file, write_file
-from src.models import (
-    ErrorResponse,
-    ListFilesRequest,
-    ListFilesResponse,
-    ReadFileRequest,
-    ReadFileResponse,
-    WriteFileRequest,
-    WriteFileResponse,
-)
+import os
+from pathlib import Path
+from typing import List, Optional
 
 # Configure logging
 logging.basicConfig(
@@ -25,158 +10,165 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Create FastAPI app
-app = FastAPI(
-    title="MCP File Tools Server",
-    description="A simple Model Context Protocol server with file operation tools",
-    version="0.1.0",
+# Create a FastMCP server instance
+mcp = FastMCP("File System Service")
+
+# Import utility functions from file_tools
+from src.file_tools import (
+    normalize_path,
+    list_files as list_files_util,
+    read_file as read_file_util,
+    write_file as write_file_util
 )
 
-
-# Global exception handlers
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Handle validation errors in API requests."""
-    error_detail = f"Validation error: {str(exc)}"
-    logger.warning(f"{error_detail} - Path: {request.url.path}")
-    return JSONResponse(status_code=400, content={"detail": error_detail})
-
-
-@app.exception_handler(ValueError)
-async def value_error_handler(request: Request, exc: ValueError):
-    """Handle security and validation errors."""
-    error_detail = str(exc)
-    if "Security error:" in error_detail:
-        logger.warning(f"Security violation: {error_detail} - Path: {request.url.path}")
-        return JSONResponse(status_code=403, content={"detail": error_detail})
-    else:
-        logger.warning(f"Validation error: {error_detail} - Path: {request.url.path}")
-        return JSONResponse(status_code=400, content={"detail": error_detail})
-
-
-@app.exception_handler(FileNotFoundError)
-async def file_not_found_handler(request: Request, exc: FileNotFoundError):
-    """Handle file not found errors."""
-    error_detail = f"FileNotFoundError: {str(exc)}"
-    logger.info(f"File not found: {str(exc)} - Path: {request.url.path}")
-    return JSONResponse(status_code=404, content={"detail": error_detail})
-
-
-@app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    """Handle unexpected errors."""
-    error_detail = str(exc)
-    logger.error(f"Unexpected error: {error_detail} - Path: {request.url.path}")
-    logger.error(traceback.format_exc())
-    return JSONResponse(status_code=500, content={"detail": "An internal server error occurred"})
-
-
-@app.post(
-    "/list_files",
-    response_model=ListFilesResponse,
-    responses={
-        400: {"model": ErrorResponse},
-        403: {"model": ErrorResponse},
-        404: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-)
-async def list_files_endpoint(request: ListFilesRequest) -> dict[str, Any]:
+def get_project_dir() -> Path:
     """
-    List files in a directory.
-
-    Args:
-        request: The request containing the directory path
-
+    Get the absolute path to the project directory.
+    
     Returns:
-        A response with the list of files
+        Path object of the project directory
+    
+    Raises:
+        RuntimeError: If MCP_PROJECT_DIR environment variable is not set
     """
-    # Variables to be cleaned up in finally block
-    files = []
+    project_dir = os.environ.get("MCP_PROJECT_DIR")
+    if not project_dir:
+        raise RuntimeError(
+            "Project directory not set. Make sure to set the MCP_PROJECT_DIR environment variable."
+        )
+    return Path(project_dir)
 
-    try:
-        logger.info(f"Listing files in directory: {request.directory}")
-        files = list_files(request.directory, request.use_gitignore)
-        logger.debug(f"Found {len(files)} files in {request.directory}")
-        return {"files": files}
-    except Exception as e:
-        # Let the global exception handlers deal with it
-        logger.error(f"Error in list_files_endpoint: {str(e)}")
-        raise
-    finally:
-        # Cleanup resources if needed (nothing to clean up here)
-        pass
-
-
-@app.post(
-    "/read_file",
-    response_model=ReadFileResponse,
-    responses={
-        400: {"model": ErrorResponse},
-        403: {"model": ErrorResponse},
-        404: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-)
-async def read_file_endpoint(request: ReadFileRequest) -> dict[str, Any]:
-    """
-    Read the contents of a file.
-
+@mcp.tool()
+async def list_directory(directory: str, use_gitignore: bool = True) -> List[str]:
+    """List files and directories in a specified directory.
+    
     Args:
-        request: The request containing the file path
-
+        directory: Path to the directory to list (relative to project directory)
+        use_gitignore: Whether to filter results based on .gitignore patterns
+    
     Returns:
-        A response with the file content
+        A list of filenames in the directory
     """
-    # Variables to be cleaned up in finally block
-    content = ""
-    file_handle = None
-
+    logger.info(f"Listing directory: {directory}")
     try:
-        logger.info(f"Reading file: {request.file_path}")
-        content = read_file(request.file_path)
-        logger.debug(f"Successfully read {len(content)} bytes from {request.file_path}")
-        return {"content": content}
+        result = list_files_util(directory, use_gitignore)
+        return result
     except Exception as e:
-        # Let the global exception handlers deal with it
-        logger.error(f"Error in read_file_endpoint: {str(e)}")
+        logger.error(f"Error listing directory: {str(e)}")
         raise
-    finally:
-        # Cleanup resources if needed (file is already closed in read_file function)
-        pass
 
-
-@app.post(
-    "/write_file",
-    response_model=WriteFileResponse,
-    responses={
-        400: {"model": ErrorResponse},
-        403: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-)
-async def write_file_endpoint(request: WriteFileRequest) -> dict[str, Any]:
-    """
-    Write content to a file.
-
+@mcp.tool()
+async def read_file(file_path: str) -> str:
+    """Read the contents of a file.
+    
     Args:
-        request: The request containing the file path and content
-
+        file_path: Path to the file to read (relative to project directory)
+    
     Returns:
-        A response indicating success
+        The contents of the file as a string
     """
-    # Variables to be cleaned up in finally block
-    file_handle = None
-
+    logger.info(f"Reading file: {file_path}")
     try:
-        logger.info(f"Writing to file: {request.file_path}")
-        success = write_file(request.file_path, request.content)
-        logger.debug(f"Successfully wrote {len(request.content)} bytes to {request.file_path}")
-        return {"success": success}
+        content = read_file_util(file_path)
+        return content
     except Exception as e:
-        # Let the global exception handlers deal with it
-        logger.error(f"Error in write_file_endpoint: {str(e)}")
+        logger.error(f"Error reading file: {str(e)}")
         raise
-    finally:
-        # Cleanup resources if needed (file is already closed in write_file function)
-        pass
+
+@mcp.tool()
+async def write_file(file_path: str, content: str) -> bool:
+    """Write content to a file.
+    
+    Args:
+        file_path: Path to the file to write to (relative to project directory)
+        content: Content to write to the file
+    
+    Returns:
+        True if the file was written successfully
+    """
+    logger.info(f"Writing to file: {file_path}")
+    try:
+        success = write_file_util(file_path, content)
+        return success
+    except Exception as e:
+        logger.error(f"Error writing to file: {str(e)}")
+        raise
+
+@mcp.tool()
+async def check_path_exists(path: str) -> dict:
+    """Check if a path exists and determine if it's a file or directory.
+    
+    Args:
+        path: Path to check (relative to project directory)
+    
+    Returns:
+        A dictionary with 'exists', 'is_file', and 'is_dir' properties
+    """
+    logger.info(f"Checking if path exists: {path}")
+    try:
+        abs_path, _ = normalize_path(path)
+        exists = abs_path.exists()
+        return {
+            "exists": exists,
+            "is_file": exists and abs_path.is_file(),
+            "is_dir": exists and abs_path.is_dir()
+        }
+    except Exception as e:
+        logger.error(f"Error checking path: {str(e)}")
+        raise
+
+@mcp.tool()
+async def create_directory(directory: str) -> bool:
+    """Create a directory and any necessary parent directories.
+    
+    Args:
+        directory: Path of the directory to create (relative to project directory)
+    
+    Returns:
+        True if the directory was created successfully
+    """
+    logger.info(f"Creating directory: {directory}")
+    try:
+        abs_path, _ = normalize_path(directory)
+        if abs_path.exists():
+            if not abs_path.is_dir():
+                raise ValueError(f"Path exists but is not a directory: {directory}")
+            return True  # Directory already exists
+        
+        abs_path.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Successfully created directory: {directory}")
+        return True
+    except Exception as e:
+        logger.error(f"Error creating directory: {str(e)}")
+        raise
+
+@mcp.tool()
+async def delete_file(file_path: str) -> bool:
+    """Delete a file.
+    
+    Args:
+        file_path: Path to the file to delete (relative to project directory)
+    
+    Returns:
+        True if the file was deleted successfully
+    """
+    logger.info(f"Deleting file: {file_path}")
+    try:
+        abs_path, _ = normalize_path(file_path)
+        if not abs_path.exists():
+            logger.warning(f"File does not exist, nothing to delete: {file_path}")
+            return False
+        
+        if not abs_path.is_file():
+            raise ValueError(f"Path exists but is not a file: {file_path}")
+        
+        abs_path.unlink()
+        logger.info(f"Successfully deleted file: {file_path}")
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting file: {str(e)}")
+        raise
+
+# Run the server when the script is executed directly
+if __name__ == "__main__":
+    mcp.run()
