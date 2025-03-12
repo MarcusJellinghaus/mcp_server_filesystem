@@ -1,0 +1,41 @@
+name: Python Quality Checks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  quality-checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black isort pylint pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+    - name: Check formatting with black
+      run: |
+        black --check src tests
+        
+    - name: Check imports with isort
+      run: |
+        isort --check --profile=black --float-to-top src tests
+        
+    - name: Check for errors with pylint
+      run: |
+        pylint -E ./src ./tests
+        
+    - name: Run tests with pytest
+      run: |
+        pytest tests
