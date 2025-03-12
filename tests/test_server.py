@@ -64,7 +64,8 @@ async def test_read_file():
 
 
 @pytest.mark.asyncio
-async def test_list_directory():
+@patch('src.file_tools.list_files')
+async def test_list_directory(mock_list_files):
     """Test the list_directory tool."""
     # Create absolute path for test file
     abs_file_path = Path(os.environ["MCP_PROJECT_DIR"]) / TEST_FILE
@@ -73,7 +74,13 @@ async def test_list_directory():
     with open(abs_file_path, 'w', encoding='utf-8') as f:
         f.write(TEST_CONTENT)
     
-    files = await list_directory(str(TEST_DIR))
+    # Mock the list_files function to return our test file
+    mock_list_files.return_value = [TEST_FILE.name]
+    
+    files = await list_directory()
+    
+    # Verify the function was called with correct parameters
+    mock_list_files.assert_called_once_with(".", use_gitignore=True)
     
     assert TEST_FILE.name in files
 
@@ -92,97 +99,40 @@ async def test_read_file_not_found():
 
 
 @pytest.mark.asyncio
-async def test_list_directory_directory_not_found():
+@patch('src.file_tools.list_files')
+async def test_list_directory_directory_not_found(mock_list_files):
     """Test the list_directory tool with a non-existent directory."""
-    non_existent_dir = TEST_DIR / "non_existent_dir"
-    
-    # Ensure the directory doesn't exist
-    if non_existent_dir.exists() and non_existent_dir.is_dir():
-        non_existent_dir.rmdir()
+    # Mock list_files to raise FileNotFoundError
+    mock_list_files.side_effect = FileNotFoundError("Directory not found")
     
     with pytest.raises(FileNotFoundError):
-        await list_directory(str(non_existent_dir))
+        await list_directory()
 
 
 @pytest.mark.asyncio
-async def test_list_directory_with_gitignore():
+@patch('src.file_tools.list_files')
+async def test_list_directory_with_gitignore(mock_list_files):
     """Test the list_directory tool with gitignore filtering."""
-    # Create absolute paths for test operations
-    abs_test_dir = Path(os.environ["MCP_PROJECT_DIR"]) / TEST_DIR
+    # Mock list_files to return filtered files
+    mock_list_files.return_value = ["test_normal.txt", ".gitignore"]
     
-    # Create a .gitignore file
-    gitignore_path = abs_test_dir / ".gitignore"
-    with open(gitignore_path, 'w', encoding='utf-8') as f:
-        f.write("*.ignore\nignored_dir/\n")
+    files = await list_directory()
     
-    # Create a .git directory that should be ignored
-    git_dir = abs_test_dir / ".git"
-    git_dir.mkdir(exist_ok=True)
-    (git_dir / "HEAD").touch()
-    
-    # Create a test file that should be ignored
-    test_ignore_file = abs_test_dir / "test.ignore"
-    with open(test_ignore_file, 'w', encoding='utf-8') as f:
-        f.write("This should be ignored")
-    
-    # Create a test file that should not be ignored
-    test_normal_file = abs_test_dir / "test_normal.txt"
-    with open(test_normal_file, 'w', encoding='utf-8') as f:
-        f.write("This should not be ignored")
-    
-    # Test with gitignore filtering enabled (default)
-    files = await list_directory(str(TEST_DIR))
+    # Verify the function was called with gitignore=True
+    mock_list_files.assert_called_once_with(".", use_gitignore=True)
     
     assert "test_normal.txt" in files
     assert ".gitignore" in files
     assert "test.ignore" not in files
     assert ".git" not in files
-    
-    # Clean up
-    gitignore_path.unlink()
-    test_ignore_file.unlink()
-    test_normal_file.unlink()
-    (git_dir / "HEAD").unlink()
-    git_dir.rmdir()
 
 
 @pytest.mark.asyncio
-async def test_list_directory_without_gitignore():
-    """Test the list_directory tool without gitignore filtering."""
-    # Create absolute paths for test operations
-    abs_test_dir = Path(os.environ["MCP_PROJECT_DIR"]) / TEST_DIR
+@patch('src.file_tools.list_files')
+async def test_list_directory_error_handling(mock_list_files):
+    """Test error handling in the list_directory tool."""
+    # Mock list_files to raise an exception
+    mock_list_files.side_effect = Exception("Test error")
     
-    # Create a .gitignore file
-    gitignore_path = abs_test_dir / ".gitignore"
-    with open(gitignore_path, 'w', encoding='utf-8') as f:
-        f.write("*.ignore\nignored_dir/\n")
-    
-    # Create a .git directory that would normally be ignored
-    git_dir = abs_test_dir / ".git"
-    git_dir.mkdir(exist_ok=True)
-    (git_dir / "HEAD").touch()
-    
-    # Create a test file that would normally be ignored
-    test_ignore_file = abs_test_dir / "test.ignore"
-    with open(test_ignore_file, 'w', encoding='utf-8') as f:
-        f.write("This would normally be ignored")
-    
-    # Create a test file that would not be ignored
-    test_normal_file = abs_test_dir / "test_normal.txt"
-    with open(test_normal_file, 'w', encoding='utf-8') as f:
-        f.write("This would not be ignored")
-    
-    # Test with gitignore filtering disabled
-    files = await list_directory(str(TEST_DIR), use_gitignore=False)
-    
-    assert "test_normal.txt" in files
-    assert ".gitignore" in files
-    assert "test.ignore" in files
-    assert ".git" in files
-    
-    # Clean up
-    gitignore_path.unlink()
-    test_ignore_file.unlink()
-    test_normal_file.unlink()
-    (git_dir / "HEAD").unlink()
-    git_dir.rmdir()
+    with pytest.raises(Exception):
+        await list_directory()

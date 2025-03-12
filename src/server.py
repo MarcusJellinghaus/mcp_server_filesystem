@@ -39,22 +39,19 @@ def get_project_dir() -> Path:
     return Path(project_dir)
 
 @mcp.tool()
-async def list_directory(directory: str, use_gitignore: bool = True) -> List[str]:
-    """List files and directories in a specified directory.
-    
-    Args:
-        directory: Path to the directory to list (relative to project directory)
-        use_gitignore: Whether to filter results based on .gitignore patterns
+async def list_directory() -> List[str]:
+    """List files and directories in the project directory.
     
     Returns:
-        A list of filenames in the directory
+        A list of filenames in the project directory
     """
-    logger.info(f"Listing directory: {directory}")
     try:
-        result = list_files_util(directory, use_gitignore)
+        project_dir = get_project_dir()
+        logger.info(f"Listing all files in project directory: {project_dir}")
+        result = list_files_util(".", use_gitignore=True)
         return result
     except Exception as e:
-        logger.error(f"Error listing directory: {str(e)}")
+        logger.error(f"Error listing project directory: {str(e)}")
         raise
 
 @mcp.tool()
