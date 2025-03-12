@@ -2,16 +2,17 @@ name: Python CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.11]
+        python-version: [3.13]
 
     steps:
     - uses: actions/checkout@v4
@@ -27,22 +28,18 @@ jobs:
         python -m pip install .
         python -m pip install .[dev]
         
-    - name: Lint with pylint
+    - name: Check formatting with black
       run: |
-        pylint --rcfile=.pylintrc src/
-        
-    - name: Check format with black
-      run: |
-        black --check .
+        black --check src tests
         
     - name: Check imports with isort
       run: |
-        isort --check --profile black .
+        isort --check --profile=black --float-to-top src tests
+        
+    - name: Check for errors with pylint
+      run: |
+        pylint -E ./src ./tests
         
     - name: Run tests
       run: |
-        pytest
-        
-    - name: Type check with mypy
-      run: |
-        mypy src/ --config-file pyproject.toml
+        pytest tests

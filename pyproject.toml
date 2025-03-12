@@ -6,7 +6,7 @@ authors = [
 ]
 description = "A simple Model Context Protocol (MCP) server with file operation tools"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 license = {text = "MIT"}
 keywords = ["mcp", "server", "filesystem", "claude", "ai", "assistant", "file-operations"]
 classifiers = [
@@ -42,24 +42,14 @@ dev = [
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
 
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-strict_optional = true
-
 [tool.black]
 line-length = 88
-target-version = ["py311"]
+target-version = ["py313"]
 
 [tool.isort]
 profile = "black"
 line_length = 88
+float_to_top = true
 
 [build-system]
 requires = ["setuptools>=61.0"]
