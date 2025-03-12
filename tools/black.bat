@@ -1,1 +1,1 @@
-black --line-length=100 src
+black src tests

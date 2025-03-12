@@ -67,7 +67,9 @@ def normalize_path(path: str) -> tuple[Path, str]:
             resolved_path = absolute_path.resolve()
             project_resolved = project_dir.resolve()
             # Check if the resolved path starts with the resolved project dir
-            if os.path.commonpath([resolved_path, project_resolved]) != str(project_resolved):
+            if os.path.commonpath([resolved_path, project_resolved]) != str(
+                project_resolved
+            ):
                 raise ValueError(
                     f"Security error: Path '{path}' resolves to a location outside "
                     f"the project directory '{project_dir}'. Path traversal is not allowed."
@@ -148,7 +150,9 @@ def list_files(directory: str, use_gitignore: bool = True) -> list[str]:
                 gitignore_patterns.append(".git/")
 
             # Create PathSpec object for pattern matching
-            logger.debug(f"Creating gitignore PathSpec with {len(gitignore_patterns)} patterns")
+            logger.debug(
+                f"Creating gitignore PathSpec with {len(gitignore_patterns)} patterns"
+            )
             spec = PathSpec.from_lines(GitWildMatchPattern, gitignore_patterns)
 
             # Filter files based on gitignore patterns
@@ -169,12 +173,16 @@ def list_files(directory: str, use_gitignore: bool = True) -> list[str]:
                         # Regular file
                         filtered_files.append(item)
 
-            logger.debug(f"Filtered {len(all_files)} files down to {len(filtered_files)} files")
+            logger.debug(
+                f"Filtered {len(all_files)} files down to {len(filtered_files)} files"
+            )
             return filtered_files
 
         except Exception as e:
             # If there's an error parsing .gitignore, log it and return all files
-            logger.warning(f"Error applying gitignore filter: {str(e)}. Returning all files.")
+            logger.warning(
+                f"Error applying gitignore filter: {str(e)}. Returning all files."
+            )
             return all_files
     except Exception as e:
         logger.error(f"Error listing files in directory {rel_path}: {str(e)}")
@@ -251,7 +259,9 @@ def write_file(file_path: str, content: str) -> bool:
             logger.info(f"Creating directory: {abs_path.parent}")
             abs_path.parent.mkdir(parents=True)
     except PermissionError as e:
-        logger.error(f"Permission denied creating directory {abs_path.parent}: {str(e)}")
+        logger.error(
+            f"Permission denied creating directory {abs_path.parent}: {str(e)}"
+        )
         raise
     except Exception as e:
         logger.error(f"Error creating directory {abs_path.parent}: {str(e)}")
@@ -272,7 +282,9 @@ def write_file(file_path: str, content: str) -> bool:
             try:
                 f.write(content)
             except UnicodeEncodeError as e:
-                logger.error(f"Unicode encode error while writing to {rel_path}: {str(e)}")
+                logger.error(
+                    f"Unicode encode error while writing to {rel_path}: {str(e)}"
+                )
                 raise ValueError(
                     f"Content contains characters that cannot be encoded. Please check the encoding."
                 ) from e
@@ -301,4 +313,6 @@ def write_file(file_path: str, content: str) -> bool:
             try:
                 temp_file.unlink()
             except Exception as e:
-                logger.warning(f"Failed to clean up temporary file {temp_file}: {str(e)}")
+                logger.warning(
+                    f"Failed to clean up temporary file {temp_file}: {str(e)}"
+                )

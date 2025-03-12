@@ -36,20 +36,23 @@ def main() -> None:
 
     # Configure logging
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
     # Validate project directory
     project_dir = Path(args.project_dir)
     if not project_dir.exists() or not project_dir.is_dir():
-        logger.error(f"Project directory does not exist or is not a directory: {project_dir}")
+        logger.error(
+            f"Project directory does not exist or is not a directory: {project_dir}"
+        )
         sys.exit(1)
 
     # Set the project directory as a global environment variable
     os.environ["MCP_PROJECT_DIR"] = str(project_dir.absolute())
 
     logger.info(f"Starting MCP server with project directory: {project_dir}")
-    
+
     # Start the server using FastMCP's run method
     mcp.run()
 

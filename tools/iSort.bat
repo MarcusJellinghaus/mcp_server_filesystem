@@ -1,1 +1,1 @@
-isort --line-length=100 --profile=black --float-to-top src tests
+isort --profile=black --float-to-top src tests
