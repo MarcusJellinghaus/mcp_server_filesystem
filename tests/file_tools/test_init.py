@@ -1,4 +1,4 @@
-"""Tests for the file_tools package."""
+"""Tests for the file_tools package initialization."""
 
 # Import all public functions directly from the main package
 from src.file_tools import (

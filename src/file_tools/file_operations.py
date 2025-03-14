@@ -29,7 +29,7 @@ def read_file(file_path: str) -> str:
     if not file_path or not isinstance(file_path, str):
         logger.error(f"Invalid file path: {file_path}")
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
-        
+
     # Normalize the path to be relative to the project directory
     abs_path, rel_path = normalize_path(file_path)
 
@@ -80,16 +80,16 @@ def write_file(file_path: str, content: str) -> bool:
     if not file_path or not isinstance(file_path, str):
         logger.error(f"Invalid file path: {file_path}")
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
-        
+
     # Validate content parameter
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
-        
+
     if not isinstance(content, str):
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
-        
+
     # Normalize the path to be relative to the project directory
     abs_path, rel_path = normalize_path(file_path)
 
@@ -178,7 +178,7 @@ def delete_file(file_path: str) -> bool:
     if not file_path or not isinstance(file_path, str):
         logger.error(f"Invalid file path: {file_path}")
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
-        
+
     # Normalize the path to be relative to the project directory
     abs_path, rel_path = normalize_path(file_path)
 

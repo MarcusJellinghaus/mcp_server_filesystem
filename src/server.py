@@ -6,14 +6,12 @@ from typing import List, Optional
 from mcp.server.fastmcp import FastMCP
 
 # Import utility functions from the main package
-from src.file_tools import (
-    delete_file as delete_file_util,
-    get_project_dir,
-    list_files as list_files_util,
-    normalize_path,
-    read_file as read_file_util,
-    write_file as write_file_util,
-)
+from src.file_tools import delete_file as delete_file_util
+from src.file_tools import get_project_dir
+from src.file_tools import list_files as list_files_util
+from src.file_tools import normalize_path
+from src.file_tools import read_file as read_file_util
+from src.file_tools import write_file as write_file_util
 
 # Configure logging
 logging.basicConfig(
@@ -55,7 +53,7 @@ async def read_file(file_path: str) -> str:
     if not file_path or not isinstance(file_path, str):
         logger.error(f"Invalid file path parameter: {file_path}")
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
-        
+
     logger.info(f"Reading file: {file_path}")
     try:
         content = read_file_util(file_path)
@@ -79,15 +77,15 @@ async def write_file(file_path: str, content: str) -> bool:
     if not file_path or not isinstance(file_path, str):
         logger.error(f"Invalid file path parameter: {file_path}")
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
-        
+
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
-        
+
     if not isinstance(content, str):
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
-        
+
     logger.info(f"Writing to file: {file_path}")
     try:
         success = write_file_util(file_path, content)
@@ -111,7 +109,7 @@ async def delete_file(file_path: str) -> bool:
     if not file_path or not isinstance(file_path, str):
         logger.error(f"Invalid file path parameter: {file_path}")
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
-    
+
     logger.info(f"Deleting file: {file_path}")
     try:
         success = delete_file_util(file_path)

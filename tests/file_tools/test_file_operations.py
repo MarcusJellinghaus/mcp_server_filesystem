@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-# Import functions from the main package
-from src.file_tools import delete_file, read_file, write_file
+# Import functions directly from the module
+from src.file_tools.file_operations import delete_file, read_file, write_file
 from tests.conftest import TEST_CONTENT, TEST_DIR, TEST_FILE
 
 
