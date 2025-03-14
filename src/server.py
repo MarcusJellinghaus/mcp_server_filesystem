@@ -97,7 +97,7 @@ async def write_file(file_path: str, content: str) -> bool:
 
 @mcp.tool()
 async def delete_file(file_path: str) -> bool:
-    """Delete a specified file from the filesystem. This operation is irreversible and will permanently remove the file. Ensure that the correct file path is provided. Only works within allowed directories.
+    """Delete a specified file from the filesystem.
 
     Args:
         file_path: Path to the file to delete (relative to project directory)
@@ -112,6 +112,7 @@ async def delete_file(file_path: str) -> bool:
 
     logger.info(f"Deleting file: {file_path}")
     try:
+        # Directly delete the file without user confirmation
         success = delete_file_util(file_path)
         logger.info(f"File deleted successfully: {file_path}")
         return success
