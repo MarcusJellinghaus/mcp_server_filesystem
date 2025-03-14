@@ -7,103 +7,235 @@ from pathlib import Path
 import pytest
 
 # Import directly from src using absolute imports
-from src.file_tools.directory_utils import list_files
+from src.file_tools.directory_utils import (
+    list_files, 
+    _parse_gitignore_file, 
+    _discover_files,
+    _get_gitignore_spec
+)
+from src.file_tools.path_utils import get_project_dir
 from tests.conftest import TEST_CONTENT, TEST_DIR, TEST_FILE
 
 
-def test_list_files():
-    """Test listing files in a directory."""
-    # Create absolute paths for test operations
-    abs_test_dir = Path(os.environ["MCP_PROJECT_DIR"]) / TEST_DIR
-    abs_test_file = abs_test_dir / TEST_FILE.name
+def create_test_directory_structure(base_dir: Path):
+    """Helper function to create a consistent test directory structure."""
+    # Ensure base directory exists
+    base_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create a test file
-    with open(abs_test_file, "w", encoding="utf-8") as f:
-        f.write(TEST_CONTENT)
-
-    # Test listing files
-    files = list_files(str(TEST_DIR))
-
-    # Verify the file is in the list
-    expected_file_path = str(TEST_DIR / TEST_FILE.name).replace("\\", "/")
-    files = [path.replace("\\", "/") for path in files]
-    assert expected_file_path in files
-
-
-def test_list_files_with_gitignore():
-    """Test listing files with gitignore filtering."""
-    # Create absolute paths for test operations
-    abs_test_dir = Path(os.environ["MCP_PROJECT_DIR"]) / TEST_DIR
-
-    # Ensure test directory exists
-    abs_test_dir.mkdir(parents=True, exist_ok=True)
-
-    # Create a .git directory that should be ignored
-    git_dir = abs_test_dir / ".git"
-    git_dir.mkdir(exist_ok=True)
-    (git_dir / "HEAD").touch()
-
-    # Create some test files
-    (abs_test_dir / "normal.txt").touch()
-    (abs_test_dir / "test.ignore").touch()
-    ignored_dir = abs_test_dir / "ignored_dir"
-    ignored_dir.mkdir(exist_ok=True)
-    (ignored_dir / "ignored_file.txt").touch()
-
-    # Create a gitignore file
-    with open(abs_test_dir / ".gitignore", "w", encoding="utf-8") as f:
-        f.write("*.ignore\nignored_dir/\n")
-
-    # Test listing files with gitignore filtering
-    files = list_files(str(TEST_DIR))
-    files = [path.replace("\\", "/") for path in files]
-
-    # The .gitignore should exclude *.ignore files, the ignored_dir/, and .git/
-    assert str(TEST_DIR / "normal.txt").replace("\\", "/") in files
-    assert str(TEST_DIR / ".gitignore").replace("\\", "/") in files
-    assert str(TEST_DIR / "test.ignore").replace("\\", "/") not in files
-    assert (
-        str(TEST_DIR / "ignored_dir/ignored_file.txt").replace("\\", "/") not in files
-    )
-    assert str(TEST_DIR / ".git/HEAD").replace("\\", "/") not in files
+    # Create test file structure
+    (base_dir / "file1.txt").touch()
+    (base_dir / "file2.log").touch()
+    subdir = base_dir / "subdir"
+    subdir.mkdir(parents=True)
+    (subdir / "subfile1.txt").touch()
+    (subdir / "subfile2.log").touch()
+    nested_dir = subdir / "nested"
+    nested_dir.mkdir(parents=True)
+    (nested_dir / "nestedfile.txt").touch()
+    return base_dir
 
 
-def test_list_files_without_gitignore():
+def test_discover_files(tmp_path):
+    """Test file discovery without filtering."""
+    # Create test directory structure
+    test_dir = create_test_directory_structure(tmp_path / "test_discover")
+
+    # Use project directory for relative path calculation
+    project_dir = get_project_dir()
+    
+    # Create a unique test project directory 
+    test_project_dir = project_dir / "tests" / "test_discover_temp"
+    
+    try:
+        # Copy the test directory to within the project directory
+        test_project_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(test_dir, test_project_dir, dirs_exist_ok=True)
+
+        # Discover files using absolute path within project directory
+        discovered = _discover_files(test_project_dir)
+
+        # Verify file discovery
+        assert len(discovered) == 5
+        assert all(isinstance(path, str) for path in discovered)
+
+    finally:
+        # Clean up: remove the temporary test directory
+        if test_project_dir.exists():
+            shutil.rmtree(test_project_dir)
+
+
+def test_parse_gitignore_file(tmp_path):
+    """Test gitignore file parsing."""
+    # Create a test .gitignore file
+    gitignore_path = tmp_path / ".gitignore"
+    gitignore_content = """
+    # This is a comment
+    *.log
+    build/
+    .env
+    
+    # Blank lines should be ignored
+    
+    temp/
+    """
+    gitignore_path.write_text(gitignore_content)
+
+    # Parse the gitignore file
+    patterns = _parse_gitignore_file(gitignore_path, tmp_path)
+
+    # Check patterns
+    expected_patterns = [
+        ".git/",
+        "*.log",
+        "build/",
+        ".env",
+        "temp/"
+    ]
+    
+    # Ensure all expected patterns are present
+    for pattern in expected_patterns:
+        assert pattern in patterns, f"Pattern {pattern} not found in parsed patterns"
+    
+    # Ensure comments and blank lines are removed
+    assert len(patterns) == len(expected_patterns)
+
+
+def test_gitignore_spec(tmp_path):
+    """Test creation of gitignore spec."""
+    # Create a test .gitignore file
+    gitignore_path = tmp_path / ".gitignore"
+    gitignore_content = """
+    *.log
+    build/
+    temp/
+    """
+    gitignore_path.write_text(gitignore_content)
+
+    # Create spec
+    spec = _get_gitignore_spec(tmp_path)
+
+    # Validate spec
+    assert spec is not None
+
+    # Test matching
+    assert spec.match_file("app.log")
+    assert spec.match_file("build/")
+    assert spec.match_file("build/file.txt")
+    assert spec.match_file("temp/somefile.txt")
+    
+    # These should not match
+    assert not spec.match_file("app.txt")
+    assert not spec.match_file("logs/")
+
+
+def test_list_files_with_gitignore(tmp_path):
+    """Test listing files with a gitignore scenario."""
+    # Create test directory
+    test_dir = tmp_path / "test_gitignore"
+    test_dir.mkdir(parents=True)
+
+    # Create .gitignore
+    gitignore_path = test_dir / ".gitignore"
+    gitignore_path.write_text("""
+    *.log
+    build/
+    temp/
+    """)
+
+    # Create test files and directories
+    (test_dir / "file1.txt").touch()
+    (test_dir / "file2.log").touch()
+    
+    build_dir = test_dir / "build"
+    build_dir.mkdir()
+    (build_dir / "build_file.txt").touch()
+    
+    temp_dir = test_dir / "temp"
+    temp_dir.mkdir()
+    (temp_dir / "temp_file.txt").touch()
+
+    # Create a test directory within the project tests directory
+    project_test_dir = get_project_dir() / "tests" / "temp_test_dir"
+    
+    try:
+        project_test_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(test_dir, project_test_dir, dirs_exist_ok=True)
+
+        # Use list_files on the project test directory
+        discovered = list_files(str(project_test_dir), use_gitignore=True)
+        discovered = [path.replace("\\", "/") for path in discovered]
+
+        # Expected files
+        expected_files = [
+            "tests/temp_test_dir/file1.txt",
+            "tests/temp_test_dir/.gitignore"
+        ]
+
+        # Verify
+        assert set(discovered) == set(expected_files)
+
+    finally:
+        # Clean up: remove the temporary test directory
+        if project_test_dir.exists():
+            shutil.rmtree(project_test_dir)
+
+
+def test_list_files_without_gitignore(tmp_path):
     """Test listing files without gitignore filtering."""
-    # Create absolute paths for test operations
-    abs_test_dir = Path(os.environ["MCP_PROJECT_DIR"]) / TEST_DIR
+    # Create test directory
+    test_dir = tmp_path / "test_no_gitignore"
+    test_dir.mkdir(parents=True)
 
-    # Ensure test directory exists
-    abs_test_dir.mkdir(parents=True, exist_ok=True)
+    # Create .gitignore
+    gitignore_path = test_dir / ".gitignore"
+    gitignore_path.write_text("""
+    *.log
+    build/
+    temp/
+    """)
 
-    # Create a .git directory that should be included when gitignore is disabled
-    git_dir = abs_test_dir / ".git"
-    git_dir.mkdir(exist_ok=True)
-    (git_dir / "HEAD").touch()
+    # Create test files and directories
+    (test_dir / "file1.txt").touch()
+    (test_dir / "file2.log").touch()
+    
+    build_dir = test_dir / "build"
+    build_dir.mkdir()
+    (build_dir / "build_file.txt").touch()
+    
+    temp_dir = test_dir / "temp"
+    temp_dir.mkdir()
+    (temp_dir / "temp_file.txt").touch()
 
-    # Create some test files
-    (abs_test_dir / "normal.txt").touch()
-    (abs_test_dir / "test.ignore").touch()
-    ignored_dir = abs_test_dir / "ignored_dir"
-    ignored_dir.mkdir(exist_ok=True)
-    (ignored_dir / "ignored_file.txt").touch()
+    # Create a test directory within the project tests directory
+    project_test_dir = get_project_dir() / "tests" / "temp_test_dir_no_gitignore"
+    
+    try:
+        project_test_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(test_dir, project_test_dir, dirs_exist_ok=True)
 
-    # Create a gitignore file
-    with open(abs_test_dir / ".gitignore", "w", encoding="utf-8") as f:
-        f.write("*.ignore\nignored_dir/\n")
+        # Use list_files without gitignore filtering
+        discovered = list_files(str(project_test_dir), use_gitignore=False)
+        discovered = [path.replace("\\", "/") for path in discovered]
 
-    # Test listing files without gitignore filtering
-    files = list_files(str(TEST_DIR), use_gitignore=False)
-    files = [path.replace("\\", "/") for path in files]
+        # Expected files (all files)
+        expected_files = [
+            "tests/temp_test_dir_no_gitignore/file1.txt",
+            "tests/temp_test_dir_no_gitignore/file2.log",
+            "tests/temp_test_dir_no_gitignore/build/build_file.txt",
+            "tests/temp_test_dir_no_gitignore/temp/temp_file.txt",
+            "tests/temp_test_dir_no_gitignore/.gitignore"
+        ]
 
-    # When gitignore is disabled, all files should be included
-    assert str(TEST_DIR / "normal.txt").replace("\\", "/") in files
-    assert str(TEST_DIR / ".gitignore").replace("\\", "/") in files
-    assert str(TEST_DIR / "test.ignore").replace("\\", "/") in files
-    assert str(TEST_DIR / "ignored_dir/ignored_file.txt").replace("\\", "/") in files
-    assert str(TEST_DIR / ".git/HEAD").replace("\\", "/") in files
+        # Verify
+        assert set(discovered) == set(expected_files)
+
+    finally:
+        # Clean up: remove the temporary test directory
+        if project_test_dir.exists():
+            shutil.rmtree(project_test_dir)
 
 
+# Existing tests remain the same
 def test_list_files_directory_not_found():
     """Test listing files in a directory that doesn't exist."""
     non_existent_dir = TEST_DIR / "non_existent_dir"
@@ -121,73 +253,6 @@ def test_list_files_directory_not_found():
         list_files(str(non_existent_dir))
 
 
-def test_list_files_recursive():
-    """Test listing files recursively in a directory structure."""
-    # Create absolute paths for test operations
-    abs_test_dir = Path(os.environ["MCP_PROJECT_DIR"]) / TEST_DIR
-    abs_test_file = abs_test_dir / TEST_FILE.name
-
-    # Ensure the test directory exists
-    abs_test_dir.mkdir(parents=True, exist_ok=True)
-
-    # Create a test file
-    with open(abs_test_file, "w", encoding="utf-8") as f:
-        f.write(TEST_CONTENT)
-
-    # Create subdirectories and files
-    sub_dir = abs_test_dir / "subdir"
-    sub_dir.mkdir(exist_ok=True)
-    sub_file = sub_dir / "subfile.txt"
-    with open(sub_file, "w", encoding="utf-8") as f:
-        f.write("Subfile content")
-
-    nested_dir = sub_dir / "nested"
-    nested_dir.mkdir(exist_ok=True)
-    nested_file = nested_dir / "nested_file.txt"
-    with open(nested_file, "w", encoding="utf-8") as f:
-        f.write("Nested file content")
-
-    # Create a .gitignore to ignore some patterns
-    with open(abs_test_dir / ".gitignore", "w", encoding="utf-8") as f:
-        f.write("*.ignore\nignored_dir/\n")
-
-    # Create an ignored file and directory
-    (abs_test_dir / "test.ignore").touch()
-    ignored_dir = abs_test_dir / "ignored_dir"
-    ignored_dir.mkdir(exist_ok=True)
-    (ignored_dir / "ignored_file.txt").touch()
-
-    # Test listing files
-    files = list_files(str(TEST_DIR))
-
-    # Verify expected paths are in the list
-    expected_paths = [
-        str(TEST_DIR / TEST_FILE.name),
-        str(TEST_DIR / ".gitignore"),
-        str(TEST_DIR / "subdir" / "subfile.txt"),
-        str(TEST_DIR / "subdir" / "nested" / "nested_file.txt"),
-    ]
-
-    # Replace backslashes with forward slashes for consistent path comparison
-    files = [path.replace("\\", "/") for path in files]
-    expected_paths = [path.replace("\\", "/") for path in expected_paths]
-
-    # Check that all expected paths are in the list
-    for path in expected_paths:
-        assert path in files, f"Expected {path} to be in the list"
-
-    # Check that ignored paths are not in the list
-    ignored_paths = [
-        str(TEST_DIR / "test.ignore"),
-        str(TEST_DIR / "ignored_dir" / "ignored_file.txt"),
-    ]
-
-    ignored_paths = [path.replace("\\", "/") for path in ignored_paths]
-
-    for path in ignored_paths:
-        assert path not in files, f"Did not expect {path} to be in the list"
-
-
 def test_list_files_security():
     """Test security checks in list_files."""
     # Try to list files outside the project directory
@@ -197,3 +262,23 @@ def test_list_files_security():
     # Verify the security error message
     assert "Security error" in str(excinfo.value)
     assert "outside the project directory" in str(excinfo.value)
+
+
+def test_list_files_existing_functionality():
+    """Verify that existing functionality remains the same."""
+    # Create absolute paths for test operations
+    abs_test_dir = Path(os.environ["MCP_PROJECT_DIR"]) / TEST_DIR
+    abs_test_file = abs_test_dir / TEST_FILE.name
+
+    # Create a test file
+    abs_test_dir.mkdir(parents=True, exist_ok=True)
+    with open(abs_test_file, "w", encoding="utf-8") as f:
+        f.write(TEST_CONTENT)
+
+    # Test listing files
+    files = list_files(str(TEST_DIR))
+
+    # Verify the file is in the list
+    expected_file_path = str(TEST_DIR / TEST_FILE.name).replace("\\", "/")
+    files = [path.replace("\\", "/") for path in files]
+    assert expected_file_path in files
