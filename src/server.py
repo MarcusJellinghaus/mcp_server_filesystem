@@ -6,6 +6,7 @@ from typing import List, Optional
 from mcp.server.fastmcp import FastMCP
 
 # Import utility functions from file_tools
+from src.file_tools import delete_file as delete_file_util
 from src.file_tools import list_files as list_files_util
 from src.file_tools import normalize_path
 from src.file_tools import read_file as read_file_util
@@ -92,6 +93,25 @@ async def write_file(file_path: str, content: str) -> bool:
         return success
     except Exception as e:
         logger.error(f"Error writing to file: {str(e)}")
+        raise
+
+
+@mcp.tool()
+async def delete_file(file_path: str) -> bool:
+    """Delete a specified file from the filesystem. This operation is irreversible and will permanently remove the file. Ensure that the correct file path is provided. Only works within allowed directories.
+
+    Args:
+        file_path: Path to the file to delete (relative to project directory)
+
+    Returns:
+        True if the file was deleted successfully
+    """
+    logger.info(f"Deleting file: {file_path}")
+    try:
+        success = delete_file_util(file_path)
+        return success
+    except Exception as e:
+        logger.error(f"Error deleting file: {str(e)}")
         raise
 
 

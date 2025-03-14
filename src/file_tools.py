@@ -314,3 +314,43 @@ def write_file(file_path: str, content: str) -> bool:
                 logger.warning(
                     f"Failed to clean up temporary file {temp_file}: {str(e)}"
                 )
+
+
+def delete_file(file_path: str) -> bool:
+    """
+    Delete a file.
+
+    Args:
+        file_path: Path to the file to delete (relative to project directory)
+
+    Returns:
+        True if the file was deleted successfully
+
+    Raises:
+        FileNotFoundError: If the file does not exist
+        PermissionError: If access to the file is denied
+        IsADirectoryError: If the path points to a directory
+        ValueError: If the file is outside the project directory
+    """
+    # Normalize the path to be relative to the project directory
+    abs_path, rel_path = normalize_path(file_path)
+
+    if not abs_path.exists():
+        logger.error(f"File not found: {file_path}")
+        raise FileNotFoundError(f"File '{file_path}' does not exist")
+
+    if not abs_path.is_file():
+        logger.error(f"Path is not a file: {file_path}")
+        raise IsADirectoryError(f"Path '{file_path}' is not a file or is a directory")
+
+    try:
+        logger.debug(f"Deleting file: {rel_path}")
+        abs_path.unlink()
+        logger.debug(f"Successfully deleted file: {rel_path}")
+        return True
+    except PermissionError as e:
+        logger.error(f"Permission denied when deleting file {rel_path}: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting file {rel_path}: {str(e)}")
+        raise

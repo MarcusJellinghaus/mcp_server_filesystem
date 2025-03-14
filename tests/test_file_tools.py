@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from src.file_tools import list_files, read_file, write_file
+from src.file_tools import delete_file, list_files, read_file, write_file
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -42,6 +42,8 @@ def teardown_function():
             "test.ignore",
             "test_api_file.txt",
             "test_normal.txt",
+            "file_to_delete.txt",
+            ".gitignore",  # Added .gitignore to the list of files to remove
         ]
 
         # Remove specific files
@@ -338,3 +340,73 @@ def test_list_files_recursive():
 
     for path in ignored_paths:
         assert path not in files, f"Did not expect {path} to be in the list"
+
+
+def test_delete_file():
+    """Test deleting a file."""
+    # Create a file to delete
+    file_to_delete = TEST_DIR / "file_to_delete.txt"
+    abs_file_path = Path(os.environ["MCP_PROJECT_DIR"]) / file_to_delete
+
+    # Ensure the file exists
+    with open(abs_file_path, "w", encoding="utf-8") as f:
+        f.write("This file will be deleted.")
+
+    # Verify the file exists
+    assert abs_file_path.exists()
+
+    # Test deleting the file
+    result = delete_file(str(file_to_delete))
+
+    # Verify the file was deleted
+    assert result is True
+    assert not abs_file_path.exists()
+
+
+def test_delete_file_not_found():
+    """Test deleting a file that doesn't exist."""
+    non_existent_file = TEST_DIR / "non_existent_file.txt"
+
+    # Ensure the file doesn't exist
+    abs_non_existent = Path(os.environ["MCP_PROJECT_DIR"]) / non_existent_file
+    if abs_non_existent.exists():
+        abs_non_existent.unlink()
+
+    # Test deleting a non-existent file
+    with pytest.raises(FileNotFoundError):
+        delete_file(str(non_existent_file))
+
+
+def test_delete_file_is_directory():
+    """Test attempting to delete a directory."""
+    # Create a directory
+    dir_path = TEST_DIR / "test_directory"
+    abs_dir_path = Path(os.environ["MCP_PROJECT_DIR"]) / dir_path
+
+    # Ensure the directory exists
+    abs_dir_path.mkdir(exist_ok=True)
+
+    # Verify the directory exists
+    assert abs_dir_path.exists()
+    assert abs_dir_path.is_dir()
+
+    # Test attempting to delete a directory
+    with pytest.raises(IsADirectoryError):
+        delete_file(str(dir_path))
+
+    # Verify the directory still exists
+    assert abs_dir_path.exists()
+
+    # Clean up
+    shutil.rmtree(abs_dir_path)
+
+
+def test_delete_file_security():
+    """Test security checks in delete_file."""
+    # Try to delete a file outside the project directory
+    with pytest.raises(ValueError) as excinfo:
+        delete_file("../outside_project.txt")
+
+    # Verify the security error message
+    assert "Security error" in str(excinfo.value)
+    assert "outside the project directory" in str(excinfo.value)

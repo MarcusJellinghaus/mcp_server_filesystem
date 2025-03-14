@@ -9,6 +9,7 @@ This MCP server enables AI assistants like Claude (via Claude Desktop) or other 
 - Read your existing code and project files
 - Write new files with generated content
 - Update and modify existing files
+- Delete files when needed
 - Review repositories to provide analysis and recommendations
 - Debug and fix issues in your codebase
 - Generate complete implementations based on your specifications
@@ -22,6 +23,7 @@ By connecting your AI assistant to your filesystem, you can transform your workf
 - `list_directory`: List all files and directories in the project directory
 - `read_file`: Read the contents of a file
 - `write_file`: Write content to a file atomically
+- `delete_file`: Delete a specified file from the filesystem
 
 ## Installation
 
@@ -81,7 +83,7 @@ To enable Claude to use this file system server for accessing files in your loca
 
 4. Restart the Claude desktop app to apply changes
 
-Claude will now be able to list, read, and write files in your specified project directory.
+Claude will now be able to list, read, write, and delete files in your specified project directory.
 
 5. Log files location:
    - Windows: `%APPDATA%\Claude\logs`
@@ -134,11 +136,19 @@ The server exposes the following MCP tools:
   - `content` (string): Content to write to the file
 - Returns: Boolean indicating success
 
+### Delete File
+- Deletes a specified file from the filesystem
+- Parameters:
+  - `file_path` (string): Path to the file to delete (relative to project directory)
+- Returns: Boolean indicating success
+- Note: This operation is irreversible and will permanently remove the file. Only works within allowed directories.
+
 ## Security Features
 
 - All paths are normalized and validated to ensure they remain within the project directory
 - Path traversal attacks are prevented
 - Files are written atomically to prevent data corruption
+- Delete operations are restricted to the project directory for safety
 
 ## Development
 
