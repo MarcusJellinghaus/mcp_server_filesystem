@@ -3,7 +3,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional, List, Union
+from typing import List, Optional, Union
 
 from pathspec import PathSpec
 from pathspec.patterns import GitWildMatchPattern
@@ -31,11 +31,11 @@ def _parse_gitignore_file(gitignore_path: Path, base_path: Path) -> List[str]:
         with open(gitignore_path, "r", encoding="utf-8") as f:
             # Read lines, strip whitespace and comments
             raw_patterns = [
-                line.strip() 
-                for line in f 
-                if line.strip() and not line.strip().startswith('#')
+                line.strip()
+                for line in f
+                if line.strip() and not line.strip().startswith("#")
             ]
-        
+
         # Default ignore list
         patterns = [".git/"]
 
@@ -46,12 +46,12 @@ def _parse_gitignore_file(gitignore_path: Path, base_path: Path) -> List[str]:
                 continue
 
             # Handle negation patterns
-            if pattern.startswith('!'):
+            if pattern.startswith("!"):
                 # Negation patterns are more complex, for now we'll skip them
                 continue
 
             # Normalize path separators
-            pattern = pattern.replace('\\', '/')
+            pattern = pattern.replace("\\", "/")
 
             patterns.append(pattern)
 
@@ -108,29 +108,57 @@ def _discover_files(directory: Path) -> List[str]:
         List of file paths relative to the project directory
     """
     project_dir = get_project_dir()
-    
+
     discovered_files = []
-    
+
     try:
         for root, _, files in os.walk(directory):
             root_path = Path(root)
-            
+
             # Skip any directories that are not within the project
             try:
                 rel_root = root_path.relative_to(project_dir)
             except ValueError:
                 continue
-            
+
             for file in files:
                 # Construct full relative path
                 rel_file_path = str(rel_root / file)
                 discovered_files.append(rel_file_path)
-        
+
         return discovered_files
-    
+
     except Exception as e:
         logger.error(f"Error discovering files in {directory}: {e}")
         raise
+
+
+def filter_files_with_gitignore(
+    files: List[str], gitignore_spec: Optional[PathSpec]
+) -> List[str]:
+    """
+    Filter files based on gitignore patterns.
+
+    Args:
+        files: List of file paths to filter
+        gitignore_spec: PathSpec object with gitignore patterns
+
+    Returns:
+        Filtered list of files
+    """
+    # If no spec, return all files
+    if not gitignore_spec:
+        return files
+
+    # Filter files based on gitignore patterns
+    filtered_files = [
+        file
+        for file in files
+        if not gitignore_spec.match_file(file)
+        and not gitignore_spec.match_file(f"{file}/")
+    ]
+
+    return filtered_files
 
 
 def list_files(directory: Union[str, Path], use_gitignore: bool = True) -> List[str]:
@@ -172,17 +200,8 @@ def list_files(directory: Union[str, Path], use_gitignore: bool = True) -> List[
         # Get gitignore spec
         spec = _get_gitignore_spec(abs_path)
 
-        # If no spec, return all files
-        if not spec:
-            return all_files
-
         # Filter files based on gitignore patterns
-        filtered_files = [
-            file for file in all_files 
-            if not spec.match_file(file) and not spec.match_file(f"{file}/")
-        ]
-
-        return filtered_files
+        return filter_files_with_gitignore(all_files, spec)
 
     except Exception as e:
         logger.error(f"Error listing files in directory {rel_path}: {str(e)}")
