@@ -5,12 +5,15 @@ from typing import List, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-# Import utility functions from file_tools
-from src.file_tools import delete_file as delete_file_util
-from src.file_tools import list_files as list_files_util
-from src.file_tools import normalize_path
-from src.file_tools import read_file as read_file_util
-from src.file_tools import write_file as write_file_util
+# Import utility functions from the main package
+from src.file_tools import (
+    delete_file as delete_file_util,
+    get_project_dir,
+    list_files as list_files_util,
+    normalize_path,
+    read_file as read_file_util,
+    write_file as write_file_util,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -20,24 +23,6 @@ logger = logging.getLogger(__name__)
 
 # Create a FastMCP server instance
 mcp = FastMCP("File System Service")
-
-
-def get_project_dir() -> Path:
-    """
-    Get the absolute path to the project directory.
-
-    Returns:
-        Path object of the project directory
-
-    Raises:
-        RuntimeError: If MCP_PROJECT_DIR environment variable is not set
-    """
-    project_dir = os.environ.get("MCP_PROJECT_DIR")
-    if not project_dir:
-        raise RuntimeError(
-            "Project directory not set. Make sure to set the MCP_PROJECT_DIR environment variable."
-        )
-    return Path(project_dir)
 
 
 @mcp.tool()
@@ -67,6 +52,10 @@ async def read_file(file_path: str) -> str:
     Returns:
         The contents of the file as a string
     """
+    if not file_path or not isinstance(file_path, str):
+        logger.error(f"Invalid file path parameter: {file_path}")
+        raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
+        
     logger.info(f"Reading file: {file_path}")
     try:
         content = read_file_util(file_path)
@@ -87,6 +76,18 @@ async def write_file(file_path: str, content: str) -> bool:
     Returns:
         True if the file was written successfully
     """
+    if not file_path or not isinstance(file_path, str):
+        logger.error(f"Invalid file path parameter: {file_path}")
+        raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
+        
+    if content is None:
+        logger.warning("Content is None, treating as empty string")
+        content = ""
+        
+    if not isinstance(content, str):
+        logger.error(f"Invalid content type: {type(content)}")
+        raise ValueError(f"Content must be a string, got {type(content)}")
+        
     logger.info(f"Writing to file: {file_path}")
     try:
         success = write_file_util(file_path, content)
@@ -106,12 +107,18 @@ async def delete_file(file_path: str) -> bool:
     Returns:
         True if the file was deleted successfully
     """
+    # Validate the file_path parameter
+    if not file_path or not isinstance(file_path, str):
+        logger.error(f"Invalid file path parameter: {file_path}")
+        raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
+    
     logger.info(f"Deleting file: {file_path}")
     try:
         success = delete_file_util(file_path)
+        logger.info(f"File deleted successfully: {file_path}")
         return success
     except Exception as e:
-        logger.error(f"Error deleting file: {str(e)}")
+        logger.error(f"Error deleting file {file_path}: {str(e)}")
         raise
 
 
