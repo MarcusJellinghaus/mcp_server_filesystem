@@ -14,45 +14,23 @@ logger = logging.getLogger(__name__)
 
 
 def _parse_gitignore_file(gitignore_path: Path, base_path: Path) -> List[str]:
-    """
-    Parse a gitignore file and normalize patterns relative to the base path.
-
-    Args:
-        gitignore_path: Path to the .gitignore file
-        base_path: Base path to resolve relative patterns against
-
-    Returns:
-        List of normalized gitignore patterns
-    """
+    """Parse a gitignore file and normalize patterns."""
     if not gitignore_path.is_file():
         return []
 
     try:
         with open(gitignore_path, "r", encoding="utf-8") as f:
-            # Read lines, strip whitespace and comments
             raw_patterns = [
                 line.strip()
                 for line in f
                 if line.strip() and not line.strip().startswith("#")
             ]
 
-        # Default ignore list
         patterns = [".git/"]
-
-        # Process each pattern
         for pattern in raw_patterns:
-            # Ignore empty patterns
             if not pattern:
                 continue
-
-            # Handle negation patterns
-            if pattern.startswith("!"):
-                # Negation patterns are more complex, for now we'll skip them
-                continue
-
-            # Normalize path separators
             pattern = pattern.replace("\\", "/")
-
             patterns.append(pattern)
 
         return patterns
@@ -63,30 +41,16 @@ def _parse_gitignore_file(gitignore_path: Path, base_path: Path) -> List[str]:
 
 
 def _get_gitignore_spec(directory_path: Path) -> Optional[PathSpec]:
-    """
-    Get a PathSpec object by combining gitignore patterns from multiple sources.
-
-    Args:
-        directory_path: Absolute path to the directory
-
-    Returns:
-        A PathSpec object or None if no patterns found
-    """
-    # Get project directory
+    """Get a PathSpec object combining gitignore patterns."""
     project_dir = get_project_dir()
-
-    # Collect patterns from different sources
     all_patterns = []
 
-    # 1. Root project .gitignore
     root_gitignore = project_dir / ".gitignore"
     all_patterns.extend(_parse_gitignore_file(root_gitignore, project_dir))
 
-    # 2. Local directory .gitignore
     local_gitignore = directory_path / ".gitignore"
     all_patterns.extend(_parse_gitignore_file(local_gitignore, directory_path))
 
-    # Create PathSpec if we have patterns
     if all_patterns:
         try:
             return PathSpec.from_lines(GitWildMatchPattern, all_patterns)
@@ -98,31 +62,19 @@ def _get_gitignore_spec(directory_path: Path) -> Optional[PathSpec]:
 
 
 def _discover_files(directory: Path) -> List[str]:
-    """
-    Discover all files in a directory recursively.
-
-    Args:
-        directory: Absolute path to the directory
-
-    Returns:
-        List of file paths relative to the project directory
-    """
+    """Discover all files recursively."""
     project_dir = get_project_dir()
-
     discovered_files = []
 
     try:
         for root, _, files in os.walk(directory):
             root_path = Path(root)
-
-            # Skip any directories that are not within the project
             try:
                 rel_root = root_path.relative_to(project_dir)
             except ValueError:
                 continue
 
             for file in files:
-                # Construct full relative path
                 rel_file_path = str(rel_root / file)
                 discovered_files.append(rel_file_path)
 
@@ -144,43 +96,28 @@ def filter_files_with_gitignore(
         gitignore_spec: PathSpec object with gitignore patterns
 
     Returns:
-        Filtered list of files
+        Filtered list of files not matching gitignore patterns
     """
-    # If no spec, return all files
     if not gitignore_spec:
         return files
 
-    # Filter files based on gitignore patterns
-    filtered_files = [
-        file
-        for file in files
-        if not gitignore_spec.match_file(file)
-        and not gitignore_spec.match_file(f"{file}/")
-    ]
-
-    return filtered_files
+    result = []
+    
+    for file_path in files:
+        # Normalize path for consistent matching
+        norm_path = file_path.replace("\\", "/")
+        
+        # Simple matching using PathSpec
+        if not gitignore_spec.match_file(norm_path):
+            result.append(file_path)
+    
+    return result
 
 
 def list_files(directory: Union[str, Path], use_gitignore: bool = True) -> List[str]:
-    """
-    List all files in a directory and its subdirectories.
-
-    Args:
-        directory: Path to the directory to list files from (relative to project directory)
-        use_gitignore: Whether to filter results based on .gitignore patterns (default: True)
-
-    Returns:
-        A list of filenames in the directory and subdirectories (relative to project directory)
-
-    Raises:
-        FileNotFoundError: If the directory does not exist
-        NotADirectoryError: If the path is not a directory
-        ValueError: If the directory is outside the project directory
-    """
-    # Normalize the path to be relative to the project directory
+    """List all files in a directory and its subdirectories."""
     abs_path, rel_path = normalize_path(directory)
 
-    # Validate directory
     if not abs_path.exists():
         logger.error(f"Directory not found: {directory}")
         raise FileNotFoundError(f"Directory '{directory}' does not exist")
@@ -190,17 +127,12 @@ def list_files(directory: Union[str, Path], use_gitignore: bool = True) -> List[
         raise NotADirectoryError(f"Path '{directory}' is not a directory")
 
     try:
-        # Discover all files first
         all_files = _discover_files(abs_path)
 
-        # If gitignore filtering is disabled, return all files
         if not use_gitignore:
             return all_files
 
-        # Get gitignore spec
         spec = _get_gitignore_spec(abs_path)
-
-        # Filter files based on gitignore patterns
         return filter_files_with_gitignore(all_files, spec)
 
     except Exception as e:
