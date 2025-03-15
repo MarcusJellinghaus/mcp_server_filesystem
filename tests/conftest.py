@@ -44,6 +44,13 @@ def setup_and_cleanup():
             "test_normal.txt",
             "file_to_delete.txt",
             ".gitignore",
+            "test1.txt",
+            "test2.txt",
+            "test3.txt",
+            "keep.txt",
+            "ignore.log",
+            "dont_ignore.log",
+            "not_a_dir.txt",
         ]
 
         # Remove specific files
@@ -70,7 +77,9 @@ def setup_and_cleanup():
         # Remove any leftover temporary files
         for item in abs_test_dir.iterdir():
             if item.is_file() and (
-                item.name.startswith("tmp") or item.name.endswith(".txt")
+                item.name.startswith("tmp")
+                or item.name.endswith(".txt")
+                or item.name.endswith(".log")
             ):
                 item.unlink()
             elif item.is_dir() and item.name not in [".git", "ignored_dir", "subdir"]:
