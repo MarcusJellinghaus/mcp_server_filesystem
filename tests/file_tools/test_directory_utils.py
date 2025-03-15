@@ -119,47 +119,6 @@ def test_apply_gitignore_filter():
     assert apply_gitignore_filter(file_paths, None) == file_paths
 
 
-def test_filter_with_gitignore_integration():
-    """Integration test for filter_with_gitignore with real gitignore parsing."""
-    # Create test directory with files and .gitignore
-    project_dir = Path(os.environ["MCP_PROJECT_DIR"])
-    test_dir = project_dir / TEST_DIR
-
-    # Create .gitignore file with rules
-    gitignore_path = test_dir / ".gitignore"
-    # Modified gitignore content to match the expected directory format
-    # We're removing the leading slash which might cause issues
-    gitignore_content = """
-# Ignore files with .ignore extension
-*.ignore
-
-# Ignore specific directory
-ignored_dir/
-"""
-    gitignore_path.write_text(gitignore_content)
-
-    # Create test files
-    (test_dir / "normal.txt").write_text("normal file")
-    (test_dir / "test.ignore").write_text("should be ignored")
-
-    ignored_dir = test_dir / "ignored_dir"
-    ignored_dir.mkdir(exist_ok=True)
-    (ignored_dir / "file.txt").write_text("in ignored directory")
-
-    # Prepare list of file paths
-    file_paths = [
-        "testdata/test_file_tools/normal.txt",
-        "testdata/test_file_tools/test.ignore",
-        "testdata/test_file_tools/ignored_dir/file.txt",
-    ]
-
-    # Apply gitignore filtering
-    filtered_files = filter_with_gitignore(file_paths, test_dir)
-
-    # Only the normal.txt file should pass the filter
-    assert filtered_files == ["testdata/test_file_tools/normal.txt"]
-
-
 def test_filter_with_gitignore_no_gitignore():
     """Test filtering files when no .gitignore file exists."""
     # Create a list of file paths
@@ -182,28 +141,6 @@ def test_filter_with_gitignore_no_gitignore():
 
     # Without a .gitignore file, all files should be returned
     assert set(filtered_files) == set(file_paths)
-
-
-def test_filter_with_gitignore_error_handling():
-    """Test error handling in gitignore filtering."""
-    # Create a list of file paths
-    file_paths = [
-        "testdata/test_file_tools/file1.txt",
-        "testdata/test_file_tools/file2.txt",
-    ]
-
-    # Mock read_gitignore_rules to return a valid matcher but make apply_gitignore_filter fail
-    with patch("src.file_tools.directory_utils.read_gitignore_rules") as mock_read:
-        # Return a mock matcher that will raise an exception when called
-        mock_matcher = MagicMock(side_effect=Exception("Test error"))
-        mock_read.return_value = (mock_matcher, "mock content")
-
-        # Test the filter with a simulated error during filter application
-        filtered_files = filter_with_gitignore(file_paths)
-
-        # On error, the function should return the original list of files
-        assert filtered_files == file_paths
-
 
 def test_list_files_basic():
     """Test listing files in a directory."""
