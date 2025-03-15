@@ -1,13 +1,11 @@
 import logging
-import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from mcp.server.fastmcp import FastMCP
 
 # Import utility functions from the main package
 from src.file_tools import delete_file as delete_file_util
-from src.file_tools import get_project_dir
 from src.file_tools import list_files as list_files_util
 from src.file_tools import normalize_path
 from src.file_tools import read_file as read_file_util
@@ -22,6 +20,20 @@ logger = logging.getLogger(__name__)
 # Create a FastMCP server instance
 mcp = FastMCP("File System Service")
 
+# Store the project directory as a module-level variable
+_project_dir: Path = None
+
+
+def set_project_dir(directory: Path) -> None:
+    """Set the project directory for file operations.
+    
+    Args:
+        directory: The project directory path
+    """
+    global _project_dir
+    _project_dir = Path(directory)
+    logger.info(f"Project directory set to: {_project_dir}")
+
 
 @mcp.tool()
 async def list_directory() -> List[str]:
@@ -31,9 +43,8 @@ async def list_directory() -> List[str]:
         A list of filenames in the project directory
     """
     try:
-        project_dir = get_project_dir()
-        logger.info(f"Listing all files in project directory: {project_dir}")
-        result = list_files_util(".", use_gitignore=True)
+        logger.info(f"Listing all files in project directory: {_project_dir}")
+        result = list_files_util(".", use_gitignore=True, project_dir=_project_dir)
         return result
     except Exception as e:
         logger.error(f"Error listing project directory: {str(e)}")
@@ -56,7 +67,7 @@ async def read_file(file_path: str) -> str:
 
     logger.info(f"Reading file: {file_path}")
     try:
-        content = read_file_util(file_path)
+        content = read_file_util(file_path, project_dir=_project_dir)
         return content
     except Exception as e:
         logger.error(f"Error reading file: {str(e)}")
@@ -88,7 +99,7 @@ async def write_file(file_path: str, content: str) -> bool:
 
     logger.info(f"Writing to file: {file_path}")
     try:
-        success = write_file_util(file_path, content)
+        success = write_file_util(file_path, content, project_dir=_project_dir)
         return success
     except Exception as e:
         logger.error(f"Error writing to file: {str(e)}")
@@ -113,7 +124,7 @@ async def delete_file(file_path: str) -> bool:
     logger.info(f"Deleting file: {file_path}")
     try:
         # Directly delete the file without user confirmation
-        success = delete_file_util(file_path)
+        success = delete_file_util(file_path, project_dir=_project_dir)
         logger.info(f"File deleted successfully: {file_path}")
         return success
     except Exception as e:
@@ -123,4 +134,9 @@ async def delete_file(file_path: str) -> bool:
 
 # Run the server when the script is executed directly
 if __name__ == "__main__":
+    # The project directory should be set before running the server
+    # This case is primarily for testing; in production, main.py should set it
+    if _project_dir is None:
+        raise RuntimeError("Project directory not set. Please use set_project_dir() before running the server.")
+    
     mcp.run()

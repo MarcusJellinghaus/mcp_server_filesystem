@@ -11,14 +11,13 @@ from typing import Callable, List, Optional, Tuple, Union
 
 from gitignore_parser import parse_gitignore
 
-from .path_utils import get_project_dir, normalize_path
+from .path_utils import normalize_path
 
 logger = logging.getLogger(__name__)
 
 
-def _discover_files(directory: Path) -> List[str]:
+def _discover_files(directory: Path, project_dir: Path) -> List[str]:
     """Discover all files recursively."""
-    project_dir = get_project_dir()
     discovered_files = []
 
     for root, _, files in os.walk(directory):
@@ -69,7 +68,7 @@ def read_gitignore_rules(
 
 
 def apply_gitignore_filter(
-    file_paths: List[str], matcher: Callable, project_dir: Optional[Path] = None
+    file_paths: List[str], matcher: Callable, project_dir: Path
 ) -> List[str]:
     """Filter a list of file paths using a gitignore matcher function.
 
@@ -83,9 +82,6 @@ def apply_gitignore_filter(
     """
     if matcher is None:
         return file_paths
-
-    if project_dir is None:
-        project_dir = get_project_dir()
 
     filtered_files = []
 
@@ -108,20 +104,18 @@ def apply_gitignore_filter(
 
 
 def filter_with_gitignore(
-    file_paths: List[str], base_dir: Optional[Path] = None
+    file_paths: List[str], base_dir: Path, project_dir: Path
 ) -> List[str]:
     """Filter a list of file paths using .gitignore rules.
 
     Args:
         file_paths: List of file paths to filter
         base_dir: Directory containing the .gitignore file
+        project_dir: Project directory path
 
     Returns:
         List of file paths that are not ignored
     """
-    if base_dir is None:
-        base_dir = get_project_dir()
-
     gitignore_path = base_dir / ".gitignore"
 
     # Get the matcher function from the gitignore file
@@ -132,12 +126,24 @@ def filter_with_gitignore(
 
     else:
         # Use the matcher for more complex gitignore patterns
-        return apply_gitignore_filter(file_paths, matcher, get_project_dir())
+        return apply_gitignore_filter(file_paths, matcher, project_dir)
 
 
-def list_files(directory: Union[str, Path], use_gitignore: bool = True) -> List[str]:
-    """List all files in a directory and its subdirectories with optional gitignore filtering."""
-    abs_path, rel_path = normalize_path(directory)
+def list_files(directory: Union[str, Path], use_gitignore: bool = True, project_dir: Path = None) -> List[str]:
+    """List all files in a directory and its subdirectories with optional gitignore filtering.
+    
+    Args:
+        directory: Directory to list files from
+        use_gitignore: Whether to apply gitignore filtering
+        project_dir: Project directory path
+    
+    Returns:
+        List of file paths
+    """
+    if project_dir is None:
+        raise ValueError("project_dir cannot be None")
+        
+    abs_path, rel_path = normalize_path(directory, project_dir)
 
     if not abs_path.exists():
         raise FileNotFoundError(f"Directory '{directory}' does not exist")
@@ -146,14 +152,14 @@ def list_files(directory: Union[str, Path], use_gitignore: bool = True) -> List[
         raise NotADirectoryError(f"Path '{directory}' is not a directory")
 
     try:
-        all_files = _discover_files(abs_path)
+        all_files = _discover_files(abs_path, project_dir)
         logger.info(f"Discovered {len(all_files)} files in {rel_path}")
 
         if not use_gitignore:
             return all_files
 
         # Apply gitignore filtering
-        return filter_with_gitignore(all_files, abs_path)
+        return filter_with_gitignore(all_files, abs_path, project_dir)
 
     except Exception as e:
         logger.error(f"Error listing files in directory {rel_path}: {str(e)}")

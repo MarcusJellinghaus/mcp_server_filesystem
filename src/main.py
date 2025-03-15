@@ -2,11 +2,10 @@
 
 import argparse
 import logging
-import os
 import sys
 from pathlib import Path
 
-from src.server import mcp
+from src.server import mcp, set_project_dir
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +47,11 @@ def main() -> None:
         )
         sys.exit(1)
 
-    # Set the project directory as a global environment variable
-    os.environ["MCP_PROJECT_DIR"] = str(project_dir.absolute())
+    # Convert to absolute path
+    project_dir = project_dir.absolute()
+    
+    # Set the project directory directly in the server module
+    set_project_dir(project_dir)
 
     logger.info(f"Starting MCP server with project directory: {project_dir}")
 

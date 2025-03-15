@@ -10,12 +10,13 @@ from .path_utils import normalize_path
 logger = logging.getLogger(__name__)
 
 
-def read_file(file_path: str) -> str:
+def read_file(file_path: str, project_dir: Path) -> str:
     """
     Read the contents of a file.
 
     Args:
         file_path: Path to the file to read (relative to project directory)
+        project_dir: Project directory path
 
     Returns:
         The contents of the file as a string
@@ -31,7 +32,7 @@ def read_file(file_path: str) -> str:
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     # Normalize the path to be relative to the project directory
-    abs_path, rel_path = normalize_path(file_path)
+    abs_path, rel_path = normalize_path(file_path, project_dir)
 
     if not abs_path.exists():
         logger.error(f"File not found: {file_path}")
@@ -61,13 +62,14 @@ def read_file(file_path: str) -> str:
             file_handle.close()
 
 
-def write_file(file_path: str, content: str) -> bool:
+def write_file(file_path: str, content: str, project_dir: Path) -> bool:
     """
     Write content to a file atomically.
 
     Args:
         file_path: Path to the file to write to (relative to project directory)
         content: Content to write to the file
+        project_dir: Project directory path
 
     Returns:
         True if the file was written successfully
@@ -91,7 +93,7 @@ def write_file(file_path: str, content: str) -> bool:
         raise ValueError(f"Content must be a string, got {type(content)}")
 
     # Normalize the path to be relative to the project directory
-    abs_path, rel_path = normalize_path(file_path)
+    abs_path, rel_path = normalize_path(file_path, project_dir)
 
     # Create directory if it doesn't exist
     try:
@@ -158,12 +160,13 @@ def write_file(file_path: str, content: str) -> bool:
                 )
 
 
-def delete_file(file_path: str) -> bool:
+def delete_file(file_path: str, project_dir: Path) -> bool:
     """
     Delete a file.
 
     Args:
         file_path: Path to the file to delete (relative to project directory)
+        project_dir: Project directory path
 
     Returns:
         True if the file was deleted successfully
@@ -180,7 +183,7 @@ def delete_file(file_path: str) -> bool:
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     # Normalize the path to be relative to the project directory
-    abs_path, rel_path = normalize_path(file_path)
+    abs_path, rel_path = normalize_path(file_path, project_dir)
 
     if not abs_path.exists():
         logger.error(f"File not found: {file_path}")

@@ -8,30 +8,13 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-def get_project_dir() -> Path:
-    """
-    Get the absolute path to the project directory.
-
-    Returns:
-        Path object of the project directory
-
-    Raises:
-        RuntimeError: If MCP_PROJECT_DIR environment variable is not set
-    """
-    project_dir = os.environ.get("MCP_PROJECT_DIR")
-    if not project_dir:
-        raise RuntimeError(
-            "Project directory not set. Make sure to start the server with --project-dir."
-        )
-    return Path(project_dir)
-
-
-def normalize_path(path: str) -> tuple[Path, str]:
+def normalize_path(path: str, project_dir: Path) -> tuple[Path, str]:
     """
     Normalize a path to be relative to the project directory.
 
     Args:
         path: Path to normalize
+        project_dir: Project directory path
 
     Returns:
         Tuple of (absolute path, relative path)
@@ -39,7 +22,6 @@ def normalize_path(path: str) -> tuple[Path, str]:
     Raises:
         ValueError: If the path is outside the project directory
     """
-    project_dir = get_project_dir()
     path_obj = Path(path)
 
     # If the path is absolute, make it relative to the project directory
