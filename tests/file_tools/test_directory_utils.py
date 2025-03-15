@@ -1,6 +1,7 @@
 """Tests for directory_utils functionality."""
 
 import os
+import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -9,8 +10,10 @@ import pytest
 # Import functions directly from the module
 from src.file_tools.directory_utils import (
     _discover_files,
+    apply_gitignore_filter,
     filter_with_gitignore,
     list_files,
+    read_gitignore_rules,
 )
 from tests.conftest import TEST_DIR
 
@@ -47,6 +50,113 @@ def test_discover_files():
     assert rel_paths.issuperset(expected_paths)
 
 
+def test_read_gitignore_rules_no_file():
+    """Test reading gitignore rules when no file exists."""
+    # Use a temporary directory to ensure no .gitignore exists
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir) / ".gitignore"
+        
+        # Test with non-existent file
+        matcher, content = read_gitignore_rules(temp_path)
+        
+        # Both should be None when file doesn't exist
+        assert matcher is None
+        assert content is None
+
+
+def test_read_gitignore_rules_with_file():
+    """Test reading gitignore rules from an existing file."""
+    # Create a temporary .gitignore file
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir) / ".gitignore"
+        
+        # Create sample gitignore content
+        gitignore_content = "*.log\n/node_modules/\n"
+        temp_path.write_text(gitignore_content)
+        
+        # Test reading the rules
+        matcher, content = read_gitignore_rules(temp_path)
+        
+        # Content should match what we wrote
+        assert content == gitignore_content
+        
+        # Matcher should be a callable function
+        assert callable(matcher)
+        
+        # Check if it correctly identifies ignored files
+        ignored_file = os.path.join(temp_dir, "test.log")
+        not_ignored_file = os.path.join(temp_dir, "test.txt")
+        
+        # True means the file should be ignored
+        assert matcher(ignored_file) is True
+        assert matcher(not_ignored_file) is False
+
+
+def test_apply_gitignore_filter():
+    """Test applying gitignore filter with a predefined matcher."""
+    # Create a simple matcher function that ignores files with .log extension
+    def mock_matcher(path):
+        return path.endswith(".log")
+    
+    # Create list of test file paths
+    file_paths = [
+        "folder/file.txt",
+        "folder/data.log",
+        "another/document.md",
+        "logs/error.log"
+    ]
+    
+    # Apply the filter
+    filtered = apply_gitignore_filter(file_paths, mock_matcher, Path("/fake/project/dir"))
+    
+    # Check that only non-.log files remain
+    assert filtered == ["folder/file.txt", "another/document.md"]
+    
+    # Test with None matcher
+    assert apply_gitignore_filter(file_paths, None) == file_paths
+
+
+def test_filter_with_gitignore_integration():
+    """Integration test for filter_with_gitignore with real gitignore parsing."""
+    # Create test directory with files and .gitignore
+    project_dir = Path(os.environ["MCP_PROJECT_DIR"])
+    test_dir = project_dir / TEST_DIR
+    
+    # Create .gitignore file with rules 
+    gitignore_path = test_dir / ".gitignore"
+    # Modified gitignore content to match the expected directory format
+    # We're removing the leading slash which might cause issues
+    gitignore_content = """
+# Ignore files with .ignore extension
+*.ignore
+
+# Ignore specific directory
+ignored_dir/
+"""
+    gitignore_path.write_text(gitignore_content)
+    
+    # Create test files
+    (test_dir / "normal.txt").write_text("normal file")
+    (test_dir / "test.ignore").write_text("should be ignored")
+    
+    ignored_dir = test_dir / "ignored_dir"
+    ignored_dir.mkdir(exist_ok=True)
+    (ignored_dir / "file.txt").write_text("in ignored directory")
+    
+    # Prepare list of file paths
+    file_paths = [
+        "testdata/test_file_tools/normal.txt",
+        "testdata/test_file_tools/test.ignore",
+        "testdata/test_file_tools/ignored_dir/file.txt",
+    ]
+    
+    # Apply gitignore filtering
+    filtered_files = filter_with_gitignore(file_paths, test_dir)
+    
+    # Only the normal.txt file should pass the filter
+    assert filtered_files == ["testdata/test_file_tools/normal.txt"]
+
+
 def test_filter_with_gitignore_no_gitignore():
     """Test filtering files when no .gitignore file exists."""
     # Create a list of file paths
@@ -71,56 +181,6 @@ def test_filter_with_gitignore_no_gitignore():
     assert set(filtered_files) == set(file_paths)
 
 
-def test_filter_with_gitignore_with_rules():
-    """Test filtering files based on .gitignore rules."""
-    # Create a list of file paths including files to be ignored
-    file_paths = [
-        "testdata/test_file_tools/normal.txt",
-        "testdata/test_file_tools/test.ignore",
-        "testdata/test_file_tools/ignored_dir/file.txt",
-    ]
-
-    # Create the files and directories
-    project_dir = Path(os.environ["MCP_PROJECT_DIR"])
-    test_dir = project_dir / TEST_DIR
-    ignored_dir = test_dir / "ignored_dir"
-    ignored_dir.mkdir(exist_ok=True)
-
-    # Create the files
-    (test_dir / "normal.txt").write_text("normal file")
-    (test_dir / "test.ignore").write_text("should be ignored")
-    (ignored_dir / "file.txt").write_text("in ignored directory")
-
-    # Create a .gitignore file with rules
-    gitignore_path = test_dir / ".gitignore"
-    gitignore_content = """
-# Ignore files with .ignore extension
-*.ignore
-
-# Ignore specific directory
-/ignored_dir/
-"""
-    gitignore_path.write_text(gitignore_content)
-
-    # Mock the gitignore matcher behavior
-    # This is needed because the actual behavior of gitignore_parser might differ
-    # depending on the implementation and platform
-    with patch("src.file_tools.directory_utils.parse_gitignore") as mock_parser:
-        # Configure the mock to properly filter files
-        mock_matcher = MagicMock()
-        # Configure the matcher to ignore files with .ignore extension and in ignored_dir
-        mock_matcher.side_effect = (
-            lambda path: ".ignore" in path or "ignored_dir" in path
-        )
-        mock_parser.return_value = mock_matcher
-
-        # Test the filter with the mocked .gitignore rules
-        filtered_files = filter_with_gitignore(file_paths, test_dir)
-
-        # Only the normal.txt file should remain after filtering
-        assert filtered_files == ["testdata/test_file_tools/normal.txt"]
-
-
 def test_filter_with_gitignore_error_handling():
     """Test error handling in gitignore filtering."""
     # Create a list of file paths
@@ -129,12 +189,13 @@ def test_filter_with_gitignore_error_handling():
         "testdata/test_file_tools/file2.txt",
     ]
 
-    # Mock the parse_gitignore function to raise an exception
-    with patch(
-        "src.file_tools.directory_utils.parse_gitignore",
-        side_effect=Exception("Test error"),
-    ):
-        # Test the filter with a simulated error
+    # Mock read_gitignore_rules to return a valid matcher but make apply_gitignore_filter fail
+    with patch("src.file_tools.directory_utils.read_gitignore_rules") as mock_read:
+        # Return a mock matcher that will raise an exception when called
+        mock_matcher = MagicMock(side_effect=Exception("Test error"))
+        mock_read.return_value = (mock_matcher, "mock content")
+        
+        # Test the filter with a simulated error during filter application
         filtered_files = filter_with_gitignore(file_paths)
 
         # On error, the function should return the original list of files
