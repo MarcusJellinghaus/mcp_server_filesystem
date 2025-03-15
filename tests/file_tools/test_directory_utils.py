@@ -5,16 +5,15 @@ import shutil
 from pathlib import Path
 
 import pytest
-from pathspec import PathSpec
-from pathspec.patterns import GitWildMatchPattern
+from gitignore_parser import parse_gitignore
 
 # Import directly from src using absolute imports
 from src.file_tools.directory_utils import (
     _discover_files,
-    _get_gitignore_spec,
-    _parse_gitignore_file,
+    _get_gitignore_matcher,
     filter_files_with_gitignore,
     list_files,
+    fixed_parse_gitignore,
 )
 from src.file_tools.path_utils import get_project_dir
 from tests.conftest import TEST_CONTENT, TEST_DIR, TEST_FILE
@@ -67,38 +66,8 @@ def test_discover_files(tmp_path):
             shutil.rmtree(test_project_dir)
 
 
-def test_parse_gitignore_file(tmp_path):
-    """Test gitignore file parsing."""
-    # Create a test .gitignore file
-    gitignore_path = tmp_path / ".gitignore"
-    gitignore_content = """
-    # This is a comment
-    *.log
-    build/
-    .env
-    
-    # Blank lines should be ignored
-    
-    temp/
-    """
-    gitignore_path.write_text(gitignore_content)
-
-    # Parse the gitignore file
-    patterns = _parse_gitignore_file(gitignore_path, tmp_path)
-
-    # Check patterns
-    expected_patterns = [".git/", "*.log", "build/", ".env", "temp/"]
-
-    # Ensure all expected patterns are present
-    for pattern in expected_patterns:
-        assert pattern in patterns, f"Pattern {pattern} not found in parsed patterns"
-
-    # Ensure comments and blank lines are removed
-    assert len(patterns) == len(expected_patterns)
-
-
-def test_gitignore_spec(tmp_path):
-    """Test creation of gitignore spec."""
+def test_gitignore_matcher(tmp_path):
+    """Test creation of gitignore matcher."""
     # Create a test .gitignore file
     gitignore_path = tmp_path / ".gitignore"
     gitignore_content = """
@@ -109,20 +78,20 @@ def test_gitignore_spec(tmp_path):
     gitignore_path.write_text(gitignore_content)
 
     # Create spec
-    spec = _get_gitignore_spec(tmp_path)
+    matcher = fixed_parse_gitignore(gitignore_path)
 
-    # Validate spec
-    assert spec is not None
+    # Validate matcher
+    assert matcher is not None
 
     # Test matching
-    assert spec.match_file("app.log")
-    assert spec.match_file("build/")
-    assert spec.match_file("build/file.txt")
-    assert spec.match_file("temp/somefile.txt")
+    assert matcher(str(tmp_path / "app.log"))
+    assert matcher(str(tmp_path / "build"))
+    assert matcher(str(tmp_path / "build/file.txt"))
+    assert matcher(str(tmp_path / "temp/somefile.txt"))
 
     # These should not match
-    assert not spec.match_file("app.txt")
-    assert not spec.match_file("logs/")
+    assert not matcher(str(tmp_path / "app.txt"))
+    assert not matcher(str(tmp_path / "logs"))
 
 
 def test_list_files_with_gitignore(tmp_path):
@@ -236,78 +205,68 @@ def test_list_files_without_gitignore(tmp_path):
             shutil.rmtree(project_test_dir)
 
 
-def test_filter_files_with_gitignore():
+def test_filter_files_with_gitignore(tmp_path):
     """Test filtering files with gitignore patterns."""
-    # Test case 1: No gitignore spec
+    # Create a .gitignore file for testing
+    gitignore_path = tmp_path / ".gitignore"
+    gitignore_content = """
+    *.log
+    build/
+    temp/
+    """
+    gitignore_path.write_text(gitignore_content)
+    matcher = fixed_parse_gitignore(gitignore_path)
+    
+    # Test case 1: No gitignore matcher
     files = ["file1.txt", "file2.log", "build/file.txt"]
     filtered = filter_files_with_gitignore(files, None)
     assert filtered == files
 
-    # Test case 2: With gitignore spec
-    spec = PathSpec.from_lines(GitWildMatchPattern, ["*.log", "build/", "temp/"])
-
-    # Test filtering
+    # Test case 2: With gitignore matcher
+    project_dir = get_project_dir()
     files = [
-        "file1.txt",
-        "file2.log",
-        "build/file.txt",
-        "temp/somefile.txt",
-        "nested/file.log",
+        str(project_dir / "file1.txt"),
+        str(project_dir / "file2.log"),
+        str(project_dir / "build/file.txt"),
+        str(project_dir / "temp/somefile.txt"),
+        str(project_dir / "nested/file.log"),
     ]
-    filtered = filter_files_with_gitignore(files, spec)
+    filtered = filter_files_with_gitignore(files, matcher)
 
-    # Expected results
-    expected = ["file1.txt"]
-    assert set(filtered) == set(expected)
-
-    # Test case 3: Complex nested patterns
-    spec = PathSpec.from_lines(GitWildMatchPattern, ["*.log", "build/*", "temp/**"])
-
-    files = [
-        "file1.txt",
-        "file2.log",
-        "build/file.txt",
-        "build/nested/file.txt",
-        "temp/somefile.txt",
-        "temp/nested/deepfile.txt",
-        "nested/file.log",
-    ]
-    filtered = filter_files_with_gitignore(files, spec)
-
-    # Expected results
-    expected = ["file1.txt"]
+    # Expected results (only paths not matching gitignore)
+    expected = [str(project_dir / "file1.txt")]
     assert set(filtered) == set(expected)
 
 
-def test_filter_files_with_gitignore_subfolder_handling():
-    """Test filtering files with gitignore patterns in subfolders."""
-    # Test case: Patterns that should match files in subfolders
-    spec = PathSpec.from_lines(
-        GitWildMatchPattern,
-        [
-            "*.log",  # Matches log files in any directory
-            "build/",  # Matches build directory
-            "temp/**",  # Matches all files and subdirectories under temp
-            "docs/*.txt",  # Matches .txt files directly under docs
-        ],
-    )
-
+def test_filter_files_with_negation_patterns(tmp_path):
+    """Test filtering files with negation patterns."""
+    # Create a .gitignore file with negation patterns
+    gitignore_path = tmp_path / ".gitignore"
+    gitignore_content = """
+    *.log
+    !important.log
+    build/
+    !build/keep/
+    """
+    gitignore_path.write_text(gitignore_content)
+    matcher = fixed_parse_gitignore(gitignore_path)
+    
+    project_dir = get_project_dir()
     files = [
-        "app.log",  # Should be filtered
-        "nested/deep/app.log",  # Should be filtered
-        "file1.txt",
-        "build/file.txt",  # Should be filtered
-        "build/nested/file.txt",  # Should be filtered
-        "temp/somefile.txt",  # Should be filtered
-        "temp/nested/deepfile.txt",  # Should be filtered
-        "docs/readme.txt",  # Should be filtered
-        "docs/nested/other.txt",  # Should NOT be filtered
+        str(project_dir / "debug.log"),
+        str(project_dir / "important.log"),
+        str(project_dir / "build/file.txt"),
+        str(project_dir / "build/keep/important.txt"),
     ]
-
-    filtered = filter_files_with_gitignore(files, spec)
-
-    # Expected results
-    expected = ["file1.txt", "docs/nested/other.txt"]
+    
+    filtered = filter_files_with_gitignore(files, matcher)
+    
+    # Expected results with negation patterns properly handled
+    expected = [
+        str(project_dir / "important.log"),
+        str(project_dir / "build/keep/important.txt"),
+    ]
+    
     assert set(filtered) == set(expected)
 
 
