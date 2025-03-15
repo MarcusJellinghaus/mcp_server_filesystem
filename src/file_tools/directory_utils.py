@@ -66,80 +66,8 @@ def _discover_files(directory: Path) -> List[str]:
         return discovered_files
 
     except Exception as e:
-        logger.error(f"Error discovering files in {directory}: {e}")
+        logger.error(f"Error discovering files in {directory}: {str(e)}")
         raise
-
-
-def fixed_parse_gitignore(gitignore_path):
-    """
-    Create a gitignore matcher with proper handling of root patterns.
-    This is a wrapper around parse_gitignore to fix test issues.
-    """
-    # First, create the regular matcher
-    matcher = parse_gitignore(gitignore_path)
-    
-    # Get patterns from gitignore file
-    with open(gitignore_path, 'r') as f:
-        lines = f.readlines()
-    
-    # Clean up patterns
-    patterns = []
-    negation_patterns = []
-    for line in lines:
-        line = line.strip()
-        if line and not line.startswith('#'):
-            if line.startswith('!'):
-                negation_patterns.append(line[1:])
-            else:
-                patterns.append(line)
-    
-    # Create a PathSpec for more accurate matching
-    spec = PathSpec.from_lines(GitWildMatchPattern, patterns)
-    
-    # Create a wrapper function that combines both approaches
-    def wrapper(path):
-        # Normalize the path for consistency
-        norm_path = path.replace("\\", "/")
-        filename = os.path.basename(norm_path)
-        
-        # Check negation patterns first
-        for neg_pattern in negation_patterns:
-            if neg_pattern.endswith('/'):
-                # Directory pattern negation
-                dir_name = neg_pattern.rstrip('/')
-                if f"/{dir_name}/" in f"/{norm_path}/":
-                    return False
-            elif neg_pattern.startswith('*.'):
-                # Extension pattern negation
-                if filename.endswith(neg_pattern[1:]):
-                    return False
-            elif filename == neg_pattern or f"/{neg_pattern}" in f"/{norm_path}/":
-                # Exact match negation
-                return False
-        
-        # First try with the original matcher
-        try:
-            if matcher(path):
-                return True
-        except Exception:
-            pass
-        
-        # If that fails, try with PathSpec
-        for pattern in patterns:
-            # Handle simple wildcard patterns
-            if pattern.startswith('*'):
-                if filename.endswith(pattern[1:]):
-                    return True
-            # Handle directory patterns
-            elif pattern.endswith('/'):
-                dir_name = pattern.rstrip('/')
-                if f"/{dir_name}/" in f"/{norm_path}/" or norm_path.endswith(f"/{dir_name}"):
-                    return True
-        
-        # Use PathSpec as a final check
-        return spec.match_file(norm_path)
-    
-    return wrapper
 
 
 def filter_files_with_gitignore(

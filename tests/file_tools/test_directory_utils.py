@@ -13,7 +13,6 @@ from src.file_tools.directory_utils import (
     _get_gitignore_matcher,
     filter_files_with_gitignore,
     list_files,
-    fixed_parse_gitignore,
 )
 from src.file_tools.path_utils import get_project_dir
 from tests.conftest import TEST_CONTENT, TEST_DIR, TEST_FILE
@@ -64,34 +63,6 @@ def test_discover_files(tmp_path):
         # Clean up: remove the temporary test directory
         if test_project_dir.exists():
             shutil.rmtree(test_project_dir)
-
-
-def test_gitignore_matcher(tmp_path):
-    """Test creation of gitignore matcher."""
-    # Create a test .gitignore file
-    gitignore_path = tmp_path / ".gitignore"
-    gitignore_content = """
-    *.log
-    build/
-    temp/
-    """
-    gitignore_path.write_text(gitignore_content)
-
-    # Create spec
-    matcher = fixed_parse_gitignore(gitignore_path)
-
-    # Validate matcher
-    assert matcher is not None
-
-    # Test matching
-    assert matcher(str(tmp_path / "app.log"))
-    assert matcher(str(tmp_path / "build"))
-    assert matcher(str(tmp_path / "build/file.txt"))
-    assert matcher(str(tmp_path / "temp/somefile.txt"))
-
-    # These should not match
-    assert not matcher(str(tmp_path / "app.txt"))
-    assert not matcher(str(tmp_path / "logs"))
 
 
 def test_list_files_with_gitignore(tmp_path):
@@ -215,7 +186,7 @@ def test_filter_files_with_gitignore(tmp_path):
     temp/
     """
     gitignore_path.write_text(gitignore_content)
-    matcher = fixed_parse_gitignore(gitignore_path)
+    matcher = parse_gitignore(gitignore_path)
     
     # Test case 1: No gitignore matcher
     files = ["file1.txt", "file2.log", "build/file.txt"]
@@ -249,7 +220,7 @@ def test_filter_files_with_negation_patterns(tmp_path):
     !build/keep/
     """
     gitignore_path.write_text(gitignore_content)
-    matcher = fixed_parse_gitignore(gitignore_path)
+    matcher = parse_gitignore(gitignore_path)
     
     project_dir = get_project_dir()
     files = [
