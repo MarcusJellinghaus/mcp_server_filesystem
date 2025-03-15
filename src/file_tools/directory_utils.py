@@ -7,10 +7,10 @@ We use the external gitignore_parser library for handling .gitignore patterns.
 import logging
 import os
 from pathlib import Path
-from typing import List, Optional, Union, Callable
+from typing import Callable, List, Optional, Union
 
-from .path_utils import get_project_dir, normalize_path
 from .gitignore_parser import parse_gitignore
+from .path_utils import get_project_dir, normalize_path
 
 logger = logging.getLogger(__name__)
 
@@ -58,20 +58,22 @@ def list_files(directory: Union[str, Path], use_gitignore: bool = True) -> List[
         # Use the external gitignore_parser
         try:
             matcher = parse_gitignore(gitignore_path)
-            
+
             # External gitignore_parser expects absolute paths
             filtered_files = []
             for file_path in all_files:
                 # Convert to absolute path for the matcher
                 abs_file_path = str(get_project_dir() / file_path)
-                
+
                 # gitignore_parser returns True if the file should be ignored
                 if not matcher(abs_file_path):
                     filtered_files.append(file_path)
-                    
+
             return filtered_files
         except Exception as e:
-            logger.warning(f"Error using gitignore parser, falling back to no filtering: {e}")
+            logger.warning(
+                f"Error using gitignore parser, falling back to no filtering: {e}"
+            )
             return all_files
 
     except Exception as e:
