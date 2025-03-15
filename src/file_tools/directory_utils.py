@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from typing import List, Optional, Union
 
-from .gitignore_parser import parse_gitignore
+from gitignore_parser import parse_gitignore
 from .path_utils import get_project_dir, normalize_path
 
 logger = logging.getLogger(__name__)
