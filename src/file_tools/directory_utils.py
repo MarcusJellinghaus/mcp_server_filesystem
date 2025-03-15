@@ -107,9 +107,28 @@ def filter_files_with_gitignore(
         # Normalize path for consistent matching
         norm_path = file_path.replace("\\", "/")
         
-        # Simple matching using PathSpec
-        if not gitignore_spec.match_file(norm_path):
-            result.append(file_path)
+        # Check if the file itself matches an ignore pattern
+        if gitignore_spec.match_file(norm_path):
+            continue
+            
+        # Check if it would match as a directory (with trailing slash)
+        if not norm_path.endswith("/") and gitignore_spec.match_file(norm_path + "/"):
+            continue
+            
+        # Check if any parent directory matches a pattern
+        path_parts = norm_path.split("/")
+        parent_matched = False
+        for i in range(1, len(path_parts)):
+            parent_path = "/".join(path_parts[:i])
+            if gitignore_spec.match_file(parent_path) or gitignore_spec.match_file(parent_path + "/"):
+                parent_matched = True
+                break
+                
+        if parent_matched:
+            continue
+            
+        # If not ignored, add to result
+        result.append(file_path)
     
     return result
 
