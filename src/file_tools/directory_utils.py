@@ -35,60 +35,60 @@ def _discover_files(directory: Path) -> List[str]:
     return discovered_files
 
 
-def read_gitignore_rules(gitignore_path: Path) -> Tuple[Optional[Callable], Optional[str]]:
+def read_gitignore_rules(
+    gitignore_path: Path,
+) -> Tuple[Optional[Callable], Optional[str]]:
     """Read and parse a .gitignore file to create a matcher function.
-    
+
     Args:
         gitignore_path: Path to the .gitignore file
-        
+
     Returns:
         A tuple containing (matcher_function, gitignore_content), or (None, None) if file doesn't exist
     """
     if not gitignore_path.is_file():
         logger.info(f"No .gitignore file found at {gitignore_path}")
         return None, None
-        
+
     try:
         # Read the gitignore file content for logging
         with open(gitignore_path, "r") as f:
             gitignore_content = f.read()
-        
+
         logger.info(f"Gitignore content: {gitignore_content}")
 
         # Parse the gitignore file to get a matcher function
         logger.info(f"Parsing gitignore file at {gitignore_path}")
         matcher = parse_gitignore(gitignore_path)
-        
+
         return matcher, gitignore_content
-        
+
     except Exception as e:
         logger.warning(f"Error reading/parsing gitignore: {str(e)}")
         return None, None
 
 
 def apply_gitignore_filter(
-    file_paths: List[str], 
-    matcher: Callable,
-    project_dir: Optional[Path] = None
+    file_paths: List[str], matcher: Callable, project_dir: Optional[Path] = None
 ) -> List[str]:
     """Filter a list of file paths using a gitignore matcher function.
-    
+
     Args:
         file_paths: List of file paths to filter
         matcher: Function that takes a path and returns True if it should be ignored
         project_dir: Base directory for resolving relative paths to absolute
-        
+
     Returns:
         Filtered list of file paths that are not ignored
     """
     if matcher is None:
         return file_paths
-        
+
     if project_dir is None:
         project_dir = get_project_dir()
-    
+
     filtered_files = []
-    
+
     for file_path in file_paths:
         # Convert to absolute path for the matcher
         abs_file_path = str(project_dir / file_path)
@@ -100,7 +100,7 @@ def apply_gitignore_filter(
             filtered_files.append(file_path)
         else:
             logger.debug(f"Ignoring file: {file_path}")
-    
+
     logger.info(
         f"Applied gitignore filtering: {len(file_paths)} files found, {len(filtered_files)} after filtering"
     )
@@ -123,13 +123,13 @@ def filter_with_gitignore(
         base_dir = get_project_dir()
 
     gitignore_path = base_dir / ".gitignore"
-    
+
     # Get the matcher function from the gitignore file
     matcher, gitignore_content = read_gitignore_rules(gitignore_path)
-    
+
     if matcher is None:
         return file_paths
-    
+
     try:
         # For simplicity in tests, manually filter based on common gitignore patterns
         # This handles the specific test case where we need to filter by extension and directory
@@ -137,23 +137,26 @@ def filter_with_gitignore(
             # Manual filtering for test_filter_with_gitignore_integration
             project_dir = get_project_dir()
             filtered = []
-            
+
             for file_path in file_paths:
                 # Skip if the path contains a directory that's in gitignore
-                if "ignored_dir/" in gitignore_content and "ignored_dir/" in file_path.replace("\\", "/"):
+                if (
+                    "ignored_dir/" in gitignore_content
+                    and "ignored_dir/" in file_path.replace("\\", "/")
+                ):
                     logger.debug(f"Ignoring path with ignored directory: {file_path}")
                     continue
-                
+
                 # Skip if the file extension is in gitignore
                 if "*.ignore" in gitignore_content and file_path.endswith(".ignore"):
                     logger.debug(f"Ignoring file with ignored extension: {file_path}")
                     continue
-                
+
                 # Add file to filtered list if it passed all checks
                 filtered.append(file_path)
-            
+
             return filtered
-            
+
         # Use the matcher for more complex gitignore patterns
         return apply_gitignore_filter(file_paths, matcher, get_project_dir())
     except Exception as e:

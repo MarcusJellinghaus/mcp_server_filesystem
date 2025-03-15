@@ -55,10 +55,10 @@ def test_read_gitignore_rules_no_file():
     # Use a temporary directory to ensure no .gitignore exists
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir) / ".gitignore"
-        
+
         # Test with non-existent file
         matcher, content = read_gitignore_rules(temp_path)
-        
+
         # Both should be None when file doesn't exist
         assert matcher is None
         assert content is None
@@ -69,24 +69,24 @@ def test_read_gitignore_rules_with_file():
     # Create a temporary .gitignore file
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir) / ".gitignore"
-        
+
         # Create sample gitignore content
         gitignore_content = "*.log\n/node_modules/\n"
         temp_path.write_text(gitignore_content)
-        
+
         # Test reading the rules
         matcher, content = read_gitignore_rules(temp_path)
-        
+
         # Content should match what we wrote
         assert content == gitignore_content
-        
+
         # Matcher should be a callable function
         assert callable(matcher)
-        
+
         # Check if it correctly identifies ignored files
         ignored_file = os.path.join(temp_dir, "test.log")
         not_ignored_file = os.path.join(temp_dir, "test.txt")
-        
+
         # True means the file should be ignored
         assert matcher(ignored_file) is True
         assert matcher(not_ignored_file) is False
@@ -94,24 +94,27 @@ def test_read_gitignore_rules_with_file():
 
 def test_apply_gitignore_filter():
     """Test applying gitignore filter with a predefined matcher."""
+
     # Create a simple matcher function that ignores files with .log extension
     def mock_matcher(path):
         return path.endswith(".log")
-    
+
     # Create list of test file paths
     file_paths = [
         "folder/file.txt",
         "folder/data.log",
         "another/document.md",
-        "logs/error.log"
+        "logs/error.log",
     ]
-    
+
     # Apply the filter
-    filtered = apply_gitignore_filter(file_paths, mock_matcher, Path("/fake/project/dir"))
-    
+    filtered = apply_gitignore_filter(
+        file_paths, mock_matcher, Path("/fake/project/dir")
+    )
+
     # Check that only non-.log files remain
     assert filtered == ["folder/file.txt", "another/document.md"]
-    
+
     # Test with None matcher
     assert apply_gitignore_filter(file_paths, None) == file_paths
 
@@ -121,8 +124,8 @@ def test_filter_with_gitignore_integration():
     # Create test directory with files and .gitignore
     project_dir = Path(os.environ["MCP_PROJECT_DIR"])
     test_dir = project_dir / TEST_DIR
-    
-    # Create .gitignore file with rules 
+
+    # Create .gitignore file with rules
     gitignore_path = test_dir / ".gitignore"
     # Modified gitignore content to match the expected directory format
     # We're removing the leading slash which might cause issues
@@ -134,25 +137,25 @@ def test_filter_with_gitignore_integration():
 ignored_dir/
 """
     gitignore_path.write_text(gitignore_content)
-    
+
     # Create test files
     (test_dir / "normal.txt").write_text("normal file")
     (test_dir / "test.ignore").write_text("should be ignored")
-    
+
     ignored_dir = test_dir / "ignored_dir"
     ignored_dir.mkdir(exist_ok=True)
     (ignored_dir / "file.txt").write_text("in ignored directory")
-    
+
     # Prepare list of file paths
     file_paths = [
         "testdata/test_file_tools/normal.txt",
         "testdata/test_file_tools/test.ignore",
         "testdata/test_file_tools/ignored_dir/file.txt",
     ]
-    
+
     # Apply gitignore filtering
     filtered_files = filter_with_gitignore(file_paths, test_dir)
-    
+
     # Only the normal.txt file should pass the filter
     assert filtered_files == ["testdata/test_file_tools/normal.txt"]
 
@@ -194,7 +197,7 @@ def test_filter_with_gitignore_error_handling():
         # Return a mock matcher that will raise an exception when called
         mock_matcher = MagicMock(side_effect=Exception("Test error"))
         mock_read.return_value = (mock_matcher, "mock content")
-        
+
         # Test the filter with a simulated error during filter application
         filtered_files = filter_with_gitignore(file_paths)
 
