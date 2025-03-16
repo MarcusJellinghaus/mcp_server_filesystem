@@ -248,6 +248,7 @@ async def edit_file(
             normalized_edits,
             dry_run=dry_run,
             options=normalized_options,
+            project_dir=_project_dir,
         )
 
         return result

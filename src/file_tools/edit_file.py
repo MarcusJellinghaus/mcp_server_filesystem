@@ -1,8 +1,14 @@
 import difflib
+import logging
 import os
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+from .path_utils import normalize_path
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -374,26 +380,49 @@ def edit_file(
     edits: List[Dict[str, str]],
     dry_run: bool = False,
     options: Dict[str, Any] = None,
+    project_dir: Path = None,
 ) -> Dict[str, Any]:
     """
     Make selective edits to a file using pattern matching.
 
     Args:
-        file_path: Path to the file to edit
+        file_path: Path to the file to edit (relative to project directory)
         edits: List of edit operations with old_text and new_text
         dry_run: If True, only preview changes without applying them
         options: Optional formatting settings
+        project_dir: Project directory path
 
     Returns:
         Dict with diff output and match information
     """
-    # Validate file path
+    # Validate parameters
+    if not file_path or not isinstance(file_path, str):
+        logger.error(f"Invalid file path: {file_path}")
+        raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
+
+    # If project_dir is provided, normalize the path
+    if project_dir is not None:
+        # Normalize the path to be relative to the project directory
+        abs_path, rel_path = normalize_path(file_path, project_dir)
+        file_path = str(abs_path)
+
+    # Validate file path exists
     if not os.path.isfile(file_path):
+        logger.error(f"File not found: {file_path}")
         raise FileNotFoundError(f"File not found: {file_path}")
 
     # Read file content
-    with open(file_path, "r", encoding="utf-8") as f:
-        original_content = f.read()
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            original_content = f.read()
+    except UnicodeDecodeError as e:
+        logger.error(f"Unicode decode error while reading {file_path}: {str(e)}")
+        raise ValueError(
+            f"File '{file_path}' contains invalid characters. Ensure it's a valid text file."
+        ) from e
+    except Exception as e:
+        logger.error(f"Error reading file {file_path}: {str(e)}")
+        raise
 
     # Convert edits to EditOperation objects
     edit_operations = [
@@ -424,8 +453,19 @@ def edit_file(
 
         # Write changes if not in dry run mode
         if not dry_run:
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(modified_content)
+            try:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(modified_content)
+            except UnicodeEncodeError as e:
+                logger.error(
+                    f"Unicode encode error while writing to {file_path}: {str(e)}"
+                )
+                raise ValueError(
+                    f"Content contains characters that cannot be encoded. Please check the encoding."
+                ) from e
+            except Exception as e:
+                logger.error(f"Error writing to file {file_path}: {str(e)}")
+                raise
 
         return {
             "success": True,

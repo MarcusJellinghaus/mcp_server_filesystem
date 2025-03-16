@@ -159,7 +159,8 @@ class TestEditFile(unittest.TestCase):
     def setUp(self):
         # Create a temporary directory and file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
-        self.test_file = Path(self.temp_dir.name) / "test_file.py"
+        self.project_dir = Path(self.temp_dir.name)
+        self.test_file = self.project_dir / "test_file.py"
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write("def test_function():\n    return 'test'\n")
 
@@ -184,6 +185,37 @@ class TestEditFile(unittest.TestCase):
             content = f.read()
 
         self.assertEqual(content, "def modified_function():\n    return 'modified'\n")
+
+    def test_edit_file_with_project_dir(self):
+        edits = [{"old_text": "test_function", "new_text": "modified_function"}]
+
+        # Use relative path with project_dir
+        relative_path = "test_file.py"
+        result = edit_file(relative_path, edits, project_dir=self.project_dir)
+
+        self.assertTrue(result["success"])
+        self.assertIn("diff", result)
+
+        # Check the file was modified
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertEqual(content, "def modified_function():\n    return 'test'\n")
+
+    def test_edit_file_with_project_dir_security(self):
+        edits = [{"old_text": "test_function", "new_text": "modified_function"}]
+
+        # Create a file outside the project directory
+        outside_dir = tempfile.TemporaryDirectory()
+        outside_file = Path(outside_dir.name) / "outside.py"
+        with open(outside_file, "w", encoding="utf-8") as f:
+            f.write("def outside_function():\n    return 'outside'\n")
+
+        # Try to edit a file outside the project directory
+        with self.assertRaises(ValueError):
+            edit_file(str(outside_file), edits, project_dir=self.project_dir)
+
+        outside_dir.cleanup()
 
     def test_edit_file_dry_run(self):
         edits = [{"old_text": "test_function", "new_text": "modified_function"}]
