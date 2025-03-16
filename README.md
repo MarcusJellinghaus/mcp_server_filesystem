@@ -22,8 +22,8 @@ By connecting your AI assistant to your filesystem, you can transform your workf
 
 - `list_directory`: List all files and directories in the project directory
 - `read_file`: Read the contents of a file
-- `write_file`: Write content to a file atomically
-- `delete_file`: Delete a specified file from the filesystem
+- `save_file`: Write content to a file atomically
+- `delete_this_file`: Delete a specified file from the filesystem
 
 ## Installation
 
@@ -129,14 +129,14 @@ The server exposes the following MCP tools:
   - `file_path` (string): Path to the file to read (relative to project directory)
 - Returns: Content of the file as a string
 
-### Write File
+### Save File
 - Writes content to a file atomically
 - Parameters:
   - `file_path` (string): Path to the file to write to (relative to project directory)
   - `content` (string): Content to write to the file
 - Returns: Boolean indicating success
 
-### Delete File
+### Delete This File
 - Deletes a specified file from the filesystem
 - Parameters:
   - `file_path` (string): Path to the file to delete (relative to project directory)
