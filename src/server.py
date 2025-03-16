@@ -9,7 +9,7 @@ from src.file_tools import delete_file as delete_file_util
 from src.file_tools import list_files as list_files_util
 from src.file_tools import normalize_path
 from src.file_tools import read_file as read_file_util
-from src.file_tools import write_file as write_file_util
+from src.file_tools import save_file as save_file_util
 
 # Configure logging
 logging.basicConfig(
@@ -26,7 +26,7 @@ _project_dir: Path = None
 
 def set_project_dir(directory: Path) -> None:
     """Set the project directory for file operations.
-    
+
     Args:
         directory: The project directory path
     """
@@ -43,10 +43,12 @@ async def list_directory() -> List[str]:
         A list of filenames in the project directory
     """
     try:
+        if _project_dir is None:
+            raise ValueError("Project directory has not been set")
+
         logger.info(f"Listing all files in project directory: {_project_dir}")
-        # We're specifically not passing project_dir here to match the test expectations
-        # In a real-world scenario, the function will use the environment variable
-        result = list_files_util(".", use_gitignore=True)
+        # Explicitly pass project_dir to list_files_util
+        result = list_files_util(".", project_dir=_project_dir, use_gitignore=True)
         return result
     except Exception as e:
         logger.error(f"Error listing project directory: {str(e)}")
@@ -67,6 +69,9 @@ async def read_file(file_path: str) -> str:
         logger.error(f"Invalid file path parameter: {file_path}")
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+
     logger.info(f"Reading file: {file_path}")
     try:
         content = read_file_util(file_path, project_dir=_project_dir)
@@ -77,7 +82,7 @@ async def read_file(file_path: str) -> str:
 
 
 @mcp.tool()
-async def write_file(file_path: str, content: str) -> bool:
+async def save_file(file_path: str, content: str) -> bool:
     """Write content to a file.
 
     Args:
@@ -99,9 +104,12 @@ async def write_file(file_path: str, content: str) -> bool:
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
 
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+
     logger.info(f"Writing to file: {file_path}")
     try:
-        success = write_file_util(file_path, content, project_dir=_project_dir)
+        success = save_file_util(file_path, content, project_dir=_project_dir)
         return success
     except Exception as e:
         logger.error(f"Error writing to file: {str(e)}")
@@ -123,6 +131,9 @@ async def delete_file(file_path: str) -> bool:
         logger.error(f"Invalid file path parameter: {file_path}")
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+
     logger.info(f"Deleting file: {file_path}")
     try:
         # Directly delete the file without user confirmation
@@ -134,11 +145,26 @@ async def delete_file(file_path: str) -> bool:
         raise
 
 
+def run_server(project_dir: Path) -> None:
+    """Run the MCP server with the given project directory.
+
+    Args:
+        project_dir: Path to the project directory
+    """
+    # Set the project directory
+    set_project_dir(project_dir)
+
+    # Run the server
+    mcp.run()
+
+
 # Run the server when the script is executed directly
 if __name__ == "__main__":
     # The project directory should be set before running the server
     # This case is primarily for testing; in production, main.py should set it
     if _project_dir is None:
-        raise RuntimeError("Project directory not set. Please use set_project_dir() before running the server.")
-    
+        raise RuntimeError(
+            "Project directory not set. Please use set_project_dir() before running the server."
+        )
+
     mcp.run()

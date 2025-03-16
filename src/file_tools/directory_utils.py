@@ -16,12 +16,8 @@ from .path_utils import normalize_path
 logger = logging.getLogger(__name__)
 
 
-def _discover_files(directory: Path, project_dir: Path = None) -> List[str]:
+def _discover_files(directory: Path, project_dir: Path) -> List[str]:
     """Discover all files recursively."""
-    # If project_dir is not provided, use the directory as the project_dir
-    if project_dir is None:
-        project_dir = Path(os.environ.get("MCP_PROJECT_DIR", os.getcwd()))
-        
     discovered_files = []
 
     for root, _, files in os.walk(directory):
@@ -64,7 +60,7 @@ def read_gitignore_rules(
         logger.info(f"Parsing gitignore file at {gitignore_path}")
         parser = IgnoreParser()
         parser.parse_rule_file(gitignore_path)
-        
+
         # Create a matcher function that mimics the behavior of the old parse_gitignore
         def matcher(path):
             return parser.match(path)
@@ -77,7 +73,7 @@ def read_gitignore_rules(
 
 
 def apply_gitignore_filter(
-    file_paths: List[str], matcher: Callable, project_dir: Path = None
+    file_paths: List[str], matcher: Callable, project_dir: Path
 ) -> List[str]:
     """Filter a list of file paths using a gitignore matcher function.
 
@@ -94,9 +90,9 @@ def apply_gitignore_filter(
 
     filtered_files = []
 
-    # If project_dir is not provided, use environment variable or current directory
+    # Validate project_dir parameter
     if project_dir is None:
-        project_dir = Path(os.environ.get("MCP_PROJECT_DIR", os.getcwd()))
+        raise ValueError("Project directory cannot be None")
 
     for file_path in file_paths:
         # Convert to absolute path for the matcher
@@ -117,7 +113,7 @@ def apply_gitignore_filter(
 
 
 def filter_with_gitignore(
-    file_paths: List[str], base_dir: Path, project_dir: Path = None
+    file_paths: List[str], base_dir: Path, project_dir: Path
 ) -> List[str]:
     """Filter a list of file paths using .gitignore rules.
 
@@ -142,21 +138,23 @@ def filter_with_gitignore(
         return apply_gitignore_filter(file_paths, matcher, project_dir)
 
 
-def list_files(directory: Union[str, Path], use_gitignore: bool = True, project_dir: Path = None) -> List[str]:
+def list_files(
+    directory: Union[str, Path], project_dir: Path, use_gitignore: bool = True
+) -> List[str]:
     """List all files in a directory and its subdirectories with optional gitignore filtering.
-    
+
     Args:
         directory: Directory to list files from
-        use_gitignore: Whether to apply gitignore filtering
         project_dir: Project directory path
-    
+        use_gitignore: Whether to apply gitignore filtering
+
     Returns:
         List of file paths
     """
-    # If project_dir is not provided, use the environment variable or current directory
+    # Validate project_dir parameter
     if project_dir is None:
-        project_dir = Path(os.environ.get("MCP_PROJECT_DIR", os.getcwd()))
-        
+        raise ValueError("Project directory cannot be None")
+
     abs_path, rel_path = normalize_path(directory, project_dir)
 
     if not abs_path.exists():

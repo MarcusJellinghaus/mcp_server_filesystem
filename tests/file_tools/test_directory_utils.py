@@ -3,7 +3,7 @@
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -18,10 +18,9 @@ from src.file_tools.directory_utils import (
 from tests.conftest import TEST_DIR
 
 
-def test_discover_files():
+def test_discover_files(project_dir):
     """Test discovering files in a directory recursively."""
     # Create test directory structure
-    project_dir = Path(os.environ["MCP_PROJECT_DIR"])
     test_dir = project_dir / TEST_DIR
 
     # Create a subdirectory for testing recursion
@@ -36,7 +35,7 @@ def test_discover_files():
             f.write(f"Content for {file_path.name}")
 
     # Test file discovery
-    discovered_files = _discover_files(test_dir)
+    discovered_files = _discover_files(test_dir, project_dir)
 
     # Convert to a set for easy comparison
     rel_paths = set(str(Path(f)) for f in discovered_files)
@@ -92,7 +91,7 @@ def test_read_gitignore_rules_with_file():
         assert matcher(not_ignored_file) is False
 
 
-def test_apply_gitignore_filter():
+def test_apply_gitignore_filter(project_dir):
     """Test applying gitignore filter with a predefined matcher."""
 
     # Create a simple matcher function that ignores files with .log extension
@@ -108,18 +107,16 @@ def test_apply_gitignore_filter():
     ]
 
     # Apply the filter
-    filtered = apply_gitignore_filter(
-        file_paths, mock_matcher, Path("/fake/project/dir")
-    )
+    filtered = apply_gitignore_filter(file_paths, mock_matcher, project_dir)
 
     # Check that only non-.log files remain
     assert filtered == ["folder/file.txt", "another/document.md"]
 
     # Test with None matcher
-    assert apply_gitignore_filter(file_paths, None) == file_paths
+    assert apply_gitignore_filter(file_paths, None, project_dir) == file_paths
 
 
-def test_filter_with_gitignore_no_gitignore():
+def test_filter_with_gitignore_no_gitignore(project_dir):
     """Test filtering files when no .gitignore file exists."""
     # Create a list of file paths
     file_paths = [
@@ -128,7 +125,6 @@ def test_filter_with_gitignore_no_gitignore():
     ]
 
     # Test with a directory that doesn't have a .gitignore file
-    project_dir = Path(os.environ["MCP_PROJECT_DIR"])
     test_dir = project_dir / TEST_DIR
 
     # Ensure no .gitignore file exists
@@ -137,15 +133,15 @@ def test_filter_with_gitignore_no_gitignore():
         gitignore_path.unlink()
 
     # Test the filter with no .gitignore
-    filtered_files = filter_with_gitignore(file_paths, test_dir)
+    filtered_files = filter_with_gitignore(file_paths, test_dir, project_dir)
 
     # Without a .gitignore file, all files should be returned
     assert set(filtered_files) == set(file_paths)
 
-def test_list_files_basic():
+
+def test_list_files_basic(project_dir):
     """Test listing files in a directory."""
     # Create test directory structure
-    project_dir = Path(os.environ["MCP_PROJECT_DIR"])
     test_dir = project_dir / TEST_DIR
 
     # Create test files
@@ -169,7 +165,7 @@ def test_list_files_basic():
             side_effect=lambda files, *args, **kwargs: files,
         ):
             # Test listing files
-            files = list_files(str(TEST_DIR))
+            files = list_files(str(TEST_DIR), project_dir=project_dir)
 
             # Check if all expected files are in the list
             expected_files = {
@@ -182,10 +178,9 @@ def test_list_files_basic():
             assert actual_files == expected_files
 
 
-def test_list_files_with_gitignore():
+def test_list_files_with_gitignore(project_dir):
     """Test listing files with gitignore filtering."""
     # Create test directory structure
-    project_dir = Path(os.environ["MCP_PROJECT_DIR"])
     test_dir = project_dir / TEST_DIR
 
     # Create test files including ones to be ignored
@@ -211,17 +206,18 @@ def test_list_files_with_gitignore():
             mock_filter.return_value = ["testdata/test_file_tools/keep.txt"]
 
             # Test listing files with gitignore filtering
-            files = list_files(str(TEST_DIR), use_gitignore=True)
+            files = list_files(
+                str(TEST_DIR), project_dir=project_dir, use_gitignore=True
+            )
 
             # The .log file should be filtered out
             assert files == ["testdata/test_file_tools/keep.txt"]
             assert not any(f.endswith("ignore.log") for f in files)
 
 
-def test_list_files_without_gitignore():
+def test_list_files_without_gitignore(project_dir):
     """Test listing files without gitignore filtering."""
     # Create test directory structure
-    project_dir = Path(os.environ["MCP_PROJECT_DIR"])
     test_dir = project_dir / TEST_DIR
 
     # Create test files including ones normally ignored
@@ -241,7 +237,7 @@ def test_list_files_without_gitignore():
         ]
 
         # Test listing files without gitignore filtering
-        files = list_files(str(TEST_DIR), use_gitignore=False)
+        files = list_files(str(TEST_DIR), project_dir=project_dir, use_gitignore=False)
 
         # Both files should be included
         assert set(files) == {
@@ -250,34 +246,33 @@ def test_list_files_without_gitignore():
         }
 
 
-def test_list_files_directory_not_found():
+def test_list_files_directory_not_found(project_dir):
     """Test listing files in a non-existent directory."""
     non_existent_dir = "testdata/non_existent_dir"
 
     # Test with a non-existent directory
     with pytest.raises(FileNotFoundError) as excinfo:
-        list_files(non_existent_dir)
+        list_files(non_existent_dir, project_dir=project_dir)
 
     # Verify the error message
     assert f"Directory '{non_existent_dir}' does not exist" in str(excinfo.value)
 
 
-def test_list_files_not_a_directory():
+def test_list_files_not_a_directory(project_dir):
     """Test listing files on a path that is not a directory."""
     # Create a file
-    project_dir = Path(os.environ["MCP_PROJECT_DIR"])
     test_file = project_dir / TEST_DIR / "not_a_dir.txt"
     test_file.write_text("This is not a directory")
 
     # Test with a file path instead of a directory
     with pytest.raises(NotADirectoryError) as excinfo:
-        list_files(str(TEST_DIR / "not_a_dir.txt"))
+        list_files(str(TEST_DIR / "not_a_dir.txt"), project_dir=project_dir)
 
     # Verify the error message
     assert "is not a directory" in str(excinfo.value)
 
 
-def test_list_files_with_exception():
+def test_list_files_with_exception(project_dir):
     """Test handling of unexpected exceptions in list_files."""
     # Mock _discover_files to raise an exception
     with patch(
@@ -286,7 +281,7 @@ def test_list_files_with_exception():
     ):
         # Test with a mocked exception
         with pytest.raises(Exception) as excinfo:
-            list_files(str(TEST_DIR))
+            list_files(str(TEST_DIR), project_dir=project_dir)
 
         # Verify that the exception is propagated
         assert "Test error" in str(excinfo.value)

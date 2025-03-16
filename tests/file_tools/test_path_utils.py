@@ -45,7 +45,7 @@ def test_normalize_path_security_error_absolute():
     """Test security check with an absolute path outside the project directory."""
     # Define the project directory for testing
     project_dir = Path(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
-    
+
     # Try to access a path outside the project directory
     with pytest.raises(ValueError) as excinfo:
         normalize_path("/tmp/outside_project.txt", project_dir)
@@ -59,7 +59,7 @@ def test_normalize_path_security_error_relative():
     """Test security check with a relative path that tries to escape."""
     # Define the project directory for testing
     project_dir = Path(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
-    
+
     # Try to access a path outside the project directory using path traversal
     with pytest.raises(ValueError) as excinfo:
         normalize_path("../outside_project.txt", project_dir)

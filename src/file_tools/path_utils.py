@@ -24,7 +24,7 @@ def normalize_path(path: str, project_dir: Path) -> tuple[Path, str]:
     """
     if project_dir is None:
         raise ValueError("Project directory cannot be None")
-        
+
     path_obj = Path(path)
 
     # If the path is absolute, make it relative to the project directory

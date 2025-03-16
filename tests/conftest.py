@@ -11,12 +11,18 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Set up the project directory for testing
-os.environ["MCP_PROJECT_DIR"] = os.path.abspath(os.path.dirname(__file__))
+PROJECT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 
 # Test constants
 TEST_DIR = Path("testdata/test_file_tools")
 TEST_FILE = TEST_DIR / "test_file.txt"
 TEST_CONTENT = "This is test content."
+
+
+@pytest.fixture
+def project_dir():
+    """Fixture to provide the project directory for tests."""
+    return PROJECT_DIR
 
 
 @pytest.fixture(autouse=True)
@@ -27,7 +33,7 @@ def setup_and_cleanup():
     This is automatically used for all tests.
     """
     # Setup: Ensure the test directory exists
-    abs_test_dir = Path(os.environ["MCP_PROJECT_DIR"]) / TEST_DIR
+    abs_test_dir = PROJECT_DIR / TEST_DIR
     abs_test_dir.mkdir(parents=True, exist_ok=True)
 
     # Run the test
