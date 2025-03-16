@@ -117,7 +117,7 @@ async def save_file(file_path: str, content: str) -> bool:
 
 
 @mcp.tool()
-async def delete_file(file_path: str) -> bool:
+async def delete_this_file(file_path: str) -> bool:
     """Delete a specified file from the filesystem.
 
     Args:
@@ -126,6 +126,7 @@ async def delete_file(file_path: str) -> bool:
     Returns:
         True if the file was deleted successfully
     """
+    # delete_file does not work with Claude Desktop (!!!)  ;-)
     # Validate the file_path parameter
     if not file_path or not isinstance(file_path, str):
         logger.error(f"Invalid file path parameter: {file_path}")
