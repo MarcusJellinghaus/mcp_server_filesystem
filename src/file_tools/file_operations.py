@@ -10,7 +10,7 @@ from .path_utils import normalize_path
 logger = logging.getLogger(__name__)
 
 
-def read_file(file_path: str, project_dir: Path) -> str:
+def read_file(file_path: str, project_dir: Path = None) -> str:
     """
     Read the contents of a file.
 
@@ -30,6 +30,10 @@ def read_file(file_path: str, project_dir: Path) -> str:
     if not file_path or not isinstance(file_path, str):
         logger.error(f"Invalid file path: {file_path}")
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
+
+    # If project_dir is not provided, use the environment variable or current directory
+    if project_dir is None:
+        project_dir = Path(os.environ.get("MCP_PROJECT_DIR", os.getcwd()))
 
     # Normalize the path to be relative to the project directory
     abs_path, rel_path = normalize_path(file_path, project_dir)
@@ -62,7 +66,7 @@ def read_file(file_path: str, project_dir: Path) -> str:
             file_handle.close()
 
 
-def write_file(file_path: str, content: str, project_dir: Path) -> bool:
+def write_file(file_path: str, content: str, project_dir: Path = None) -> bool:
     """
     Write content to a file atomically.
 
@@ -91,6 +95,10 @@ def write_file(file_path: str, content: str, project_dir: Path) -> bool:
     if not isinstance(content, str):
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
+
+    # If project_dir is not provided, use the environment variable or current directory
+    if project_dir is None:
+        project_dir = Path(os.environ.get("MCP_PROJECT_DIR", os.getcwd()))
 
     # Normalize the path to be relative to the project directory
     abs_path, rel_path = normalize_path(file_path, project_dir)
@@ -160,7 +168,7 @@ def write_file(file_path: str, content: str, project_dir: Path) -> bool:
                 )
 
 
-def delete_file(file_path: str, project_dir: Path) -> bool:
+def delete_file(file_path: str, project_dir: Path = None) -> bool:
     """
     Delete a file.
 
@@ -181,6 +189,10 @@ def delete_file(file_path: str, project_dir: Path) -> bool:
     if not file_path or not isinstance(file_path, str):
         logger.error(f"Invalid file path: {file_path}")
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
+
+    # If project_dir is not provided, use the environment variable or current directory
+    if project_dir is None:
+        project_dir = Path(os.environ.get("MCP_PROJECT_DIR", os.getcwd()))
 
     # Normalize the path to be relative to the project directory
     abs_path, rel_path = normalize_path(file_path, project_dir)
