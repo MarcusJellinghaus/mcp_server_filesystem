@@ -152,12 +152,12 @@ class TestApplyEdits(unittest.TestCase):
         old_text = "- First bullet\n- Second bullet\n- Third bullet"
         new_text = "- First bullet\n  - Nested bullet 1\n  - Nested bullet 2"
         self.assertTrue(is_markdown_bullets(old_text, new_text))
-        
+
         # Should return false for non-bullet content
         old_text = "Regular text\nNo bullets here\nJust plain text"
         new_text = "Modified text\nStill no bullets\nUpdated content"
         self.assertFalse(is_markdown_bullets(old_text, new_text))
-        
+
     def test_markdown_bullet_indentation(self):
         # Test specific issue with markdown bullet point indentation in documentation
         content = "- Top level item\n- Parameters:\n- param1: value1\n- param2: value2"
@@ -169,7 +169,10 @@ class TestApplyEdits(unittest.TestCase):
         ]
         options = EditOptions(preserve_indentation=True)
         modified, results = apply_edits(content, edits, options)
-        self.assertEqual(modified, "- Top level item\n- Parameters:\n  - param1: value1\n  - param2: value2")
+        self.assertEqual(
+            modified,
+            "- Top level item\n- Parameters:\n  - param1: value1\n  - param2: value2",
+        )
         self.assertEqual(results[0]["match_type"], "exact")
 
     def test_apply_edits_no_match(self):
