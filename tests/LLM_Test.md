@@ -332,3 +332,52 @@ read_file(file_path="test_multiline.txt")
 ```
 delete_this_file(file_path="test_multiline.txt")
 ```
+
+### Test 9: Markdown Bullet Point Indentation
+**Goal**: Verify proper handling of markdown bullet point indentation
+
+**Step 1**: Create a markdown file with nested bullet points
+```
+save_file(
+file_path="test_markdown.md",
+content="# Documentation
+
+## Features
+
+- Top level feature
+- Available options:
+- option1: description
+- option2: description
+- Another top level feature"
+)
+```
+
+**Step 2**: Verify file was created
+```
+read_file(file_path="test_markdown.md")
+```
+
+**Step 3**: Correct bullet point indentation
+```
+edit_file(
+path="test_markdown.md",
+edits=[{
+"oldText": "- Available options:\n- option1: description\n- option2: description",
+"newText": "- Available options:\n  - option1: description\n  - option2: description"
+}],
+options={
+"preserveIndentation": true
+}
+)
+```
+
+**Step 4**: Verify indentation was applied correctly
+```
+read_file(file_path="test_markdown.md")
+# Expected: Nested bullet points should be properly indented with 2 spaces
+```
+
+**Step 5**: Clean up after test
+```
+delete_this_file(file_path="test_markdown.md")
+```

@@ -146,6 +146,20 @@ class TestApplyEdits(unittest.TestCase):
         modified, results = apply_edits(content, edits, options)
         self.assertEqual(modified, "    if new_condition:\n        return False")
 
+    def test_markdown_bullet_indentation(self):
+        # Test specific issue with markdown bullet point indentation in documentation
+        content = "- Top level item\n- Parameters:\n- param1: value1\n- param2: value2"
+        edits = [
+            EditOperation(
+                old_text="- Parameters:\n- param1: value1\n- param2: value2",
+                new_text="- Parameters:\n  - param1: value1\n  - param2: value2",
+            )
+        ]
+        options = EditOptions(preserve_indentation=True)
+        modified, results = apply_edits(content, edits, options)
+        self.assertEqual(modified, "- Top level item\n- Parameters:\n  - param1: value1\n  - param2: value2")
+        self.assertEqual(results[0]["match_type"], "exact")
+
     def test_apply_edits_no_match(self):
         content = "def function():\n    return True"
         edits = [EditOperation(old_text="nonexistent", new_text="replacement")]
