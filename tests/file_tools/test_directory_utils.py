@@ -49,6 +49,39 @@ def test_discover_files(project_dir):
     assert rel_paths.issuperset(expected_paths)
 
 
+def test_git_directory_exclusion(project_dir):
+    """Test that .git directory is excluded from file discovery."""
+    # Create test directory structure
+    test_dir = project_dir / TEST_DIR
+
+    # Create a .git directory with some files in it
+    git_dir = test_dir / ".git"
+    git_dir.mkdir(exist_ok=True)
+
+    # Create some files in the test directory and in the .git directory
+    regular_file = test_dir / "regular.txt"
+    git_file = git_dir / "git_config.txt"
+
+    regular_file.write_text("Regular file content")
+    git_file.write_text("Git file content")
+
+    # Discover files
+    discovered_files = _discover_files(test_dir, project_dir)
+
+    # Convert to a set of paths for easier assertion
+    discovered_paths = set(discovered_files)
+
+    # Convert paths to a format that's consistent across platforms
+    regular_path = str(Path("testdata/test_file_tools/regular.txt"))
+    git_path = str(Path("testdata/test_file_tools/.git/git_config.txt"))
+
+    # Assert that the regular file is included
+    assert regular_path in discovered_paths
+
+    # Assert that the git file is excluded
+    assert git_path not in discovered_paths
+
+
 def test_read_gitignore_rules_no_file():
     """Test reading gitignore rules when no file exists."""
     # Use a temporary directory to ensure no .gitignore exists

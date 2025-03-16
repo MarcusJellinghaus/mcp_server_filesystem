@@ -17,10 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 def _discover_files(directory: Path, project_dir: Path) -> List[str]:
-    """Discover all files recursively."""
+    """Discover all files recursively, excluding the .git directory."""
     discovered_files = []
 
-    for root, _, files in os.walk(directory):
+    for root, dirs, files in os.walk(directory):
+        # Skip .git directories
+        if ".git" in dirs:
+            dirs.remove(".git")
+
         root_path = Path(root)
         try:
             rel_root = root_path.relative_to(project_dir)

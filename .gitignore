@@ -17,3 +17,6 @@ venv/
 
 # Package info
 *.egg-info/
+
+# Testing cache
+.pytest_cache/
