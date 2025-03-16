@@ -107,33 +107,77 @@ def get_line_indentation(line: str) -> str:
     return match.group(1) if match else ""
 
 
+def is_markdown_bullets(old_text: str, new_text: str) -> bool:
+    """Check if the text appears to be markdown bullet points with changed indentation."""
+    old_lines = old_text.split("\n")
+    new_lines = new_text.split("\n")
+    
+    # Need at least one line in each text
+    if not old_lines or not new_lines:
+        return False
+    
+    # Check if both texts contain markdown bullet points
+    # Look for bullet patterns in both texts
+    old_has_bullets = any(line.lstrip().startswith("- ") for line in old_lines)
+    new_has_bullets = any(line.lstrip().startswith("- ") for line in new_lines)
+    
+    # Check for indented bullets in the new text (nested bullets)
+    has_indented_bullets = any(re.match(r'^\s+- ', line) for line in new_lines)
+    
+    # Return true if both texts have bullets and we detect any indentation changes
+    return old_has_bullets and new_has_bullets
+
+
 def preserve_indentation(old_text: str, new_text: str) -> str:
     """Preserve the indentation pattern from old_text in new_text."""
     old_lines = old_text.split("\n")
     new_lines = new_text.split("\n")
-
     result_lines = []
 
     # Get the base indentation of the first line in old_text
     first_line_indent = get_line_indentation(old_lines[0]) if old_lines else ""
-
+    
+    # Check if this is a markdown bullet list with indentation changes
+    markdown_list = is_markdown_bullets(old_text, new_text)
+    
     # Process each line of new_text
     for i, new_line in enumerate(new_lines):
-        if i == 0:
-            # For the first line, use the indentation from old_text's first line
-            result_lines.append(first_line_indent + new_line.lstrip())
-        else:
-            # For subsequent lines, determine the corresponding indentation level
-            if i < len(old_lines):
-                # If we have a corresponding line in old_text, use its indentation
-                old_indent = get_line_indentation(old_lines[i])
-                result_lines.append(old_indent + new_line.lstrip())
+        stripped_line = new_line.lstrip()
+        new_line_indent = get_line_indentation(new_line)
+        
+        if markdown_list:
+            # Special handling for markdown bullet lists
+            if i == 0:
+                # First line keeps original indentation
+                result_lines.append(first_line_indent + stripped_line)
             else:
-                # For extra new lines, maintain relative indentation from old_text pattern
-                # Find the indentation of the last line of old_text
-                last_old_indent = get_line_indentation(old_lines[-1])
-                # Apply that indentation to the new line
-                result_lines.append(last_old_indent + new_line.lstrip())
+                # For nested bullets, preserve the indentation
+                if stripped_line.startswith("- "):
+                    # This is a bullet point - use its intended indentation
+                    result_lines.append(first_line_indent + new_line_indent + stripped_line)
+                else:
+                    # For any other lines, use normal indentation rules
+                    if i < len(old_lines):
+                        old_indent = get_line_indentation(old_lines[i])
+                        result_lines.append(old_indent + stripped_line)
+                    else:
+                        # Fall back to first line indent for additional lines
+                        result_lines.append(first_line_indent + stripped_line)
+        else:
+            # Standard indentation preservation
+            if i == 0:
+                # For the first line, use the indentation from old_text's first line
+                result_lines.append(first_line_indent + stripped_line)
+            else:
+                # For subsequent lines, determine the corresponding indentation level
+                if i < len(old_lines):
+                    # If we have a corresponding line in old_text, use its indentation
+                    old_indent = get_line_indentation(old_lines[i])
+                    result_lines.append(old_indent + stripped_line)
+                else:
+                    # For extra new lines, maintain relative indentation from old_text pattern
+                    last_old_indent = get_line_indentation(old_lines[-1])
+                    result_lines.append(last_old_indent + stripped_line)
 
     return "\n".join(result_lines)
 

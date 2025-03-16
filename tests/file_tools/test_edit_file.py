@@ -15,6 +15,7 @@ from src.file_tools.edit_file import (
     find_exact_match,
     find_fuzzy_match,
     get_line_indentation,
+    is_markdown_bullets,
     normalize_line_endings,
     normalize_whitespace,
     preserve_indentation,
@@ -146,6 +147,17 @@ class TestApplyEdits(unittest.TestCase):
         modified, results = apply_edits(content, edits, options)
         self.assertEqual(modified, "    if new_condition:\n        return False")
 
+    def test_is_markdown_bullets(self):
+        # Test detection of markdown bullet lists
+        old_text = "- First bullet\n- Second bullet\n- Third bullet"
+        new_text = "- First bullet\n  - Nested bullet 1\n  - Nested bullet 2"
+        self.assertTrue(is_markdown_bullets(old_text, new_text))
+        
+        # Should return false for non-bullet content
+        old_text = "Regular text\nNo bullets here\nJust plain text"
+        new_text = "Modified text\nStill no bullets\nUpdated content"
+        self.assertFalse(is_markdown_bullets(old_text, new_text))
+        
     def test_markdown_bullet_indentation(self):
         # Test specific issue with markdown bullet point indentation in documentation
         content = "- Top level item\n- Parameters:\n- param1: value1\n- param2: value2"
