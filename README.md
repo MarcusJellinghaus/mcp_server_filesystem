@@ -8,7 +8,8 @@ This MCP server enables AI assistants like Claude (via Claude Desktop) or other 
 
 - Read your existing code and project files
 - Write new files with generated content
-- Update and modify existing files
+- Update and modify existing files with precision using pattern matching
+- Make selective edits to code without rewriting entire files
 - Delete files when needed
 - Review repositories to provide analysis and recommendations
 - Debug and fix issues in your codebase
@@ -24,6 +25,7 @@ By connecting your AI assistant to your filesystem, you can transform your workf
 - `read_file`: Read the contents of a file
 - `save_file`: Write content to a file atomically
 - `delete_this_file`: Delete a specified file from the filesystem
+- `edit_file`: Make selective edits using advanced pattern matching
 
 ## Installation
 
@@ -142,6 +144,28 @@ The server exposes the following MCP tools:
   - `file_path` (string): Path to the file to delete (relative to project directory)
 - Returns: Boolean indicating success
 - Note: This operation is irreversible and will permanently remove the file. Only works within allowed directories.
+
+### Edit File
+- Makes selective edits using advanced pattern matching and formatting
+- Parameters:
+  - `path` (string): File to edit (relative to project directory)
+  - `edits` (array): List of edit operations, each containing:
+    - `old_text` (string): Text to be replaced (must be unique in the file)
+    - `new_text` (string): Replacement text
+  - `dry_run` (boolean, optional): Preview changes without applying (default: False)
+  - `options` (object, optional): Formatting settings:
+    - `preserveIndentation` (boolean): Keep existing indentation (default: True)
+    - `normalizeWhitespace` (boolean): Normalize spaces while preserving structure (default: True)
+    - `partialMatch` (boolean): Enable fuzzy matching (default: True)
+    - `matchThreshold` (float): Confidence threshold for fuzzy matching (default: 0.8)
+- Returns: Detailed diff and match information
+- Features:
+  - Line-based and multi-line content matching
+  - Whitespace normalization with indentation preservation
+  - Fuzzy matching with confidence scoring
+  - Multiple simultaneous edits with correct positioning
+  - Indentation style detection and preservation
+  - Git-style diff output with context
 
 ## Security Features
 
