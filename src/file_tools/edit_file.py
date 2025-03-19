@@ -74,7 +74,7 @@ def get_indentation(line: str) -> str:
 
 
 def preserve_indentation(old_text: str, new_text: str) -> str:
-    """Preserve the indentation pattern from old_text in new_text with a simplified approach."""
+    """Preserve the indentation pattern from old_text in new_text with a robust approach."""
     old_lines = old_text.split("\n")
     new_lines = new_text.split("\n")
 
@@ -82,39 +82,77 @@ def preserve_indentation(old_text: str, new_text: str) -> str:
     if not old_lines or not new_lines:
         return new_text
 
+    # Get the base indentation and indentation pattern from old text
+    indentation_levels = []
+    for line in old_lines:
+        if line.strip():  # Skip empty lines
+            indent = get_indentation(line)
+            if indent not in indentation_levels:
+                indentation_levels.append(indent)
+
+    # Sort indentation levels by length (shortest to longest)
+    indentation_levels.sort(key=len)
+
     # Get the base indentation from the first line
     base_indent = get_indentation(old_lines[0]) if old_lines else ""
-    result_lines = []
 
     # Process each line with appropriate indentation
-    for i, line in enumerate(new_lines):
-        if not line.strip():  # Empty line
+    result_lines = []
+    for i, new_line in enumerate(new_lines):
+        # Skip empty lines
+        if not new_line.strip():
             result_lines.append("")
             continue
 
-        if i == 0:  # First line gets base indentation
-            result_lines.append(base_indent + line.lstrip())
+        # For first line, use the base indentation from old text
+        if i == 0:
+            result_lines.append(base_indent + new_line.lstrip())
             continue
 
-        # For subsequent lines, use corresponding indentation if available
+        # If we have a corresponding line in the old text, use its indentation
         if i < len(old_lines):
             old_indent = get_indentation(old_lines[i])
-            result_lines.append(old_indent + line.lstrip())
-        else:
-            # For lines beyond the original, estimate indentation based on previous line
-            prev_new_indent = get_indentation(new_lines[i-1])
-            prev_result_indent = get_indentation(result_lines[-1])
+            result_lines.append(old_indent + new_line.lstrip())
+            continue
 
-            # Keep relative indentation relationship
-            indent_diff = len(get_indentation(line)) - len(prev_new_indent)
-            if indent_diff > 0:  # More indented
-                result_lines.append(prev_result_indent + "    " * (indent_diff // 4 + (1 if indent_diff % 4 > 0 else 0)) + line.lstrip())
-            elif indent_diff < 0:  # Less indented
-                # Remove some indentation, but don't go below base_indent
-                new_indent = prev_result_indent[:max(len(base_indent), len(prev_result_indent) + indent_diff)]
-                result_lines.append(new_indent + line.lstrip())
-            else:  # Same indentation
-                result_lines.append(prev_result_indent + line.lstrip())
+        # Check if this is an appended block (like a new method in a class)
+        if i > 0 and new_line.strip().startswith("def ") and len(get_indentation(new_line)) == 0:
+            # This is potentially a new method/function at the same level as existing ones
+            # Find similar lines in old text
+            method_indents = [get_indentation(line) for line in old_lines if line.strip().startswith("def ")]
+            if method_indents:
+                result_lines.append(method_indents[0] + new_line.lstrip())
+                continue
+
+        # For new lines, analyze the indentation structure
+        new_indent = get_indentation(new_line)
+        prev_new_indent = get_indentation(new_lines[i-1]) if i > 0 else ""
+        prev_result_indent = get_indentation(result_lines[-1]) if result_lines else base_indent
+
+        # Determine relative indentation level
+        indent_diff = len(new_indent) - len(prev_new_indent)
+
+        if indent_diff > 0:  # Increased indentation
+            # Find closest matching indentation level in old text that's deeper than previous
+            deeper_indents = [x for x in indentation_levels if len(x) > len(prev_result_indent)]
+            if deeper_indents:
+                # Use the next deeper indentation level
+                result_lines.append(deeper_indents[0] + new_line.lstrip())
+            else:
+                # Add standard indentation if no deeper level exists
+                result_lines.append(prev_result_indent + "    " + new_line.lstrip())
+        elif indent_diff < 0:  # Decreased indentation
+            # Find closest matching indentation level in old text that's shallower than previous
+            shallower_indents = [x for x in indentation_levels if len(x) < len(prev_result_indent)]
+            if shallower_indents:
+                # Use the closest shallower indentation level
+                closest_indent = max(shallower_indents, key=len)
+                result_lines.append(closest_indent + new_line.lstrip())
+            else:
+                # Fallback to base indentation
+                result_lines.append(base_indent + new_line.lstrip())
+        else:  # Same indentation level
+            result_lines.append(prev_result_indent + new_line.lstrip())
 
     return "\n".join(result_lines)
 
@@ -165,7 +203,7 @@ def find_match(content: str, pattern: str, partial_match: bool = True, threshold
                 best_index = i
 
     # Return match if confidence is high enough
-    if best_confidence >= threshold:
+    if best_confidence >= threshold and best_index >= 0:
         return MatchResult(
             matched=True,
             confidence=best_confidence,
@@ -223,57 +261,7 @@ def apply_edits(
             options.match_threshold
         )
 
-        if match_result.matched:
-            # Apply the replacement
-            if match_result.confidence == 1.0:
-                # Exact match replacement
-                start_pos = modified_content.find(normalized_old)
-                end_pos = start_pos + len(normalized_old)
-
-                # Preserve indentation if needed
-                replace_with = normalized_new
-                if options.preserve_indentation:
-                    replace_with = preserve_indentation(normalized_old, normalized_new)
-
-                modified_content = (
-                    modified_content[:start_pos] 
-                    + replace_with 
-                    + modified_content[end_pos:]
-                )
-
-                match_results.append({
-                    "edit_index": i,
-                    "match_type": "exact",
-                    "confidence": 1.0,
-                    "line_index": match_result.line_index,
-                    "line_count": match_result.line_count,
-                })
-            else:
-                # Fuzzy match replacement
-                content_lines = modified_content.split("\n")
-                line_index = match_result.line_index
-                line_count = match_result.line_count
-
-                # Extract matched content
-                matched_content = "\n".join(content_lines[line_index:line_index + line_count])
-
-                # Preserve indentation if needed
-                replace_with = normalized_new
-                if options.preserve_indentation:
-                    replace_with = preserve_indentation(matched_content, normalized_new)
-
-                # Replace the matched lines
-                content_lines[line_index:line_index + line_count] = replace_with.split("\n")
-                modified_content = "\n".join(content_lines)
-
-                match_results.append({
-                    "edit_index": i,
-                    "match_type": "fuzzy",
-                    "confidence": match_result.confidence,
-                    "line_index": line_index,
-                    "line_count": line_count,
-                })
-        else:
+        if not match_result.matched:
             # No match found
             match_results.append({
                 "edit_index": i,
@@ -282,6 +270,56 @@ def apply_edits(
                 "details": match_result.details,
             })
             raise ValueError(f"Could not find match for edit {i}: {match_result.details}")
+
+        # Apply the replacement based on match type
+        if match_result.confidence == 1.0:
+            # Exact match replacement
+            start_pos = modified_content.find(normalized_old)
+            end_pos = start_pos + len(normalized_old)
+
+            # Preserve indentation if needed
+            replace_with = normalized_new
+            if options.preserve_indentation:
+                replace_with = preserve_indentation(normalized_old, normalized_new)
+
+            modified_content = (
+                modified_content[:start_pos] 
+                + replace_with 
+                + modified_content[end_pos:]
+            )
+
+            match_results.append({
+                "edit_index": i,
+                "match_type": "exact",
+                "confidence": 1.0,
+                "line_index": match_result.line_index,
+                "line_count": match_result.line_count,
+            })
+        else:
+            # Fuzzy match replacement
+            content_lines = modified_content.split("\n")
+            line_index = match_result.line_index
+            line_count = match_result.line_count
+
+            # Extract matched content
+            matched_content = "\n".join(content_lines[line_index:line_index + line_count])
+
+            # Preserve indentation if needed
+            replace_with = normalized_new
+            if options.preserve_indentation:
+                replace_with = preserve_indentation(matched_content, normalized_new)
+
+            # Replace the matched lines
+            content_lines[line_index:line_index + line_count] = replace_with.split("\n")
+            modified_content = "\n".join(content_lines)
+
+            match_results.append({
+                "edit_index": i,
+                "match_type": "fuzzy",
+                "confidence": match_result.confidence,
+                "line_index": line_index,
+                "line_count": line_count,
+            })
 
     return modified_content, match_results
 
@@ -335,15 +373,22 @@ def edit_file(
             if hasattr(edit_options, key):
                 setattr(edit_options, key, value)
 
-    # Check if edits are already applied (optimization)
-    all_edits_applied = True
+    match_results = []
+
+    # Special case: Check if edits have already been applied 
+    # (to avoid errors on subsequent identical edits)
+    # Check if we're trying to apply the same edits to an already edited file
+    all_edits_already_done = True
     for edit in edit_operations:
-        old_match = find_match(original_content, edit.old_text, edit_options.partial_match, edit_options.match_threshold)
-        if old_match.matched:
-            all_edits_applied = False
+        # If the original pattern is not found AND the new text is found, the edit was already done
+        if edit.old_text not in original_content and edit.new_text in original_content:
+            # Pattern already replaced
+            continue
+        else:
+            all_edits_already_done = False
             break
 
-    if all_edits_applied:
+    if all_edits_already_done:
         return {
             "success": True,
             "diff": "",
@@ -352,6 +397,26 @@ def edit_file(
             "file_path": file_path,
             "message": "No changes needed - content already in desired state"
         }
+
+    # Check that all patterns can be found
+    for i, edit in enumerate(edit_operations):
+        old_match = find_match(original_content, edit.old_text, edit_options.partial_match, edit_options.match_threshold)
+        if not old_match.matched:
+            error_msg = f"Could not find match for edit {i}: {old_match.details}"
+            if old_match.confidence > 0:
+                error_msg = f"confidence too low: {old_match.details}"
+            logger.error(error_msg)
+            return {
+                "success": False,
+                "error": error_msg,
+                "match_results": [{
+                    "edit_index": i,
+                    "match_type": "failed",
+                    "confidence": old_match.confidence,
+                    "details": old_match.details,
+                }],
+                "file_path": file_path,
+            }
 
     # Apply edits
     try:
@@ -389,12 +454,10 @@ def edit_file(
         }
     except Exception as e:
         error_msg = str(e)
-        if "confidence" in error_msg and "below threshold" in error_msg:
-            error_msg = f"confidence too low: {error_msg}"
-
+        logger.error(f"Error applying edits to {file_path}: {error_msg}")
         return {
             "success": False,
             "error": error_msg,
-            "match_results": match_results if 'match_results' in locals() else [],
+            "match_results": match_results,
             "file_path": file_path,
         }
