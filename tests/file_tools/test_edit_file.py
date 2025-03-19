@@ -310,179 +310,208 @@ class TestEditFileChallenges(unittest.TestCase):
     def tearDown(self):
         # Clean up after tests
         self.temp_dir.cleanup()
-        
+
     def test_large_block_replacement_indentation(self):
         """Test that large block replacements can result in indentation issues."""
         # Create a Python file with nested indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write("class DataProcessor:\n    def __init__(self):\n        self.data = []\n    \n    def process_data(self):\n        if not self.data:\n            return {}\n        \n        result = {\n            \"count\": len(self.data),\n            \"processed\": True\n        }\n        \n        return result\n")
-            
+            f.write(
+                'class DataProcessor:\n    def __init__(self):\n        self.data = []\n    \n    def process_data(self):\n        if not self.data:\n            return {}\n        \n        result = {\n            "count": len(self.data),\n            "processed": True\n        }\n        \n        return result\n'
+            )
+
         # Try to replace entire process_data method with new content
-        edits = [{
-            "old_text": "    def process_data(self):\n        if not self.data:\n            return {}\n        \n        result = {\n            \"count\": len(self.data),\n            \"processed\": True\n        }\n        \n        return result", 
-            "new_text": "    def process_data(self):\n        if not self.data:\n            return {}\n        \n        filtered_data = self.filter_data()\n        result = {\n            \"count\": len(self.data),\n            \"filtered\": len(filtered_data),\n            \"processed\": True\n        }\n        \n        return result"
-        }]
-        
+        edits = [
+            {
+                "old_text": '    def process_data(self):\n        if not self.data:\n            return {}\n        \n        result = {\n            "count": len(self.data),\n            "processed": True\n        }\n        \n        return result',
+                "new_text": '    def process_data(self):\n        if not self.data:\n            return {}\n        \n        filtered_data = self.filter_data()\n        result = {\n            "count": len(self.data),\n            "filtered": len(filtered_data),\n            "processed": True\n        }\n        \n        return result',
+            }
+        ]
+
         result = edit_file(str(self.test_file), edits)
         self.assertTrue(result["success"])
-        
+
         # Check for correct indentation in the modified file
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
-            
+
         # Verify that indentation is preserved in the result
         self.assertIn("    def process_data", content)
         self.assertIn("        if not self.data", content)
-        
+
     def test_multiple_edits_to_same_region(self):
         """Test handling of multiple edits that target overlapping regions."""
         with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write("def calculate(x, y):\n    # Calculate the sum and product\n    sum_val = x + y\n    product = x * y\n    return sum_val, product\n")
-        
+            f.write(
+                "def calculate(x, y):\n    # Calculate the sum and product\n    sum_val = x + y\n    product = x * y\n    return sum_val, product\n"
+            )
+
         # Make multiple edits to the same function
         edits = [
-            {"old_text": "def calculate(x, y):", "new_text": "def calculate(x, y, z=0):"},
+            {
+                "old_text": "def calculate(x, y):",
+                "new_text": "def calculate(x, y, z=0):",
+            },
             {"old_text": "    sum_val = x + y", "new_text": "    sum_val = x + y + z"},
-            {"old_text": "    product = x * y", "new_text": "    product = x * y * (1 if z == 0 else z)"}
+            {
+                "old_text": "    product = x * y",
+                "new_text": "    product = x * y * (1 if z == 0 else z)",
+            },
         ]
-        
+
         result = edit_file(str(self.test_file), edits)
         self.assertTrue(result["success"])
-        
+
         # Check all edits were applied correctly
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
-            
+
         self.assertIn("def calculate(x, y, z=0):", content)
         self.assertIn("    sum_val = x + y + z", content)
         self.assertIn("    product = x * y * (1 if z == 0 else z)", content)
-    
+
     def test_fuzzy_matching_with_similar_patterns(self):
         """Test fuzzy matching when similar patterns exist."""
         with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write("# Configuration settings\nconfig = {\n    \"timeout\": 30,\n    \"retries\": 3\n}\n\n# Connection settings\nconnection = {\n    \"timeout\": 60,\n    \"keep_alive\": True\n}\n")
-        
+            f.write(
+                '# Configuration settings\nconfig = {\n    "timeout": 30,\n    "retries": 3\n}\n\n# Connection settings\nconnection = {\n    "timeout": 60,\n    "keep_alive": True\n}\n'
+            )
+
         # Try to edit a pattern that appears similarly in multiple places
-        edits = [{
-            "old_text": "    \"timeout\": 30,", 
-            "new_text": "    \"timeout\": 45,"
-        }]
-        
+        edits = [{"old_text": '    "timeout": 30,', "new_text": '    "timeout": 45,'}]
+
         result = edit_file(str(self.test_file), edits)
         self.assertTrue(result["success"])
-        
+
         # Verify the correct pattern was modified
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
-            
+
         # First timeout should be changed, second should be unchanged
-        self.assertIn("    \"timeout\": 45,", content)
-        self.assertIn("    \"timeout\": 60,", content)
-        
+        self.assertIn('    "timeout": 45,', content)
+        self.assertIn('    "timeout": 60,', content)
+
     def test_adding_new_method_vs_editing(self):
         """Test adding a new method to a class vs editing an existing one."""
         # Create a class with methods
         with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write("class DataProcessor:\n    def __init__(self):\n        self.data = []\n    \n    def process(self):\n        return len(self.data)\n")
-            
+            f.write(
+                "class DataProcessor:\n    def __init__(self):\n        self.data = []\n    \n    def process(self):\n        return len(self.data)\n"
+            )
+
         # Add a completely new method
-        edits = [{
-            "old_text": "    def process(self):\n        return len(self.data)", 
-            "new_text": "    def process(self):\n        return len(self.data)\n    \n    def validate(self):\n        return len(self.data) > 0"
-        }]
-        
+        edits = [
+            {
+                "old_text": "    def process(self):\n        return len(self.data)",
+                "new_text": "    def process(self):\n        return len(self.data)\n    \n    def validate(self):\n        return len(self.data) > 0",
+            }
+        ]
+
         result = edit_file(str(self.test_file), edits)
         self.assertTrue(result["success"])
-        
+
         # Verify new method was added with correct indentation
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
-            
+
         self.assertIn("    def validate(self):", content)
         self.assertIn("        return len(self.data) > 0", content)
-        
+
     def test_handling_mixed_indentation(self):
         """Test handling files with mixed indentation styles."""
         # Create a file with mixed tabs and spaces indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write("def function_one():\n    return 1\n\ndef function_two():\n\treturn 2\n")
-            
+            f.write(
+                "def function_one():\n    return 1\n\ndef function_two():\n\treturn 2\n"
+            )
+
         # Edit both functions
         edits = [
             {"old_text": "    return 1", "new_text": "    return 1 + 10"},
-            {"old_text": "\treturn 2", "new_text": "\treturn 2 + 20"}
+            {"old_text": "\treturn 2", "new_text": "\treturn 2 + 20"},
         ]
-        
+
         result = edit_file(str(self.test_file), edits)
         self.assertTrue(result["success"])
-        
+
         # Verify indentation style was preserved for each function
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
-            
+
         self.assertIn("    return 1 + 10", content)  # spaces preserved
         self.assertIn("\treturn 2 + 20", content)  # tab preserved
-        
+
     def test_indentation_regression_with_complex_blocks(self):
         """Test indentation regression with nested code blocks."""
         with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write("def process_data(data):\n    results = []\n    for item in data:\n        if item.valid:\n            processed = transform(item)\n            results.append(processed)\n        else:\n            logger.warning(f\"Invalid item: {item}\")\n    return results\n")
-            
+            f.write(
+                'def process_data(data):\n    results = []\n    for item in data:\n        if item.valid:\n            processed = transform(item)\n            results.append(processed)\n        else:\n            logger.warning(f"Invalid item: {item}")\n    return results\n'
+            )
+
         # Replace a nested block
-        edits = [{
-            "old_text": "        if item.valid:\n            processed = transform(item)\n            results.append(processed)\n        else:\n            logger.warning(f\"Invalid item: {item}\")", 
-            "new_text": "        try:\n            if item.valid:\n                processed = transform(item)\n                results.append(processed)\n            else:\n                logger.warning(f\"Invalid item: {item}\")\n        except Exception as e:\n            logger.error(f\"Error processing item: {e}\")"
-        }]
-        
+        edits = [
+            {
+                "old_text": '        if item.valid:\n            processed = transform(item)\n            results.append(processed)\n        else:\n            logger.warning(f"Invalid item: {item}")',
+                "new_text": '        try:\n            if item.valid:\n                processed = transform(item)\n                results.append(processed)\n            else:\n                logger.warning(f"Invalid item: {item}")\n        except Exception as e:\n            logger.error(f"Error processing item: {e}")',
+            }
+        ]
+
         result = edit_file(str(self.test_file), edits)
         self.assertTrue(result["success"])
-        
+
         # Verify nested indentation is preserved
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
-        
+
         self.assertIn("        try:", content)
         self.assertIn("            if item.valid:", content)
         self.assertIn("                processed = transform(item)", content)
-        
+
     def test_error_handling_with_partial_match(self):
         """Test error handling when partial matching fails."""
         with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write("def function1():\n    return 1\n\ndef function2():\n    return 2\n")
-            
+            f.write(
+                "def function1():\n    return 1\n\ndef function2():\n    return 2\n"
+            )
+
         # Try to match with very low confidence
-        edits = [{
-            "old_text": "def functions(): # completely different", 
-            "new_text": "def modified_function():"
-        }]
-        
+        edits = [
+            {
+                "old_text": "def functions(): # completely different",
+                "new_text": "def modified_function():",
+            }
+        ]
+
         # Should fail even with partial_match=True but low threshold
         options = {"partial_match": True, "match_threshold": 0.9}
         result = edit_file(str(self.test_file), edits, options=options)
-        
+
         self.assertFalse(result["success"])
         self.assertIn("error", result)
         self.assertIn("confidence too low", result["error"].lower())
-        
+
     def test_complex_python_indentation_preservation(self):
         """Test indentation preservation in complex Python structures."""
         # Create a Python file with complex indentation patterns
         with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write("class TestClass:\n    def method1(self):\n        if condition1:\n            if condition2:\n                do_something()\n            else:\n                for item in items:\n                    process(item)\n        return result\n")
-            
+            f.write(
+                "class TestClass:\n    def method1(self):\n        if condition1:\n            if condition2:\n                do_something()\n            else:\n                for item in items:\n                    process(item)\n        return result\n"
+            )
+
         # Replace the nested structure
-        edits = [{
-            "old_text": "            if condition2:\n                do_something()\n            else:\n                for item in items:\n                    process(item)", 
-            "new_text": "            try:\n                if condition2:\n                    do_something()\n                else:\n                    for item in items:\n                        process(item)\n            except Exception:\n                handle_error()"
-        }]
-        
+        edits = [
+            {
+                "old_text": "            if condition2:\n                do_something()\n            else:\n                for item in items:\n                    process(item)",
+                "new_text": "            try:\n                if condition2:\n                    do_something()\n                else:\n                    for item in items:\n                        process(item)\n            except Exception:\n                handle_error()",
+            }
+        ]
+
         result = edit_file(str(self.test_file), edits)
         self.assertTrue(result["success"])
-        
+
         # Verify indentation is properly preserved in complex nesting
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
-            
+
         self.assertIn("            try:", content)
         self.assertIn("                if condition2:", content)
         self.assertIn("                    do_something()", content)
