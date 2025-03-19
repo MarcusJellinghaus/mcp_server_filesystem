@@ -525,3 +525,42 @@ class TestEditFileChallenges(unittest.TestCase):
             1,
             "Only one occurrence should be replaced with the new pattern",
         )
+        
+    def test_markdown_bullet_point_indentation(self):
+        """Test proper handling of markdown bullet point indentation."""
+        # Step 1: Create a markdown file with nested bullet points
+        markdown_file = self.project_dir / "test_markdown.md"
+        with open(markdown_file, "w", encoding="utf-8") as f:
+            f.write("# Documentation\n\n## Features\n\n- Top level feature\n- Available options:\n- option1: description\n- option2: description\n- Another top level feature")
+        
+        # Step 2: Verify file was created
+        with open(markdown_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("# Documentation", content)
+        self.assertIn("- Available options:", content)
+        
+        # Step 3: Correct bullet point indentation
+        edits = [
+            {
+                "old_text": "- Available options:\n- option1: description\n- option2: description",
+                "new_text": "- Available options:\n  - option1: description\n  - option2: description"
+            }
+        ]
+        options = {"preserve_indentation": True}
+        result = edit_file(str(markdown_file), edits, options=options)
+        self.assertTrue(result["success"])
+        
+        # Step 4: Verify indentation was applied correctly
+        with open(markdown_file, "r", encoding="utf-8") as f:
+            updated_content = f.read()
+        self.assertIn("- Available options:\n  - option1: description\n  - option2: description", updated_content)
+        
+        # Count occurrences to ensure proper nesting
+        non_indented_count = updated_content.count("\n- option")
+        indented_count = updated_content.count("\n  - option")
+        self.assertEqual(non_indented_count, 0, "There should be no non-indented option bullet points")
+        self.assertEqual(indented_count, 2, "There should be exactly two properly indented option bullet points")
+        
+        # Step 5: Clean up after test
+        os.remove(markdown_file)
+        self.assertFalse(os.path.exists(markdown_file))
