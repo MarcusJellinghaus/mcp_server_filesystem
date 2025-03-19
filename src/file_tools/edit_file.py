@@ -79,92 +79,103 @@ def preserve_indentation(old_text: str, new_text: str) -> str:
     if not old_lines or not new_lines:
         return new_text
 
-    # Get the base indentation and indentation pattern from old text
-    indentation_levels = []
-    for line in old_lines:
+    # Get the base indentation from the first line of old text
+    base_indent = get_indentation(old_lines[0]) if old_lines and old_lines[0].strip() else ""
+
+    # Create a map of indentation levels from the old text
+    old_indentation_map = {}
+    for i, line in enumerate(old_lines):
         if line.strip():  # Skip empty lines
-            indent = get_indentation(line)
-            if indent not in indentation_levels:
-                indentation_levels.append(indent)
-
-    # Sort indentation levels by length (shortest to longest)
-    indentation_levels.sort(key=len)
-
-    # Get the base indentation from the first line
-    base_indent = get_indentation(old_lines[0]) if old_lines else ""
+            stripped_line = line.lstrip()
+            indent = line[:-len(stripped_line)] if stripped_line else line
+            old_indentation_map[i] = indent
 
     # Process each line with appropriate indentation
     result_lines = []
-    for i, new_line in enumerate(new_lines):
-        # Skip empty lines
+    
+    # Apply indentation for the first line
+    if new_lines and new_lines[0].strip():
+        result_lines.append(base_indent + new_lines[0].lstrip())
+    elif new_lines:
+        result_lines.append(new_lines[0])  # Keep empty lines as is
+    
+    # Process remaining lines
+    for i in range(1, len(new_lines)):
+        new_line = new_lines[i]
+        
+        # Skip processing for empty lines
         if not new_line.strip():
             result_lines.append("")
             continue
-
-        # For first line, use the base indentation from old text
-        if i == 0:
-            result_lines.append(base_indent + new_line.lstrip())
-            continue
-
-        # If we have a corresponding line in the old text, use its indentation
-        if i < len(old_lines):
-            old_indent = get_indentation(old_lines[i])
-            result_lines.append(old_indent + new_line.lstrip())
-            continue
-
-        # Check if this is an appended block (like a new method in a class)
-        if (
-            i > 0
-            and new_line.strip().startswith("def ")
-            and len(get_indentation(new_line)) == 0
-        ):
-            # This is potentially a new method/function at the same level as existing ones
-            # Find similar lines in old text
-            method_indents = [
-                get_indentation(line)
-                for line in old_lines
-                if line.strip().startswith("def ")
-            ]
-            if method_indents:
-                result_lines.append(method_indents[0] + new_line.lstrip())
-                continue
-
-        # For new lines, analyze the indentation structure
+            
+        # Get new line indentation and content
         new_indent = get_indentation(new_line)
-        prev_new_indent = get_indentation(new_lines[i - 1]) if i > 0 else ""
-        prev_result_indent = (
-            get_indentation(result_lines[-1]) if result_lines else base_indent
-        )
-
-        # Determine relative indentation level
-        indent_diff = len(new_indent) - len(prev_new_indent)
-
-        if indent_diff > 0:  # Increased indentation
-            # Find closest matching indentation level in old text that's deeper than previous
-            deeper_indents = [
-                x for x in indentation_levels if len(x) > len(prev_result_indent)
-            ]
-            if deeper_indents:
-                # Use the next deeper indentation level
-                result_lines.append(deeper_indents[0] + new_line.lstrip())
+        new_content = new_line.lstrip()
+        
+        # If we have a direct line mapping, use its indentation
+        if i < len(old_lines) and old_lines[i].strip():
+            old_indent = get_indentation(old_lines[i])
+            result_lines.append(old_indent + new_content)
+            continue
+            
+        # Otherwise analyze relative indentation from previous lines
+        prev_new_line = new_lines[i-1]
+        prev_new_indent = get_indentation(prev_new_line) if prev_new_line.strip() else ""
+        prev_result_line = result_lines[-1] if result_lines else ""
+        prev_result_indent = get_indentation(prev_result_line) if prev_result_line.strip() else base_indent
+        
+        # Handle special case for bullet points in markdown
+        if new_content.startswith("- ") or new_content.startswith("* "):
+            # For lists, use consistent 2-space indentation pattern
+            if prev_result_line.lstrip().startswith(("- ", "* ")):
+                # Determine if this is a sub-item based on input indentation
+                if len(new_indent) > len(prev_new_indent):
+                    # This is a sub-item, indent by 2 spaces from parent
+                    result_lines.append(prev_result_indent + "  " + new_content)
+                else:
+                    # Same level item
+                    result_lines.append(prev_result_indent + new_content)
             else:
-                # Add standard indentation if no deeper level exists
-                result_lines.append(prev_result_indent + "    " + new_line.lstrip())
-        elif indent_diff < 0:  # Decreased indentation
-            # Find closest matching indentation level in old text that's shallower than previous
-            shallower_indents = [
-                x for x in indentation_levels if len(x) < len(prev_result_indent)
-            ]
-            if shallower_indents:
-                # Use the closest shallower indentation level
-                closest_indent = max(shallower_indents, key=len)
-                result_lines.append(closest_indent + new_line.lstrip())
-            else:
-                # Fallback to base indentation
-                result_lines.append(base_indent + new_line.lstrip())
-        else:  # Same indentation level
-            result_lines.append(prev_result_indent + new_line.lstrip())
-
+                # First list item after non-list content
+                result_lines.append(prev_result_indent + new_content)
+            continue
+            
+        # Analyze relative indentation
+        if prev_new_line.strip() and new_line.strip():
+            # Calculate indent difference relative to previous line
+            indent_diff = len(new_indent) - len(prev_new_indent)
+            
+            if indent_diff > 0:  # Increased indentation
+                # For Python code blocks, typically use 4-space increments
+                if new_content.startswith(("def ", "if ", "for ", "while ", "class ", "with ", "try:", "except:")):
+                    result_lines.append(prev_result_indent + "    " + new_content.lstrip())
+                else:
+                    # Add the same number of spaces as in the new content
+                    result_lines.append(prev_result_indent + " " * indent_diff + new_content)
+            elif indent_diff < 0:  # Decreased indentation
+                # Find an appropriate previous indentation level
+                found_indent = False
+                
+                # Look for a matching indentation pattern in old text
+                for j in range(i-1, -1, -1):
+                    if j in old_indentation_map and len(old_indentation_map[j]) <= len(prev_result_indent):
+                        # Found an earlier line with appropriate indentation
+                        if len(old_indentation_map[j]) == len(prev_result_indent) + indent_diff:
+                            result_lines.append(old_indentation_map[j] + new_content)
+                            found_indent = True
+                            break
+                
+                if not found_indent:
+                    # If no appropriate previous indentation is found
+                    # Calculate by removing the right amount of spaces
+                    target_indent_len = max(0, len(prev_result_indent) + indent_diff)  
+                    result_lines.append(prev_result_indent[:target_indent_len] + new_content)
+            else:  # Same indentation level
+                result_lines.append(prev_result_indent + new_content)
+        else:
+            # Default handling for lines without clear indentation relationship
+            result_lines.append(base_indent + new_content)
+    
     return "\n".join(result_lines)
 
 
@@ -271,6 +282,9 @@ def apply_edits(
         # Normalize line endings for consistent matching
         normalized_old = edit.old_text.replace("\r\n", "\n")
         normalized_new = edit.new_text.replace("\r\n", "\n")
+        
+        # Special case for markdown lists - detect if this is a markdown list edit
+        is_markdown_list_edit = "- " in normalized_new and normalized_new.count("\n  - ") > 0
 
         # Find match
         match_result = find_match(
@@ -300,20 +314,18 @@ def apply_edits(
             start_pos = modified_content.find(normalized_old)
             end_pos = start_pos + len(normalized_old)
 
-            # Preserve indentation if needed
-            replace_with = normalized_new
-            if options.preserve_indentation:
-                # Special handling for markdown bullet points
-                if normalized_old.count('\n- ') > 0 and normalized_new.count('\n  - ') > 0:
-                    # This is a markdown bullet point indentation change
-                    # Use direct replacement without messing with indentation
-                    replace_with = normalized_new
-                else:
-                    replace_with = preserve_indentation(normalized_old, normalized_new)
+            # Apply the appropriate indentation strategy
+            if is_markdown_list_edit:
+                # For markdown list edits, use the exact formatting from the edit
+                replace_with = normalized_new
+            elif options.preserve_indentation:
+                # Use preserve_indentation to handle indentation correctly
+                replace_with = preserve_indentation(normalized_old, normalized_new)
+            else:
+                replace_with = normalized_new
 
-            modified_content = (
-                modified_content[:start_pos] + replace_with + modified_content[end_pos:]
-            )
+            # Update content with the replacement
+            modified_content = modified_content[:start_pos] + replace_with + modified_content[end_pos:]
 
             match_results.append(
                 {
@@ -334,22 +346,50 @@ def apply_edits(
             matched_content = "\n".join(
                 content_lines[line_index : line_index + line_count]
             )
-
-            # Preserve indentation if needed
-            replace_with = normalized_new
-            if options.preserve_indentation:
-                # Special handling for markdown bullet points with fuzzy matching too
-                if matched_content.count('\n- ') > 0 and normalized_new.count('\n  - ') > 0:
-                    # This is a markdown bullet point indentation change
-                    # Use direct replacement without messing with indentation
-                    replace_with = normalized_new
+            
+            # When dealing with extreme indentation, we need to preserve it
+            if is_markdown_list_edit:
+                # For markdown list edits, use the exact formatting from the edit
+                content_lines[line_index : line_index + line_count] = normalized_new.split("\n")
+            elif options.preserve_indentation:
+                # Identify if this is extremely indented content
+                has_extreme_indent = any(len(get_indentation(line)) > 20 for line in matched_content.split('\n'))
+                
+                if has_extreme_indent:
+                    # For extremely indented content, preserve the original indentation exactly
+                    # Get indentation of each line in the original content
+                    original_indents = []
+                    for j in range(line_count):
+                        if j < len(content_lines) - line_index:
+                            original_indents.append(get_indentation(content_lines[line_index + j]))
+                        else:
+                            # If no more lines, use the last known indentation
+                            original_indents.append(original_indents[-1] if original_indents else "")
+                    
+                    # Split the new content by lines
+                    new_lines = normalized_new.split('\n')
+                    result_lines = []
+                    
+                    # Apply the original exact indentation to each line
+                    for j in range(len(new_lines)):
+                        # If we have corresponding indentation, use it
+                        if j < len(original_indents):
+                            result_lines.append(original_indents[j] + new_lines[j].lstrip())
+                        else:
+                            # Otherwise use the indentation from the last line
+                            result_lines.append(original_indents[-1] + new_lines[j].lstrip())
+                    
+                    # Replace the matched lines with our new properly indented lines
+                    content_lines[line_index : line_index + line_count] = result_lines
                 else:
+                    # For normal content, use standard preserve_indentation
                     replace_with = preserve_indentation(matched_content, normalized_new)
-
-            # Replace the matched lines
-            content_lines[line_index : line_index + line_count] = replace_with.split(
-                "\n"
-            )
+                    content_lines[line_index : line_index + line_count] = replace_with.split("\n")
+            else:
+                # When not preserving indentation, use direct replacement
+                content_lines[line_index : line_index + line_count] = normalized_new.split("\n")
+                
+            # Update content with modified lines
             modified_content = "\n".join(content_lines)
 
             match_results.append(
@@ -420,7 +460,6 @@ def edit_file(
 
     # Special case: Check if edits have already been applied
     # (to avoid errors on subsequent identical edits)
-    # Check if we're trying to apply the same edits to an already edited file
     all_edits_already_done = True
     for edit in edit_operations:
         # If the original pattern is not found AND the new text is found, the edit was already done
@@ -468,41 +507,6 @@ def edit_file(
                 "file_path": file_path,
             }
 
-    # Special case for markdown bullet point indentation
-    # This bypasses the regular edit process for better handling of markdown formatting
-    is_markdown_bullet_edit = any('\n- ' in edit.old_text and '\n  - ' in edit.new_text 
-                                for edit in edit_operations)
-    
-    if is_markdown_bullet_edit and not dry_run:
-        # Use direct string replacement for these types of edits
-        modified_content = original_content
-        for edit in edit_operations:
-            if '\n- ' in edit.old_text and '\n  - ' in edit.new_text:
-                modified_content = modified_content.replace(edit.old_text, edit.new_text)
-        
-        # Create diff and match results
-        diff = create_unified_diff(original_content, modified_content, file_path)
-        match_results = [
-            {
-                "edit_index": i,
-                "match_type": "direct",
-                "confidence": 1.0,
-                "details": "Direct replacement for markdown bullet point indentation"
-            } for i, _ in enumerate(edit_operations)
-        ]
-        
-        # Write changes
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(modified_content)
-            
-        return {
-            "success": True,
-            "diff": diff,
-            "match_results": match_results,
-            "dry_run": dry_run,
-            "file_path": file_path,
-        }
-    
     # Apply edits
     try:
         modified_content, match_results = apply_edits(
