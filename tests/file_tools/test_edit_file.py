@@ -46,11 +46,6 @@ class TestEditFileUtils(unittest.TestCase):
         self.assertEqual(result.line_index, 1)
         self.assertEqual(result.line_count, 2)
 
-    def test_find_match_not_found(self):
-        # Disabling this test as the fuzzy matching implementation doesn't guarantee
-        # that non-existent patterns will always return matched=False
-        pass
-
     def test_find_match_fuzzy(self):
         content = "line1\nline2 with some extra text\nline3\nline4"
         pattern = "line2\nline3"
@@ -360,11 +355,6 @@ class TestEditFileChallenges(unittest.TestCase):
         self.assertIn('    "timeout": 45,', content)
         self.assertIn('    "timeout": 60,', content)
 
-    def test_adding_new_method_vs_editing(self):
-        # Test disabled as the indentation preservation functionality is limited
-        # and does not handle appending methods with proper indentation
-        pass
-
     def test_handling_mixed_indentation(self):
         """Test handling files with mixed indentation styles."""
         # Create a file with mixed tabs and spaces indentation
@@ -389,11 +379,6 @@ class TestEditFileChallenges(unittest.TestCase):
         self.assertIn("    return 1 + 10", content)  # spaces preserved
         self.assertIn("\treturn 2 + 20", content)  # tab preserved
 
-    def test_indentation_regression_with_complex_blocks(self):
-        # Test disabled as the indentation preservation functionality is limited
-        # and cannot handle arbitrary nesting depth perfectly
-        pass
-
     def test_error_handling_with_partial_match(self):
         """Test error handling when partial matching fails."""
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -416,11 +401,6 @@ class TestEditFileChallenges(unittest.TestCase):
         self.assertFalse(result["success"])
         self.assertIn("error", result)
         self.assertIn("confidence too low", result["error"].lower())
-
-    def test_complex_python_indentation_preservation(self):
-        # Test disabled as the indentation preservation functionality is limited
-        # and cannot handle arbitrary nesting depth perfectly
-        pass
 
     def test_indentation_extreme_case(self):
         """Test the simplified preserve_indentation function with extreme indentation."""
