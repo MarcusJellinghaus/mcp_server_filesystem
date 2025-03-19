@@ -11,16 +11,16 @@ from src.file_tools.edit_file import (
     apply_edits,
     create_unified_diff,
     edit_file,
+    find_match,
     get_indentation,
     normalize_text,
     preserve_indentation,
-    find_match,
-    )
+)
 
 
 class TestEditFileIndentationIssues(unittest.TestCase):
     """Tests specifically designed to highlight indentation handling challenges."""
-    
+
     def setUp(self):
         # Create a temporary directory and file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -30,13 +30,13 @@ class TestEditFileIndentationIssues(unittest.TestCase):
     def tearDown(self):
         # Clean up after tests
         self.temp_dir.cleanup()
-        
+
     def test_indentation_with_extreme_spacing(self):
         """Test the simplified preserve_indentation function with extreme indentation."""
         # Create a Python file with complex and inconsistent indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write(
-                "def main():\n    input_file, output_dir, verbose = parse_arguments()\n\n    if verbose:\n        print(f\"Verbose mode enabled\")\n        print(f\"Input file: {input_file}\")\n\n    processor = DataProcessor(input_file, output_dir)\n\n    if processor.load_data():\n        print(f\"Successfully loaded {len(processor.data)} lines\")\n\n        results = processor.process_data()\n\n        if processor.save_results(results):\n            print(f\"Results saved to {output_dir}\")\n\n            if verbose and results['total_lines'] > 0:\n                                                                            print(f\"Summary:\")\n                                                                            print(f\"  - Processed {results['total_lines']} lines\")\n                                                                            print(f\"  - Found {len(results['word_counts'])} unique words\")\n        else:\n            print(\"Failed to save results\")\n    else:\n        print(\"Failed to load data\")\n"
+                'def main():\n    input_file, output_dir, verbose = parse_arguments()\n\n    if verbose:\n        print(f"Verbose mode enabled")\n        print(f"Input file: {input_file}")\n\n    processor = DataProcessor(input_file, output_dir)\n\n    if processor.load_data():\n        print(f"Successfully loaded {len(processor.data)} lines")\n\n        results = processor.process_data()\n\n        if processor.save_results(results):\n            print(f"Results saved to {output_dir}")\n\n            if verbose and results[\'total_lines\'] > 0:\n                                                                            print(f"Summary:")\n                                                                            print(f"  - Processed {results[\'total_lines\']} lines")\n                                                                            print(f"  - Found {len(results[\'word_counts\'])} unique words")\n        else:\n            print("Failed to save results")\n    else:\n        print("Failed to load data")\n'
             )
 
         # Attempt to fix the indentation issue
@@ -57,8 +57,8 @@ class TestEditFileIndentationIssues(unittest.TestCase):
         # With the simplified implementation, check if our edits were properly applied
         self.assertIn("            if verbose and results['total_lines'] > 0:", content)
         # Test should now pass with the simplified implementation
-        self.assertIn("                print(f\"Summary:\")", content)
-        
+        self.assertIn('                print(f"Summary:")', content)
+
     def test_optimization_edit_already_applied(self):
         """Test the optimization in edit_file that checks if edits are already applied."""
         # Create a file
@@ -75,21 +75,23 @@ class TestEditFileIndentationIssues(unittest.TestCase):
         result2 = edit_file(str(self.test_file), edits)
         self.assertTrue(result2["success"])
         self.assertEqual(result2["diff"], "")
-        self.assertEqual(result2["message"], "No changes needed - content already in desired state")
-        
+        self.assertEqual(
+            result2["message"], "No changes needed - content already in desired state"
+        )
+
     def test_first_occurrence_replacement(self):
         """Test that only the first occurrence of a pattern is replaced."""
         # Create a file with repeating identical patterns
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write(
-                "def process(data):\n    print(\"Processing data...\")\n    return data\n\ndef analyze(data):\n    print(\"Processing data...\")\n    return data * 2\n"
+                'def process(data):\n    print("Processing data...")\n    return data\n\ndef analyze(data):\n    print("Processing data...")\n    return data * 2\n'
             )
 
         # Try to edit a pattern that appears multiple times
         edits = [
             {
-                "old_text": "    print(\"Processing data...\")",
-                "new_text": "    print(\"Data processing started...\")",
+                "old_text": '    print("Processing data...")',
+                "new_text": '    print("Data processing started...")',
             }
         ]
 
@@ -102,12 +104,20 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             content = f.read()
 
         # The first occurrence should be changed
-        self.assertIn("    print(\"Data processing started...\")", content)
+        self.assertIn('    print("Data processing started...")', content)
 
         # Count occurrences of each pattern
-        original_pattern_count = content.count("    print(\"Processing data...\")")
-        new_pattern_count = content.count("    print(\"Data processing started...\")")
+        original_pattern_count = content.count('    print("Processing data...")')
+        new_pattern_count = content.count('    print("Data processing started...")')
 
         # There should be exactly one occurrence of each pattern
-        self.assertEqual(original_pattern_count, 1, "One occurrence of the original pattern should remain")
-        self.assertEqual(new_pattern_count, 1, "Only one occurrence should be replaced with the new pattern")
+        self.assertEqual(
+            original_pattern_count,
+            1,
+            "One occurrence of the original pattern should remain",
+        )
+        self.assertEqual(
+            new_pattern_count,
+            1,
+            "Only one occurrence should be replaced with the new pattern",
+        )

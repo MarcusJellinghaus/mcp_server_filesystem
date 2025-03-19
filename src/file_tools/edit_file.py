@@ -70,9 +70,6 @@ def get_indentation(line: str) -> str:
     return match.group(1) if match else ""
 
 
-
-
-
 def preserve_indentation(old_text: str, new_text: str) -> str:
     """Preserve the indentation pattern from old_text in new_text with a robust approach."""
     old_lines = old_text.split("\n")
@@ -116,25 +113,37 @@ def preserve_indentation(old_text: str, new_text: str) -> str:
             continue
 
         # Check if this is an appended block (like a new method in a class)
-        if i > 0 and new_line.strip().startswith("def ") and len(get_indentation(new_line)) == 0:
+        if (
+            i > 0
+            and new_line.strip().startswith("def ")
+            and len(get_indentation(new_line)) == 0
+        ):
             # This is potentially a new method/function at the same level as existing ones
             # Find similar lines in old text
-            method_indents = [get_indentation(line) for line in old_lines if line.strip().startswith("def ")]
+            method_indents = [
+                get_indentation(line)
+                for line in old_lines
+                if line.strip().startswith("def ")
+            ]
             if method_indents:
                 result_lines.append(method_indents[0] + new_line.lstrip())
                 continue
 
         # For new lines, analyze the indentation structure
         new_indent = get_indentation(new_line)
-        prev_new_indent = get_indentation(new_lines[i-1]) if i > 0 else ""
-        prev_result_indent = get_indentation(result_lines[-1]) if result_lines else base_indent
+        prev_new_indent = get_indentation(new_lines[i - 1]) if i > 0 else ""
+        prev_result_indent = (
+            get_indentation(result_lines[-1]) if result_lines else base_indent
+        )
 
         # Determine relative indentation level
         indent_diff = len(new_indent) - len(prev_new_indent)
 
         if indent_diff > 0:  # Increased indentation
             # Find closest matching indentation level in old text that's deeper than previous
-            deeper_indents = [x for x in indentation_levels if len(x) > len(prev_result_indent)]
+            deeper_indents = [
+                x for x in indentation_levels if len(x) > len(prev_result_indent)
+            ]
             if deeper_indents:
                 # Use the next deeper indentation level
                 result_lines.append(deeper_indents[0] + new_line.lstrip())
@@ -143,7 +152,9 @@ def preserve_indentation(old_text: str, new_text: str) -> str:
                 result_lines.append(prev_result_indent + "    " + new_line.lstrip())
         elif indent_diff < 0:  # Decreased indentation
             # Find closest matching indentation level in old text that's shallower than previous
-            shallower_indents = [x for x in indentation_levels if len(x) < len(prev_result_indent)]
+            shallower_indents = [
+                x for x in indentation_levels if len(x) < len(prev_result_indent)
+            ]
             if shallower_indents:
                 # Use the closest shallower indentation level
                 closest_indent = max(shallower_indents, key=len)
@@ -157,23 +168,29 @@ def preserve_indentation(old_text: str, new_text: str) -> str:
     return "\n".join(result_lines)
 
 
-def find_match(content: str, pattern: str, partial_match: bool = True, threshold: float = 0.8) -> MatchResult:
+def find_match(
+    content: str, pattern: str, partial_match: bool = True, threshold: float = 0.8
+) -> MatchResult:
     """Find a match for pattern in content, supporting both exact and fuzzy matching."""
     # First try exact match
     if pattern in content:
-        lines_before = content[:content.find(pattern)].count("\n")
+        lines_before = content[: content.find(pattern)].count("\n")
         line_count = pattern.count("\n") + 1
         return MatchResult(
             matched=True,
             confidence=1.0,
             line_index=lines_before,
             line_count=line_count,
-            details="Exact match found"
+            details="Exact match found",
         )
 
     # If partial matching is disabled or pattern is empty, return no match
     if not partial_match or not pattern.strip():
-        return MatchResult(matched=False, confidence=0.0, details="No exact match found and partial matching disabled")
+        return MatchResult(
+            matched=False,
+            confidence=0.0,
+            details="No exact match found and partial matching disabled",
+        )
 
     # Try fuzzy matching
     content_lines = content.split("\n")
@@ -193,7 +210,9 @@ def find_match(content: str, pattern: str, partial_match: bool = True, threshold
 
             if i + j < len(content_lines):
                 content_line = content_lines[i + j]
-                similarity = difflib.SequenceMatcher(None, content_line, pattern_line).ratio()
+                similarity = difflib.SequenceMatcher(
+                    None, content_line, pattern_line
+                ).ratio()
                 confidences.append(similarity)
 
         if confidences:
@@ -209,13 +228,13 @@ def find_match(content: str, pattern: str, partial_match: bool = True, threshold
             confidence=best_confidence,
             line_index=best_index,
             line_count=len(pattern_lines),
-            details=f"Fuzzy match with confidence {best_confidence:.2f}"
+            details=f"Fuzzy match with confidence {best_confidence:.2f}",
         )
 
     return MatchResult(
         matched=False,
         confidence=best_confidence,
-        details=f"Best fuzzy match had confidence {best_confidence:.2f}, below threshold {threshold}"
+        details=f"Best fuzzy match had confidence {best_confidence:.2f}, below threshold {threshold}",
     )
 
 
@@ -255,21 +274,25 @@ def apply_edits(
 
         # Find match
         match_result = find_match(
-            modified_content, 
-            normalized_old, 
-            options.partial_match, 
-            options.match_threshold
+            modified_content,
+            normalized_old,
+            options.partial_match,
+            options.match_threshold,
         )
 
         if not match_result.matched:
             # No match found
-            match_results.append({
-                "edit_index": i,
-                "match_type": "failed",
-                "confidence": match_result.confidence,
-                "details": match_result.details,
-            })
-            raise ValueError(f"Could not find match for edit {i}: {match_result.details}")
+            match_results.append(
+                {
+                    "edit_index": i,
+                    "match_type": "failed",
+                    "confidence": match_result.confidence,
+                    "details": match_result.details,
+                }
+            )
+            raise ValueError(
+                f"Could not find match for edit {i}: {match_result.details}"
+            )
 
         # Apply the replacement based on match type
         if match_result.confidence == 1.0:
@@ -283,18 +306,18 @@ def apply_edits(
                 replace_with = preserve_indentation(normalized_old, normalized_new)
 
             modified_content = (
-                modified_content[:start_pos] 
-                + replace_with 
-                + modified_content[end_pos:]
+                modified_content[:start_pos] + replace_with + modified_content[end_pos:]
             )
 
-            match_results.append({
-                "edit_index": i,
-                "match_type": "exact",
-                "confidence": 1.0,
-                "line_index": match_result.line_index,
-                "line_count": match_result.line_count,
-            })
+            match_results.append(
+                {
+                    "edit_index": i,
+                    "match_type": "exact",
+                    "confidence": 1.0,
+                    "line_index": match_result.line_index,
+                    "line_count": match_result.line_count,
+                }
+            )
         else:
             # Fuzzy match replacement
             content_lines = modified_content.split("\n")
@@ -302,7 +325,9 @@ def apply_edits(
             line_count = match_result.line_count
 
             # Extract matched content
-            matched_content = "\n".join(content_lines[line_index:line_index + line_count])
+            matched_content = "\n".join(
+                content_lines[line_index : line_index + line_count]
+            )
 
             # Preserve indentation if needed
             replace_with = normalized_new
@@ -310,16 +335,20 @@ def apply_edits(
                 replace_with = preserve_indentation(matched_content, normalized_new)
 
             # Replace the matched lines
-            content_lines[line_index:line_index + line_count] = replace_with.split("\n")
+            content_lines[line_index : line_index + line_count] = replace_with.split(
+                "\n"
+            )
             modified_content = "\n".join(content_lines)
 
-            match_results.append({
-                "edit_index": i,
-                "match_type": "fuzzy",
-                "confidence": match_result.confidence,
-                "line_index": line_index,
-                "line_count": line_count,
-            })
+            match_results.append(
+                {
+                    "edit_index": i,
+                    "match_type": "fuzzy",
+                    "confidence": match_result.confidence,
+                    "line_index": line_index,
+                    "line_count": line_count,
+                }
+            )
 
     return modified_content, match_results
 
@@ -355,7 +384,9 @@ def edit_file(
             original_content = f.read()
     except UnicodeDecodeError:
         logger.error(f"Unicode decode error while reading {file_path}")
-        raise ValueError(f"File '{file_path}' contains invalid characters. Ensure it's a valid text file.")
+        raise ValueError(
+            f"File '{file_path}' contains invalid characters. Ensure it's a valid text file."
+        )
     except Exception as e:
         logger.error(f"Error reading file {file_path}: {str(e)}")
         raise
@@ -375,7 +406,7 @@ def edit_file(
 
     match_results = []
 
-    # Special case: Check if edits have already been applied 
+    # Special case: Check if edits have already been applied
     # (to avoid errors on subsequent identical edits)
     # Check if we're trying to apply the same edits to an already edited file
     all_edits_already_done = True
@@ -395,12 +426,17 @@ def edit_file(
             "match_results": [],
             "dry_run": dry_run,
             "file_path": file_path,
-            "message": "No changes needed - content already in desired state"
+            "message": "No changes needed - content already in desired state",
         }
 
     # Check that all patterns can be found
     for i, edit in enumerate(edit_operations):
-        old_match = find_match(original_content, edit.old_text, edit_options.partial_match, edit_options.match_threshold)
+        old_match = find_match(
+            original_content,
+            edit.old_text,
+            edit_options.partial_match,
+            edit_options.match_threshold,
+        )
         if not old_match.matched:
             error_msg = f"Could not find match for edit {i}: {old_match.details}"
             if old_match.confidence > 0:
@@ -409,18 +445,22 @@ def edit_file(
             return {
                 "success": False,
                 "error": error_msg,
-                "match_results": [{
-                    "edit_index": i,
-                    "match_type": "failed",
-                    "confidence": old_match.confidence,
-                    "details": old_match.details,
-                }],
+                "match_results": [
+                    {
+                        "edit_index": i,
+                        "match_type": "failed",
+                        "confidence": old_match.confidence,
+                        "details": old_match.details,
+                    }
+                ],
                 "file_path": file_path,
             }
 
     # Apply edits
     try:
-        modified_content, match_results = apply_edits(original_content, edit_operations, edit_options)
+        modified_content, match_results = apply_edits(
+            original_content, edit_operations, edit_options
+        )
 
         # No changes needed if content is identical
         if modified_content == original_content:
@@ -430,7 +470,7 @@ def edit_file(
                 "match_results": match_results,
                 "dry_run": dry_run,
                 "file_path": file_path,
-                "message": "No changes needed - content already matches"
+                "message": "No changes needed - content already matches",
             }
 
         # Create diff

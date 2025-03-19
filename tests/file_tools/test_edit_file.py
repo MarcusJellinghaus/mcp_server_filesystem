@@ -11,11 +11,11 @@ from src.file_tools.edit_file import (
     apply_edits,
     create_unified_diff,
     edit_file,
+    find_match,
     get_indentation,
     normalize_text,
     preserve_indentation,
-    find_match,
-    )
+)
 
 
 class TestEditFileUtils(unittest.TestCase):
@@ -121,8 +121,6 @@ class TestApplyEdits(unittest.TestCase):
         modified, results = apply_edits(content, edits, options)
         self.assertEqual(modified, "    if new_condition:\n        return False")
 
-
-
     def test_apply_edits_no_match(self):
         content = "def function():\n    return True"
         edits = [EditOperation(old_text="nonexistent", new_text="replacement")]
@@ -179,8 +177,6 @@ class TestEditFile(unittest.TestCase):
 
         self.assertEqual(content, "def modified_function():\n    return 'test'\n")
 
-
-
     def test_edit_file_dry_run(self):
         edits = [{"old_text": "test_function", "new_text": "modified_function"}]
 
@@ -234,32 +230,34 @@ class TestEditFile(unittest.TestCase):
 
 
 class TestEditFileOptimization(unittest.TestCase):
-                """Tests for the optimization in edit_file that checks if edits are already applied."""
+    """Tests for the optimization in edit_file that checks if edits are already applied."""
 
-                def setUp(self):
-                                # Create a temporary directory and file for testing
-                                self.temp_dir = tempfile.TemporaryDirectory()
-                                self.project_dir = Path(self.temp_dir.name)
-                                self.test_file = self.project_dir / "test_file.py"
-                                with open(self.test_file, "w", encoding="utf-8") as f:
-                                                f.write("def test_function():\n    return 'test'\n")
+    def setUp(self):
+        # Create a temporary directory and file for testing
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.project_dir = Path(self.temp_dir.name)
+        self.test_file = self.project_dir / "test_file.py"
+        with open(self.test_file, "w", encoding="utf-8") as f:
+            f.write("def test_function():\n    return 'test'\n")
 
-                def tearDown(self):
-                                # Clean up after tests
-                                self.temp_dir.cleanup()
+    def tearDown(self):
+        # Clean up after tests
+        self.temp_dir.cleanup()
 
-                def test_edit_already_applied(self):
-                                # First apply an edit
-                                edits = [{"old_text": "test_function", "new_text": "modified_function"}]
-                                result1 = edit_file(str(self.test_file), edits)
-                                self.assertTrue(result1["success"])
-                                self.assertNotEqual(result1["diff"], "")
+    def test_edit_already_applied(self):
+        # First apply an edit
+        edits = [{"old_text": "test_function", "new_text": "modified_function"}]
+        result1 = edit_file(str(self.test_file), edits)
+        self.assertTrue(result1["success"])
+        self.assertNotEqual(result1["diff"], "")
 
-                                # Try to apply the same edit again
-                                result2 = edit_file(str(self.test_file), edits)
-                                self.assertTrue(result2["success"])
-                                self.assertEqual(result2["diff"], "")
-                                self.assertEqual(result2["message"], "No changes needed - content already in desired state")
+        # Try to apply the same edit again
+        result2 = edit_file(str(self.test_file), edits)
+        self.assertTrue(result2["success"])
+        self.assertEqual(result2["diff"], "")
+        self.assertEqual(
+            result2["message"], "No changes needed - content already in desired state"
+        )
 
 
 class TestEditFileChallenges(unittest.TestCase):
@@ -407,7 +405,7 @@ class TestEditFileChallenges(unittest.TestCase):
         # Create a Python file with extreme indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write(
-                "def main():\n    input_file, output_dir, verbose = parse_arguments()\n\n    if verbose:\n        print(f\"Verbose mode enabled\")\n\n    if processor.load_data():\n        if processor.save_results(results):\n            if verbose and results['total_lines'] > 0:\n                                                                            print(f\"Summary:\")\n                                                                            print(f\"  - Found {len(results['word_counts'])} unique words\")\n"
+                'def main():\n    input_file, output_dir, verbose = parse_arguments()\n\n    if verbose:\n        print(f"Verbose mode enabled")\n\n    if processor.load_data():\n        if processor.save_results(results):\n            if verbose and results[\'total_lines\'] > 0:\n                                                                            print(f"Summary:")\n                                                                            print(f"  - Found {len(results[\'word_counts\'])} unique words")\n'
             )
 
         # Attempt to fix the indentation issue
@@ -427,7 +425,7 @@ class TestEditFileChallenges(unittest.TestCase):
 
         # Verify the new simplified indentation handling works
         self.assertIn("            if verbose and results['total_lines'] > 0:", content)
-        self.assertIn("                print(f\"Summary:\")", content)
+        self.assertIn('                print(f"Summary:")', content)
 
     def test_nested_code_blocks_with_empty_diff(self):
         """Test the issue where edit_file reports success but returns empty diffs."""
@@ -448,7 +446,9 @@ class TestEditFileChallenges(unittest.TestCase):
         # First run will succeed and make the changes
         result1 = edit_file(str(self.test_file), edits)
         self.assertTrue(result1["success"])
-        self.assertNotEqual(result1["diff"], "", "First edit should produce a non-empty diff")
+        self.assertNotEqual(
+            result1["diff"], "", "First edit should produce a non-empty diff"
+        )
 
         # Get the content after first edit
         with open(self.test_file, "r", encoding="utf-8") as f:
@@ -463,32 +463,39 @@ class TestEditFileChallenges(unittest.TestCase):
         self.assertTrue(result2["success"])
 
         # The diff should be empty since no changes were made
-        self.assertEqual(result2["diff"], "", "Second identical edit should produce an empty diff")
+        self.assertEqual(
+            result2["diff"], "", "Second identical edit should produce an empty diff"
+        )
 
         # Content should be unchanged
         with open(self.test_file, "r", encoding="utf-8") as f:
             second_edit_content = f.read()
 
-        self.assertEqual(first_edit_content, second_edit_content,
-                                                                                                                                                "Content should be unchanged after second identical edit")
+        self.assertEqual(
+            first_edit_content,
+            second_edit_content,
+            "Content should be unchanged after second identical edit",
+        )
 
         # Verify success even though no changes were made
-        self.assertTrue(result2["success"], 
-                                                                                "Edit operations with no changes needed should still report success")
+        self.assertTrue(
+            result2["success"],
+            "Edit operations with no changes needed should still report success",
+        )
 
     def test_first_occurrence_replacement(self):
         """Test that only the first occurrence of a pattern is replaced."""
         # Create a file with repeating identical patterns
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write(
-                "def process(data):\n    print(\"Processing data...\")\n    return data\n\ndef analyze(data):\n    print(\"Processing data...\")\n    return data * 2\n"
+                'def process(data):\n    print("Processing data...")\n    return data\n\ndef analyze(data):\n    print("Processing data...")\n    return data * 2\n'
             )
 
         # Try to edit a pattern that appears multiple times
         edits = [
             {
-                "old_text": "    print(\"Processing data...\")",
-                "new_text": "    print(\"Data processing started...\")",
+                "old_text": '    print("Processing data...")',
+                "new_text": '    print("Data processing started...")',
             }
         ]
 
@@ -501,12 +508,20 @@ class TestEditFileChallenges(unittest.TestCase):
             content = f.read()
 
         # The first occurrence should be changed
-        self.assertIn("    print(\"Data processing started...\")", content)
+        self.assertIn('    print("Data processing started...")', content)
 
         # Count occurrences of each pattern
-        original_pattern_count = content.count("    print(\"Processing data...\")")
-        new_pattern_count = content.count("    print(\"Data processing started...\")")
+        original_pattern_count = content.count('    print("Processing data...")')
+        new_pattern_count = content.count('    print("Data processing started...")')
 
         # There should be exactly one occurrence of each pattern
-        self.assertEqual(original_pattern_count, 1, "One occurrence of the original pattern should remain")
-        self.assertEqual(new_pattern_count, 1, "Only one occurrence should be replaced with the new pattern")
+        self.assertEqual(
+            original_pattern_count,
+            1,
+            "One occurrence of the original pattern should remain",
+        )
+        self.assertEqual(
+            new_pattern_count,
+            1,
+            "Only one occurrence should be replaced with the new pattern",
+        )
