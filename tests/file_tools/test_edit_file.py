@@ -11,20 +11,16 @@ from src.file_tools.edit_file import (
     apply_edits,
     create_unified_diff,
     edit_file,
-
     preserve_indentation,
 )
 
 
 class TestEditFileUtils(unittest.TestCase):
-
-
     def test_preserve_indentation(self):
         old_text = "    def function():\n        return True"
         new_text = "def new_function():\n    return False"
         preserved = preserve_indentation(old_text, new_text)
         self.assertEqual(preserved, "    def new_function():\n        return False")
-
 
     def test_create_unified_diff(self):
         original = "line1\nline2\nline3"
@@ -37,24 +33,12 @@ class TestEditFileUtils(unittest.TestCase):
 
 
 class TestApplyEdits(unittest.TestCase):
-
     def test_apply_edits_exact_match(self):
         content = "def old_function():\n    return True"
         edits = [EditOperation(old_text="old_function", new_text="new_function")]
         modified, results = apply_edits(content, edits)
         self.assertEqual(modified, "def new_function():\n    return True")
         self.assertEqual(results[0]["match_type"], "exact")
-
-    def test_apply_edits_fuzzy_match(self):
-        content = "def old_function():\n    return True"
-        edits = [
-            EditOperation(
-                old_text="def old_function():", new_text="def new_function():"
-            )
-        ]
-        options = EditOptions(partial_match=True)
-        modified, results = apply_edits(content, edits, options)
-        self.assertEqual(modified, "def new_function():\n    return True")
 
     def test_apply_edits_multiple(self):
         content = (
@@ -92,7 +76,6 @@ class TestApplyEdits(unittest.TestCase):
 
 
 class TestEditFile(unittest.TestCase):
-
     def setUp(self):
         # Create a temporary directory and file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -159,8 +142,7 @@ class TestEditFile(unittest.TestCase):
         options = {
             "preserve_indentation": True,
             "normalize_whitespace": False,
-            "partial_match": True,
-            "match_threshold": 0.7,
+            "partial_match": False,
         }
 
         result = edit_file(str(self.test_file), edits, options=options)
@@ -294,27 +276,6 @@ class TestEditFileChallenges(unittest.TestCase):
         self.assertIn("    sum_val = x + y + z", content)
         self.assertIn("    product = x * y * (1 if z == 0 else z)", content)
 
-    def test_fuzzy_matching_with_similar_patterns(self):
-        """Test fuzzy matching when similar patterns exist."""
-        with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write(
-                '# Configuration settings\nconfig = {\n    "timeout": 30,\n    "retries": 3\n}\n\n# Connection settings\nconnection = {\n    "timeout": 60,\n    "keep_alive": True\n}\n'
-            )
-
-        # Try to edit a pattern that appears similarly in multiple places
-        edits = [{"old_text": '    "timeout": 30,', "new_text": '    "timeout": 45,'}]
-
-        result = edit_file(str(self.test_file), edits)
-        self.assertTrue(result["success"])
-
-        # Verify the correct pattern was modified
-        with open(self.test_file, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # First timeout should be changed, second should be unchanged
-        self.assertIn('    "timeout": 45,', content)
-        self.assertIn('    "timeout": 60,', content)
-
     def test_handling_mixed_indentation(self):
         """Test handling files with mixed indentation styles."""
         # Create a file with mixed tabs and spaces indentation
@@ -338,29 +299,6 @@ class TestEditFileChallenges(unittest.TestCase):
 
         self.assertIn("    return 1 + 10", content)  # spaces preserved
         self.assertIn("\treturn 2 + 20", content)  # tab preserved
-
-    def test_error_handling_with_partial_match(self):
-        """Test error handling when partial matching fails."""
-        with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write(
-                "def function1():\n    return 1\n\ndef function2():\n    return 2\n"
-            )
-
-        # Try to match with very low confidence
-        edits = [
-            {
-                "old_text": "def functions(): # completely different",
-                "new_text": "def modified_function():",
-            }
-        ]
-
-        # Should fail even with partial_match=True but low threshold
-        options = {"partial_match": True, "match_threshold": 0.9}
-        result = edit_file(str(self.test_file), edits, options=options)
-
-        self.assertFalse(result["success"])
-        self.assertIn("error", result)
-        self.assertIn("confidence too low", result["error"].lower())
 
     def test_indentation_extreme_case(self):
         """Test the simplified preserve_indentation function with extreme indentation."""

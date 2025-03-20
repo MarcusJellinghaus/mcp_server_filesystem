@@ -99,31 +99,7 @@ async def test_edit_file_dry_run(project_dir):
     assert "Line 4 has been modified." not in content
 
 
-@pytest.mark.asyncio
-async def test_edit_file_fuzzy_match(project_dir):
-    """Test the edit_file tool with fuzzy matching."""
-    # First create the test file
-    absolute_path = str(project_dir / TEST_FILE)
-    await save_file(str(TEST_FILE), TEST_CONTENT)
 
-    # Define the edit operation with slightly different text
-    edits = [
-        {
-            "oldText": "Line 2 with content.",  # Slightly different from actual text
-            "newText": "Line 2 has been modified with fuzzy matching.",
-        }
-    ]
-
-    # Apply the edit with fuzzy matching enabled
-    result = await edit_file(absolute_path, edits, options={"partialMatch": True})
-
-    # Check success
-    assert result["success"] is True
-
-    # Verify the file was changed
-    with open(project_dir / TEST_FILE, "r", encoding="utf-8") as f:
-        content = f.read()
-    assert "Line 2 has been modified with fuzzy matching." in content
 
 
 @pytest.mark.asyncio

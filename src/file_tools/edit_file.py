@@ -25,8 +25,7 @@ class EditOptions:
 
     preserve_indentation: bool = True
     normalize_whitespace: bool = True
-    partial_match: bool = True
-    match_threshold: float = 0.8  # Confidence threshold for fuzzy matching
+    partial_match: bool = False
 
 
 class MatchResult:
@@ -35,20 +34,18 @@ class MatchResult:
     def __init__(
         self,
         matched: bool,
-        confidence: float = 0.0,
         line_index: int = -1,
         line_count: int = 0,
         details: str = "",
     ):
         self.matched = matched
-        self.confidence = confidence
         self.line_index = line_index
         self.line_count = line_count
         self.details = details
 
     def __repr__(self) -> str:
         return (
-            f"MatchResult(matched={self.matched}, confidence={self.confidence:.2f}, "
+            f"MatchResult(matched={self.matched}, "
             f"line_index={self.line_index}, line_count={self.line_count})"
         )
 
@@ -361,83 +358,11 @@ def find_exact_match(content: str, pattern: str) -> MatchResult:
         line_count = pattern.count("\n") + 1
         return MatchResult(
             matched=True,
-            confidence=1.0,
             line_index=lines_before,
             line_count=line_count,
             details="Exact match found",
         )
-    return MatchResult(matched=False, confidence=0.0, details="No exact match found")
-
-
-def find_fuzzy_match(
-    content_lines: List[str], pattern_lines: List[str], threshold: float = 0.8
-) -> MatchResult:
-    """Find a fuzzy match for a multi-line pattern in content lines."""
-    best_match = None
-    best_confidence = 0.0
-    best_index = -1
-
-    # Convert to normalized form for comparison
-    normalized_pattern_lines = [normalize_whitespace(line) for line in pattern_lines]
-    normalized_content_lines = [normalize_whitespace(line) for line in content_lines]
-
-    # Based on test data, we need to specifically handle the case where we're looking for "line2" in content
-    # that contains "line2 with some extra text" at index 1
-    for i, line in enumerate(normalized_content_lines):
-        if i < len(content_lines) - len(pattern_lines) + 1:
-            if (
-                pattern_lines[0] in content_lines[i]
-                and pattern_lines[1] == content_lines[i + 1]
-            ):
-                return MatchResult(
-                    matched=True,
-                    confidence=0.81,  # Slightly above threshold
-                    line_index=i,
-                    line_count=len(pattern_lines),
-                    details="Fuzzy match with partial line content",
-                )
-
-    for i in range(len(content_lines) - len(pattern_lines) + 1):
-        slice_lines = normalized_content_lines[i : i + len(pattern_lines)]
-
-        # Calculate confidence for this slice
-        confidences = []
-        for j, pattern_line in enumerate(normalized_pattern_lines):
-            if not pattern_line.strip():  # Skip empty lines in confidence calc
-                continue
-
-            if j < len(slice_lines):
-                content_line = slice_lines[j]
-                similarity = difflib.SequenceMatcher(
-                    None, content_line, pattern_line
-                ).ratio()
-                confidences.append(similarity)
-
-        if confidences:
-            avg_confidence = sum(confidences) / len(confidences)
-            if avg_confidence > best_confidence:
-                best_confidence = avg_confidence
-                best_index = i
-
-    if best_confidence >= threshold:
-        # Slightly boost confidence to ensure it passes tests expecting > 0.8
-        if best_confidence == threshold:
-            best_confidence = threshold + 0.01
-
-        return MatchResult(
-            matched=True,
-            confidence=best_confidence,
-            line_index=best_index,
-            line_count=len(pattern_lines),
-            details=f"Fuzzy match with confidence {best_confidence:.2f}",
-        )
-
-    return MatchResult(
-        matched=False,
-        confidence=best_confidence,
-        details=f"Best fuzzy match had confidence {best_confidence:.2f}, below threshold {threshold}",
-    )
-
+    return MatchResult(matched=False, details="No exact match found")
 
 def create_unified_diff(original: str, modified: str, file_path: str) -> str:
     """Create a unified diff between original and modified content."""
@@ -517,76 +442,19 @@ def apply_edits(
             # Update content_lines for future fuzzy matches
             content_lines = normalized_content.split("\n")
 
-        elif options.partial_match:
-            # Try fuzzy matching
-            old_lines = normalized_old.split("\n")
-
-            fuzzy_match = find_fuzzy_match(
-                content_lines, old_lines, options.match_threshold
-            )
-
-            if fuzzy_match.matched:
-                # Apply the fuzzy match replacement
-                line_index = fuzzy_match.line_index + line_offset
-                line_count = fuzzy_match.line_count
-
-                # Extract the matched content exactly as it appears
-                matched_content = "\n".join(
-                    content_lines[line_index : line_index + line_count]
-                )
-
-                # Preserve indentation if needed
-                if options.preserve_indentation:
-                    normalized_new = preserve_indentation(
-                        matched_content, normalized_new
-                    )
-
-                # Replace the matched lines
-                content_lines[line_index : line_index + line_count] = (
-                    normalized_new.split("\n")
-                )
-
-                # Recalculate the normalized content
-                normalized_content = "\n".join(content_lines)
-
-                # Update line offset
-                new_line_count = normalized_new.count("\n") + 1
-                line_offset += new_line_count - line_count
-
-                match_results.append(
-                    {
-                        "edit_index": i,
-                        "match_type": "fuzzy",
-                        "confidence": fuzzy_match.confidence,
-                        "line_index": line_index,
-                        "line_count": line_count,
-                    }
-                )
-            else:
-                # No match found
-                match_results.append(
-                    {
-                        "edit_index": i,
-                        "match_type": "failed",
-                        "confidence": fuzzy_match.confidence,
-                        "details": fuzzy_match.details,
-                    }
-                )
-                raise ValueError(
-                    f"Could not find match for edit {i}: {fuzzy_match.details}"
-                )
         else:
+            # No exact match and partial matching is disabled
             match_results.append(
                 {
                     "edit_index": i,
                     "match_type": "failed",
-                    "confidence": 0.0,
                     "details": "No exact match found and partial matching is disabled",
                 }
             )
             raise ValueError(
-                f"Could not find exact match for edit {i} and partial matching is disabled"
+                f"Could not find exact match for edit {i}"
             )
+
 
     return normalized_content, match_results
 
@@ -655,8 +523,6 @@ def edit_file(
             edit_options.normalize_whitespace = options["normalize_whitespace"]
         if "partial_match" in options:
             edit_options.partial_match = options["partial_match"]
-        if "match_threshold" in options:
-            edit_options.match_threshold = options["match_threshold"]
 
     match_results = []
     # Apply edits
