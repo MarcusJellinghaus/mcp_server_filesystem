@@ -172,6 +172,69 @@ def save_file(file_path: str, content: str, project_dir: Path) -> bool:
 write_file = save_file
 
 
+def append_file(file_path: str, content: str, project_dir: Path) -> bool:
+    """
+    Append content to the end of a file.
+
+    Args:
+        file_path: Path to the file to append to (relative to project directory)
+        content: Content to append to the file
+        project_dir: Project directory path
+
+    Returns:
+        True if the content was appended successfully
+
+    Raises:
+        FileNotFoundError: If the file does not exist
+        PermissionError: If access to the file is denied
+        ValueError: If the file is outside the project directory
+    """
+    # Validate file_path parameter
+    if not file_path or not isinstance(file_path, str):
+        logger.error(f"Invalid file path: {file_path}")
+        raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
+
+    # Validate content parameter
+    if content is None:
+        logger.warning("Content is None, treating as empty string")
+        content = ""
+
+    if not isinstance(content, str):
+        logger.error(f"Invalid content type: {type(content)}")
+        raise ValueError(f"Content must be a string, got {type(content)}")
+
+    # Validate project_dir parameter
+    if project_dir is None:
+        raise ValueError("Project directory cannot be None")
+
+    # Normalize the path to be relative to the project directory
+    abs_path, rel_path = normalize_path(file_path, project_dir)
+
+    # Check if the file exists
+    if not abs_path.exists():
+        logger.error(f"File not found: {file_path}")
+        raise FileNotFoundError(f"File '{file_path}' does not exist")
+
+    if not abs_path.is_file():
+        logger.error(f"Path is not a file: {file_path}")
+        raise IsADirectoryError(f"Path '{file_path}' is not a file")
+
+    try:
+        # Read existing content
+        existing_content = read_file(file_path, project_dir)
+        
+        # Append new content
+        combined_content = existing_content + content
+        
+        # Use save_file to write the combined content
+        logger.debug(f"Appending {len(content)} bytes to {rel_path}")
+        return save_file(file_path, combined_content, project_dir)
+    
+    except Exception as e:
+        logger.error(f"Error appending to file {rel_path}: {str(e)}")
+        raise
+
+
 def delete_file(file_path: str, project_dir: Path) -> bool:
     """
     Delete a file.

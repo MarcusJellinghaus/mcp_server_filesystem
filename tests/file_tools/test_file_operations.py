@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 # Import functions directly from the module
-from src.file_tools.file_operations import delete_file, read_file, save_file
+from src.file_tools.file_operations import delete_file, read_file, save_file, append_file
 from tests.conftest import TEST_CONTENT, TEST_DIR, TEST_FILE
 
 
@@ -191,3 +191,126 @@ def test_delete_file_security(project_dir):
     # Verify the security error message
     assert "Security error" in str(excinfo.value)
     assert "outside the project directory" in str(excinfo.value)
+
+
+def test_append_file(project_dir):
+    """Test appending content to a file."""
+    # Create absolute path for test file
+    abs_file_path = project_dir / TEST_FILE
+
+    # Create initial content
+    initial_content = "Initial content.\n"
+    with open(abs_file_path, "w", encoding="utf-8") as f:
+        f.write(initial_content)
+
+    # Append content to the file
+    append_content = "Appended content."
+    result = append_file(str(TEST_FILE), append_content, project_dir=project_dir)
+
+    # Verify the file was updated
+    assert result is True
+    assert abs_file_path.exists()
+
+    # Verify the combined content
+    expected_content = initial_content + append_content
+    with open(abs_file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    assert content == expected_content
+
+
+def test_append_file_empty(project_dir):
+    """Test appending to an empty file."""
+    # Create the empty file
+    empty_file = TEST_DIR / "empty_file.txt"
+    abs_file_path = project_dir / empty_file
+    with open(abs_file_path, "w", encoding="utf-8") as f:
+        pass  # Create an empty file
+
+    # Append content to the empty file
+    append_content = "Content added to empty file."
+    result = append_file(str(empty_file), append_content, project_dir=project_dir)
+
+    # Verify the file was updated
+    assert result is True
+    assert abs_file_path.exists()
+
+    # Verify the content
+    with open(abs_file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    assert content == append_content
+
+
+def test_append_file_not_found(project_dir):
+    """Test appending to a file that doesn't exist."""
+    non_existent_file = TEST_DIR / "non_existent_append.txt"
+
+    # Ensure the file doesn't exist
+    abs_non_existent = project_dir / non_existent_file
+    if abs_non_existent.exists():
+        abs_non_existent.unlink()
+
+    # Test appending to a non-existent file
+    with pytest.raises(FileNotFoundError):
+        append_file(str(non_existent_file), "This should fail", project_dir=project_dir)
+
+
+def test_append_file_is_directory(project_dir):
+    """Test attempting to append to a directory."""
+    # Create a directory
+    dir_path = TEST_DIR / "test_append_directory"
+    abs_dir_path = project_dir / dir_path
+
+    # Ensure the directory exists
+    abs_dir_path.mkdir(exist_ok=True)
+
+    # Verify the directory exists
+    assert abs_dir_path.exists()
+    assert abs_dir_path.is_dir()
+
+    # Test attempting to append to a directory
+    with pytest.raises(IsADirectoryError):
+        append_file(str(dir_path), "This should fail", project_dir=project_dir)
+
+    # Clean up
+    shutil.rmtree(abs_dir_path)
+
+
+def test_append_file_security(project_dir):
+    """Test security checks in append_file."""
+    # Try to append to a file outside the project directory
+    with pytest.raises(ValueError) as excinfo:
+        append_file("../outside_project.txt", "This should fail", project_dir=project_dir)
+
+    # Verify the security error message
+    assert "Security error" in str(excinfo.value)
+    assert "outside the project directory" in str(excinfo.value)
+
+
+def test_append_file_large_content(project_dir):
+    """Test appending large content to a file."""
+    # Create absolute path for test file
+    large_file = TEST_DIR / "large_file.txt"
+    abs_file_path = project_dir / large_file
+
+    # Create initial content
+    initial_content = "Initial line.\n"
+    with open(abs_file_path, "w", encoding="utf-8") as f:
+        f.write(initial_content)
+
+    # Create large content to append (100 lines)
+    large_content = "" 
+    for i in range(1, 101):
+        large_content += f"Line {i} of appended content.\n"
+
+    # Append large content to the file
+    result = append_file(str(large_file), large_content, project_dir=project_dir)
+
+    # Verify the file was updated
+    assert result is True
+    assert abs_file_path.exists()
+
+    # Verify the combined content
+    expected_content = initial_content + large_content
+    with open(abs_file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    assert content == expected_content
