@@ -7,7 +7,7 @@ from pathlib import Path
 
 import structlog
 
-# Import logging utilities 
+# Import logging utilities
 from src.log_utils import setup_logging
 
 # Create loggers
@@ -49,11 +49,22 @@ def main() -> None:
     """
     Main entry point for the MCP server.
     """
+    # Add debug logging before logger is initialized
+    stdlogger.debug(
+        "Starting main function with standard logger (before initialization)"
+    )
+
     # Parse command line arguments
     args = parse_args()
 
     # Configure logging
     setup_logging(args.log_level, args.log_file)
+
+    # Add debug logging after logger is initialized
+    stdlogger.debug("Logger initialized in main")
+    structured_logger.debug(
+        "Structured logger initialized in main", log_level=args.log_level
+    )
 
     # Import here to avoid circular imports (after logging is configured)
     from src.server import run_server
@@ -68,7 +79,7 @@ def main() -> None:
             structured_logger.error(
                 "Invalid project directory",
                 project_dir=str(project_dir),
-                error="Directory does not exist or is not a directory"
+                error="Directory does not exist or is not a directory",
             )
         sys.exit(1)
 
@@ -78,10 +89,10 @@ def main() -> None:
     stdlogger.info(f"Starting MCP server with project directory: {project_dir}")
     if args.log_file:
         structured_logger.info(
-            "Starting MCP server", 
+            "Starting MCP server",
             project_dir=str(project_dir),
             log_level=args.log_level,
-            log_file=args.log_file
+            log_file=args.log_file,
         )
 
     # Run the server with the project directory

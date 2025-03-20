@@ -5,8 +5,6 @@ from typing import Any, Dict, List
 import structlog
 from mcp.server.fastmcp import FastMCP
 
-from src.log_utils import log_function_call
-
 # Import utility functions from the main package
 from src.file_tools import append_file as append_file_util
 from src.file_tools import delete_file as delete_file_util
@@ -15,6 +13,7 @@ from src.file_tools import list_files as list_files_util
 from src.file_tools import normalize_path
 from src.file_tools import read_file as read_file_util
 from src.file_tools import save_file as save_file_util
+from src.log_utils import log_function_call
 
 # Initialize loggers
 logger = logging.getLogger(__name__)
@@ -309,22 +308,43 @@ def run_server(project_dir: Path) -> None:
     Args:
         project_dir: Path to the project directory
     """
+    logger.debug("Entering run_server function")
+    structured_logger.debug(
+        "Entering run_server function", project_dir=str(project_dir)
+    )
+
     # Set the project directory
     set_project_dir(project_dir)
 
     # Run the server
     logger.info("Starting MCP server")
     structured_logger.info("Starting MCP server")
+    logger.debug("About to call mcp.run()")
+    structured_logger.debug("About to call mcp.run()", project_dir=str(project_dir))
     mcp.run()
+    logger.debug(
+        "After mcp.run() call - this line will only execute if mcp.run() returns"
+    )
 
 
 # Run the server when the script is executed directly
 if __name__ == "__main__":
+    # Add debug logging when script is run directly
+    logger.debug("Running server.py as __main__")
+
     # The project directory should be set before running the server
     # This case is primarily for testing; in production, main.py should set it
     if _project_dir is None:
+        logger.error("Project directory not set")
         raise RuntimeError(
             "Project directory not set. Please use set_project_dir() before running the server."
         )
 
+    logger.debug("About to call mcp.run() from __main__")
+    structured_logger.debug(
+        "About to call mcp.run() from __main__", project_dir=str(_project_dir)
+    )
     mcp.run()
+    logger.debug(
+        "After mcp.run() call in __main__ - this line will only execute if mcp.run() returns"
+    )
