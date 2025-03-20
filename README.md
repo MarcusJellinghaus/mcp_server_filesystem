@@ -27,6 +27,7 @@ By connecting your AI assistant to your filesystem, you can transform your workf
 - `append_file`: Append content to the end of a file
 - `delete_this_file`: Delete a specified file from the filesystem
 - `edit_file`: Make selective edits using advanced pattern matching
+- `Structured Logging`: Comprehensive logging system with both human-readable and JSON formats
 
 ## Installation
 
@@ -39,17 +40,33 @@ cd mcp-server-filesystem
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies using pip with pyproject.toml
+pip install -e .
 ```
 
 ## Running the Server
 
 ```bash
-python -m src.main --project-dir /path/to/project
+python -m src.main --project-dir /path/to/project [--log-level LEVEL] [--log-file PATH]
 ```
 
+### Command Line Arguments:
+
+- `--project-dir`: (Required) Directory to serve files from
+- `--log-level`: (Optional) Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- `--log-file`: (Optional) Path for structured JSON logs. If not specified, only console logging is used.
+
 The server uses FastMCP for operation. The project directory parameter (`--project-dir`) is **required** for security reasons. All file operations will be restricted to this directory. Attempts to access files outside this directory will result in an error.
+
+## Structured Logging
+
+The server provides flexible logging options:
+
+- Standard human-readable logs to console
+- Optional structured JSON logs to file with `--log-file`
+- Function call tracking with parameters, timing, and results
+- Automatic error context capture
+- Configurable log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 
 ## Using with Claude Desktop App
 
@@ -69,7 +86,11 @@ To enable Claude to use this file system server for accessing files in your loca
             "args": [                
                 "C:\\path\\to\\mcp_server_filesystem\\src\\main.py",
                 "--project-dir",
-                "C:\\path\\to\\your\\project"
+                "C:\\path\\to\\your\\project",
+                "--log-level",
+                "INFO",
+                "--log-file",
+                "C:\\path\\to\\logs\\mcp_server.log"
             ],
             "env": {
                 "PYTHONPATH": "C:\\path\\to\\mcp_server_filesystem\\"
@@ -83,6 +104,7 @@ To enable Claude to use this file system server for accessing files in your loca
    - Point to your Python virtual environment 
    - Set the project directory to the folder you want Claude to access
    - Make sure the PYTHONPATH points to the mcp_server_filesystem root folder
+   - Specify log level and log file path as needed
 
 4. Restart the Claude desktop app to apply changes
 
@@ -110,7 +132,7 @@ npx @modelcontextprotocol/inspector \
 
 2. In the MCP Inspector web UI, configure with the following:
    - Python interpreter: `C:\path\to\mcp_server_filesystem\.venv\Scripts\python.exe`
-   - Arguments: `C:\path\to\mcp_server_filesystem\src\main.py --project-dir C:\path\to\your\project`
+   - Arguments: `C:\path\to\mcp_server_filesystem\src\main.py --project-dir C:\path\to\your\project --log-level DEBUG`
    - Environment variables:
      - Name: `PYTHONPATH`
      - Value: `C:\path\to\mcp_server_filesystem\`
@@ -197,7 +219,7 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Running with MCP Dev Tools
