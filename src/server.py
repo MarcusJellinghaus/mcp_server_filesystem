@@ -11,6 +11,7 @@ from src.file_tools import list_files as list_files_util
 from src.file_tools import normalize_path
 from src.file_tools import read_file as read_file_util
 from src.file_tools import save_file as save_file_util
+from src.file_tools import append_file as append_file_util
 
 # Configure logging
 logging.basicConfig(
@@ -114,6 +115,41 @@ async def save_file(file_path: str, content: str) -> bool:
         return success
     except Exception as e:
         logger.error(f"Error writing to file: {str(e)}")
+        raise
+
+
+@mcp.tool()
+async def append_file(file_path: str, content: str) -> bool:
+    """Append content to the end of a file.
+
+    Args:
+        file_path: Path to the file to append to (relative to project directory)
+        content: Content to append to the file
+
+    Returns:
+        True if the content was appended successfully
+    """
+    if not file_path or not isinstance(file_path, str):
+        logger.error(f"Invalid file path parameter: {file_path}")
+        raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
+
+    if content is None:
+        logger.warning("Content is None, treating as empty string")
+        content = ""
+
+    if not isinstance(content, str):
+        logger.error(f"Invalid content type: {type(content)}")
+        raise ValueError(f"Content must be a string, got {type(content)}")
+
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+
+    logger.info(f"Appending to file: {file_path}")
+    try:
+        success = append_file_util(file_path, content, project_dir=_project_dir)
+        return success
+    except Exception as e:
+        logger.error(f"Error appending to file: {str(e)}")
         raise
 
 

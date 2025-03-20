@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.server import list_directory, read_file, save_file, set_project_dir
+from src.server import list_directory, read_file, save_file, append_file, set_project_dir
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -70,6 +70,82 @@ async def test_read_file(project_dir):
 
 
 @pytest.mark.asyncio
+async def test_read_file_not_found():
+    """Test the read_file tool with a non-existent file."""
+    non_existent_file = TEST_DIR / "non_existent.txt"
+
+    # Ensure the file doesn't exist
+    if Path(non_existent_file).exists():
+        Path(non_existent_file).unlink()
+
+    with pytest.raises(FileNotFoundError):
+        await read_file(str(non_existent_file))
+
+
+@pytest.mark.asyncio
+async def test_append_file(project_dir):
+    """Test the append_file tool."""
+    # Create absolute path for test file
+    abs_file_path = project_dir / TEST_FILE
+
+    # Create initial content
+    initial_content = "Initial content.\n"
+    with open(abs_file_path, "w", encoding="utf-8") as f:
+        f.write(initial_content)
+
+    # Append content to the file
+    append_content = "Appended content."
+    result = await append_file(str(TEST_FILE), append_content)
+
+    # Verify the file was updated
+    assert result is True
+    assert abs_file_path.exists()
+
+    # Verify the combined content
+    expected_content = initial_content + append_content
+    with open(abs_file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    assert content == expected_content
+
+
+@pytest.mark.asyncio
+async def test_append_file_empty(project_dir):
+    """Test appending to an empty file."""
+    # Create the empty file
+    empty_file = TEST_DIR / "empty_file.txt"
+    abs_file_path = project_dir / empty_file
+    with open(abs_file_path, "w", encoding="utf-8") as f:
+        pass  # Create an empty file
+
+    # Append content to the empty file
+    append_content = "Content added to empty file."
+    result = await append_file(str(empty_file), append_content)
+
+    # Verify the file was updated
+    assert result is True
+    assert abs_file_path.exists()
+
+    # Verify the content
+    with open(abs_file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    assert content == append_content
+
+
+@pytest.mark.asyncio
+async def test_append_file_not_found():
+    """Test appending to a file that doesn't exist."""
+    non_existent_file = TEST_DIR / "non_existent_append.txt"
+
+    # Ensure the file doesn't exist
+    if Path(non_existent_file).exists():
+        Path(non_existent_file).unlink()
+
+    # Test appending to a non-existent file
+    with pytest.raises(FileNotFoundError):
+        await append_file(str(non_existent_file), "This should fail")
+
+
+@pytest.mark.asyncio
 @patch("src.server.list_files_util")
 async def test_list_directory(mock_list_files, project_dir):
     """Test the list_directory tool."""
@@ -91,19 +167,6 @@ async def test_list_directory(mock_list_files, project_dir):
     )
 
     assert str(TEST_FILE) in files
-
-
-@pytest.mark.asyncio
-async def test_read_file_not_found():
-    """Test the read_file tool with a non-existent file."""
-    non_existent_file = TEST_DIR / "non_existent.txt"
-
-    # Ensure the file doesn't exist
-    if Path(non_existent_file).exists():
-        Path(non_existent_file).unlink()
-
-    with pytest.raises(FileNotFoundError):
-        await read_file(str(non_existent_file))
 
 
 @pytest.mark.asyncio
