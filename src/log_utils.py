@@ -58,9 +58,11 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
         struct_root.addHandler(json_handler)
         struct_root.setLevel(numeric_level)
 
-        # Configure structlog
+        # Configure structlog to work with stdlib logging
+        # This creates a bridge between structlog and the Python logging system
         structlog.configure(
             processors=[
+                structlog.stdlib.filter_by_level,
                 structlog.stdlib.add_logger_name,
                 structlog.stdlib.add_log_level,
                 structlog.stdlib.PositionalArgumentsFormatter(),
