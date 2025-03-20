@@ -50,6 +50,13 @@ pip install -e .
 python -m src.main --project-dir /path/to/project [--log-level LEVEL] [--log-file PATH]
 ```
 
+Alternatively, you can add the current directory to your PYTHONPATH and run the script directly:
+
+```cmd
+set PYTHONPATH=%PYTHONPATH%;.
+python .\src\main.py --project-dir /path/to/project [--log-level LEVEL] [--log-file PATH]
+```
+
 ### Command Line Arguments:
 
 - `--project-dir`: (Required) Directory to serve files from
