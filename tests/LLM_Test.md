@@ -6,6 +6,8 @@ I want you to test the different mcp tools.
 - Can you please check if any of these files should be ignored according to gitignore?
 - Please create / save a file
 - Read the file and check whether the content is the same
+- Append content to the file
+- Read the file again and verify the combined content
 - Check with list files whether it shows up there
 - Delete the file
 - List all files and check whether it disappeared
