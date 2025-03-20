@@ -40,12 +40,11 @@ def setup_test_file(project_dir):
         test_file_path.unlink()
 
 
-@pytest.mark.asyncio
-async def test_edit_file_exact_match(project_dir):
+def test_edit_file_exact_match(project_dir):
     """Test the edit_file tool with exact matching."""
     # First create the test file - use absolute path for reliability
     absolute_path = str(project_dir / TEST_FILE)
-    await save_file(str(TEST_FILE), TEST_CONTENT)
+    save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define the edit operation
     edits = [
@@ -53,7 +52,7 @@ async def test_edit_file_exact_match(project_dir):
     ]
 
     # Apply the edit - using absolute path here
-    result = await edit_file(absolute_path, edits)
+    result = edit_file(absolute_path, edits)
 
     # Check success
     assert result["success"] is True
@@ -69,12 +68,11 @@ async def test_edit_file_exact_match(project_dir):
     assert "Line 4 to be edited." not in content
 
 
-@pytest.mark.asyncio
-async def test_edit_file_dry_run(project_dir):
+def test_edit_file_dry_run(project_dir):
     """Test the edit_file tool in dry run mode."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
-    await save_file(str(TEST_FILE), TEST_CONTENT)
+    save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define the edit operation
     edits = [
@@ -82,7 +80,7 @@ async def test_edit_file_dry_run(project_dir):
     ]
 
     # Apply the edit in dry run mode
-    result = await edit_file(absolute_path, edits, dry_run=True)
+    result = edit_file(absolute_path, edits, dry_run=True)
 
     # Check success
     assert result["success"] is True
@@ -99,12 +97,11 @@ async def test_edit_file_dry_run(project_dir):
     assert "Line 4 has been modified." not in content
 
 
-@pytest.mark.asyncio
-async def test_edit_file_fuzzy_match(project_dir):
+def test_edit_file_fuzzy_match(project_dir):
     """Test the edit_file tool with fuzzy matching."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
-    await save_file(str(TEST_FILE), TEST_CONTENT)
+    save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define the edit operation with slightly different text
     edits = [
@@ -115,7 +112,7 @@ async def test_edit_file_fuzzy_match(project_dir):
     ]
 
     # Apply the edit with fuzzy matching enabled
-    result = await edit_file(absolute_path, edits, options={"partialMatch": True})
+    result = edit_file(absolute_path, edits, options={"partialMatch": True})
 
     # Check success
     assert result["success"] is True
@@ -126,12 +123,11 @@ async def test_edit_file_fuzzy_match(project_dir):
     assert "Line 2 has been modified with fuzzy matching." in content
 
 
-@pytest.mark.asyncio
-async def test_edit_file_multiple_edits(project_dir):
+def test_edit_file_multiple_edits(project_dir):
     """Test the edit_file tool with multiple edits."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
-    await save_file(str(TEST_FILE), TEST_CONTENT)
+    save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define multiple edit operations
     edits = [
@@ -146,7 +142,7 @@ async def test_edit_file_multiple_edits(project_dir):
     ]
 
     # Apply the edits
-    result = await edit_file(absolute_path, edits)
+    result = edit_file(absolute_path, edits)
 
     # Check success
     assert result["success"] is True
@@ -158,12 +154,11 @@ async def test_edit_file_multiple_edits(project_dir):
     assert "Line 4 has also been modified." in content
 
 
-@pytest.mark.asyncio
-async def test_edit_file_error_handling(project_dir):
+def test_edit_file_error_handling(project_dir):
     """Test error handling in the edit_file tool."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
-    await save_file(str(TEST_FILE), TEST_CONTENT)
+    save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define an edit operation with text that doesn't exist
     edits = [
@@ -174,7 +169,7 @@ async def test_edit_file_error_handling(project_dir):
     ]
 
     # The edit should fail
-    result = await edit_file(
+    result = edit_file(
         absolute_path, edits, options={"partialMatch": False}  # Disable fuzzy matching
     )
 

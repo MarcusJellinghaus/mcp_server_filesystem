@@ -44,10 +44,9 @@ def teardown_function():
         TEST_FILE.unlink()
 
 
-@pytest.mark.asyncio
-async def test_save_file(project_dir):
+def test_save_file(project_dir):
     """Test the save_file tool."""
-    result = await save_file(str(TEST_FILE), TEST_CONTENT)
+    result = save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Create absolute path for verification
     abs_file_path = project_dir / TEST_FILE
@@ -60,8 +59,7 @@ async def test_save_file(project_dir):
     assert content == TEST_CONTENT
 
 
-@pytest.mark.asyncio
-async def test_read_file(project_dir):
+def test_read_file(project_dir):
     """Test the read_file tool."""
     # Create absolute path for test file
     abs_file_path = project_dir / TEST_FILE
@@ -70,13 +68,12 @@ async def test_read_file(project_dir):
     with open(abs_file_path, "w", encoding="utf-8") as f:
         f.write(TEST_CONTENT)
 
-    content = await read_file(str(TEST_FILE))
+    content = read_file(str(TEST_FILE))
 
     assert content == TEST_CONTENT
 
 
-@pytest.mark.asyncio
-async def test_read_file_not_found():
+def test_read_file_not_found():
     """Test the read_file tool with a non-existent file."""
     non_existent_file = TEST_DIR / "non_existent.txt"
 
@@ -85,11 +82,10 @@ async def test_read_file_not_found():
         Path(non_existent_file).unlink()
 
     with pytest.raises(FileNotFoundError):
-        await read_file(str(non_existent_file))
+        read_file(str(non_existent_file))
 
 
-@pytest.mark.asyncio
-async def test_append_file(project_dir):
+def test_append_file(project_dir):
     """Test the append_file tool."""
     # Create absolute path for test file
     abs_file_path = project_dir / TEST_FILE
@@ -101,7 +97,7 @@ async def test_append_file(project_dir):
 
     # Append content to the file
     append_content = "Appended content."
-    result = await append_file(str(TEST_FILE), append_content)
+    result = append_file(str(TEST_FILE), append_content)
 
     # Verify the file was updated
     assert result is True
@@ -114,8 +110,7 @@ async def test_append_file(project_dir):
     assert content == expected_content
 
 
-@pytest.mark.asyncio
-async def test_append_file_empty(project_dir):
+def test_append_file_empty(project_dir):
     """Test appending to an empty file."""
     # Create the empty file
     empty_file = TEST_DIR / "empty_file.txt"
@@ -125,7 +120,7 @@ async def test_append_file_empty(project_dir):
 
     # Append content to the empty file
     append_content = "Content added to empty file."
-    result = await append_file(str(empty_file), append_content)
+    result = append_file(str(empty_file), append_content)
 
     # Verify the file was updated
     assert result is True
@@ -137,8 +132,7 @@ async def test_append_file_empty(project_dir):
     assert content == append_content
 
 
-@pytest.mark.asyncio
-async def test_append_file_not_found():
+def test_append_file_not_found():
     """Test appending to a file that doesn't exist."""
     non_existent_file = TEST_DIR / "non_existent_append.txt"
 
@@ -148,12 +142,11 @@ async def test_append_file_not_found():
 
     # Test appending to a non-existent file
     with pytest.raises(FileNotFoundError):
-        await append_file(str(non_existent_file), "This should fail")
+        append_file(str(non_existent_file), "This should fail")
 
 
-@pytest.mark.asyncio
 @patch("src.server.list_files_util")
-async def test_list_directory(mock_list_files, project_dir):
+def test_list_directory(mock_list_files, project_dir):
     """Test the list_directory tool."""
     # Create absolute path for test file
     abs_file_path = project_dir / TEST_FILE
@@ -165,7 +158,7 @@ async def test_list_directory(mock_list_files, project_dir):
     # Mock the list_files function to return our test file
     mock_list_files.return_value = [str(TEST_FILE)]
 
-    files = await list_directory()
+    files = list_directory()
 
     # Verify the function was called with correct parameters
     mock_list_files.assert_called_once_with(
@@ -175,20 +168,18 @@ async def test_list_directory(mock_list_files, project_dir):
     assert str(TEST_FILE) in files
 
 
-@pytest.mark.asyncio
 @patch("src.server.list_files_util")
-async def test_list_directory_directory_not_found(mock_list_files, project_dir):
+def test_list_directory_directory_not_found(mock_list_files, project_dir):
     """Test the list_directory tool with a non-existent directory."""
     # Mock list_files to raise FileNotFoundError
     mock_list_files.side_effect = FileNotFoundError("Directory not found")
 
     with pytest.raises(FileNotFoundError):
-        await list_directory()
+        list_directory()
 
 
-@pytest.mark.asyncio
 @patch("src.server.list_files_util")
-async def test_list_directory_with_gitignore(mock_list_files, project_dir):
+def test_list_directory_with_gitignore(mock_list_files, project_dir):
     """Test the list_directory tool with gitignore filtering."""
     # Mock list_files to return filtered files
     mock_list_files.return_value = [
@@ -196,7 +187,7 @@ async def test_list_directory_with_gitignore(mock_list_files, project_dir):
         str(TEST_DIR / ".gitignore"),
     ]
 
-    files = await list_directory()
+    files = list_directory()
 
     # Verify the function was called with gitignore=True
     mock_list_files.assert_called_once_with(
@@ -207,12 +198,11 @@ async def test_list_directory_with_gitignore(mock_list_files, project_dir):
     assert str(TEST_DIR / ".gitignore") in files
 
 
-@pytest.mark.asyncio
 @patch("src.server.list_files_util")
-async def test_list_directory_error_handling(mock_list_files, project_dir):
+def test_list_directory_error_handling(mock_list_files, project_dir):
     """Test error handling in the list_directory tool."""
     # Mock list_files to raise an exception
     mock_list_files.side_effect = Exception("Test error")
 
     with pytest.raises(Exception):
-        await list_directory()
+        list_directory()

@@ -101,14 +101,10 @@ def apply_gitignore_filter(
     for file_path in file_paths:
         # Convert to absolute path for the matcher
         abs_file_path = str(project_dir / file_path)
-        logger.debug(f"Checking file: {file_path} (abs: {abs_file_path})")
 
         # The matcher returns True if the file should be ignored
         if not matcher(abs_file_path):
-            logger.debug(f"Keeping file: {file_path}")
             filtered_files.append(file_path)
-        else:
-            logger.debug(f"Ignoring file: {file_path}")
 
     logger.info(
         f"Applied gitignore filtering: {len(file_paths)} files found, {len(filtered_files)} after filtering"

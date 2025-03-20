@@ -41,7 +41,7 @@ def set_project_dir(directory: Path) -> None:
 
 @mcp.tool()
 @log_function_call
-async def list_directory() -> List[str]:
+def list_directory() -> List[str]:
     """List files and directories in the project directory.
 
     Returns:
@@ -62,7 +62,7 @@ async def list_directory() -> List[str]:
 
 @mcp.tool()
 @log_function_call
-async def read_file(file_path: str) -> str:
+def read_file(file_path: str) -> str:
     """Read the contents of a file.
 
     Args:
@@ -89,7 +89,7 @@ async def read_file(file_path: str) -> str:
 
 @mcp.tool()
 @log_function_call
-async def save_file(file_path: str, content: str) -> bool:
+def save_file(file_path: str, content: str) -> bool:
     """Write content to a file.
 
     Args:
@@ -125,7 +125,7 @@ async def save_file(file_path: str, content: str) -> bool:
 
 @mcp.tool()
 @log_function_call
-async def append_file(file_path: str, content: str) -> bool:
+def append_file(file_path: str, content: str) -> bool:
     """Append content to the end of a file.
 
     Args:
@@ -161,7 +161,7 @@ async def append_file(file_path: str, content: str) -> bool:
 
 @mcp.tool()
 @log_function_call
-async def delete_this_file(file_path: str) -> bool:
+def delete_this_file(file_path: str) -> bool:
     """Delete a specified file from the filesystem.
 
     Args:
@@ -192,7 +192,7 @@ async def delete_this_file(file_path: str) -> bool:
 
 @mcp.tool()
 @log_function_call
-async def edit_file(
+def edit_file(
     path: str,
     edits: List[Dict[str, str]],
     dry_run: bool = False,
