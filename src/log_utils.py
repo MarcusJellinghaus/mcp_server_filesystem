@@ -52,11 +52,8 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
         )
         json_handler.setFormatter(json_formatter)
 
-        # Create separate logger for structured logs
-        struct_root = logging.getLogger("structured")
-        struct_root.propagate = False
-        struct_root.addHandler(json_handler)
-        struct_root.setLevel(numeric_level)
+        # Set up the structlog handler
+        handler = json_handler
 
         # Configure structlog to work with stdlib logging
         # This creates a bridge between structlog and the Python logging system
@@ -70,13 +67,24 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
                 structlog.processors.StackInfoRenderer(),
                 structlog.processors.format_exc_info,
                 structlog.processors.UnicodeDecoder(),
-                structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+                structlog.stdlib.render_to_log_kwargs,
             ],
             context_class=dict,
             logger_factory=structlog.stdlib.LoggerFactory(),
             wrapper_class=structlog.stdlib.BoundLogger,
             cache_logger_on_first_use=True,
         )
+
+        # Create a processor that formats the output
+        processor = structlog.stdlib.ProcessorFormatter(
+            processor=structlog.processors.JSONRenderer(),
+        )
+
+        # Add the processor to the handler
+        handler.setFormatter(processor)
+
+        # Add the handler to the root logger
+        root_logger.addHandler(handler)
 
         stdlogger.info(
             f"Logging initialized: console={log_level}, JSON file={log_file}"
