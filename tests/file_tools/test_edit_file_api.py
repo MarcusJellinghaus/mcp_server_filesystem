@@ -12,7 +12,7 @@ from src.server import edit_file, save_file, set_project_dir
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Test constants
-TEST_DIR = Path("testdata/test_file_tools")
+TEST_DIR = Path("../testdata/test_file_tools")
 TEST_FILE = TEST_DIR / "test_edit_api_file.txt"
 TEST_CONTENT = """This is a test file for the edit_file API.
 Line 2 with some content.
@@ -40,11 +40,12 @@ def setup_test_file(project_dir):
         test_file_path.unlink()
 
 
-def test_edit_file_exact_match(project_dir):
+@pytest.mark.asyncio
+async def test_edit_file_exact_match(project_dir):
     """Test the edit_file tool with exact matching."""
     # First create the test file - use absolute path for reliability
     absolute_path = str(project_dir / TEST_FILE)
-    save_file(str(TEST_FILE), TEST_CONTENT)
+    await save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define the edit operation
     edits = [
@@ -52,7 +53,7 @@ def test_edit_file_exact_match(project_dir):
     ]
 
     # Apply the edit - using absolute path here
-    result = edit_file(absolute_path, edits)
+    result = await edit_file(absolute_path, edits)
 
     # Check success
     assert result["success"] is True
@@ -68,11 +69,12 @@ def test_edit_file_exact_match(project_dir):
     assert "Line 4 to be edited." not in content
 
 
-def test_edit_file_dry_run(project_dir):
+@pytest.mark.asyncio
+async def test_edit_file_dry_run(project_dir):
     """Test the edit_file tool in dry run mode."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
-    save_file(str(TEST_FILE), TEST_CONTENT)
+    await save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define the edit operation
     edits = [
@@ -80,7 +82,7 @@ def test_edit_file_dry_run(project_dir):
     ]
 
     # Apply the edit in dry run mode
-    result = edit_file(absolute_path, edits, dry_run=True)
+    result = await edit_file(absolute_path, edits, dry_run=True)
 
     # Check success
     assert result["success"] is True
@@ -97,11 +99,12 @@ def test_edit_file_dry_run(project_dir):
     assert "Line 4 has been modified." not in content
 
 
-def test_edit_file_fuzzy_match(project_dir):
+@pytest.mark.asyncio
+async def test_edit_file_fuzzy_match(project_dir):
     """Test the edit_file tool with fuzzy matching."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
-    save_file(str(TEST_FILE), TEST_CONTENT)
+    await save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define the edit operation with slightly different text
     edits = [
@@ -112,7 +115,7 @@ def test_edit_file_fuzzy_match(project_dir):
     ]
 
     # Apply the edit with fuzzy matching enabled
-    result = edit_file(absolute_path, edits, options={"partialMatch": True})
+    result = await edit_file(absolute_path, edits, options={"partialMatch": True})
 
     # Check success
     assert result["success"] is True
@@ -123,11 +126,12 @@ def test_edit_file_fuzzy_match(project_dir):
     assert "Line 2 has been modified with fuzzy matching." in content
 
 
-def test_edit_file_multiple_edits(project_dir):
+@pytest.mark.asyncio
+async def test_edit_file_multiple_edits(project_dir):
     """Test the edit_file tool with multiple edits."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
-    save_file(str(TEST_FILE), TEST_CONTENT)
+    await save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define multiple edit operations
     edits = [
@@ -142,7 +146,7 @@ def test_edit_file_multiple_edits(project_dir):
     ]
 
     # Apply the edits
-    result = edit_file(absolute_path, edits)
+    result = await edit_file(absolute_path, edits)
 
     # Check success
     assert result["success"] is True
@@ -154,11 +158,12 @@ def test_edit_file_multiple_edits(project_dir):
     assert "Line 4 has also been modified." in content
 
 
-def test_edit_file_error_handling(project_dir):
+@pytest.mark.asyncio
+async def test_edit_file_error_handling(project_dir):
     """Test error handling in the edit_file tool."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
-    save_file(str(TEST_FILE), TEST_CONTENT)
+    await save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define an edit operation with text that doesn't exist
     edits = [
@@ -169,7 +174,7 @@ def test_edit_file_error_handling(project_dir):
     ]
 
     # The edit should fail
-    result = edit_file(
+    result = await edit_file(
         absolute_path, edits, options={"partialMatch": False}  # Disable fuzzy matching
     )
 
