@@ -21,3 +21,4 @@ venv/
 # Testing cache
 .pytest_cache/
 .mypy_cache/
+/.log/
