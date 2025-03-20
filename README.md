@@ -90,7 +90,7 @@ To enable Claude to use this file system server for accessing files in your loca
                 "--log-level",
                 "INFO",
                 "--log-file",
-                "C:\\path\\to\\logs\\mcp_server.log"
+                "C:\\path\\to\\logs\\mcp_server_filesystem_structured.log"
             ],
             "env": {
                 "PYTHONPATH": "C:\\path\\to\\mcp_server_filesystem\\"
