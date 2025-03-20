@@ -222,14 +222,14 @@ def append_file(file_path: str, content: str, project_dir: Path) -> bool:
     try:
         # Read existing content
         existing_content = read_file(file_path, project_dir)
-        
+
         # Append new content
         combined_content = existing_content + content
-        
+
         # Use save_file to write the combined content
         logger.debug(f"Appending {len(content)} bytes to {rel_path}")
         return save_file(file_path, combined_content, project_dir)
-    
+
     except Exception as e:
         logger.error(f"Error appending to file {rel_path}: {str(e)}")
         raise

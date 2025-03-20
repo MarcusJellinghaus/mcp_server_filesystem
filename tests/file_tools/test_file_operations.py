@@ -7,7 +7,12 @@ from pathlib import Path
 import pytest
 
 # Import functions directly from the module
-from src.file_tools.file_operations import delete_file, read_file, save_file, append_file
+from src.file_tools.file_operations import (
+    append_file,
+    delete_file,
+    read_file,
+    save_file,
+)
 from tests.conftest import TEST_CONTENT, TEST_DIR, TEST_FILE
 
 
@@ -279,7 +284,9 @@ def test_append_file_security(project_dir):
     """Test security checks in append_file."""
     # Try to append to a file outside the project directory
     with pytest.raises(ValueError) as excinfo:
-        append_file("../outside_project.txt", "This should fail", project_dir=project_dir)
+        append_file(
+            "../outside_project.txt", "This should fail", project_dir=project_dir
+        )
 
     # Verify the security error message
     assert "Security error" in str(excinfo.value)
@@ -298,7 +305,7 @@ def test_append_file_large_content(project_dir):
         f.write(initial_content)
 
     # Create large content to append (100 lines)
-    large_content = "" 
+    large_content = ""
     for i in range(1, 101):
         large_content += f"Line {i} of appended content.\n"
 
