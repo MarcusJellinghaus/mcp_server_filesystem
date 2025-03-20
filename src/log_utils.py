@@ -46,45 +46,32 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
 
         # Configure JSON file handler
         json_handler = logging.FileHandler(log_file)
+
+        # This formatter ensures timestamp and level are included as separate fields in JSON
         json_formatter = jsonlogger.JsonFormatter(
-            "%(timestamp)s %(level)s %(name)s %(module)s %(funcName)s %(message)s",
+            fmt="%(timestamp)s %(level)s %(name)s %(message)s %(module)s %(funcName)s %(lineno)d",
             timestamp=True,
         )
         json_handler.setFormatter(json_formatter)
+        root_logger.addHandler(json_handler)
 
-        # Set up the structlog handler
-        handler = json_handler
-
-        # Configure structlog to work with stdlib logging
-        # This creates a bridge between structlog and the Python logging system
+        # Configure structlog processors
         structlog.configure(
             processors=[
                 structlog.stdlib.filter_by_level,
                 structlog.stdlib.add_logger_name,
                 structlog.stdlib.add_log_level,
-                structlog.stdlib.PositionalArgumentsFormatter(),
-                structlog.processors.TimeStamper(fmt="iso"),
+                structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S"),
                 structlog.processors.StackInfoRenderer(),
                 structlog.processors.format_exc_info,
                 structlog.processors.UnicodeDecoder(),
-                structlog.stdlib.render_to_log_kwargs,
+                structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
             ],
             context_class=dict,
             logger_factory=structlog.stdlib.LoggerFactory(),
             wrapper_class=structlog.stdlib.BoundLogger,
             cache_logger_on_first_use=True,
         )
-
-        # Create a processor that formats the output
-        processor = structlog.stdlib.ProcessorFormatter(
-            processor=structlog.processors.JSONRenderer(),
-        )
-
-        # Add the processor to the handler
-        handler.setFormatter(processor)
-
-        # Add the handler to the root logger
-        root_logger.addHandler(handler)
 
         stdlogger.info(
             f"Logging initialized: console={log_level}, JSON file={log_file}"
@@ -100,6 +87,7 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
     def wrapper(*args: Any, **kwargs: Any) -> T:
         func_name = func.__name__
         module_name = func.__module__
+        line_no = func.__code__.co_firstlineno
 
         # Prepare parameters for logging
         log_params = {}
@@ -124,23 +112,38 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
         # Add keyword arguments
         log_params.update(kwargs)
 
-        # Convert Path objects to strings
+        # Convert Path objects to strings and handle other non-serializable types
+        serializable_params = {}
         for k, v in log_params.items():
             if isinstance(v, Path):
-                log_params[k] = str(v)
+                serializable_params[k] = str(v)
+            else:
+                try:
+                    # Test if it's JSON serializable
+                    json.dumps(v)
+                    serializable_params[k] = v
+                except (TypeError, OverflowError):
+                    # If not serializable, convert to string
+                    serializable_params[k] = str(v)
 
         # Check if structured logging is enabled
-        has_structured = logging.getLogger("structured").handlers
+        has_structured = any(
+            isinstance(h, logging.FileHandler) for h in logging.getLogger().handlers
+        )
 
-        # Log function call
+        # Log function call - always provide 'event' as the first parameter
         if has_structured:
             structlogger = structlog.get_logger(module_name)
             structlogger.debug(
-                f"Calling {func_name}", function=func_name, parameters=log_params
+                f"Calling function {func_name}",  # This is the 'event' parameter
+                function=func_name,
+                parameters=serializable_params,
+                module=module_name,
+                lineno=line_no,
             )
 
         stdlogger.debug(
-            f"Calling {func_name} with parameters: {json.dumps(log_params, default=str)}"
+            f"Calling {func_name} with parameters: {json.dumps(serializable_params, default=str)}"
         )
 
         # Execute function and measure time
@@ -154,14 +157,25 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
             if isinstance(result, (list, dict)) and len(str(result)) > 1000:
                 result_for_log = f"<Large result of type {type(result).__name__}, length: {len(str(result))}>"
 
+            # Attempt to make result JSON serializable for structured logging
+            serializable_result = None
+            try:
+                if result is not None:
+                    json.dumps(result)  # Test if result is JSON serializable
+                    serializable_result = result
+            except (TypeError, OverflowError):
+                serializable_result = str(result)
+
             # Log completion
             if has_structured:
                 structlogger.debug(
-                    f"{func_name} completed",
+                    f"Function {func_name} completed",  # This is the 'event' parameter
                     function=func_name,
                     execution_time_ms=elapsed_ms,
                     status="success",
-                    result=result_for_log,
+                    result=serializable_result,
+                    module=module_name,
+                    lineno=line_no,
                 )
 
             stdlogger.debug(
@@ -174,13 +188,14 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
             elapsed_ms = round((time.time() - start_time) * 1000, 2)
 
             if has_structured:
-                structlogger = structlog.get_logger(module_name)
                 structlogger.error(
-                    f"{func_name} failed",
+                    f"Function {func_name} failed",  # This is the 'event' parameter
                     function=func_name,
                     execution_time_ms=elapsed_ms,
                     error_type=type(e).__name__,
                     error_message=str(e),
+                    module=module_name,
+                    lineno=line_no,
                     exc_info=True,
                 )
 
