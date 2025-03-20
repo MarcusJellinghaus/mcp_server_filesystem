@@ -24,6 +24,7 @@ By connecting your AI assistant to your filesystem, you can transform your workf
 - `list_directory`: List all files and directories in the project directory
 - `read_file`: Read the contents of a file
 - `save_file`: Write content to a file atomically
+- `append_file`: Append content to the end of a file
 - `delete_this_file`: Delete a specified file from the filesystem
 - `edit_file`: Make selective edits using advanced pattern matching
 
@@ -137,6 +138,14 @@ The server exposes the following MCP tools:
   - `file_path` (string): Path to the file to write to (relative to project directory)
   - `content` (string): Content to write to the file
 - Returns: Boolean indicating success
+
+### Append File
+- Appends content to the end of an existing file
+- Parameters:
+  - `file_path` (string): Path to the file to append to (relative to project directory)
+  - `content` (string): Content to append to the file
+- Returns: Boolean indicating success
+- Note: The file must already exist; use `save_file` to create new files
 
 ### Delete This File
 - Deletes a specified file from the filesystem
