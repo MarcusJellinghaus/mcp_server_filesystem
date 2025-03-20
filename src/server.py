@@ -325,26 +325,3 @@ def run_server(project_dir: Path) -> None:
     logger.debug(
         "After mcp.run() call - this line will only execute if mcp.run() returns"
     )
-
-
-# Run the server when the script is executed directly
-if __name__ == "__main__":
-    # Add debug logging when script is run directly
-    logger.debug("Running server.py as __main__")
-
-    # The project directory should be set before running the server
-    # This case is primarily for testing; in production, main.py should set it
-    if _project_dir is None:
-        logger.error("Project directory not set")
-        raise RuntimeError(
-            "Project directory not set. Please use set_project_dir() before running the server."
-        )
-
-    logger.debug("About to call mcp.run() from __main__")
-    structured_logger.debug(
-        "About to call mcp.run() from __main__", project_dir=str(_project_dir)
-    )
-    mcp.run()
-    logger.debug(
-        "After mcp.run() call in __main__ - this line will only execute if mcp.run() returns"
-    )
