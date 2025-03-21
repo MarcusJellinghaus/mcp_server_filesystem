@@ -25,7 +25,6 @@ class EditOptions:
 
     preserve_indentation: bool = True
     normalize_whitespace: bool = True
-    partial_match: bool = False
 
 
 class MatchResult:
@@ -104,163 +103,11 @@ def get_line_indentation(line: str) -> str:
     return match.group(1) if match else ""
 
 
-def is_markdown_bullets(old_text: str, new_text: str) -> bool:
-    """Check if the text appears to be markdown bullet points with changed indentation."""
-    old_lines = old_text.split("\n")
-    new_lines = new_text.split("\n")
-
-    # Need at least one line in each text
-    if not old_lines or not new_lines:
-        return False
-
-    # Check if both texts contain markdown bullet points
-    # Look for bullet patterns in both texts
-    old_has_bullets = any(line.lstrip().startswith("- ") for line in old_lines)
-    new_has_bullets = any(line.lstrip().startswith("- ") for line in new_lines)
-
-    # Check for indented bullets in the new text (nested bullets)
-    has_indented_bullets = any(re.match(r"^\s+- ", line) for line in new_lines)
-
-    # Return true if both texts have bullets and we detect any indentation changes
-    return old_has_bullets and new_has_bullets
-
-
-def _preserve_markdown_indentation(
-    old_lines: List[str], new_lines: List[str], base_indent: str
-) -> str:
-    """Helper function to preserve indentation in markdown lists."""
-    result_lines = []
-
-    for i, line in enumerate(new_lines):
-        stripped_line = line.lstrip()
-        line_indent = get_line_indentation(line)
-
-        if i == 0:
-            # First line keeps original indentation
-            result_lines.append(base_indent + stripped_line)
-        else:
-            # For nested bullets, preserve the indentation
-            if stripped_line.startswith("- "):
-                # This is a bullet point - use its intended indentation
-                result_lines.append(base_indent + line_indent + stripped_line)
-            else:
-                # For any other lines, use normal indentation rules
-                if i < len(old_lines):
-                    old_indent = get_line_indentation(old_lines[i])
-                    result_lines.append(old_indent + stripped_line)
-                else:
-                    # Fall back to base indent
-                    result_lines.append(base_indent + stripped_line)
-
-    return "\n".join(result_lines)
-
-
-def _analyze_indentation_structure(text_lines: List[str]) -> Dict[int, int]:
+def preserve_simple_indentation(old_text: str, new_text: str) -> str:
     """
-    Analyze the indentation structure of code to understand nesting levels.
-
-    Returns a dict mapping line numbers to indentation depths.
+    A simplified approach to preserving indentation from old_text in new_text.
+    Works line-by-line to maintain relative indentation patterns.
     """
-    indent_structure = {}
-    base_indent_len = len(get_line_indentation(text_lines[0])) if text_lines else 0
-
-    for i, line in enumerate(text_lines):
-        if not line.strip():  # Skip empty lines
-            continue
-
-        current_indent = get_line_indentation(line)
-        indent_len = len(current_indent)
-
-        # Calculate indentation level relative to base
-        if base_indent_len > 0:
-            level = (
-                indent_len - base_indent_len
-            ) // 4 + 1  # +1 because base level is 1
-        else:
-            level = indent_len // 4 + 1
-
-        indent_structure[i] = level
-
-    return indent_structure
-
-
-def _preserve_python_indentation(old_text: str, new_text: str) -> str:
-    """
-    Specialized indentation preservation for Python code blocks.
-    This handles nested structures like if/else, try/except, and loops.
-    """
-    old_lines = old_text.split("\n")
-    new_lines = new_text.split("\n")
-
-    # Get the base indentation from the first line
-    base_indent = get_line_indentation(old_lines[0]) if old_lines else ""
-
-    # Analyze indentation structure of original code
-    old_structure = _analyze_indentation_structure(old_lines)
-
-    # Build a map of indentation depths
-    indent_map = {}
-    for i, line in enumerate(old_lines):
-        if line.strip():
-            indent = get_line_indentation(line)
-            level = old_structure.get(i, 1)
-            indent_map[level] = indent
-
-    # If we couldn't determine any indentation levels, use default approach
-    if not indent_map:
-        # Default indentation (4 spaces per level)
-        indent_unit, indent_size = detect_indentation(old_text)
-        indent_map = {1: base_indent}
-        for level in range(2, 10):  # Support up to 10 levels of nesting
-            indent_map[level] = base_indent + indent_unit * indent_size * (level - 1)
-
-    # Process new lines with proper indentation
-    result_lines = []
-
-    # Analyze new text structure to map between relative positions
-    new_structure = _analyze_indentation_structure(new_lines)
-
-    # First line always gets the base indentation
-    if new_lines:
-        if not new_lines[0].strip():
-            result_lines.append("")
-        else:
-            result_lines.append(base_indent + new_lines[0].lstrip())
-
-    # Process the rest of the lines
-    for i in range(1, len(new_lines)):
-        line = new_lines[i]
-
-        if not line.strip():  # Keep empty lines as-is
-            result_lines.append("")
-            continue
-
-        # Get the indentation level from our structure analysis
-        level = new_structure.get(i, 1)
-
-        # Determine the appropriate indentation to use
-        if level in indent_map:
-            # We have a corresponding level in the original
-            target_indent = indent_map[level]
-        else:
-            # This is deeper than anything in the original
-            # Find the deepest level in the original and add standard indentation
-            max_level = max(indent_map.keys()) if indent_map else 1
-            base_level_indent = indent_map.get(max_level, base_indent)
-            # Standard 4-space indentation for each additional level
-            indent_unit, indent_size = detect_indentation(old_text)
-            extra_levels = level - max_level
-            target_indent = base_level_indent + (
-                indent_unit * indent_size * extra_levels
-            )
-
-        result_lines.append(target_indent + line.lstrip())
-
-    return "\n".join(result_lines)
-
-
-def preserve_indentation(old_text: str, new_text: str) -> str:
-    """Preserve the indentation pattern from old_text in new_text."""
     old_lines = old_text.split("\n")
     new_lines = new_text.split("\n")
 
@@ -268,87 +115,74 @@ def preserve_indentation(old_text: str, new_text: str) -> str:
     if not old_lines or not new_lines:
         return new_text
 
-    # Special handling for markdown bullet lists
-    if is_markdown_bullets(old_text, new_text):
-        base_indent = get_line_indentation(old_lines[0]) if old_lines else ""
-        return _preserve_markdown_indentation(old_lines, new_lines, base_indent)
-
-    # For Python code, use specialized handling
-    # Check for Python code patterns (class, def, if/else, try/except, loops)
-    python_patterns = [
-        "class ",
-        "def ",
-        "if ",
-        "else:",
-        "elif ",
-        "try:",
-        "except",
-        "for ",
-        "while ",
-    ]
-    if any(pattern in old_text for pattern in python_patterns) and any(
-        pattern in new_text for pattern in python_patterns
-    ):
-        return _preserve_python_indentation(old_text, new_text)
-
-    # Default approach for other content types
+    # Extract the base indentation from the first line of old text
     base_indent = get_line_indentation(old_lines[0]) if old_lines else ""
-    result_lines = []
 
-    # Get indentation unit and size
+    # Determine indentation unit and size once
     indent_unit, indent_size = detect_indentation(old_text)
 
-    # Create indentation mapping
-    indent_map = {}
+    # Build indentation map (line number -> indentation) from old text
+    old_indents = {}
     for i, line in enumerate(old_lines):
-        if not line.strip():
-            continue
+        if line.strip():  # Skip empty lines
+            old_indents[i] = get_line_indentation(line)
 
-        indent = get_line_indentation(line)
-        # Store indentation by line index
-        indent_map[i] = indent
+    # Process new lines with preserved indentation
+    result_lines = []
 
-    # Process each line with appropriate indentation
-    for i, line in enumerate(new_lines):
-        if not line.strip():  # Empty line
+    # Track relative nesting level (from the new text's perspective)
+    current_nesting_level = 0
+    prev_indent_len = 0
+
+    for i, new_line in enumerate(new_lines):
+        if not new_line.strip():  # Keep empty lines as-is
             result_lines.append("")
             continue
 
-        if i == 0:  # First line gets base indentation
-            result_lines.append(base_indent + line.lstrip())
+        new_indent = get_line_indentation(new_line)
+        new_indent_len = len(new_indent)
+
+        # First line always gets the base indentation from old text
+        if i == 0:
+            result_lines.append(base_indent + new_line.lstrip())
+            prev_indent_len = new_indent_len
             continue
 
-        # For subsequent lines, use corresponding indentation if available
-        if i < len(old_lines) and i in indent_map:
-            indent = indent_map[i]
-            result_lines.append(indent + line.lstrip())
+        # Determine how nesting changed from previous line
+        if new_indent_len > prev_indent_len:
+            # Increased indentation level
+            current_nesting_level += 1
+        elif new_indent_len < prev_indent_len:
+            # Decreased indentation level - find closest previous level
+            level_change = (prev_indent_len - new_indent_len) // max(len(indent_unit), 1) if indent_unit else 1
+            current_nesting_level = max(0, current_nesting_level - level_change)
+
+        prev_indent_len = new_indent_len
+
+        # Determine target indentation
+        if i < len(old_lines) and i in old_indents:
+            # If we have a corresponding line in the original, use its indentation
+            target_indent = old_indents[i]
         else:
-            # For lines beyond the original, estimate appropriate indentation
-            indent = base_indent
+            # Otherwise apply relative nesting to base indentation
+            base_indent_len = len(base_indent)
+            target_indent = base_indent + (indent_unit * indent_size * current_nesting_level)
 
-            # Check the indentation of the previous line in the new text
-            if i > 0 and new_lines[i - 1].strip():
-                prev_indent = get_line_indentation(new_lines[i - 1])
-                curr_indent = get_line_indentation(line)
+            # Try to find a similar indentation level in the original text
+            for old_i, old_indent in old_indents.items():
+                if len(old_indent) == base_indent_len + (indent_size * current_nesting_level):
+                    target_indent = old_indent
+                    break
 
-                # If this line has more indentation than the previous, add indentation
-                if len(curr_indent) > len(prev_indent):
-                    # Add one level of indentation compared to the previous result line
-                    prev_result_indent = get_line_indentation(result_lines[-1])
-                    indent = prev_result_indent + (indent_unit * indent_size)
-                # If it has less indentation, reduce indentation
-                elif len(curr_indent) < len(prev_indent):
-                    # Try to match a previous level if possible
-                    for j in range(i - 1, -1, -1):
-                        if j < len(result_lines) and len(
-                            get_line_indentation(new_lines[j])
-                        ) == len(curr_indent):
-                            indent = get_line_indentation(result_lines[j])
-                            break
-
-            result_lines.append(indent + line.lstrip())
+        # Apply the target indentation
+        result_lines.append(target_indent + new_line.lstrip())
 
     return "\n".join(result_lines)
+
+
+def preserve_indentation(old_text: str, new_text: str) -> str:
+    """Preserve the indentation pattern from old_text in new_text using a simplified approach."""
+    return preserve_simple_indentation(old_text, new_text)
 
 
 def find_exact_match(content: str, pattern: str) -> MatchResult:
@@ -363,6 +197,7 @@ def find_exact_match(content: str, pattern: str) -> MatchResult:
             details="Exact match found",
         )
     return MatchResult(matched=False, details="No exact match found")
+
 
 def create_unified_diff(original: str, modified: str, file_path: str) -> str:
     """Create a unified diff between original and modified content."""
@@ -382,7 +217,7 @@ def create_unified_diff(original: str, modified: str, file_path: str) -> str:
 
 def apply_edits(
     content: str, edits: List[EditOperation], options: EditOptions = None
-) -> Tuple[str, List[Dict[str, Any]]]:
+) -> Tuple[str, List[Dict[str, Any]], bool]:
     """
     Apply a list of edit operations to the content.
 
@@ -392,71 +227,87 @@ def apply_edits(
         options: Formatting options
 
     Returns:
-        Tuple of (modified content, list of match results)
+        Tuple of (modified content, list of match results, changes_made flag)
     """
     if options is None:
         options = EditOptions()
 
     # Normalize line endings
     normalized_content = normalize_line_endings(content)
-    content_lines = normalized_content.split("\n")
+
+    # Check if all edits have already been applied (optimization)
+    all_edits_already_applied = True
+    for edit in edits:
+        normalized_old = normalize_line_endings(edit.old_text)
+        normalized_new = normalize_line_endings(edit.new_text)
+
+        if options.preserve_indentation:
+            normalized_new = preserve_indentation(normalized_old, normalized_new)
+
+        # If old text is present and would be replaced with something different,
+        # then we need to make a change
+        if normalized_old in normalized_content and normalized_new != normalized_old:
+            all_edits_already_applied = False
+            break
+
+    # If all edits are already applied, return early
+    if all_edits_already_applied and edits:
+        return normalized_content, [], False
 
     # Store match results for reporting
     match_results = []
-
-    # Track adjustments due to length changes from previous edits
-    line_offset = 0
+    changes_made = False
 
     # Process each edit
     for i, edit in enumerate(edits):
         normalized_old = normalize_line_endings(edit.old_text)
         normalized_new = normalize_line_endings(edit.new_text)
 
-        # First try exact match
+        # Try exact match
         exact_match = find_exact_match(normalized_content, normalized_old)
 
+        # Process exact match (if found)
         if exact_match.matched:
-            # Apply the exact match replacement
+            # For exact matches, find position in content
             start_pos = normalized_content.find(normalized_old)
             end_pos = start_pos + len(normalized_old)
 
             if options.preserve_indentation:
                 normalized_new = preserve_indentation(normalized_old, normalized_new)
 
+            # Skip if the replacement text is identical to what's already there
+            if normalized_old == normalized_new:
+                match_results.append({
+                    "edit_index": i,
+                    "match_type": "skipped",
+                    "details": "No change needed - text already matches desired state"
+                })
+                continue
+
             normalized_content = (
                 normalized_content[:start_pos]
                 + normalized_new
                 + normalized_content[end_pos:]
             )
+            changes_made = True
 
-            match_results.append(
-                {
-                    "edit_index": i,
-                    "match_type": "exact",
-                    "confidence": 1.0,
-                    "line_index": exact_match.line_index,
-                    "line_count": exact_match.line_count,
-                }
-            )
+            match_results.append({
+                "edit_index": i,
+                "match_type": "exact",
+                "confidence": 1.0,
+                "line_index": exact_match.line_index,
+                "line_count": exact_match.line_count,
+            })
 
-            # Update content_lines for future fuzzy matches
-            content_lines = normalized_content.split("\n")
+        else:  # No exact match
+            match_results.append({
+                "edit_index": i,
+                "match_type": "failed",
+                "details": "No exact match found",
+            })
+            raise ValueError(f"Could not find exact match for edit {i}")
 
-        else:
-            # No exact match and partial matching is disabled
-            match_results.append(
-                {
-                    "edit_index": i,
-                    "match_type": "failed",
-                    "details": "No exact match found and partial matching is disabled",
-                }
-            )
-            raise ValueError(
-                f"Could not find exact match for edit {i}"
-            )
-
-
-    return normalized_content, match_results
+    return normalized_content, match_results, changes_made
 
 
 def edit_file(
@@ -469,15 +320,24 @@ def edit_file(
     """
     Make selective edits to a file using pattern matching.
 
+    Features:
+    - Line-based and multi-line content matching
+    - Whitespace normalization with indentation preservation
+    - Multiple simultaneous edits with correct positioning
+    - Optimization to detect already-applied edits
+    - Support for both camelCase and snake_case parameter names
+
     Args:
         file_path: Path to the file to edit (relative to project directory)
-        edits: List of edit operations with old_text and new_text
+        edits: List of edit operations with old_text/oldText and new_text/newText
         dry_run: If True, only preview changes without applying them
         options: Optional formatting settings
+            - preserve_indentation/preserveIndentation: Keep existing indentation (default: True)
+            - normalize_whitespace/normalizeWhitespace: Normalize spaces (default: True)
         project_dir: Project directory path
 
     Returns:
-        Dict with diff output and match information
+        Dict with diff output and match information including success status
     """
     # Validate parameters
     if not file_path or not isinstance(file_path, str):
@@ -508,34 +368,53 @@ def edit_file(
         logger.error(f"Error reading file {file_path}: {str(e)}")
         raise
 
-    # Convert edits to EditOperation objects
-    edit_operations = [
-        EditOperation(old_text=edit["old_text"], new_text=edit["new_text"])
-        for edit in edits
-    ]
+    # Convert edits to EditOperation objects - handle both camelCase and snake_case keys
+    edit_operations = []
+    for edit in edits:
+        old_text = edit.get("old_text", edit.get("oldText"))
+        new_text = edit.get("new_text", edit.get("newText"))
+        if old_text is None or new_text is None:
+            logger.error(f"Invalid edit operation: {edit}")
+            raise ValueError("Edit operations must contain 'old_text' and 'new_text' fields.")
+        edit_operations.append(EditOperation(old_text=old_text, new_text=new_text))
 
     # Set up options
     edit_options = EditOptions()
     if options:
+        # Handle both snake_case and camelCase option keys
         if "preserve_indentation" in options:
             edit_options.preserve_indentation = options["preserve_indentation"]
+        elif "preserveIndentation" in options:
+            edit_options.preserve_indentation = options["preserveIndentation"]
+
         if "normalize_whitespace" in options:
             edit_options.normalize_whitespace = options["normalize_whitespace"]
-        if "partial_match" in options:
-            edit_options.partial_match = options["partial_match"]
+        elif "normalizeWhitespace" in options:
+            edit_options.normalize_whitespace = options["normalizeWhitespace"]
 
-    match_results = []
     # Apply edits
     try:
-        modified_content, match_results = apply_edits(
+        modified_content, match_results, changes_made = apply_edits(
             original_content, edit_operations, edit_options
         )
+
+        # Check if any changes were made
+        if not changes_made and edits:
+            # No changes needed - content already in desired state
+            return {
+                "success": True,
+                "diff": "",  # Empty diff indicates no changes
+                "match_results": match_results,
+                "dry_run": dry_run,
+                "file_path": file_path,
+                "message": "No changes needed - content already in desired state"
+            }
 
         # Create diff
         diff = create_unified_diff(original_content, modified_content, file_path)
 
         # Write changes if not in dry run mode
-        if not dry_run:
+        if not dry_run and changes_made:
             try:
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(modified_content)

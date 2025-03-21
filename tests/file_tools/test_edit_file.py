@@ -70,7 +70,7 @@ class TestApplyEdits(unittest.TestCase):
     def test_apply_edits_no_match(self):
         content = "def function():\n    return True"
         edits = [EditOperation(old_text="nonexistent", new_text="replacement")]
-        options = EditOptions(partial_match=False)
+        options = EditOptions()
         with self.assertRaises(ValueError):
             apply_edits(content, edits, options)
 
@@ -142,7 +142,6 @@ class TestEditFile(unittest.TestCase):
         options = {
             "preserve_indentation": True,
             "normalize_whitespace": False,
-            "partial_match": False,
         }
 
         result = edit_file(str(self.test_file), edits, options=options)
@@ -164,7 +163,7 @@ class TestEditFile(unittest.TestCase):
 
     def test_edit_file_failed_match(self):
         edits = [{"old_text": "nonexistent_function", "new_text": "modified_function"}]
-        options = {"partial_match": False}
+        options = {}
 
         result = edit_file(str(self.test_file), edits, options=options)
 

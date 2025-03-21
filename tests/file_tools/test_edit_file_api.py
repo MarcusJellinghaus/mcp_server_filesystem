@@ -151,7 +151,7 @@ async def test_edit_file_error_handling(project_dir):
 
     # The edit should fail
     result = await edit_file(
-        absolute_path, edits, options={"partialMatch": False}  # Disable fuzzy matching
+        absolute_path, edits
     )
 
     # Check failure
