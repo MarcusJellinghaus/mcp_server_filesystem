@@ -63,50 +63,42 @@ def normalize_whitespace(text: str) -> str:
     return result
 
 
-def detect_indentation(text: str) -> Tuple[str, int]:
-    """Detect the indentation style (spaces or tabs) and the count."""
+def simple_indentation_analysis(text: str) -> dict:
+    """Simple analysis of indentation patterns in the text.
+
+    Returns a dictionary with basic info about indentation in the text.
+    """
     lines = text.split("\n")
-    space_pattern = re.compile(r"^( +)[^ ]")
-    tab_pattern = re.compile(r"^(\t+)[^\t]")
+    indentation_info = {
+        "has_tabs": False,
+        "has_spaces": False,
+        "first_line_indent": ""
+    }
 
-    spaces = []
-    tabs = []
-
+    # Get first non-empty line indentation
     for line in lines:
-        if not line.strip():
-            continue
+        if line.strip():
+            indent = get_line_indentation(line)
+            indentation_info["first_line_indent"] = indent
+            if "\t" in indent:
+                            indentation_info["has_tabs"] = True
+            if " " in indent:
+                            indentation_info["has_spaces"] = True
+            break
 
-        space_match = space_pattern.match(line)
-        if space_match:
-            spaces.append(len(space_match.group(1)))
-
-        tab_match = tab_pattern.match(line)
-        if tab_match:
-            tabs.append(len(tab_match.group(1)))
-
-    # Determine which is more common
-    if len(spaces) > len(tabs):
-        # Use the most common space count
-        if spaces:
-            most_common = max(set(spaces), key=spaces.count)
-            return " " * most_common, most_common
-        return "    ", 4  # Default 4 spaces
-    elif len(tabs) > 0:
-        return "\t", 1
-
-    return "    ", 4  # Default to 4 spaces if no indentation detected
+    return indentation_info
 
 
 def get_line_indentation(line: str) -> str:
-    """Extract the indentation from a line."""
+    """Extract the indentation (leading whitespace) from a line."""
     match = re.match(r"^(\s*)", line)
     return match.group(1) if match else ""
 
 
 def preserve_simple_indentation(old_text: str, new_text: str) -> str:
     """
-    A simplified approach to preserving indentation from old_text in new_text.
-    Works line-by-line to maintain relative indentation patterns.
+    A very simplified approach to preserving indentation from old_text in new_text.
+    Simply preserves the relative indentation patterns line by line.
     """
     old_lines = old_text.split("\n")
     new_lines = new_text.split("\n")
@@ -116,63 +108,67 @@ def preserve_simple_indentation(old_text: str, new_text: str) -> str:
         return new_text
 
     # Extract the base indentation from the first line of old text
-    base_indent = get_line_indentation(old_lines[0]) if old_lines else ""
+    base_indent = get_line_indentation(old_lines[0]) if old_lines and old_lines[0].strip() else ""
 
-    # Determine indentation unit and size once
-    indent_unit, indent_size = detect_indentation(old_text)
-
-    # Build indentation map (line number -> indentation) from old text
+    # Build a map of indentation for each line in old text
     old_indents = {}
     for i, line in enumerate(old_lines):
         if line.strip():  # Skip empty lines
             old_indents[i] = get_line_indentation(line)
 
+    # Get indentation for each line in new text
+    new_indents = {}
+    for i, line in enumerate(new_lines):
+        if line.strip():  # Skip empty lines
+            new_indents[i] = get_line_indentation(line)
+
     # Process new lines with preserved indentation
     result_lines = []
 
-    # Track relative nesting level (from the new text's perspective)
-    current_nesting_level = 0
-    prev_indent_len = 0
+    # The key is to maintain the *relative* indentation between lines
+    first_new_indent_len = len(new_indents.get(0, "")) if new_indents else 0
 
     for i, new_line in enumerate(new_lines):
         if not new_line.strip():  # Keep empty lines as-is
             result_lines.append("")
             continue
 
-        new_indent = get_line_indentation(new_line)
-        new_indent_len = len(new_indent)
+        # Get current indentation in new text
+        new_indent = new_indents.get(i, "")
 
-        # First line always gets the base indentation from old text
-        if i == 0:
-            result_lines.append(base_indent + new_line.lstrip())
-            prev_indent_len = new_indent_len
-            continue
-
-        # Determine how nesting changed from previous line
-        if new_indent_len > prev_indent_len:
-            # Increased indentation level
-            current_nesting_level += 1
-        elif new_indent_len < prev_indent_len:
-            # Decreased indentation level - find closest previous level
-            level_change = (prev_indent_len - new_indent_len) // max(len(indent_unit), 1) if indent_unit else 1
-            current_nesting_level = max(0, current_nesting_level - level_change)
-
-        prev_indent_len = new_indent_len
-
-        # Determine target indentation
+        # Figure out what indentation to use
         if i < len(old_lines) and i in old_indents:
-            # If we have a corresponding line in the original, use its indentation
+            # If there's a matching line in the old text, use its indentation
             target_indent = old_indents[i]
+        elif i == 0:
+            # First line gets base indentation from old text
+            target_indent = base_indent
         else:
-            # Otherwise apply relative nesting to base indentation
-            base_indent_len = len(base_indent)
-            target_indent = base_indent + (indent_unit * indent_size * current_nesting_level)
+            # For other lines, adjust relative to first line's indentation
+            curr_indent_len = len(new_indent)
 
-            # Try to find a similar indentation level in the original text
-            for old_i, old_indent in old_indents.items():
-                if len(old_indent) == base_indent_len + (indent_size * current_nesting_level):
-                    target_indent = old_indent
-                    break
+            # Calculate relative indentation compared to first line
+            if first_new_indent_len > 0:
+                # How many levels deeper is this line compared to first line?
+                indent_diff = max(0, curr_indent_len - first_new_indent_len)
+
+                # Use same indentation as closest previous line if available
+                target_indent = base_indent
+
+                # Look for the closest previous line with similar indentation
+                # to use as a template
+                for prev_i in range(i-1, -1, -1):
+                    if prev_i in old_indents and prev_i in new_indents:
+                                    prev_old = old_indents[prev_i]
+                                    prev_new = new_indents[prev_i]
+                                    if len(prev_new) <= curr_indent_len:
+                                                    # Add spaces to match the relative indentation
+                                                    relative_spaces = curr_indent_len - len(prev_new)
+                                                    target_indent = prev_old + " " * relative_spaces
+                                                    break
+            else:
+                # First line has no indentation, use the new text's indentation
+                target_indent = new_indent
 
         # Apply the target indentation
         result_lines.append(target_indent + new_line.lstrip())
@@ -181,7 +177,11 @@ def preserve_simple_indentation(old_text: str, new_text: str) -> str:
 
 
 def preserve_indentation(old_text: str, new_text: str) -> str:
-    """Preserve the indentation pattern from old_text in new_text using a simplified approach."""
+    """Preserve the indentation pattern from old_text in new_text.
+
+    This is a simple line-by-line approach that preserves the relative
+    indentation between lines instead of trying to be overly clever.
+    """
     return preserve_simple_indentation(old_text, new_text)
 
 
