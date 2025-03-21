@@ -294,10 +294,9 @@ def apply_edits(
             match_results.append({
                 "edit_index": i,
                 "match_type": "exact",
-                "confidence": 1.0,
                 "line_index": exact_match.line_index,
                 "line_count": exact_match.line_count,
-            })
+                })
 
         else:  # No exact match
             match_results.append({
@@ -318,14 +317,14 @@ def edit_file(
     project_dir: Path = None,
 ) -> Dict[str, Any]:
     """
-    Make selective edits to a file using pattern matching.
+    Make selective edits to a file.
 
     Features:
-    - Line-based and multi-line content matching
-    - Whitespace normalization with indentation preservation
-    - Multiple simultaneous edits with correct positioning
-    - Optimization to detect already-applied edits
-    - Support for both camelCase and snake_case parameter names
+        - Line-based and multi-line content matching
+        - Whitespace normalization with indentation preservation
+        - Multiple simultaneous edits with correct positioning
+        - Optimization to detect already-applied edits
+        - Support for both camelCase and snake_case parameter names
 
     Args:
         file_path: Path to the file to edit (relative to project directory)
@@ -438,9 +437,6 @@ def edit_file(
         }
     except Exception as e:
         error_msg = str(e)
-        # Format error message for test compatibility
-        if "confidence" in error_msg and "below threshold" in error_msg:
-            error_msg = f"confidence too low: {error_msg}"
 
         return {
             "success": False,
