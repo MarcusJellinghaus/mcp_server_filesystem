@@ -319,6 +319,8 @@ def edit_file(
         - Line-based and multi-line content matching
         - Whitespace normalization with indentation preservation
         - Multiple simultaneous edits with correct positioning
+        - Indentation style detection and preservation
+        - Git-style diff output with context
         - Optimization to detect already-applied edits
         - Standardized on snake_case parameter names with legacy support for camelCase
 

@@ -203,12 +203,10 @@ def edit_file(
     Features:
         - Line-based and multi-line content matching
         - Whitespace normalization with indentation preservation
-        - Fuzzy matching with confidence scoring
         - Multiple simultaneous edits with correct positioning
         - Indentation style detection and preservation
         - Git-style diff output with context
         - Preview changes with dry run mode
-        - Failed match debugging with confidence scores
 
     Args:
         path: File to edit
