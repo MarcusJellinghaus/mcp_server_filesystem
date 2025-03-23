@@ -81,9 +81,9 @@ def simple_indentation_analysis(text: str) -> dict:
             indent = get_line_indentation(line)
             indentation_info["first_line_indent"] = indent
             if "\t" in indent:
-                            indentation_info["has_tabs"] = True
+                indentation_info["has_tabs"] = True
             if " " in indent:
-                            indentation_info["has_spaces"] = True
+                indentation_info["has_spaces"] = True
             break
 
     return indentation_info
@@ -100,6 +100,12 @@ def preserve_simple_indentation(old_text: str, new_text: str) -> str:
     A very simplified approach to preserving indentation from old_text in new_text.
     Simply preserves the relative indentation patterns line by line.
     """
+    # Special case for markdown lists: don't modify indentation if the new text has list markers
+    if ("- " in new_text or "* " in new_text) and ("- " in old_text or "* " in old_text):
+        # If it's a markdown list, just return the new text as is
+        # This allows explicit indentation in markdown lists to work correctly
+        return new_text
+        
     old_lines = old_text.split("\n")
     new_lines = new_text.split("\n")
 
@@ -159,13 +165,13 @@ def preserve_simple_indentation(old_text: str, new_text: str) -> str:
                 # to use as a template
                 for prev_i in range(i-1, -1, -1):
                     if prev_i in old_indents and prev_i in new_indents:
-                                    prev_old = old_indents[prev_i]
-                                    prev_new = new_indents[prev_i]
-                                    if len(prev_new) <= curr_indent_len:
-                                                    # Add spaces to match the relative indentation
-                                                    relative_spaces = curr_indent_len - len(prev_new)
-                                                    target_indent = prev_old + " " * relative_spaces
-                                                    break
+                        prev_old = old_indents[prev_i]
+                        prev_new = new_indents[prev_i]
+                        if len(prev_new) <= curr_indent_len:
+                            # Add spaces to match the relative indentation
+                            relative_spaces = curr_indent_len - len(prev_new)
+                            target_indent = prev_old + " " * relative_spaces
+                            break
             else:
                 # First line has no indentation, use the new text's indentation
                 target_indent = new_indent
@@ -234,30 +240,11 @@ def apply_edits(
 
     # Normalize line endings
     normalized_content = normalize_line_endings(content)
-
-    # Check if all edits have already been applied (optimization)
-    all_edits_already_applied = True
-    for edit in edits:
-        normalized_old = normalize_line_endings(edit.old_text)
-        normalized_new = normalize_line_endings(edit.new_text)
-
-        if options.preserve_indentation:
-            normalized_new = preserve_indentation(normalized_old, normalized_new)
-
-        # If old text is present and would be replaced with something different,
-        # then we need to make a change
-        if normalized_old in normalized_content and normalized_new != normalized_old:
-            all_edits_already_applied = False
-            break
-
-    # If all edits are already applied, return early
-    if all_edits_already_applied and edits:
-        return normalized_content, [], False
-
+    
     # Store match results for reporting
     match_results = []
     changes_made = False
-
+    
     # Process each edit
     for i, edit in enumerate(edits):
         normalized_old = normalize_line_endings(edit.old_text)
@@ -296,15 +283,24 @@ def apply_edits(
                 "match_type": "exact",
                 "line_index": exact_match.line_index,
                 "line_count": exact_match.line_count,
-                })
-
-        else:  # No exact match
-            match_results.append({
-                "edit_index": i,
-                "match_type": "failed",
-                "details": "No exact match found",
             })
-            raise ValueError(f"Could not find exact match for edit {i}")
+        else:  # No exact match
+            # Check if the new_text is already in the content
+            # This would happen if this edit was already applied
+            if normalized_new in normalized_content:
+                match_results.append({
+                    "edit_index": i,
+                    "match_type": "skipped",
+                    "details": "Edit already applied - content already in desired state"
+                })
+            else:
+                match_results.append({
+                    "edit_index": i,
+                    "match_type": "failed",
+                    "details": "No exact match found"
+                })
+                # Log the failed match
+                logger.warning(f"Could not find exact match for edit {i}")
 
     return normalized_content, match_results, changes_made
 
@@ -324,15 +320,15 @@ def edit_file(
         - Whitespace normalization with indentation preservation
         - Multiple simultaneous edits with correct positioning
         - Optimization to detect already-applied edits
-        - Support for both camelCase and snake_case parameter names
+        - Standardized on snake_case parameter names with legacy support for camelCase
 
     Args:
         file_path: Path to the file to edit (relative to project directory)
-        edits: List of edit operations with old_text/oldText and new_text/newText
+        edits: List of edit operations with old_text and new_text
         dry_run: If True, only preview changes without applying them
         options: Optional formatting settings
-            - preserve_indentation/preserveIndentation: Keep existing indentation (default: True)
-            - normalize_whitespace/normalizeWhitespace: Normalize spaces (default: True)
+            - preserve_indentation: Keep existing indentation (default: True)
+            - normalize_whitespace: Normalize spaces (default: True)
         project_dir: Project directory path
 
     Returns:
@@ -367,9 +363,10 @@ def edit_file(
         logger.error(f"Error reading file {file_path}: {str(e)}")
         raise
 
-    # Convert edits to EditOperation objects - handle both camelCase and snake_case keys
+    # Convert edits to EditOperation objects using snake_case
     edit_operations = []
     for edit in edits:
+        # Support legacy camelCase for backward compatibility
         old_text = edit.get("old_text", edit.get("oldText"))
         new_text = edit.get("new_text", edit.get("newText"))
         if old_text is None or new_text is None:
@@ -380,15 +377,17 @@ def edit_file(
     # Set up options
     edit_options = EditOptions()
     if options:
-        # Handle both snake_case and camelCase option keys
+        # Use snake_case keys with fallback to camelCase for backward compatibility
         if "preserve_indentation" in options:
             edit_options.preserve_indentation = options["preserve_indentation"]
         elif "preserveIndentation" in options:
+            # Legacy support for camelCase
             edit_options.preserve_indentation = options["preserveIndentation"]
 
         if "normalize_whitespace" in options:
             edit_options.normalize_whitespace = options["normalize_whitespace"]
         elif "normalizeWhitespace" in options:
+            # Legacy support for camelCase
             edit_options.normalize_whitespace = options["normalizeWhitespace"]
 
     # Apply edits
@@ -397,7 +396,32 @@ def edit_file(
             original_content, edit_operations, edit_options
         )
 
-        # Check if any changes were made
+        # Check for actual failures (excluding already applied edits)
+        failed_matches = [r for r in match_results if r.get("match_type") == "failed"]
+        already_applied = [r for r in match_results if r.get("match_type") == "skipped" 
+                          and "already applied" in r.get("details", "")]
+        
+        # If all edits were "already applied" consider this a success
+        if already_applied and len(already_applied) == len(edits):
+            return {
+                "success": True,
+                "diff": "",  # Empty diff indicates no changes
+                "match_results": match_results,
+                "dry_run": dry_run, 
+                "file_path": file_path,
+                "message": "No changes needed - content already in desired state"
+            }
+            
+        # If we have real failures (not just already applied edits)
+        if failed_matches:
+            return {
+                "success": False,
+                "error": "Failed to find exact match for one or more edits",
+                "match_results": match_results,
+                "file_path": file_path,
+            }
+
+        # Check if no changes were needed (identical content)
         if not changes_made and edits:
             # No changes needed - content already in desired state
             return {
@@ -421,12 +445,20 @@ def edit_file(
                 logger.error(
                     f"Unicode encode error while writing to {file_path}: {str(e)}"
                 )
-                raise ValueError(
-                    f"Content contains characters that cannot be encoded. Please check the encoding."
-                ) from e
+                return {
+                    "success": False,
+                    "error": f"Content contains characters that cannot be encoded. Please check the encoding.",
+                    "match_results": match_results,
+                    "file_path": file_path,
+                }
             except Exception as e:
                 logger.error(f"Error writing to file {file_path}: {str(e)}")
-                raise
+                return {
+                    "success": False,
+                    "error": str(e),
+                    "match_results": match_results,
+                    "file_path": file_path,
+                }
 
         return {
             "success": True,
@@ -437,6 +469,16 @@ def edit_file(
         }
     except Exception as e:
         error_msg = str(e)
+
+        # Populate match_results with a failure if it doesn't exist yet
+        if 'match_results' not in locals() or not match_results:
+            match_results = [
+                {
+                    "edit_index": 0,
+                    "match_type": "failed", 
+                    "details": "Exception encountered: " + error_msg,
+                }
+            ]
 
         return {
             "success": False,

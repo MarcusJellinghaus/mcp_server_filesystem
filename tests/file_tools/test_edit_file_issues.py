@@ -18,6 +18,20 @@ from src.file_tools.edit_file import (
 class TestEditFileIndentationIssues(unittest.TestCase):
     """Tests specifically designed to highlight indentation handling challenges."""
 
+    def test_simplified_indentation_approach(self):
+                    """Test the simplified indentation preservation approach."""
+                    # Create a simple test case
+                    old = "    def test():\n        if True:\n            return 1\n        else:\n            return 0"
+                    new = "def improved_test():\n    if condition:\n        return 2\n    else:\n        return -1"
+
+                    # Apply our simplified indentation preservation
+                    result = preserve_indentation(old, new)
+
+                    # The result should preserve the original indentation pattern
+                    expected = "    def improved_test():\n        if condition:\n            return 2\n        else:\n            return -1"
+
+                    self.assertEqual(result, expected)
+
     def setUp(self):
         # Create a temporary directory and file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -118,3 +132,18 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             1,
             "Only one occurrence should be replaced with the new pattern",
         )
+
+
+    def test_mixed_tab_space_indentation(self):
+        """Test handling of mixed tab and space indentation."""
+        # Create test with tabs and spaces
+        old = "def outer():\n\tdef inner():\n\t    # Mixed tabs and spaces\n\t    return True"
+        new = "def modified():\n    def inner_func():\n        # All spaces now\n        return False"
+        
+        # Apply our indentation preservation
+        result = preserve_indentation(old, new)
+        
+        # Should maintain the original indentation style
+        expected = "def modified():\n\tdef inner_func():\n\t    # All spaces now\n\t    return False"
+        
+        self.assertEqual(result, expected)

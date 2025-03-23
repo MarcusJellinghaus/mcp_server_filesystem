@@ -12,7 +12,7 @@ from src.server import edit_file, save_file, set_project_dir
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Test constants
-TEST_DIR = Path("../testdata/test_file_tools")
+TEST_DIR = Path("test_file_tools")
 TEST_FILE = TEST_DIR / "test_edit_api_file.txt"
 TEST_CONTENT = """This is a test file for the edit_file API.
 Line 2 with some content.
@@ -45,15 +45,15 @@ async def test_edit_file_exact_match(project_dir):
     """Test the edit_file tool with exact matching."""
     # First create the test file - use absolute path for reliability
     absolute_path = str(project_dir / TEST_FILE)
-    await save_file(str(TEST_FILE), TEST_CONTENT)
+    save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define the edit operation
     edits = [
-        {"oldText": "Line 4 to be edited.", "newText": "Line 4 has been modified."}
+        {"old_text": "Line 4 to be edited.", "new_text": "Line 4 has been modified."}
     ]
 
     # Apply the edit - using absolute path here
-    result = await edit_file(absolute_path, edits)
+    result = edit_file(absolute_path, edits)
 
     # Check success
     assert result["success"] is True
@@ -74,15 +74,15 @@ async def test_edit_file_dry_run(project_dir):
     """Test the edit_file tool in dry run mode."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
-    await save_file(str(TEST_FILE), TEST_CONTENT)
+    save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define the edit operation
     edits = [
-        {"oldText": "Line 4 to be edited.", "newText": "Line 4 has been modified."}
+        {"old_text": "Line 4 to be edited.", "new_text": "Line 4 has been modified."}
     ]
 
     # Apply the edit in dry run mode
-    result = await edit_file(absolute_path, edits, dry_run=True)
+    result = edit_file(absolute_path, edits, dry_run=True)
 
     # Check success
     assert result["success"] is True
@@ -99,30 +99,27 @@ async def test_edit_file_dry_run(project_dir):
     assert "Line 4 has been modified." not in content
 
 
-
-
-
 @pytest.mark.asyncio
 async def test_edit_file_multiple_edits(project_dir):
     """Test the edit_file tool with multiple edits."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
-    await save_file(str(TEST_FILE), TEST_CONTENT)
+    save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define multiple edit operations
     edits = [
         {
-            "oldText": "Line 2 with some content.",
-            "newText": "Line 2 has been modified.",
+            "old_text": "Line 2 with some content.",
+            "new_text": "Line 2 has been modified.",
         },
         {
-            "oldText": "Line 4 to be edited.",
-            "newText": "Line 4 has also been modified.",
+            "old_text": "Line 4 to be edited.",
+            "new_text": "Line 4 has also been modified.",
         },
     ]
 
     # Apply the edits
-    result = await edit_file(absolute_path, edits)
+    result = edit_file(absolute_path, edits)
 
     # Check success
     assert result["success"] is True
@@ -139,21 +136,62 @@ async def test_edit_file_error_handling(project_dir):
     """Test error handling in the edit_file tool."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
-    await save_file(str(TEST_FILE), TEST_CONTENT)
+    save_file(str(TEST_FILE), TEST_CONTENT)
 
     # Define an edit operation with text that doesn't exist
     edits = [
         {
-            "oldText": "This text does not exist in the file.",
-            "newText": "This should not be applied.",
+            "old_text": "This text does not exist in the file.",
+            "new_text": "This should not be applied.",
         }
     ]
 
     # The edit should fail
-    result = await edit_file(
-        absolute_path, edits
-    )
+    result = edit_file(absolute_path, edits)
 
     # Check failure
     assert result["success"] is False
     assert "error" in result
+
+
+@pytest.mark.asyncio
+async def test_edit_file_preserves_indentation(project_dir):
+    """Test that the edit_file API correctly preserves indentation."""
+    # Create a test file with indentation
+    indented_content = """def example_function():
+    # This is indented with 4 spaces
+    if condition:
+        # This is indented with 8 spaces
+        print("Indented text")
+        for item in items:
+            # This is indented with 12 spaces
+            process(item)
+"""
+
+    test_file_path = str(TEST_DIR / "indentation_test.py")
+    absolute_path = str(project_dir / TEST_DIR / "indentation_test.py")
+    save_file(test_file_path, indented_content)
+    
+    # Define an edit that would normally lose indentation
+    edits = [
+        {
+            "old_text": "    if condition:\n        # This is indented with 8 spaces\n        print(\"Indented text\")",
+            "new_text": "    if new_condition:\n        # Modified comment\n        print(\"Changed text\")"
+        }
+    ]
+    
+    # Apply the edit with preserve_indentation=True
+    options = {"preserve_indentation": True}
+    result = edit_file(absolute_path, edits, options=options)
+    
+    # Check success
+    assert result["success"] is True
+    
+    # Verify the file was modified with preserved indentation
+    with open(project_dir / TEST_DIR / "indentation_test.py", "r", encoding="utf-8") as f:
+        content = f.read()
+    
+    # The indentation should be preserved
+    assert "    if new_condition:" in content
+    assert "        # Modified comment" in content
+    assert "        print(\"Changed text\")" in content

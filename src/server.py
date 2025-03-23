@@ -201,23 +201,22 @@ def edit_file(
     """Make selective edits using advanced pattern matching and formatting.
 
     Features:
-    - Line-based and multi-line content matching
-    - Whitespace normalization with indentation preservation
-    - Fuzzy matching with confidence scoring
-    - Multiple simultaneous edits with correct positioning
-    - Indentation style detection and preservation
-    - Git-style diff output with context
-    - Preview changes with dry run mode
-    - Failed match debugging with confidence scores
+        - Line-based and multi-line content matching
+        - Whitespace normalization with indentation preservation
+        - Fuzzy matching with confidence scoring
+        - Multiple simultaneous edits with correct positioning
+        - Indentation style detection and preservation
+        - Git-style diff output with context
+        - Preview changes with dry run mode
+        - Failed match debugging with confidence scores
 
     Args:
         path: File to edit
-        edits: List of edit operations (each containing oldText and newText)
+        edits: List of edit operations (each containing old_text and new_text)
         dry_run: Preview changes without applying (default: False)
         options: Optional formatting settings
-            - preserveIndentation: Keep existing indentation (default: True)
-            - normalizeWhitespace: Normalize spaces while preserving structure (default: True)
-            - partialMatch: Enable fuzzy matching (default: True)
+                    - preserve_indentation: Keep existing indentation (default: True)
+                    - normalize_whitespace: Normalize spaces while preserving structure (default: True)
 
     Returns:
         Detailed diff and match information for dry runs, otherwise applies changes
@@ -270,16 +269,6 @@ def edit_file(
             normalized_options["normalize_whitespace"] = options["normalizeWhitespace"]
         elif "normalize_whitespace" in options:
             normalized_options["normalize_whitespace"] = options["normalize_whitespace"]
-
-        if "partialMatch" in options:
-            normalized_options["partial_match"] = options["partialMatch"]
-        elif "partial_match" in options:
-            normalized_options["partial_match"] = options["partial_match"]
-
-        if "matchThreshold" in options:
-            normalized_options["match_threshold"] = options["matchThreshold"]
-        elif "match_threshold" in options:
-            normalized_options["match_threshold"] = options["match_threshold"]
 
     logger.info(f"Editing file: {path}, dry_run: {dry_run}")
 
