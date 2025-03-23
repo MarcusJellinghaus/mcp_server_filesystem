@@ -198,7 +198,7 @@ def edit_file(
     dry_run: bool = False,
     options: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
-    """Make selective edits using advanced pattern matching and formatting.
+    """Make precise text replacements in files while preserving formatting.
 
     Features:
         - Line-based and multi-line content matching
