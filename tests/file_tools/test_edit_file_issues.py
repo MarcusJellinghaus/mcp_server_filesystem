@@ -6,25 +6,24 @@ from unittest.mock import MagicMock, patch
 
 from src.file_tools.edit_file import (
     EditOperation,
-    EditOptions,
     MatchResult,
     apply_edits,
     create_unified_diff,
     edit_file,
     preserve_indentation,
-)
+    )
 
 
 class TestEditFileIndentationIssues(unittest.TestCase):
     """Tests specifically designed to highlight indentation handling challenges."""
 
-    def test_simplified_indentation_approach(self):
-                    """Test the simplified indentation preservation approach."""
+    def test_indentation_approach(self):
+                    """Test the indentation handling approach."""
                     # Create a simple test case
                     old = "    def test():\n        if True:\n            return 1\n        else:\n            return 0"
                     new = "def improved_test():\n    if condition:\n        return 2\n    else:\n        return -1"
 
-                    # Apply our simplified indentation preservation
+                    # Apply our indentation preservation
                     result = preserve_indentation(old, new)
 
                     # The result should preserve the original indentation pattern
@@ -42,8 +41,8 @@ class TestEditFileIndentationIssues(unittest.TestCase):
         # Clean up after tests
         self.temp_dir.cleanup()
 
-    def test_indentation_with_extreme_spacing(self):
-        """Test the simplified preserve_indentation function with extreme indentation."""
+    def test_extreme_indentation_handling(self):
+        """Test handling code with extreme indentation discrepancies."""
         # Create a Python file with complex and inconsistent indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write(
@@ -58,16 +57,14 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             }
         ]
 
-        options = {"preserve_indentation": True}
-        result = edit_file(str(self.test_file), edits, options=options)
+        result = edit_file(str(self.test_file), edits)
         self.assertTrue(result["success"])
 
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # With the simplified implementation, check if our edits were properly applied
+        # Verify the edit fixed the indentation
         self.assertIn("            if verbose and results['total_lines'] > 0:", content)
-        # Test should now pass with the simplified implementation
         self.assertIn('                print(f"Summary:")', content)
 
     def test_optimization_edit_already_applied(self):

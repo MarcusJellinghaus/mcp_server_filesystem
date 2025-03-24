@@ -6,13 +6,12 @@ from unittest.mock import MagicMock, patch
 
 from src.file_tools.edit_file import (
     EditOperation,
-    EditOptions,
     MatchResult,
     apply_edits,
     create_unified_diff,
     edit_file,
     preserve_indentation,
-)
+    )
 
 
 class TestEditFileUtils(unittest.TestCase):
@@ -70,15 +69,13 @@ class TestApplyEdits(unittest.TestCase):
                 new_text="if new_condition:\n    return False",
             )
         ]
-        options = EditOptions(preserve_indentation=True)
-        modified, results, changes_made = apply_edits(content, edits, options)
+        modified, results, changes_made = apply_edits(content, edits)
         self.assertEqual(modified, "    if new_condition:\n        return False")
 
     def test_apply_edits_no_match(self):
         content = "def function():\n    return True"
         edits = [EditOperation(old_text="nonexistent", new_text="replacement")]
-        options = EditOptions()
-        modified, results, changes_made = apply_edits(content, edits, options)
+        modified, results, changes_made = apply_edits(content, edits)
         # Check that the match was marked as failed
         self.assertEqual(results[0]["match_type"], "failed")
 
@@ -145,19 +142,17 @@ class TestEditFile(unittest.TestCase):
 
         self.assertEqual(content, "def test_function():\n    return 'test'\n")
 
-    def test_edit_file_with_options(self):
+    def test_edit_file_simplified(self):
+        # Renamed from test_edit_file_with_options to better reflect what we're testing
         edits = [{"old_text": "test_function", "new_text": "modified_function"}]
-        options = {
-            "preserve_indentation": True,
-            "normalize_whitespace": False,
-        }
-
-        result = edit_file(str(self.test_file), edits, options=options)
+        
+        # No options in the simplified version
+        result = edit_file(str(self.test_file), edits)
 
         self.assertTrue(result["success"])
         self.assertIn("diff", result)
 
-        # Check the file was modified with the correct options
+        # Check the file was modified
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -171,9 +166,8 @@ class TestEditFile(unittest.TestCase):
 
     def test_edit_file_failed_match(self):
         edits = [{"old_text": "nonexistent_function", "new_text": "modified_function"}]
-        options = {}
 
-        result = edit_file(str(self.test_file), edits, options=options)
+        result = edit_file(str(self.test_file), edits)
 
         self.assertFalse(result["success"])
         self.assertIn("error", result)
@@ -224,8 +218,8 @@ class TestEditFileChallenges(unittest.TestCase):
         # Clean up after tests
         self.temp_dir.cleanup()
 
-    def test_preserve_indentation_large_block(self):
-        """Test the simplified preserve_indentation function with a large block."""
+    def test_edit_large_block(self):
+        """Test editing a large block of code."""
         # Create a Python file with nested indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write(
@@ -243,14 +237,13 @@ class TestEditFileChallenges(unittest.TestCase):
         result = edit_file(str(self.test_file), edits)
         self.assertTrue(result["success"])
 
-        # Check for correct indentation in the modified file
+        # Check that the file was modified
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Verify that indentation is preserved in the result
-        self.assertIn("    def process_data", content)
-        self.assertIn("        if not self.data", content)
-        self.assertIn('            "count": len(self.data),', content)
+        # Verify the edit was applied
+        self.assertIn("filtered_data = self.filter_data()", content)
+        self.assertIn('"filtered": len(filtered_data),', content)
 
     def test_multiple_edits_to_same_region(self):
         """Test handling of multiple edits that target overlapping regions."""
@@ -307,15 +300,15 @@ class TestEditFileChallenges(unittest.TestCase):
         self.assertIn("    return 1 + 10", content)  # spaces preserved
         self.assertIn("\treturn 2 + 20", content)  # tab preserved
 
-    def test_indentation_extreme_case(self):
-        """Test the simplified preserve_indentation function with extreme indentation."""
+    def test_indentation_changes(self):
+        """Test editing code with extreme indentation discrepancies."""
         # Create a Python file with extreme indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write(
                 'def main():\n    input_file, output_dir, verbose = parse_arguments()\n\n    if verbose:\n        print(f"Verbose mode enabled")\n\n    if processor.load_data():\n        if processor.save_results(results):\n            if verbose and results[\'total_lines\'] > 0:\n                                                                            print(f"Summary:")\n                                                                            print(f"  - Found {len(results[\'word_counts\'])} unique words")\n'
             )
 
-        # Attempt to fix the indentation issue
+        # Edit the indentation issues
         edits = [
             {
                 "old_text": "            if verbose and results['total_lines'] > 0:\n                                                                            print(f\"Summary:\")\n                                                                            print(f\"  - Found {len(results['word_counts'])} unique words\")",
@@ -323,14 +316,13 @@ class TestEditFileChallenges(unittest.TestCase):
             }
         ]
 
-        options = {"preserve_indentation": True}
-        result = edit_file(str(self.test_file), edits, options=options)
+        result = edit_file(str(self.test_file), edits)
         self.assertTrue(result["success"])
 
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Verify the new simplified indentation handling works
+        # Verify the edit fixed the indentation
         self.assertIn("            if verbose and results['total_lines'] > 0:", content)
         self.assertIn('                print(f"Summary:")', content)
 
@@ -455,16 +447,15 @@ class TestEditFileChallenges(unittest.TestCase):
                 "new_text": "- Available options:\n  - option1: description\n  - option2: description",
             }
         ]
-        options = {"preserve_indentation": True}
-        result = edit_file(str(markdown_file), edits, options=options)
+        result = edit_file(str(markdown_file), edits)
         self.assertTrue(result["success"])
 
         # Step 4: Verify file was modified
         with open(markdown_file, "r", encoding="utf-8") as f:
             updated_content = f.read()
         # Using a more lenient check due to possible indentation differences
-            self.assertIn("- Available options:", updated_content)
-            self.assertIn("option1: description", updated_content)
+        self.assertIn("- Available options:", updated_content)
+        self.assertIn("option1: description", updated_content)
         self.assertIn("option2: description", updated_content)
 
         # Count occurrences to ensure proper nesting

@@ -155,8 +155,8 @@ async def test_edit_file_error_handling(project_dir):
 
 
 @pytest.mark.asyncio
-async def test_edit_file_preserves_indentation(project_dir):
-    """Test that the edit_file API correctly preserves indentation."""
+async def test_edit_file_indentation(project_dir):
+    """Test that the edit_file API handles indentation correctly."""
     # Create a test file with indentation
     indented_content = """def example_function():
     # This is indented with 4 spaces
@@ -171,7 +171,7 @@ async def test_edit_file_preserves_indentation(project_dir):
     test_file_path = str(TEST_DIR / "indentation_test.py")
     absolute_path = str(project_dir / TEST_DIR / "indentation_test.py")
     save_file(test_file_path, indented_content)
-    
+
     # Define an edit that would normally lose indentation
     edits = [
         {
@@ -179,18 +179,17 @@ async def test_edit_file_preserves_indentation(project_dir):
             "new_text": "    if new_condition:\n        # Modified comment\n        print(\"Changed text\")"
         }
     ]
-    
-    # Apply the edit with preserve_indentation=True
-    options = {"preserve_indentation": True}
-    result = edit_file(absolute_path, edits, options=options)
-    
+
+    # Apply the edit (no options parameter in the simplified version)
+    result = edit_file(absolute_path, edits)
+
     # Check success
     assert result["success"] is True
-    
-    # Verify the file was modified with preserved indentation
+
+    # Verify the file was modified with correctly preserved indentation
     with open(project_dir / TEST_DIR / "indentation_test.py", "r", encoding="utf-8") as f:
         content = f.read()
-    
+
     # The indentation should be preserved
     assert "    if new_condition:" in content
     assert "        # Modified comment" in content
