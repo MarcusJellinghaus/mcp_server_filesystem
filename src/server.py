@@ -193,7 +193,7 @@ def delete_this_file(file_path: str) -> bool:
 @mcp.tool()
 @log_function_call
 def edit_file(
-    path: str,
+    file_path: str,
     edits: List[Dict[str, str]],
     dry_run: bool = False,
     options: Dict[str, Any] = None,
@@ -209,7 +209,7 @@ def edit_file(
         - Preview changes with dry run mode
 
     Args:
-        path: File to edit
+        file_path: Path to the file to edit (relative to project directory)
         edits: List of edit operations (each containing old_text and new_text)
         dry_run: Preview changes without applying (default: False)
         options: Optional formatting settings
@@ -220,9 +220,9 @@ def edit_file(
         Detailed diff and match information including success status
     """
     # Basic validation
-    if not path or not isinstance(path, str):
-        logger.error(f"Invalid file path parameter: {path}")
-        raise ValueError(f"File path must be a non-empty string, got {type(path)}")
+    if not file_path or not isinstance(file_path, str):
+        logger.error(f"Invalid file path parameter: {file_path}")
+        raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     if not isinstance(edits, list) or not edits:
         logger.error(f"Invalid edits parameter: {edits}")
@@ -254,19 +254,19 @@ def edit_file(
             if opt in options:
                 normalized_options[opt] = options[opt]
 
-    logger.info(f"Editing file: {path}, dry_run: {dry_run}")
+    logger.info(f"Editing file: {file_path}, dry_run: {dry_run}")
 
     try:
         # Call the implementation function
         return edit_file_util(
-            path,  # Already normalized by path_utils in the utility function
+            file_path,  # Already normalized by path_utils in the utility function
             normalized_edits,
             dry_run=dry_run,
             options=normalized_options,
             project_dir=_project_dir,
         )
     except Exception as e:
-        logger.error(f"Error editing file {path}: {str(e)}")
+        logger.error(f"Error editing file {file_path}: {str(e)}")
         raise
 
 
