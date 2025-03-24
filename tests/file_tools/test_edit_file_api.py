@@ -180,8 +180,9 @@ async def test_edit_file_indentation(project_dir):
         }
     ]
 
-    # Apply the edit (no options parameter in the simplified version)
-    result = edit_file(absolute_path, edits)
+    # Apply the edit with options parameter using snake_case notation
+    options = {"preserve_indentation": True}
+    result = edit_file(absolute_path, edits, options=options)
 
     # Check success
     assert result["success"] is True

@@ -136,11 +136,33 @@ class TestEditFileIndentationIssues(unittest.TestCase):
         # Create test with tabs and spaces
         old = "def outer():\n\tdef inner():\n\t    # Mixed tabs and spaces\n\t    return True"
         new = "def modified():\n    def inner_func():\n        # All spaces now\n        return False"
-        
+
         # Apply our indentation preservation
         result = preserve_indentation(old, new)
-        
+
         # Should maintain the original indentation style
         expected = "def modified():\n\tdef inner_func():\n\t    # All spaces now\n\t    return False"
-        
+
         self.assertEqual(result, expected)
+
+    def test_snake_case_options(self):
+        """Test that only snake_case options are supported."""
+        # Create a test file
+        with open(self.test_file, "w", encoding="utf-8") as f:
+            f.write("def test_function():\n    return 'test'\n")
+
+        # Define edit with snake_case options
+        edits = [{"old_text": "test_function", "new_text": "modified_function"}]
+        options = {"preserve_indentation": True, "normalize_whitespace": False}
+
+        # Apply the edit with options
+        result = edit_file(str(self.test_file), edits, options=options)
+
+        # Verify success
+        self.assertTrue(result["success"])
+
+        # Check the file was modified as expected
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertEqual(content, "def modified_function():\n    return 'test'\n")

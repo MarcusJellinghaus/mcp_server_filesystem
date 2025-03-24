@@ -210,7 +210,7 @@ def edit_file(
 
     Args:
         path: File to edit
-        edits: List of edit operations (each containing old_text and new_text)
+        edits: List of edit operations (each containing old_text and new_text keys)
         dry_run: Preview changes without applying (default: False)
         options: Optional formatting settings
                     - preserve_indentation: Keep existing indentation (default: True)
@@ -236,36 +236,28 @@ def edit_file(
         if not isinstance(edit, dict):
             raise ValueError(f"Each edit must be a dictionary, got {type(edit)}")
 
-        # Map oldText/newText to old_text/new_text if needed
+        # Check for required keys using only snake_case format
         normalized_edit = {}
-        if "oldText" in edit:
-            normalized_edit["old_text"] = edit["oldText"]
-        elif "old_text" in edit:
+        if "old_text" in edit:
             normalized_edit["old_text"] = edit["old_text"]
         else:
-            raise ValueError("Each edit must contain 'oldText' or 'old_text'")
+            raise ValueError("Each edit must contain 'old_text'")
 
-        if "newText" in edit:
-            normalized_edit["new_text"] = edit["newText"]
-        elif "new_text" in edit:
+        if "new_text" in edit:
             normalized_edit["new_text"] = edit["new_text"]
         else:
-            raise ValueError("Each edit must contain 'newText' or 'new_text'")
+            raise ValueError("Each edit must contain 'new_text'")
 
         normalized_edits.append(normalized_edit)
 
-    # Normalize the options dictionary if provided
+    # Process the options dictionary if provided
     normalized_options = {}
     if options:
-        # Map camelCase to snake_case if needed
-        if "preserveIndentation" in options:
-            normalized_options["preserve_indentation"] = options["preserveIndentation"]
-        elif "preserve_indentation" in options:
+        # Only using snake_case format
+        if "preserve_indentation" in options:
             normalized_options["preserve_indentation"] = options["preserve_indentation"]
 
-        if "normalizeWhitespace" in options:
-            normalized_options["normalize_whitespace"] = options["normalizeWhitespace"]
-        elif "normalize_whitespace" in options:
+        if "normalize_whitespace" in options:
             normalized_options["normalize_whitespace"] = options["normalize_whitespace"]
 
     logger.info(f"Editing file: {path}, dry_run: {dry_run}")

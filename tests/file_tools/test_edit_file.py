@@ -142,12 +142,12 @@ class TestEditFile(unittest.TestCase):
 
         self.assertEqual(content, "def test_function():\n    return 'test'\n")
 
-    def test_edit_file_simplified(self):
-        # Renamed from test_edit_file_with_options to better reflect what we're testing
+    def test_edit_file_with_options(self):
         edits = [{"old_text": "test_function", "new_text": "modified_function"}]
-        
-        # No options in the simplified version
-        result = edit_file(str(self.test_file), edits)
+
+        # Use options parameter with snake_case
+        options = {"preserve_indentation": True, "normalize_whitespace": False}
+        result = edit_file(str(self.test_file), edits, options=options)
 
         self.assertTrue(result["success"])
         self.assertIn("diff", result)
