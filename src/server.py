@@ -198,83 +198,74 @@ def edit_file(
     dry_run: bool = False,
     options: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
-    """Make precise text replacements in files while preserving formatting.
+    """Make selective edits to files while preserving formatting.
 
     Features:
         - Line-based and multi-line content matching
         - Whitespace normalization with indentation preservation
-        - Multiple simultaneous edits with correct positioning
-        - Indentation style detection and preservation
+        - Multiple simultaneous edits with correct positioning 
+        - Smart detection of already-applied edits
         - Git-style diff output with context
         - Preview changes with dry run mode
 
     Args:
         path: File to edit
-        edits: List of edit operations (each containing old_text and new_text keys)
+        edits: List of edit operations (each containing old_text and new_text)
         dry_run: Preview changes without applying (default: False)
         options: Optional formatting settings
                     - preserve_indentation: Keep existing indentation (default: True)
-                    - normalize_whitespace: Normalize spaces while preserving structure (default: True)
+                    - normalize_whitespace: Normalize spaces (default: True)
 
     Returns:
-        Detailed diff and match information for dry runs, otherwise applies changes
+        Detailed diff and match information including success status
     """
+    # Basic validation
     if not path or not isinstance(path, str):
         logger.error(f"Invalid file path parameter: {path}")
         raise ValueError(f"File path must be a non-empty string, got {type(path)}")
 
-    if not isinstance(edits, list):
+    if not isinstance(edits, list) or not edits:
         logger.error(f"Invalid edits parameter: {edits}")
-        raise ValueError(f"Edits must be a list, got {type(edits)}")
+        raise ValueError(f"Edits must be a non-empty list")
 
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
 
-    # Ensure 'edits' objects use the correct keys
+    # Normalize edit operations (ensure proper format and required fields)
     normalized_edits = []
-    for edit in edits:
+    for i, edit in enumerate(edits):
         if not isinstance(edit, dict):
-            raise ValueError(f"Each edit must be a dictionary, got {type(edit)}")
+            raise ValueError(f"Edit #{i} must be a dictionary, got {type(edit)}")
+            
+        # Validate required fields
+        if "old_text" not in edit or "new_text" not in edit:
+            missing = ', '.join([f for f in ["old_text", "new_text"] if f not in edit])
+            raise ValueError(f"Edit #{i} is missing required field(s): {missing}")
+            
+        # Create normalized edit with just the fields we need
+        normalized_edits.append({
+            "old_text": edit["old_text"],
+            "new_text": edit["new_text"]
+        })
 
-        # Check for required keys using only snake_case format
-        normalized_edit = {}
-        if "old_text" in edit:
-            normalized_edit["old_text"] = edit["old_text"]
-        else:
-            raise ValueError("Each edit must contain 'old_text'")
-
-        if "new_text" in edit:
-            normalized_edit["new_text"] = edit["new_text"]
-        else:
-            raise ValueError("Each edit must contain 'new_text'")
-
-        normalized_edits.append(normalized_edit)
-
-    # Process the options dictionary if provided
+    # Process options (only extract the fields we support)
     normalized_options = {}
     if options:
-        # Only using snake_case format
-        if "preserve_indentation" in options:
-            normalized_options["preserve_indentation"] = options["preserve_indentation"]
-
-        if "normalize_whitespace" in options:
-            normalized_options["normalize_whitespace"] = options["normalize_whitespace"]
+        for opt in ["preserve_indentation", "normalize_whitespace"]:
+            if opt in options:
+                normalized_options[opt] = options[opt]
 
     logger.info(f"Editing file: {path}, dry_run: {dry_run}")
 
     try:
-        # Normalize the path and call the utility function
-        normalized_path = path
-
-        result = edit_file_util(
-            normalized_path,
+        # Call the implementation function
+        return edit_file_util(
+            path,  # Already normalized by path_utils in the utility function
             normalized_edits,
             dry_run=dry_run,
             options=normalized_options,
             project_dir=_project_dir,
         )
-
-        return result
     except Exception as e:
         logger.error(f"Error editing file {path}: {str(e)}")
         raise
