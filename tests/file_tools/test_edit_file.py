@@ -11,7 +11,7 @@ from src.file_tools.edit_file import (
     create_unified_diff,
     edit_file,
     preserve_indentation,
-    )
+)
 
 
 class TestEditFileUtils(unittest.TestCase):

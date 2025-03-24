@@ -203,7 +203,7 @@ def edit_file(
     Features:
         - Line-based and multi-line content matching
         - Whitespace normalization with indentation preservation
-        - Multiple simultaneous edits with correct positioning 
+        - Multiple simultaneous edits with correct positioning
         - Smart detection of already-applied edits
         - Git-style diff output with context
         - Preview changes with dry run mode
@@ -236,17 +236,16 @@ def edit_file(
     for i, edit in enumerate(edits):
         if not isinstance(edit, dict):
             raise ValueError(f"Edit #{i} must be a dictionary, got {type(edit)}")
-            
+
         # Validate required fields
         if "old_text" not in edit or "new_text" not in edit:
-            missing = ', '.join([f for f in ["old_text", "new_text"] if f not in edit])
+            missing = ", ".join([f for f in ["old_text", "new_text"] if f not in edit])
             raise ValueError(f"Edit #{i} is missing required field(s): {missing}")
-            
+
         # Create normalized edit with just the fields we need
-        normalized_edits.append({
-            "old_text": edit["old_text"],
-            "new_text": edit["new_text"]
-        })
+        normalized_edits.append(
+            {"old_text": edit["old_text"], "new_text": edit["new_text"]}
+        )
 
     # Process options (only extract the fields we support)
     normalized_options = {}

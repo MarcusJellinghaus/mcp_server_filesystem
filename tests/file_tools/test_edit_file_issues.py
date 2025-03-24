@@ -11,25 +11,25 @@ from src.file_tools.edit_file import (
     create_unified_diff,
     edit_file,
     preserve_indentation,
-    )
+)
 
 
 class TestEditFileIndentationIssues(unittest.TestCase):
     """Tests specifically designed to highlight indentation handling challenges."""
 
     def test_indentation_approach(self):
-                    """Test the indentation handling approach."""
-                    # Create a simple test case
-                    old = "    def test():\n        if True:\n            return 1\n        else:\n            return 0"
-                    new = "def improved_test():\n    if condition:\n        return 2\n    else:\n        return -1"
+        """Test the indentation handling approach."""
+        # Create a simple test case
+        old = "    def test():\n        if True:\n            return 1\n        else:\n            return 0"
+        new = "def improved_test():\n    if condition:\n        return 2\n    else:\n        return -1"
 
-                    # Apply our indentation preservation
-                    result = preserve_indentation(old, new)
+        # Apply our indentation preservation
+        result = preserve_indentation(old, new)
 
-                    # The result should preserve the original indentation pattern
-                    expected = "    def improved_test():\n        if condition:\n            return 2\n        else:\n            return -1"
+        # The result should preserve the original indentation pattern
+        expected = "    def improved_test():\n        if condition:\n            return 2\n        else:\n            return -1"
 
-                    self.assertEqual(result, expected)
+        self.assertEqual(result, expected)
 
     def setUp(self):
         # Create a temporary directory and file for testing
@@ -129,7 +129,6 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             1,
             "Only one occurrence should be replaced with the new pattern",
         )
-
 
     def test_mixed_tab_space_indentation(self):
         """Test handling of mixed tab and space indentation."""

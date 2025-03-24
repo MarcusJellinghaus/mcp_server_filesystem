@@ -175,8 +175,8 @@ async def test_edit_file_indentation(project_dir):
     # Define an edit that would normally lose indentation
     edits = [
         {
-            "old_text": "    if condition:\n        # This is indented with 8 spaces\n        print(\"Indented text\")",
-            "new_text": "    if new_condition:\n        # Modified comment\n        print(\"Changed text\")"
+            "old_text": '    if condition:\n        # This is indented with 8 spaces\n        print("Indented text")',
+            "new_text": '    if new_condition:\n        # Modified comment\n        print("Changed text")',
         }
     ]
 
@@ -188,10 +188,12 @@ async def test_edit_file_indentation(project_dir):
     assert result["success"] is True
 
     # Verify the file was modified with correctly preserved indentation
-    with open(project_dir / TEST_DIR / "indentation_test.py", "r", encoding="utf-8") as f:
+    with open(
+        project_dir / TEST_DIR / "indentation_test.py", "r", encoding="utf-8"
+    ) as f:
         content = f.read()
 
     # The indentation should be preserved
     assert "    if new_condition:" in content
     assert "        # Modified comment" in content
-    assert "        print(\"Changed text\")" in content
+    assert '        print("Changed text")' in content

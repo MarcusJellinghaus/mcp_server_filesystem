@@ -71,14 +71,16 @@ def get_line_indentation(line: str) -> str:
 
 def preserve_indentation(old_text: str, new_text: str) -> str:
     """Preserve the indentation pattern from old_text in new_text.
-    
+
     This function adapts the indentation in the new text to match the pattern
     established in the old text, maintaining relative indentation between lines.
     """
     # Special case for markdown lists: don't modify indentation if the new text has list markers
-    if ("- " in new_text or "* " in new_text) and ("- " in old_text or "* " in old_text):
+    if ("- " in new_text or "* " in new_text) and (
+        "- " in old_text or "* " in old_text
+    ):
         return new_text
-        
+
     old_lines = old_text.split("\n")
     new_lines = new_text.split("\n")
 
@@ -87,15 +89,25 @@ def preserve_indentation(old_text: str, new_text: str) -> str:
         return new_text
 
     # Extract the base indentation from the first line of old text
-    base_indent = get_line_indentation(old_lines[0]) if old_lines and old_lines[0].strip() else ""
+    base_indent = (
+        get_line_indentation(old_lines[0]) if old_lines and old_lines[0].strip() else ""
+    )
 
     # Pre-calculate indentation maps for efficiency
-    old_indents = {i: get_line_indentation(line) for i, line in enumerate(old_lines) if line.strip()}
-    new_indents = {i: get_line_indentation(line) for i, line in enumerate(new_lines) if line.strip()}
-    
+    old_indents = {
+        i: get_line_indentation(line)
+        for i, line in enumerate(old_lines)
+        if line.strip()
+    }
+    new_indents = {
+        i: get_line_indentation(line)
+        for i, line in enumerate(new_lines)
+        if line.strip()
+    }
+
     # Calculate first line indentation length for relative adjustments
     first_new_indent_len = len(new_indents.get(0, "")) if new_indents else 0
-    
+
     # Process each line with the appropriate indentation
     result_lines = []
     for i, new_line in enumerate(new_lines):
@@ -106,7 +118,7 @@ def preserve_indentation(old_text: str, new_text: str) -> str:
 
         # Get current indentation in new text
         new_indent = new_indents.get(i, "")
-        
+
         # Determine target indentation based on context
         if i < len(old_lines) and i in old_indents:
             # Matching line in old text - use its indentation
@@ -118,12 +130,12 @@ def preserve_indentation(old_text: str, new_text: str) -> str:
             # Calculate relative indentation for other lines
             curr_indent_len = len(new_indent)
             indent_diff = max(0, curr_indent_len - first_new_indent_len)
-            
+
             # Default to base indent but look for better match from previous lines
             target_indent = base_indent
-            
+
             # Find the closest previous line with appropriate indentation to use as template
-            for prev_i in range(i-1, -1, -1):
+            for prev_i in range(i - 1, -1, -1):
                 if prev_i in old_indents and prev_i in new_indents:
                     prev_old = old_indents[prev_i]
                     prev_new = new_indents[prev_i]
@@ -191,11 +203,11 @@ def apply_edits(
 
     # Normalize line endings
     normalized_content = normalize_line_endings(content)
-    
+
     # Store match results for reporting
     match_results = []
     changes_made = False
-    
+
     # Process each edit
     for i, edit in enumerate(edits):
         normalized_old = normalize_line_endings(edit.old_text)
@@ -203,20 +215,27 @@ def apply_edits(
 
         # Skip if the replacement text is identical to the old text
         if normalized_old == normalized_new:
-            match_results.append({
-                "edit_index": i,
-                "match_type": "skipped",
-                "details": "No change needed - text already matches desired state"
-            })
+            match_results.append(
+                {
+                    "edit_index": i,
+                    "match_type": "skipped",
+                    "details": "No change needed - text already matches desired state",
+                }
+            )
             continue
-            
+
         # Check if the new_text is already in the content
-        if normalized_new in normalized_content and normalized_old not in normalized_content:
-            match_results.append({
-                "edit_index": i,
-                "match_type": "skipped",
-                "details": "Edit already applied - content already in desired state"
-            })
+        if (
+            normalized_new in normalized_content
+            and normalized_old not in normalized_content
+        ):
+            match_results.append(
+                {
+                    "edit_index": i,
+                    "match_type": "skipped",
+                    "details": "Edit already applied - content already in desired state",
+                }
+            )
             continue
 
         # Try exact match
@@ -240,18 +259,22 @@ def apply_edits(
             )
             changes_made = True
 
-            match_results.append({
-                "edit_index": i,
-                "match_type": "exact",
-                "line_index": exact_match.line_index,
-                "line_count": exact_match.line_count,
-            })
+            match_results.append(
+                {
+                    "edit_index": i,
+                    "match_type": "exact",
+                    "line_index": exact_match.line_index,
+                    "line_count": exact_match.line_count,
+                }
+            )
         else:
-            match_results.append({
-                "edit_index": i,
-                "match_type": "failed",
-                "details": "No exact match found"
-            })
+            match_results.append(
+                {
+                    "edit_index": i,
+                    "match_type": "failed",
+                    "details": "No exact match found",
+                }
+            )
             # Log the failed match
             logger.warning(f"Could not find exact match for edit {i}")
 
@@ -323,13 +346,19 @@ def edit_file(
         new_text = edit.get("new_text")
         if old_text is None or new_text is None:
             logger.error(f"Invalid edit operation: {edit}")
-            raise ValueError("Edit operations must contain 'old_text' and 'new_text' fields.")
+            raise ValueError(
+                "Edit operations must contain 'old_text' and 'new_text' fields."
+            )
         edit_operations.append(EditOperation(old_text=old_text, new_text=new_text))
 
     # Set up options with defaults or provided values
     edit_options = EditOptions(
-        preserve_indentation=options.get("preserve_indentation", True) if options else True,
-        normalize_whitespace=options.get("normalize_whitespace", True) if options else True
+        preserve_indentation=(
+            options.get("preserve_indentation", True) if options else True
+        ),
+        normalize_whitespace=(
+            options.get("normalize_whitespace", True) if options else True
+        ),
     )
 
     # Apply edits
@@ -340,31 +369,39 @@ def edit_file(
 
         # Check for actual failures and already applied edits
         failed_matches = [r for r in match_results if r.get("match_type") == "failed"]
-        already_applied = [r for r in match_results if r.get("match_type") == "skipped" 
-                          and "already applied" in r.get("details", "")]
-        
+        already_applied = [
+            r
+            for r in match_results
+            if r.get("match_type") == "skipped"
+            and "already applied" in r.get("details", "")
+        ]
+
         # Handle common result cases
         result = {
             "match_results": match_results,
             "file_path": file_path,
-            "dry_run": dry_run
+            "dry_run": dry_run,
         }
-        
+
         # Case 1: Failed matches
         if failed_matches:
-            result.update({
-                "success": False,
-                "error": "Failed to find exact match for one or more edits"
-            })
+            result.update(
+                {
+                    "success": False,
+                    "error": "Failed to find exact match for one or more edits",
+                }
+            )
             return result
-            
+
         # Case 2: No changes needed (already applied or identical content)
         if not changes_made or (already_applied and len(already_applied) == len(edits)):
-            result.update({
-                "success": True,
-                "diff": "",  # Empty diff indicates no changes
-                "message": "No changes needed - content already in desired state"
-            })
+            result.update(
+                {
+                    "success": True,
+                    "diff": "",  # Empty diff indicates no changes
+                    "message": "No changes needed - content already in desired state",
+                }
+            )
             return result
 
         # Case 3: Changes needed - create diff
@@ -377,11 +414,15 @@ def edit_file(
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(modified_content)
             except UnicodeEncodeError as e:
-                logger.error(f"Unicode encode error while writing to {file_path}: {str(e)}")
-                result.update({
-                    "success": False,
-                    "error": "Content contains characters that cannot be encoded. Please check the encoding."
-                })
+                logger.error(
+                    f"Unicode encode error while writing to {file_path}: {str(e)}"
+                )
+                result.update(
+                    {
+                        "success": False,
+                        "error": "Content contains characters that cannot be encoded. Please check the encoding.",
+                    }
+                )
                 return result
             except Exception as e:
                 logger.error(f"Error writing to file {file_path}: {str(e)}")
@@ -389,7 +430,7 @@ def edit_file(
                 return result
 
         return result
-        
+
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Exception in edit_file: {error_msg}")
@@ -399,12 +440,15 @@ def edit_file(
             "success": False,
             "error": error_msg,
             "match_results": (
-                match_results if 'match_results' in locals() and match_results else 
-                [{
-                    "edit_index": 0,
-                    "match_type": "failed", 
-                    "details": "Exception encountered: " + error_msg
-                }]
+                match_results
+                if "match_results" in locals() and match_results
+                else [
+                    {
+                        "edit_index": 0,
+                        "match_type": "failed",
+                        "details": "Exception encountered: " + error_msg,
+                    }
+                ]
             ),
-            "file_path": file_path
+            "file_path": file_path,
         }
