@@ -63,42 +63,17 @@ def normalize_whitespace(text: str) -> str:
     return result
 
 
-def simple_indentation_analysis(text: str) -> dict:
-    """Simple analysis of indentation patterns in the text.
-
-    Returns a dictionary with basic info about indentation in the text.
-    """
-    lines = text.split("\n")
-    indentation_info = {
-        "has_tabs": False,
-        "has_spaces": False,
-        "first_line_indent": ""
-    }
-
-    # Get first non-empty line indentation
-    for line in lines:
-        if line.strip():
-            indent = get_line_indentation(line)
-            indentation_info["first_line_indent"] = indent
-            if "\t" in indent:
-                indentation_info["has_tabs"] = True
-            if " " in indent:
-                indentation_info["has_spaces"] = True
-            break
-
-    return indentation_info
-
-
 def get_line_indentation(line: str) -> str:
     """Extract the indentation (leading whitespace) from a line."""
     match = re.match(r"^(\s*)", line)
     return match.group(1) if match else ""
 
 
-def preserve_simple_indentation(old_text: str, new_text: str) -> str:
-    """
-    A very simplified approach to preserving indentation from old_text in new_text.
-    Simply preserves the relative indentation patterns line by line.
+def preserve_indentation(old_text: str, new_text: str) -> str:
+    """Preserve the indentation pattern from old_text in new_text.
+
+    This is a simple line-by-line approach that preserves the relative
+    indentation between lines.
     """
     # Special case for markdown lists: don't modify indentation if the new text has list markers
     if ("- " in new_text or "* " in new_text) and ("- " in old_text or "* " in old_text):
@@ -180,15 +155,6 @@ def preserve_simple_indentation(old_text: str, new_text: str) -> str:
         result_lines.append(target_indent + new_line.lstrip())
 
     return "\n".join(result_lines)
-
-
-def preserve_indentation(old_text: str, new_text: str) -> str:
-    """Preserve the indentation pattern from old_text in new_text.
-
-    This is a simple line-by-line approach that preserves the relative
-    indentation between lines instead of trying to be overly clever.
-    """
-    return preserve_simple_indentation(old_text, new_text)
 
 
 def find_exact_match(content: str, pattern: str) -> MatchResult:
@@ -322,7 +288,6 @@ def edit_file(
         - Indentation style detection and preservation
         - Git-style diff output with context
         - Optimization to detect already-applied edits
-        - Standardized on snake_case parameter names with legacy support for camelCase
 
     Args:
         file_path: Path to the file to edit (relative to project directory)
@@ -365,32 +330,23 @@ def edit_file(
         logger.error(f"Error reading file {file_path}: {str(e)}")
         raise
 
-    # Convert edits to EditOperation objects using snake_case
+    # Convert edits to EditOperation objects
     edit_operations = []
     for edit in edits:
-        # Support legacy camelCase for backward compatibility
-        old_text = edit.get("old_text", edit.get("oldText"))
-        new_text = edit.get("new_text", edit.get("newText"))
+        old_text = edit.get("old_text")
+        new_text = edit.get("new_text")
         if old_text is None or new_text is None:
             logger.error(f"Invalid edit operation: {edit}")
             raise ValueError("Edit operations must contain 'old_text' and 'new_text' fields.")
         edit_operations.append(EditOperation(old_text=old_text, new_text=new_text))
 
-    # Set up options
-    edit_options = EditOptions()
-    if options:
-        # Use snake_case keys with fallback to camelCase for backward compatibility
-        if "preserve_indentation" in options:
-            edit_options.preserve_indentation = options["preserve_indentation"]
-        elif "preserveIndentation" in options:
-            # Legacy support for camelCase
-            edit_options.preserve_indentation = options["preserveIndentation"]
-
-        if "normalize_whitespace" in options:
-            edit_options.normalize_whitespace = options["normalize_whitespace"]
-        elif "normalizeWhitespace" in options:
-            # Legacy support for camelCase
-            edit_options.normalize_whitespace = options["normalizeWhitespace"]
+    # Set up options with defaults or provided values
+    preserve_indentation = options.get("preserve_indentation", True) if options else True
+    normalize_whitespace = options.get("normalize_whitespace", True) if options else True
+    edit_options = EditOptions(
+        preserve_indentation=preserve_indentation, 
+        normalize_whitespace=normalize_whitespace
+    )
 
     # Apply edits
     try:
