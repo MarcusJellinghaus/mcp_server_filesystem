@@ -6,7 +6,7 @@ authors = [
 ]
 description = "A simple Model Context Protocol (MCP) server with file operation tools"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 keywords = ["mcp", "server", "filesystem", "claude", "ai", "assistant", "file-operations"]
 classifiers = [
