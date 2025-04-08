@@ -75,53 +75,115 @@ The server provides flexible logging options:
 - Automatic error context capture
 - Configurable log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 
-## Using with Claude Desktop App
+## Integration Options
 
-To enable Claude to use this file system server for accessing files in your local environment:
+This server can be integrated with different Claude interfaces. Each requires a specific configuration.
 
-1. Create or modify the Claude configuration file:
-   - Location: `%APPDATA%\Claude\claude_desktop_config.json` (on Windows)
-   - On macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+## VSCode & Cline Extension Integration
 
-2. Add the MCP server configuration to the file:
+The Cline extension for VSCode allows you to use Claude directly in your code editor.
+
+### Configuration Steps for VSCode/Cline
+
+1. **Locate the Cline MCP configuration file**:
+   - Windows: `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json`
+   - macOS: `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+
+2. **Add the MCP server configuration** (create the file if it doesn't exist):
 
 ```json
 {
-    "mcpServers": {
-        "basic_filesystem": {
-            "command": "C:\\path\\to\\mcp_server_filesystem\\.venv\\Scripts\\python.exe",
-            "args": [                
-                "C:\\path\\to\\mcp_server_filesystem\\src\\main.py",
-                "--project-dir",
-                "C:\\path\\to\\your\\project",
-                "--log-level",
-                "INFO",
-                "--log-file",
-                "C:\\path\\to\\logs\\mcp_server_filesystem_structured.log"
-            ],
-            "env": {
-                "PYTHONPATH": "C:\\path\\to\\mcp_server_filesystem\\"
-            }
-        }
+  "mcpServers": {
+    "filesystem": {
+      "command": "C:\\path\\to\\mcp_server_filesystem\\.venv\\Scripts\\python.exe",
+      "args": [
+        "C:\\path\\to\\mcp_server_filesystem\\src\\main.py",
+        "--project-dir",
+        "C:\\Users\\YourUsername\\Documents\\Projects\\MyProject",
+        "--log-level",
+        "INFO"
+      ],
+      "env": {
+        "PYTHONPATH": "C:\\path\\to\\mcp_server_filesystem\\"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "list_directory",
+        "read_file"
+      ]
     }
+  }
 }
 ```
 
-3. Replace all `C:\\path\\to\\` instances with your actual paths:
-   - Point to your Python virtual environment 
-   - Set the project directory to the folder you want Claude to access
-   - Make sure the PYTHONPATH points to the mcp_server_filesystem root folder
-   - Specify log level and log file path as needed
+3. **Important VSCode/Cline-specific notes**:
+   - Replace `${workspaceFolder}` with the actual full path to your project directory
+   - Example: `"C:\\Users\\YourUsername\\Documents\\Projects\\MyProject"`
+   - Replace all `C:\\path\\to\\` instances with your actual paths
+   - Use double backslashes (`\\`) in paths on Windows, forward slashes (`/`) on macOS/Linux
+   - The project directory should be the folder you want Claude to access
+   - Only add operations to the `autoApprove` array that you want to be executed without requiring your approval each time
+   - For better security, consider only auto-approving read-only operations like `list_directory` and `read_file`
 
-4. Restart the Claude desktop app to apply changes
+4. **Restart VSCode** and test by asking Claude to "List the files in my current project directory"
 
-Claude will now be able to list, read, write, and delete files in your specified project directory.
+### Troubleshooting VSCode/Cline Integration
 
-5. Log files location:
-   - Windows: `%APPDATA%\Claude\logs`
-   - These logs can be helpful for troubleshooting issues with the MCP server connection
+- Check logs at: `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\logs` (Windows) or `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/logs` (macOS)
+- Verify the Python executable path points to your virtual environment
+- Ensure all paths in your configuration are correct
 
-For more information on logging and troubleshooting, see the [MCP Documentation](https://modelcontextprotocol.io/quickstart/user#getting-logs-from-claude-for-desktop).
+## Claude Desktop App Integration
+
+The Claude Desktop app can also use this file system server.
+
+### Configuration Steps for Claude Desktop
+
+1. **Locate the Claude Desktop configuration file**:
+   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+2. **Add the MCP server configuration** (create the file if it doesn't exist):
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "C:\\path\\to\\mcp_server_filesystem\\.venv\\Scripts\\python.exe",
+      "args": [                
+        "C:\\path\\to\\mcp_server_filesystem\\src\\main.py",
+        "--project-dir",
+        "C:\\path\\to\\your\\specific\\project",
+        "--log-level",
+        "INFO"
+      ],
+      "env": {
+        "PYTHONPATH": "C:\\path\\to\\mcp_server_filesystem\\"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "list_directory",
+        "read_file"
+      ]
+    }
+  }
+}
+```
+
+3. **Important Claude Desktop-specific notes**:
+   - You must specify an explicit project directory path in `--project-dir`
+   - Replace all `C:\\path\\to\\` instances with your actual paths
+   - The project directory should be the folder you want Claude to access
+   - Only add operations to the `autoApprove` array that you want to be executed without requiring your approval each time
+   - For better security, consider only auto-approving read-only operations like `list_directory` and `read_file`
+
+4. **Restart the Claude Desktop app** to apply changes
+
+### Troubleshooting Claude Desktop Integration
+
+- Check logs at: `%APPDATA%\Claude\logs` (Windows) or `~/Library/Application Support/Claude/logs` (macOS)
+- Ensure the specified project directory exists and is accessible
+- Verify all paths in your configuration are correct
 
 ## Using MCP Inspector
 
@@ -150,59 +212,55 @@ npx @modelcontextprotocol/inspector \
 
 The server exposes the following MCP tools:
 
-### List Directory
-- Lists all files and directories in the project directory
-- Returns: List of file and directory names
+| Operation | Description | Example Prompt |
+|-----------|-------------|----------------|
+| `list_directory` | Lists files and directories in the project directory | "List all files in the src directory" |
+| `read_file` | Reads the contents of a file | "Show me the contents of main.js" |
+| `save_file` | Creates or overwrites files atomically | "Create a new file called app.js" |
+| `append_file` | Adds content to existing files | "Add a function to utils.js" |
+| `delete_this_file` | Removes files from the filesystem | "Delete the temporary.txt file" |
+| `edit_file` | Makes selective edits using pattern matching | "Fix the bug in the fetch function" |
+
+### Tool Details
+
+#### List Directory
+- Returns a list of file and directory names
 - By default, results are filtered based on .gitignore patterns and .git folders are excluded
 
-### Read File
-- Reads the contents of a file
-- Parameters:
-  - `file_path` (string): Path to the file to read (relative to project directory)
-- Returns: Content of the file as a string
+#### Read File
+- Parameters: `file_path` (string): Path to the file to read (relative to project directory)
+- Returns the content of the file as a string
 
-### Save File
-- Writes content to a file atomically
+#### Save File
 - Parameters:
-  - `file_path` (string): Path to the file to write to (relative to project directory)
+  - `file_path` (string): Path to the file to write to
   - `content` (string): Content to write to the file
-- Returns: Boolean indicating success
+- Returns a boolean indicating success
 
-### Append File
-- Appends content to the end of an existing file
+#### Append File
 - Parameters:
-  - `file_path` (string): Path to the file to append to (relative to project directory)
+  - `file_path` (string): Path to the file to append to
   - `content` (string): Content to append to the file
-- Returns: Boolean indicating success
+- Returns a boolean indicating success
 - Note: The file must already exist; use `save_file` to create new files
 
-### Delete This File
-- Deletes a specified file from the filesystem
-- Parameters:
-  - `file_path` (string): Path to the file to delete (relative to project directory)
-- Returns: Boolean indicating success
-- Note: This operation is irreversible and will permanently remove the file. Only works within allowed directories.
+#### Delete This File
+- Parameters: `file_path` (string): Path to the file to delete
+- Returns a boolean indicating success
+- Note: This operation is irreversible and will permanently remove the file
 
-### Edit File
-- Makes selective edits using advanced pattern matching and formatting
+#### Edit File
 - Parameters:
-  - `path` (string): File to edit (relative to project directory)
+  - `file_path` (string): File to edit
   - `edits` (array): List of edit operations, each containing:
-    - `old_text` (string): Text to be replaced (must be unique in the file)
+    - `old_text` (string): Text to be replaced
     - `new_text` (string): Replacement text
-  - `dry_run` (boolean, optional): Preview changes without applying (default: False)
-  - `options` (object, optional): Formatting settings:
-    - `preserveIndentation` (boolean): Keep existing indentation (default: True)
-    - `normalizeWhitespace` (boolean): Normalize spaces while preserving structure (default: True)
-    - `partialMatch` (boolean): Enable fuzzy matching (default: True)
-    - `matchThreshold` (float): Confidence threshold for fuzzy matching (default: 0.8)
-- Returns: Detailed diff and match information
+  - `dry_run` (boolean, optional): Preview changes without applying
+  - `options` (object, optional): Formatting settings
 - Features:
   - Line-based and multi-line content matching
   - Whitespace normalization with indentation preservation
-  - Fuzzy matching with confidence scoring
   - Multiple simultaneous edits with correct positioning
-  - Indentation style detection and preservation
   - Git-style diff output with context
 
 ## Security Features
