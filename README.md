@@ -233,6 +233,12 @@ pip install -e ".[dev]"
 
 ```
 
+## Testing
+
+The project includes pytest-based unit tests in the `tests/` directory. See [tests/README.md](tests/README.md) for details on test structure and execution.
+
+For LLM-based testing, see [tests/LLM_Test.md](tests/LLM_Test.md). This file contains test instructions that can be directly pasted to an LLM to verify MCP server functionality.
+
 ## Running with MCP Dev Tools
 
 ```bash
