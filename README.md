@@ -81,7 +81,7 @@ This server can be integrated with different Claude interfaces. Each requires a 
 
 ## VSCode & Cline Extension Integration
 
-The Cline extension for VSCode allows you to use Claude directly in your code editor.
+The Cline extension for VSCode allows you to use Claude directly in your code editor. For more information about configuring MCP servers with Cline, see the [Cline MCP Servers documentation](https://docs.cline.bot/mcp-servers/configuring-mcp-servers).
 
 ### Configuration Steps for VSCode/Cline
 
@@ -314,3 +314,6 @@ The MIT License is a permissive license that allows reuse with minimal restricti
 
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 - [MCP Python Code Checker](https://github.com/MarcusJellinghaus/mcp_server_code_checker_python)
+- [Cline MCP Servers Documentation](https://docs.cline.bot/mcp-servers/configuring-mcp-servers)
+- [Cline Extension for VSCode](https://github.com/saoudrizwan/claude-dev)
+- [Model Context Protocol Documentation](https://modelcontextprotocol.io/)
