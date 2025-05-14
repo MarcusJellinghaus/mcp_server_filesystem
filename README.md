@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/marcusjellinghaus-mcp-server-filesystem-badge.png)](https://mseep.ai/app/marcusjellinghaus-mcp-server-filesystem)
+
 # MCP File System Server
 
 A simple Model Context Protocol (MCP) server providing file system operations. This server offers a clean API for performing file system operations within a specified project directory, following the MCP protocol design.
