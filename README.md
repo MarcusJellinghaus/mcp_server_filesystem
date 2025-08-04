@@ -61,7 +61,7 @@ python .\src\main.py --project-dir /path/to/project [--log-level LEVEL] [--log-f
 
 - `--project-dir`: (Required) Directory to serve files from
 - `--log-level`: (Optional) Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-- `--log-file`: (Optional) Path for structured JSON logs. If not specified, only console logging is used.
+- `--log-file`: (Optional) Path for structured JSON logs. If not specified, logs to mcp_filesystem_server_{timestamp}.log in project_dir/logs/.
 
 The server uses FastMCP for operation. The project directory parameter (`--project-dir`) is **required** for security reasons. All file operations will be restricted to this directory. Attempts to access files outside this directory will result in an error.
 
@@ -70,10 +70,11 @@ The server uses FastMCP for operation. The project directory parameter (`--proje
 The server provides flexible logging options:
 
 - Standard human-readable logs to console
-- Optional structured JSON logs to file with `--log-file`
+- Structured JSON logs to file (default: `project_dir/logs/mcp_filesystem_server_{timestamp}.log` or custom path with `--log-file`)
 - Function call tracking with parameters, timing, and results
 - Automatic error context capture
 - Configurable log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- Use `--console-only` to disable file logging
 
 ## Integration Options
 
