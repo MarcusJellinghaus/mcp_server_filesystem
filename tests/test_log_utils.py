@@ -46,21 +46,17 @@ class TestSetupLogging:
             # Verify
             root_logger = logging.getLogger()
             handlers = root_logger.handlers
-            assert len(handlers) == 2
+            assert len(handlers) == 1  # Only file handler, no console handler
             assert root_logger.level == logging.DEBUG
 
             # Verify log directory was created
             assert os.path.exists(os.path.dirname(log_file))
 
-            # Verify handlers
-            handler_types = [type(h) for h in handlers]
-            assert logging.StreamHandler in handler_types
-            assert logging.FileHandler in handler_types
+            # Verify only file handler exists
+            assert isinstance(handlers[0], logging.FileHandler)
 
             # Verify file handler has correct path
-            file_handler = [h for h in handlers if isinstance(h, logging.FileHandler)][
-                0
-            ]
+            file_handler = handlers[0]
             assert file_handler.baseFilename == os.path.abspath(log_file)
 
             # Clean up by removing handlers
