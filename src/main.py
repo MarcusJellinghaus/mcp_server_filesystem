@@ -61,7 +61,9 @@ def main() -> None:
     # Validate project directory first
     project_dir = Path(args.project_dir)
     if not project_dir.exists() or not project_dir.is_dir():
-        print(f"Error: Project directory does not exist or is not a directory: {project_dir}")
+        print(
+            f"Error: Project directory does not exist or is not a directory: {project_dir}"
+        )
         sys.exit(1)
 
     # Convert to absolute path
