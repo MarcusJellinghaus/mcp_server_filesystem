@@ -21,4 +21,6 @@ venv/
 # Testing cache
 .pytest_cache/
 .mypy_cache/
-/.log/
+
+# default log folder used by mcp servers
+/logs/
