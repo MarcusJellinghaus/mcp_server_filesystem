@@ -39,8 +39,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--log-file",
         type=str,
-        default=None,
-        help="Path for structured JSON logs. If not specified, only console logging is used.",
+        default="mcp_filesystem_server.log",
+        help="Path for structured JSON logs (default: mcp_filesystem_server.log in current directory).",
+    )
+    parser.add_argument(
+        "--console-only",
+        action="store_true",
+        help="Log only to console, ignore --log-file parameter.",
     )
     return parser.parse_args()
 
@@ -49,16 +54,12 @@ def main() -> None:
     """
     Main entry point for the MCP server.
     """
-    # Add debug logging before logger is initialized
-    stdlogger.debug(
-        "Starting main function with standard logger (before initialization)"
-    )
-
     # Parse command line arguments
     args = parse_args()
 
     # Configure logging
-    setup_logging(args.log_level, args.log_file)
+    log_file = None if args.console_only else args.log_file
+    setup_logging(args.log_level, log_file)
 
     # Add debug logging after logger is initialized
     stdlogger.debug("Logger initialized in main")
@@ -75,7 +76,7 @@ def main() -> None:
         stdlogger.error(
             f"Project directory does not exist or is not a directory: {project_dir}"
         )
-        if args.log_file:
+        if log_file:
             structured_logger.error(
                 "Invalid project directory",
                 project_dir=str(project_dir),
@@ -87,12 +88,12 @@ def main() -> None:
     project_dir = project_dir.absolute()
 
     stdlogger.info(f"Starting MCP server with project directory: {project_dir}")
-    if args.log_file:
+    if log_file:
         structured_logger.info(
             "Starting MCP server",
             project_dir=str(project_dir),
             log_level=args.log_level,
-            log_file=args.log_file,
+            log_file=log_file,
         )
 
     # Run the server with the project directory

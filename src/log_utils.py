@@ -19,7 +19,7 @@ stdlogger = logging.getLogger(__name__)
 
 
 def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
-    """Configure logging - standard to console, optional structured JSON to file."""
+    """Configure logging - if log_file specified, logs only to file; otherwise to console."""
     # Set log level
     numeric_level = getattr(logging, log_level.upper(), None)
     if not isinstance(numeric_level, int):
@@ -30,17 +30,11 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
 
-    # Set up console logging
-    console_handler = logging.StreamHandler()
-    console_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    console_handler.setFormatter(console_formatter)
-    root_logger.addHandler(console_handler)
     root_logger.setLevel(numeric_level)
 
-    # Set up structured JSON logging if file specified
+    # Set up logging based on whether log_file is specified
     if log_file:
+        # FILE LOGGING ONLY - no console output
         # Create directory if needed
         os.makedirs(os.path.dirname(os.path.abspath(log_file)), exist_ok=True)
 
@@ -73,10 +67,17 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
             cache_logger_on_first_use=True,
         )
 
-        stdlogger.info(
-            f"Logging initialized: console={log_level}, JSON file={log_file}"
-        )
+        # Log initialization message to file only
+        stdlogger.info(f"Logging initialized: file={log_file}, level={log_level}")
     else:
+        # CONSOLE LOGGING ONLY (fallback when no file specified)
+        console_handler = logging.StreamHandler()
+        console_formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+        console_handler.setFormatter(console_formatter)
+        root_logger.addHandler(console_handler)
+
         stdlogger.info(f"Logging initialized: console={log_level}")
 
 
