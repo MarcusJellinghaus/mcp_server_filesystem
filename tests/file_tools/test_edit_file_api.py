@@ -12,7 +12,7 @@ from src.server import edit_file, save_file, set_project_dir
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Test constants
-TEST_DIR = Path("test_file_tools")
+TEST_DIR = Path("testdata/test_file_tools")
 TEST_FILE = TEST_DIR / "test_edit_api_file.txt"
 TEST_CONTENT = """This is a test file for the edit_file API.
 Line 2 with some content.
@@ -34,10 +34,17 @@ def setup_test_file(project_dir):
     # Run the test
     yield
 
-    # Teardown: Clean up the test file
-    test_file_path = project_dir / TEST_FILE
-    if test_file_path.exists():
-        test_file_path.unlink()
+    # Teardown: Clean up the test files
+    test_files_to_clean = [
+        TEST_FILE,
+        TEST_DIR / "indentation_test_temp.py",
+        TEST_DIR / "markdown_test_temp.md",
+    ]
+    
+    for test_file in test_files_to_clean:
+        test_file_path = project_dir / test_file
+        if test_file_path.exists():
+            test_file_path.unlink()
 
 
 @pytest.mark.asyncio
@@ -157,19 +164,14 @@ async def test_edit_file_error_handling(project_dir):
 @pytest.mark.asyncio
 async def test_edit_file_indentation(project_dir):
     """Test that the edit_file API handles indentation correctly."""
-    # Create a test file with indentation
-    indented_content = """def example_function():
-    # This is indented with 4 spaces
-    if condition:
-        # This is indented with 8 spaces
-        print("Indented text")
-        for item in items:
-            # This is indented with 12 spaces
-            process(item)
-"""
+    # Load indentation test data from the test data file
+    indent_data_path = project_dir / "tests" / "testdata" / "indent_testing_data.txt"
+    with open(indent_data_path, "r", encoding="utf-8") as f:
+        indented_content = f.read()
 
-    test_file_path = str(TEST_DIR / "indentation_test.py")
-    absolute_path = str(project_dir / TEST_DIR / "indentation_test.py")
+    # Create a temporary test file for indentation testing
+    test_file_path = str(TEST_DIR / "indentation_test_temp.py")
+    absolute_path = str(project_dir / TEST_DIR / "indentation_test_temp.py")
     save_file(test_file_path, indented_content)
 
     # Define an edit that would normally lose indentation
@@ -189,7 +191,7 @@ async def test_edit_file_indentation(project_dir):
 
     # Verify the file was modified with correctly preserved indentation
     with open(
-        project_dir / TEST_DIR / "indentation_test.py", "r", encoding="utf-8"
+        project_dir / TEST_DIR / "indentation_test_temp.py", "r", encoding="utf-8"
     ) as f:
         content = f.read()
 

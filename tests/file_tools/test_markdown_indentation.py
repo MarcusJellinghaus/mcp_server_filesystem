@@ -20,7 +20,7 @@ class TestMarkdownIndentation(unittest.TestCase):
 
     def test_bullet_point_indentation(self):
         # Create a markdown file with nested bullet points
-        markdown_file = self.project_dir / "test_markdown.md"
+        markdown_file = self.project_dir / "markdown_test_temp.md"
         with open(markdown_file, "w", encoding="utf-8") as f:
             f.write(
                 "# Documentation\n\n## Features\n\n- Top level feature\n- Available options:\n- option1: description\n- option2: description\n- Another top level feature"

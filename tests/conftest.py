@@ -47,6 +47,7 @@ def setup_and_cleanup():
             "normal.txt",
             "test.ignore",
             "test_api_file.txt",
+            "test_edit_api_file.txt",
             "test_normal.txt",
             "file_to_delete.txt",
             ".gitignore",
@@ -57,6 +58,11 @@ def setup_and_cleanup():
             "ignore.log",
             "dont_ignore.log",
             "not_a_dir.txt",
+            # New temporary test files
+            "indentation_test_temp.py",
+            "markdown_test_temp.md",
+            "empty_file.txt",
+            "large_file.txt",
         ]
 
         # Remove specific files
@@ -80,14 +86,18 @@ def setup_and_cleanup():
         if subdir.exists():
             shutil.rmtree(subdir)
 
-        # Remove any leftover temporary files
+        # Remove any leftover temporary files including Python files
         for item in abs_test_dir.iterdir():
             if item.is_file() and (
                 item.name.startswith("tmp")
                 or item.name.endswith(".txt")
                 or item.name.endswith(".log")
+                or item.name.endswith(".py")
+                or item.name.endswith(".md")
             ):
-                item.unlink()
+                # Don't remove the permanent test data files
+                if item.name not in ["test_file.txt", "test_api_file.txt"]:
+                    item.unlink()
             elif item.is_dir() and item.name not in [".git", "ignored_dir", "subdir"]:
                 shutil.rmtree(item)
     except Exception as e:
