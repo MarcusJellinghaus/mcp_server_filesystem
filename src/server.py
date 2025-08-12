@@ -214,7 +214,7 @@ def edit_file(
         edits: List of edit operations (each containing old_text and new_text)
         dry_run: Preview changes without applying (default: False)
         options: Optional formatting settings
-                    - preserve_indentation: Keep existing indentation (default: True)
+                            - preserve_indentation: Keep existing indentation (default: False)
 
     Returns:
         Dict containing:
@@ -257,13 +257,15 @@ def edit_file(
     # Process options (validate and only extract supported fields)
     normalized_options = {}
     supported_options = {"preserve_indentation"}
-    
+
     if options:
         for opt_name, opt_value in options.items():
             if opt_name in supported_options:
                 normalized_options[opt_name] = opt_value
             else:
-                logger.warning(f"Unsupported option '{opt_name}' ignored. Supported options: {supported_options}")
+                logger.warning(
+                    f"Unsupported option '{opt_name}' ignored. Supported options: {supported_options}"
+                )
 
     logger.info(f"Editing file: {file_path}, dry_run: {dry_run}")
 

@@ -258,7 +258,7 @@ The server exposes the following MCP tools:
     - `new_text` (string): Replacement text
   - `dry_run` (boolean, optional): Preview changes without applying
   - `options` (object, optional): Formatting settings
-    - `preserve_indentation` (boolean, default: True): Preserve leading whitespace from original text
+    - `preserve_indentation` (boolean, default: False): Preserve leading whitespace from original text
 - Features:
   - **Exact string matching only** - no fuzzy matching for maximum reliability
   - **Basic indentation preservation** - maintains leading whitespace from the original text

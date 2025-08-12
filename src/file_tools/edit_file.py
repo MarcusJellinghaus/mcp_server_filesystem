@@ -29,7 +29,7 @@ def edit_file(
         file_path: Path to file (relative to project_dir if provided)
         edits: List of {'old_text': str, 'new_text': str} operations
         dry_run: If True, return diff without writing changes
-        options: Optional settings (preserve_indentation: bool, default True)
+        options: Optional settings (preserve_indentation: bool, default False)
         project_dir: Base directory for relative paths
 
     Returns:
@@ -90,7 +90,7 @@ def edit_file(
             return _error_result(f"Edit {i} values must be strings", file_path)
 
     # Extract options
-    preserve_indentation = True
+    preserve_indentation = False  # Default to False for safety
     if options and "preserve_indentation" in options:
         preserve_indentation = options["preserve_indentation"]
 
@@ -119,27 +119,35 @@ def edit_file(
         if old_text in current_content:
             # Apply indentation preservation if requested
             final_new_text = new_text
+            indentation_info = None
             if preserve_indentation:
-                final_new_text = _preserve_basic_indentation(old_text, new_text)
+                final_new_text, indentation_message = _preserve_basic_indentation(
+                    old_text, new_text
+                )
+                if indentation_message:
+                    logger.info(f"Edit {i}: {indentation_message}")
+                    indentation_info = indentation_message
 
             # Apply replacement (only first occurrence)
             current_content = current_content.replace(old_text, final_new_text, 1)
-            match_results.append(
-                {
-                    "edit_index": i,
-                    "match_type": "exact",
-                    "line_index": original_content[
-                        : original_content.find(old_text)
-                    ].count("\n"),
-                    "line_count": old_text.count("\n") + 1,
-                }
-            )
+            match_result = {
+                "edit_index": i,
+                "match_type": "exact",
+                "line_index": original_content[: original_content.find(old_text)].count(
+                    "\n"
+                ),
+                "line_count": old_text.count("\n") + 1,
+            }
+            if indentation_info:
+                match_result["indentation_applied"] = indentation_info
+
+            match_results.append(match_result)
             edits_applied += 1
         else:
             # Check if edit is already applied (new_text exists and old_text doesn't)
             if preserve_indentation:
                 # Need to check both the original new_text and the indentation-preserved version
-                final_new_text = _preserve_basic_indentation(old_text, new_text)
+                final_new_text, _ = _preserve_basic_indentation(old_text, new_text)
                 edit_already_applied = (final_new_text in current_content) or (
                     new_text in current_content
                 )
@@ -244,42 +252,68 @@ def _create_diff(original: str, modified: str, filename: str) -> str:
     )
 
 
-def _preserve_basic_indentation(old_text: str, new_text: str) -> str:
+def _preserve_basic_indentation(old_text: str, new_text: str) -> tuple[str, str]:
     """
-    Simple indentation preservation: match leading whitespace of first line.
+    Simple and safe indentation preservation with detailed feedback.
 
-    Much simpler than the original complex version - just copies the leading
-    whitespace from the first line of old_text to all lines of new_text.
+    Only applies indentation if new_text appears to be unindented (starts at column 0)
+    and old_text has indentation. Otherwise returns new_text unchanged.
+
+    This prevents the common problem of double-indentation.
+
+    Returns:
+        tuple: (processed_text, status_message)
     """
     old_lines = old_text.split("\n")
     new_lines = new_text.split("\n")
 
     if not old_lines or not new_lines:
-        return new_text
+        return new_text, "No indentation processing needed (empty content)"
 
-    # Extract leading whitespace from first line of old_text
+    # Get indentation from first line of old_text
     first_old_line = old_lines[0]
-    leading_whitespace = ""
+    old_indent = ""
     for char in first_old_line:
         if char in " \t":
-            leading_whitespace += char
+            old_indent += char
         else:
             break
 
-    # Apply to all lines of new_text (except empty lines)
-    enhanced_new_lines = []
-    for i, line in enumerate(new_lines):
-        if i == 0:
-            # First line: replace its leading whitespace with old's leading whitespace
-            enhanced_new_lines.append(leading_whitespace + line.lstrip())
-        elif line.strip():  # Non-empty line
-            # Other lines: preserve relative indentation but add base indentation
-            enhanced_new_lines.append(leading_whitespace + line)
+    # Get indentation from first line of new_text
+    first_new_line = new_lines[0]
+    new_indent = ""
+    for char in first_new_line:
+        if char in " \t":
+            new_indent += char
         else:
-            # Empty lines stay empty
-            enhanced_new_lines.append("")
+            break
 
-    return "\n".join(enhanced_new_lines)
+    # Only apply indentation if:
+    # 1. old_text has indentation
+    # 2. new_text has no indentation (starts at column 0)
+    if old_indent and not new_indent:
+        # Apply the old indentation to all non-empty lines
+        enhanced_lines = []
+        for line in new_lines:
+            if line.strip():  # Non-empty line
+                enhanced_lines.append(old_indent + line)
+            else:
+                enhanced_lines.append("")
+        result = "\n".join(enhanced_lines)
+        message = f"Applied indentation ({len(old_indent)} spaces) to unindented replacement text"
+        return result, message
+
+    elif old_indent and new_indent:
+        message = f"Preserved existing indentation (old: {len(old_indent)}, new: {len(new_indent)} spaces)"
+        return new_text, message
+
+    elif not old_indent and new_indent:
+        message = f"Kept new text indentation ({len(new_indent)} spaces, old had none)"
+        return new_text, message
+
+    else:
+        # Neither has indentation
+        return new_text, "No indentation processing needed (neither text is indented)"
 
 
 # Legacy compatibility functions (simplified versions)

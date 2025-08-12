@@ -134,7 +134,9 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             }
         ]
 
-        result = edit_file(str(self.test_file), edits)
+        # Explicitly enable preserve_indentation
+        options = {"preserve_indentation": True}
+        result = edit_file(str(self.test_file), edits, options=options)
         self.assertTrue(result["success"])
 
         # Check that indentation was preserved
