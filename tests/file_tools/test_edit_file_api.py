@@ -40,7 +40,7 @@ def setup_test_file(project_dir):
         TEST_DIR / "indentation_test_temp.py",
         TEST_DIR / "markdown_test_temp.md",
     ]
-    
+
     for test_file in test_files_to_clean:
         test_file_path = project_dir / test_file
         if test_file_path.exists():
