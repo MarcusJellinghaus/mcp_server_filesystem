@@ -128,9 +128,9 @@ def edit_file(
                 {
                     "edit_index": i,
                     "match_type": "exact",
-                    "line_index": original_content[: original_content.find(old_text)].count(
-                        "\n"
-                    ),
+                    "line_index": original_content[
+                        : original_content.find(old_text)
+                    ].count("\n"),
                     "line_count": old_text.count("\n") + 1,
                 }
             )
@@ -140,10 +140,12 @@ def edit_file(
             if preserve_indentation:
                 # Need to check both the original new_text and the indentation-preserved version
                 final_new_text = _preserve_basic_indentation(old_text, new_text)
-                edit_already_applied = (final_new_text in current_content) or (new_text in current_content)
+                edit_already_applied = (final_new_text in current_content) or (
+                    new_text in current_content
+                )
             else:
                 edit_already_applied = new_text in current_content
-            
+
             if edit_already_applied:
                 match_results.append(
                     {
