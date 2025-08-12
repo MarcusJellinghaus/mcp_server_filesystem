@@ -165,7 +165,8 @@ async def test_edit_file_error_handling(project_dir):
 async def test_edit_file_indentation(project_dir):
     """Test that the edit_file API handles indentation correctly."""
     # Load indentation test data from the test data file
-    indent_data_path = project_dir / "tests" / "testdata" / "indent_testing_data.txt"
+    # Fixed path: removed the extra "tests" directory since project_dir is already tests/
+    indent_data_path = project_dir / "testdata" / "indent_testing_data.txt"
     with open(indent_data_path, "r", encoding="utf-8") as f:
         indented_content = f.read()
 
