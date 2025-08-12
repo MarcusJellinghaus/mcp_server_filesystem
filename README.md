@@ -262,9 +262,11 @@ The server exposes the following MCP tools:
 - Features:
   - **Exact string matching only** - no fuzzy matching for maximum reliability
   - **Basic indentation preservation** - maintains leading whitespace from the original text
+  - **First occurrence replacement** - only replaces the first match of old_text
   - **Single-pass editing** - processes edits sequentially for predictable results
   - **Clear error reporting** - specific messages when text patterns are not found
   - **Git-style diff output** - shows exactly what changed
+  - **Already-applied edit detection** - skips edits when content is already in desired state
   - **Simplified implementation** - fewer edge cases, more reliable behavior
 
 ## Security Features

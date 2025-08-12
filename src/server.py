@@ -198,13 +198,14 @@ def edit_file(
     dry_run: bool = False,
     options: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
-    """Make selective edits to files while preserving formatting.
+    """Make selective edits to files using exact string matching.
 
     Features:
-        - Line-based and multi-line content matching
-        - Whitespace normalization with indentation preservation
-        - Multiple simultaneous edits with correct positioning
-        - Smart detection of already-applied edits
+        - Exact string matching (no fuzzy matching)
+        - Basic indentation preservation
+        - First occurrence replacement only
+        - Sequential edit processing
+        - Already-applied edit detection
         - Git-style diff output with context
         - Preview changes with dry run mode
 
@@ -214,10 +215,16 @@ def edit_file(
         dry_run: Preview changes without applying (default: False)
         options: Optional formatting settings
                     - preserve_indentation: Keep existing indentation (default: True)
-                    - normalize_whitespace: Normalize spaces (default: True)
 
     Returns:
-        Detailed diff and match information including success status
+        Dict containing:
+            - success: bool indicating if all edits succeeded
+            - diff: Git-style unified diff showing changes
+            - match_results: List of results for each edit operation
+            - file_path: Path of the edited file
+            - dry_run: Whether this was a dry run
+            - message: Optional status message
+            - error: Error message if any edits failed
     """
     # Basic validation
     if not file_path or not isinstance(file_path, str):
@@ -247,12 +254,16 @@ def edit_file(
             {"old_text": edit["old_text"], "new_text": edit["new_text"]}
         )
 
-    # Process options (only extract the fields we support)
+    # Process options (validate and only extract supported fields)
     normalized_options = {}
+    supported_options = {"preserve_indentation"}
+    
     if options:
-        for opt in ["preserve_indentation", "normalize_whitespace"]:
-            if opt in options:
-                normalized_options[opt] = options[opt]
+        for opt_name, opt_value in options.items():
+            if opt_name in supported_options:
+                normalized_options[opt_name] = opt_value
+            else:
+                logger.warning(f"Unsupported option '{opt_name}' ignored. Supported options: {supported_options}")
 
     logger.info(f"Editing file: {file_path}, dry_run: {dry_run}")
 
