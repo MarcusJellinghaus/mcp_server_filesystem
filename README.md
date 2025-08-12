@@ -254,15 +254,18 @@ The server exposes the following MCP tools:
 - Parameters:
   - `file_path` (string): File to edit
   - `edits` (array): List of edit operations, each containing:
-    - `old_text` (string): Text to be replaced
+    - `old_text` (string): Exact text to be replaced
     - `new_text` (string): Replacement text
   - `dry_run` (boolean, optional): Preview changes without applying
   - `options` (object, optional): Formatting settings
+    - `preserve_indentation` (boolean, default: True): Preserve leading whitespace from original text
 - Features:
-  - Line-based and multi-line content matching
-  - Whitespace normalization with indentation preservation
-  - Multiple simultaneous edits with correct positioning
-  - Git-style diff output with context
+  - **Exact string matching only** - no fuzzy matching for maximum reliability
+  - **Basic indentation preservation** - maintains leading whitespace from the original text
+  - **Single-pass editing** - processes edits sequentially for predictable results
+  - **Clear error reporting** - specific messages when text patterns are not found
+  - **Git-style diff output** - shows exactly what changed
+  - **Simplified implementation** - fewer edge cases, more reliable behavior
 
 ## Security Features
 

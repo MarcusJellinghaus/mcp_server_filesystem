@@ -1,284 +1,12 @@
 import difflib
 import logging
 import os
-import re
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List
 
 from .path_utils import normalize_path
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class EditOperation:
-    """Represents a single edit operation."""
-
-    old_text: str
-    new_text: str
-
-
-@dataclass
-class EditOptions:
-    """Optional formatting settings for edit operations."""
-
-    preserve_indentation: bool = True
-    normalize_whitespace: bool = True
-
-
-class MatchResult:
-    """Stores information about a match attempt."""
-
-    def __init__(
-        self,
-        matched: bool,
-        line_index: int = -1,
-        line_count: int = 0,
-        details: str = "",
-    ):
-        self.matched = matched
-        self.line_index = line_index
-        self.line_count = line_count
-        self.details = details
-
-    def __repr__(self) -> str:
-        return (
-            f"MatchResult(matched={self.matched}, "
-            f"line_index={self.line_index}, line_count={self.line_count})"
-        )
-
-
-def normalize_line_endings(text: str) -> str:
-    """Convert all line endings to Unix style (\n)."""
-    return text.replace("\r\n", "\n")
-
-
-def normalize_whitespace(text: str) -> str:
-    """Normalize whitespace while preserving overall structure."""
-    # Collapse multiple spaces into one
-    result = re.sub(r"[ \t]+", " ", text)
-    # Trim whitespace at line beginnings and endings
-    result = "\n".join(line.strip() for line in result.split("\n"))
-    return result
-
-
-def get_line_indentation(line: str) -> str:
-    """Extract the indentation (leading whitespace) from a line."""
-    match = re.match(r"^(\s*)", line)
-    return match.group(1) if match else ""
-
-
-def preserve_indentation(old_text: str, new_text: str) -> str:
-    """Preserve the indentation pattern from old_text in new_text.
-
-    This function adapts the indentation in the new text to match the pattern
-    established in the old text, maintaining relative indentation between lines.
-    """
-    # Special case for markdown lists: don't modify indentation if the new text has list markers
-    if ("- " in new_text or "* " in new_text) and (
-        "- " in old_text or "* " in old_text
-    ):
-        return new_text
-
-    old_lines = old_text.split("\n")
-    new_lines = new_text.split("\n")
-
-    # Handle empty content
-    if not old_lines or not new_lines:
-        return new_text
-
-    # Extract the base indentation from the first line of old text
-    base_indent = (
-        get_line_indentation(old_lines[0]) if old_lines and old_lines[0].strip() else ""
-    )
-
-    # Pre-calculate indentation maps for efficiency
-    old_indents = {
-        i: get_line_indentation(line)
-        for i, line in enumerate(old_lines)
-        if line.strip()
-    }
-    new_indents = {
-        i: get_line_indentation(line)
-        for i, line in enumerate(new_lines)
-        if line.strip()
-    }
-
-    # Calculate first line indentation length for relative adjustments
-    first_new_indent_len = len(new_indents.get(0, "")) if new_indents else 0
-
-    # Process each line with the appropriate indentation
-    result_lines = []
-    for i, new_line in enumerate(new_lines):
-        # Empty lines remain empty
-        if not new_line.strip():
-            result_lines.append("")
-            continue
-
-        # Get current indentation in new text
-        new_indent = new_indents.get(i, "")
-
-        # Determine target indentation based on context
-        if i < len(old_lines) and i in old_indents:
-            # Matching line in old text - use its indentation
-            target_indent = old_indents[i]
-        elif i == 0:
-            # First line gets base indentation
-            target_indent = base_indent
-        elif first_new_indent_len > 0:
-            # Calculate relative indentation for other lines
-            curr_indent_len = len(new_indent)
-            indent_diff = max(0, curr_indent_len - first_new_indent_len)
-
-            # Default to base indent but look for better match from previous lines
-            target_indent = base_indent
-
-            # Find the closest previous line with appropriate indentation to use as template
-            for prev_i in range(i - 1, -1, -1):
-                if prev_i in old_indents and prev_i in new_indents:
-                    prev_old = old_indents[prev_i]
-                    prev_new = new_indents[prev_i]
-                    if len(prev_new) <= curr_indent_len:
-                        # Add spaces to match the relative indentation
-                        relative_spaces = curr_indent_len - len(prev_new)
-                        target_indent = prev_old + " " * relative_spaces
-                        break
-        else:
-            # When first line has no indentation, use the new text's indentation
-            target_indent = new_indent
-
-        # Apply the calculated indentation
-        result_lines.append(target_indent + new_line.lstrip())
-
-    return "\n".join(result_lines)
-
-
-def find_exact_match(content: str, pattern: str) -> MatchResult:
-    """Find an exact string match in the content."""
-    if pattern in content:
-        lines_before = content[: content.find(pattern)].count("\n")
-        line_count = pattern.count("\n") + 1
-        return MatchResult(
-            matched=True,
-            line_index=lines_before,
-            line_count=line_count,
-            details="Exact match found",
-        )
-    return MatchResult(matched=False, details="No exact match found")
-
-
-def create_unified_diff(original: str, modified: str, file_path: str) -> str:
-    """Create a unified diff between original and modified content."""
-    original_lines = original.splitlines(True)
-    modified_lines = modified.splitlines(True)
-
-    diff_lines = difflib.unified_diff(
-        original_lines,
-        modified_lines,
-        fromfile=f"a/{file_path}",
-        tofile=f"b/{file_path}",
-        lineterm="",
-    )
-
-    return "".join(diff_lines)
-
-
-def apply_edits(
-    content: str, edits: List[EditOperation], options: EditOptions = None
-) -> Tuple[str, List[Dict[str, Any]], bool]:
-    """
-    Apply a list of edit operations to the content.
-
-    Args:
-        content: The original file content
-        edits: List of edit operations
-        options: Formatting options
-
-    Returns:
-        Tuple of (modified content, list of match results, changes_made flag)
-    """
-    if options is None:
-        options = EditOptions()
-
-    # Normalize line endings
-    normalized_content = normalize_line_endings(content)
-
-    # Store match results for reporting
-    match_results = []
-    changes_made = False
-
-    # Process each edit
-    for i, edit in enumerate(edits):
-        normalized_old = normalize_line_endings(edit.old_text)
-        normalized_new = normalize_line_endings(edit.new_text)
-
-        # Skip if the replacement text is identical to the old text
-        if normalized_old == normalized_new:
-            match_results.append(
-                {
-                    "edit_index": i,
-                    "match_type": "skipped",
-                    "details": "No change needed - text already matches desired state",
-                }
-            )
-            continue
-
-        # Check if the new_text is already in the content
-        if (
-            normalized_new in normalized_content
-            and normalized_old not in normalized_content
-        ):
-            match_results.append(
-                {
-                    "edit_index": i,
-                    "match_type": "skipped",
-                    "details": "Edit already applied - content already in desired state",
-                }
-            )
-            continue
-
-        # Try exact match
-        exact_match = find_exact_match(normalized_content, normalized_old)
-
-        # Process exact match (if found)
-        if exact_match.matched:
-            # For exact matches, find position in content
-            start_pos = normalized_content.find(normalized_old)
-            end_pos = start_pos + len(normalized_old)
-
-            # Apply indentation preservation if requested
-            if options.preserve_indentation:
-                normalized_new = preserve_indentation(normalized_old, normalized_new)
-
-            # Apply the edit
-            normalized_content = (
-                normalized_content[:start_pos]
-                + normalized_new
-                + normalized_content[end_pos:]
-            )
-            changes_made = True
-
-            match_results.append(
-                {
-                    "edit_index": i,
-                    "match_type": "exact",
-                    "line_index": exact_match.line_index,
-                    "line_count": exact_match.line_count,
-                }
-            )
-        else:
-            match_results.append(
-                {
-                    "edit_index": i,
-                    "match_type": "failed",
-                    "details": "No exact match found",
-                }
-            )
-            # Log the failed match
-            logger.warning(f"Could not find exact match for edit {i}")
-
-    return normalized_content, match_results, changes_made
 
 
 def edit_file(
@@ -289,166 +17,275 @@ def edit_file(
     project_dir: Path = None,
 ) -> Dict[str, Any]:
     """
-    Make selective edits to a file.
+    Make selective edits to a file with simplified, reliable processing.
 
-    Features:
-        - Line-based and multi-line content matching
-        - Whitespace normalization with indentation preservation
-        - Multiple simultaneous edits with correct positioning
-        - Indentation style detection and preservation
-        - Git-style diff output with context
-        - Smart detection of already-applied edits
+    This simplified version focuses on reliability over advanced features:
+    - Exact string matching only (no fuzzy matching)
+    - Basic indentation preservation (preserve exactly as provided)
+    - Clear error reporting
+    - Single pass editing
 
     Args:
-        file_path: Path to the file to edit (relative to project directory)
-        edits: List of edit operations with old_text and new_text
-        dry_run: If True, only preview changes without applying them
-        options: Optional formatting settings
-            - preserve_indentation: Keep existing indentation (default: True)
-            - normalize_whitespace: Normalize spaces (default: True)
-        project_dir: Project directory path
+        file_path: Path to file (relative to project_dir if provided)
+        edits: List of {'old_text': str, 'new_text': str} operations
+        dry_run: If True, return diff without writing changes
+        options: Optional settings (preserve_indentation: bool, default True)
+        project_dir: Base directory for relative paths
 
     Returns:
-        Dict with diff output and match information including success status
+        {
+            'success': bool,
+            'diff': str,  # unified diff or empty if no changes
+            'message': str,  # human readable status (optional)
+            'match_results': List[Dict],  # for compatibility
+            'file_path': str,
+            'dry_run': bool
+        }
     """
-    # Validate parameters
-    if not file_path or not isinstance(file_path, str):
-        logger.error(f"Invalid file path: {file_path}")
-        raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
-    # If project_dir is provided, normalize the path
-    if project_dir is not None:
+    # Input validation
+    if not file_path or not isinstance(file_path, str):
+        return _error_result(f"Invalid file_path: {file_path}")
+
+    if not isinstance(edits, list) or not edits:
+        return _error_result("edits must be a non-empty list")
+
+    # Resolve file path
+    if project_dir:
         abs_path, rel_path = normalize_path(file_path, project_dir)
         file_path = str(abs_path)
+    else:
+        abs_path = Path(file_path)
 
-    # Validate file path exists
-    if not os.path.isfile(file_path):
-        logger.error(f"File not found: {file_path}")
-        raise FileNotFoundError(f"File not found: {file_path}")
+    if not abs_path.exists():
+        raise FileNotFoundError(f"File not found: {abs_path}")
+
+    if not abs_path.is_file():
+        raise ValueError(f"Not a file: {abs_path}")
 
     # Read file content
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(abs_path, "r", encoding="utf-8") as f:
             original_content = f.read()
-    except UnicodeDecodeError as e:
-        logger.error(f"Unicode decode error while reading {file_path}: {str(e)}")
-        raise ValueError(
-            f"File '{file_path}' contains invalid characters. Ensure it's a valid text file."
-        ) from e
+    except UnicodeDecodeError:
+        return _error_result(f"File contains invalid UTF-8: {abs_path}", file_path)
     except Exception as e:
-        logger.error(f"Error reading file {file_path}: {str(e)}")
-        raise
+        return _error_result(f"Cannot read file: {e}", file_path)
 
-    # Convert edits to EditOperation objects
-    edit_operations = []
-    for edit in edits:
-        old_text = edit.get("old_text")
-        new_text = edit.get("new_text")
-        if old_text is None or new_text is None:
-            logger.error(f"Invalid edit operation: {edit}")
-            raise ValueError(
-                "Edit operations must contain 'old_text' and 'new_text' fields."
+    # Validate edit operations
+    for i, edit in enumerate(edits):
+        if not isinstance(edit, dict):
+            return _error_result(
+                f"Edit {i} must be a dict, got {type(edit)}", file_path
             )
-        edit_operations.append(EditOperation(old_text=old_text, new_text=new_text))
 
-    # Set up options with defaults or provided values
-    edit_options = EditOptions(
-        preserve_indentation=(
-            options.get("preserve_indentation", True) if options else True
-        ),
-        normalize_whitespace=(
-            options.get("normalize_whitespace", True) if options else True
-        ),
+        if "old_text" not in edit or "new_text" not in edit:
+            return _error_result(
+                f"Edit {i} missing required keys 'old_text' or 'new_text'", file_path
+            )
+
+        if not isinstance(edit["old_text"], str) or not isinstance(
+            edit["new_text"], str
+        ):
+            return _error_result(f"Edit {i} values must be strings", file_path)
+
+    # Extract options
+    preserve_indentation = True
+    if options and "preserve_indentation" in options:
+        preserve_indentation = options["preserve_indentation"]
+
+    # Apply edits sequentially
+    current_content = original_content
+    match_results = []
+    edits_applied = 0
+    edits_failed = 0
+
+    for i, edit in enumerate(edits):
+        old_text = edit["old_text"]
+        new_text = edit["new_text"]
+
+        # Skip if no change needed
+        if old_text == new_text:
+            match_results.append(
+                {
+                    "edit_index": i,
+                    "match_type": "skipped",
+                    "details": "No change needed - text already matches desired state",
+                }
+            )
+            continue
+
+        # Check if old_text exists in current content
+        if old_text in current_content:
+            # Apply indentation preservation if requested
+            final_new_text = new_text
+            if preserve_indentation:
+                final_new_text = _preserve_basic_indentation(old_text, new_text)
+
+            # Apply replacement (only first occurrence)
+            current_content = current_content.replace(old_text, final_new_text, 1)
+            match_results.append(
+                {
+                    "edit_index": i,
+                    "match_type": "exact",
+                    "line_index": original_content[: original_content.find(old_text)].count(
+                        "\n"
+                    ),
+                    "line_count": old_text.count("\n") + 1,
+                }
+            )
+            edits_applied += 1
+        else:
+            # Check if edit is already applied (new_text exists and old_text doesn't)
+            if preserve_indentation:
+                # Need to check both the original new_text and the indentation-preserved version
+                final_new_text = _preserve_basic_indentation(old_text, new_text)
+                edit_already_applied = (final_new_text in current_content) or (new_text in current_content)
+            else:
+                edit_already_applied = new_text in current_content
+            
+            if edit_already_applied:
+                match_results.append(
+                    {
+                        "edit_index": i,
+                        "match_type": "skipped",
+                        "details": "Edit already applied - content already in desired state",
+                    }
+                )
+            else:
+                match_results.append(
+                    {
+                        "edit_index": i,
+                        "match_type": "failed",
+                        "details": f"Text not found: {_truncate(old_text)}",
+                    }
+                )
+                edits_failed += 1
+
+    # Determine success - success if no edits failed (even if no changes made due to already applied)
+    success = edits_failed == 0
+    changes_made = current_content != original_content
+
+    # Generate diff
+    diff = ""
+    if changes_made:
+        diff = _create_diff(original_content, current_content, str(abs_path))
+
+    # Create result message
+    message = None
+    if edits_failed > 0:
+        message = f"Failed to find exact match for {edits_failed} edit(s)"
+    elif not changes_made:
+        message = "No changes needed - content already in desired state"
+
+    # Write changes if not dry run
+    if not dry_run and changes_made and success:
+        try:
+            with open(abs_path, "w", encoding="utf-8") as f:
+                f.write(current_content)
+        except Exception as e:
+            return _error_result(f"Cannot write file: {e}", file_path)
+
+    result = {
+        "success": success,
+        "diff": diff,
+        "match_results": match_results,
+        "file_path": file_path,
+        "dry_run": dry_run,
+    }
+
+    if message:
+        result["message"] = message
+
+    # Add error field when there are failures for test compatibility
+    if not success and edits_failed > 0:
+        result["error"] = f"Failed to find exact match for {edits_failed} edit(s)"
+
+    return result
+
+
+def _error_result(error_msg: str, file_path: str = "") -> Dict[str, Any]:
+    """Helper to create error result in expected format"""
+    logger.error(error_msg)
+    return {
+        "success": False,
+        "error": error_msg,
+        "diff": "",
+        "match_results": [
+            {"edit_index": 0, "match_type": "failed", "details": error_msg}
+        ],
+        "file_path": file_path,
+        "dry_run": False,
+    }
+
+
+def _truncate(text: str, max_len: int = 50) -> str:
+    """Truncate text for error messages"""
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 3] + "..."
+
+
+def _create_diff(original: str, modified: str, filename: str) -> str:
+    """Create unified diff between original and modified content"""
+    original_lines = original.splitlines(keepends=True)
+    modified_lines = modified.splitlines(keepends=True)
+
+    return "".join(
+        difflib.unified_diff(
+            original_lines,
+            modified_lines,
+            fromfile=f"a/{filename}",
+            tofile=f"b/{filename}",
+            lineterm="",
+        )
     )
 
-    # Apply edits
-    try:
-        modified_content, match_results, changes_made = apply_edits(
-            original_content, edit_operations, edit_options
-        )
 
-        # Check for actual failures and already applied edits
-        failed_matches = [r for r in match_results if r.get("match_type") == "failed"]
-        already_applied = [
-            r
-            for r in match_results
-            if r.get("match_type") == "skipped"
-            and "already applied" in r.get("details", "")
-        ]
+def _preserve_basic_indentation(old_text: str, new_text: str) -> str:
+    """
+    Simple indentation preservation: match leading whitespace of first line.
 
-        # Handle common result cases
-        result = {
-            "match_results": match_results,
-            "file_path": file_path,
-            "dry_run": dry_run,
-        }
+    Much simpler than the original complex version - just copies the leading
+    whitespace from the first line of old_text to all lines of new_text.
+    """
+    old_lines = old_text.split("\n")
+    new_lines = new_text.split("\n")
 
-        # Case 1: Failed matches
-        if failed_matches:
-            result.update(
-                {
-                    "success": False,
-                    "error": "Failed to find exact match for one or more edits",
-                }
-            )
-            return result
+    if not old_lines or not new_lines:
+        return new_text
 
-        # Case 2: No changes needed (already applied or identical content)
-        if not changes_made or (already_applied and len(already_applied) == len(edits)):
-            result.update(
-                {
-                    "success": True,
-                    "diff": "",  # Empty diff indicates no changes
-                    "message": "No changes needed - content already in desired state",
-                }
-            )
-            return result
+    # Extract leading whitespace from first line of old_text
+    first_old_line = old_lines[0]
+    leading_whitespace = ""
+    for char in first_old_line:
+        if char in " \t":
+            leading_whitespace += char
+        else:
+            break
 
-        # Case 3: Changes needed - create diff
-        diff = create_unified_diff(original_content, modified_content, file_path)
-        result.update({"diff": diff, "success": True})
+    # Apply to all lines of new_text (except empty lines)
+    enhanced_new_lines = []
+    for i, line in enumerate(new_lines):
+        if i == 0:
+            # First line: replace its leading whitespace with old's leading whitespace
+            enhanced_new_lines.append(leading_whitespace + line.lstrip())
+        elif line.strip():  # Non-empty line
+            # Other lines: preserve relative indentation but add base indentation
+            enhanced_new_lines.append(leading_whitespace + line)
+        else:
+            # Empty lines stay empty
+            enhanced_new_lines.append("")
 
-        # Write changes if not in dry run mode
-        if not dry_run and changes_made:
-            try:
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(modified_content)
-            except UnicodeEncodeError as e:
-                logger.error(
-                    f"Unicode encode error while writing to {file_path}: {str(e)}"
-                )
-                result.update(
-                    {
-                        "success": False,
-                        "error": "Content contains characters that cannot be encoded. Please check the encoding.",
-                    }
-                )
-                return result
-            except Exception as e:
-                logger.error(f"Error writing to file {file_path}: {str(e)}")
-                result.update({"success": False, "error": str(e)})
-                return result
+    return "\n".join(enhanced_new_lines)
 
-        return result
 
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f"Exception in edit_file: {error_msg}")
+# Legacy compatibility functions (simplified versions)
+def normalize_line_endings(text: str) -> str:
+    """Convert all line endings to Unix style (\n)."""
+    return text.replace("\r\n", "\n")
 
-        # Provide error information with match results if available
-        return {
-            "success": False,
-            "error": error_msg,
-            "match_results": (
-                match_results
-                if "match_results" in locals() and match_results
-                else [
-                    {
-                        "edit_index": 0,
-                        "match_type": "failed",
-                        "details": "Exception encountered: " + error_msg,
-                    }
-                ]
-            ),
-            "file_path": file_path,
-        }
+
+def create_unified_diff(original: str, modified: str, file_path: str) -> str:
+    """Create a unified diff between original and modified content."""
+    return _create_diff(original, modified, file_path)
