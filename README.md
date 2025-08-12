@@ -8,7 +8,7 @@ This MCP server enables AI assistants like Claude (via Claude Desktop) or other 
 
 - Read your existing code and project files
 - Write new files with generated content
-- Update and modify existing files with precision using pattern matching
+- Update and modify existing files with precision using exact string matching
 - Make selective edits to code without rewriting entire files
 - Delete files when needed
 - Review repositories to provide analysis and recommendations
@@ -26,7 +26,7 @@ By connecting your AI assistant to your filesystem, you can transform your workf
 - `save_file`: Write content to a file atomically
 - `append_file`: Append content to the end of a file
 - `delete_this_file`: Delete a specified file from the filesystem
-- `edit_file`: Make selective edits using advanced pattern matching
+- `edit_file`: Make selective edits using exact string matching
 - `Structured Logging`: Comprehensive logging system with both human-readable and JSON formats
 
 ## Installation
@@ -220,7 +220,7 @@ The server exposes the following MCP tools:
 | `save_file` | Creates or overwrites files atomically | "Create a new file called app.js" |
 | `append_file` | Adds content to existing files | "Add a function to utils.js" |
 | `delete_this_file` | Removes files from the filesystem | "Delete the temporary.txt file" |
-| `edit_file` | Makes selective edits using pattern matching | "Fix the bug in the fetch function" |
+| `edit_file` | Makes selective edits using exact string matching | "Fix the bug in the fetch function" |
 
 ### Tool Details
 
@@ -251,23 +251,53 @@ The server exposes the following MCP tools:
 - Note: This operation is irreversible and will permanently remove the file
 
 #### Edit File
-- Parameters:
-  - `file_path` (string): File to edit
-  - `edits` (array): List of edit operations, each containing:
-    - `old_text` (string): Exact text to be replaced
-    - `new_text` (string): Replacement text
-  - `dry_run` (boolean, optional): Preview changes without applying
-  - `options` (object, optional): Formatting settings
-    - `preserve_indentation` (boolean, default: False): Preserve leading whitespace from original text
-- Features:
-  - **Exact string matching only** - no fuzzy matching for maximum reliability
-  - **Basic indentation preservation** - maintains leading whitespace from the original text
-  - **First occurrence replacement** - only replaces the first match of old_text
-  - **Single-pass editing** - processes edits sequentially for predictable results
-  - **Clear error reporting** - specific messages when text patterns are not found
-  - **Git-style diff output** - shows exactly what changed
-  - **Already-applied edit detection** - skips edits when content is already in desired state
-  - **Simplified implementation** - fewer edge cases, more reliable behavior
+Makes precise edits to files using exact string matching. This tool is designed for reliability and predictability.
+
+**Parameters:**
+- `file_path` (string): File to edit (relative to project directory)
+- `edits` (array): List of edit operations, each containing:
+  - `old_text` (string): Exact text to find and replace (must match exactly)
+  - `new_text` (string): Replacement text
+- `dry_run` (boolean, optional): Preview changes without applying (default: False)
+- `options` (object, optional): Formatting settings
+  - `preserve_indentation` (boolean, default: False): Apply indentation from old_text to new_text
+
+**Key Characteristics:**
+- **Exact string matching only** - The `old_text` must match exactly (case-sensitive, whitespace-sensitive)
+- **No fuzzy or partial matching** - For maximum reliability and predictability
+- **First occurrence replacement** - Only replaces the first match of each `old_text` pattern
+- **Sequential processing** - Edits are applied in order, with each edit seeing the results of previous edits
+- **Already-applied detection** - Automatically detects when edits are already applied (no-op optimization)
+- **Git-style diff output** - Shows exactly what changed in unified diff format
+- **Clear error reporting** - Specific messages when text patterns are not found
+
+**Examples:**
+```python
+# Basic text replacement
+edit_file("config.py", [
+    {"old_text": "DEBUG = False", "new_text": "DEBUG = True"}
+])
+
+# Multiple edits in one operation
+edit_file("app.py", [
+    {"old_text": "def old_function():", "new_text": "def new_function():"},
+    {"old_text": "old_function()", "new_text": "new_function()"}
+])
+
+# Preview changes without applying
+edit_file("code.py", edits, dry_run=True)
+
+# With indentation preservation
+edit_file("indented.py", [
+    {"old_text": "    old_code()", "new_text": "new_code()"}
+], options={"preserve_indentation": True})
+```
+
+**Important Notes:**
+- The text in `old_text` must match exactly - including spacing, capitalization, and line breaks
+- Use `\n` for line breaks in multi-line replacements
+- If `old_text` appears multiple times, only the first occurrence is replaced
+- Consider using `dry_run=True` to preview changes before applying them
 
 ## Security Features
 
