@@ -129,13 +129,13 @@ def edit_file(
                     indentation_info = indentation_message
 
             # Apply replacement (only first occurrence)
+            old_text_position = current_content.find(old_text)
+            line_index = current_content[:old_text_position].count("\n")
             current_content = current_content.replace(old_text, final_new_text, 1)
             match_result = {
                 "edit_index": i,
                 "match_type": "exact",
-                "line_index": original_content[: original_content.find(old_text)].count(
-                    "\n"
-                ),
+                "line_index": line_index,
                 "line_count": old_text.count("\n") + 1,
             }
             if indentation_info:
