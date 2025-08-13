@@ -5,31 +5,21 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from src.file_tools.edit_file import (
-    EditOperation,
-    MatchResult,
-    apply_edits,
     create_unified_diff,
     edit_file,
-    preserve_indentation,
+    normalize_line_endings,
 )
 
 
 class TestEditFileIndentationIssues(unittest.TestCase):
-    """Tests specifically designed to highlight indentation handling challenges."""
+    """Tests specifically designed to test simplified indentation handling."""
 
-    def test_indentation_approach(self):
-        """Test the indentation handling approach."""
-        # Create a simple test case
-        old = "    def test():\n        if True:\n            return 1\n        else:\n            return 0"
-        new = "def improved_test():\n    if condition:\n        return 2\n    else:\n        return -1"
-
-        # Apply our indentation preservation
-        result = preserve_indentation(old, new)
-
-        # The result should preserve the original indentation pattern
-        expected = "    def improved_test():\n        if condition:\n            return 2\n        else:\n            return -1"
-
-        self.assertEqual(result, expected)
+    def test_normalize_line_endings(self):
+        """Test line ending normalization."""
+        text_with_mixed = "line1\r\nline2\nline3\r\n"
+        normalized = normalize_line_endings(text_with_mixed)
+        expected = "line1\nline2\nline3\n"
+        self.assertEqual(normalized, expected)
 
     def setUp(self):
         # Create a temporary directory and file for testing
@@ -87,6 +77,30 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             result2["message"], "No changes needed - content already in desired state"
         )
 
+    def test_false_positive_already_applied_bug_fix(self):
+        """Test fix for false positive in already-applied detection where new_text appears elsewhere."""
+        # Create a file where new_text appears elsewhere but edit should still be applied
+        with open(self.test_file, "w", encoding="utf-8") as f:
+            f.write('function_name = "test"\nprint("test")\n')
+
+        # This edit should be applied, not skipped due to "test" appearing in print statement
+        edits = [{"old_text": "function_name", "new_text": "test"}]
+        result = edit_file(str(self.test_file), edits)
+
+        # Should succeed and actually make the change
+        self.assertTrue(result["success"])
+        self.assertNotEqual(
+            result["diff"], "", "Edit should produce a diff, not be skipped"
+        )
+
+        # Verify the edit was applied correctly
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn('test = "test"', content)
+        self.assertNotIn('function_name = "test"', content)
+        # The print statement should remain unchanged
+        self.assertIn('print("test")', content)
+
     def test_first_occurrence_replacement(self):
         """Test that only the first occurrence of a pattern is replaced."""
         # Create a file with repeating identical patterns
@@ -130,19 +144,32 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             "Only one occurrence should be replaced with the new pattern",
         )
 
-    def test_mixed_tab_space_indentation(self):
-        """Test handling of mixed tab and space indentation."""
-        # Create test with tabs and spaces
-        old = "def outer():\n\tdef inner():\n\t    # Mixed tabs and spaces\n\t    return True"
-        new = "def modified():\n    def inner_func():\n        # All spaces now\n        return False"
+    def test_basic_indentation_preservation(self):
+        """Test that basic indentation is preserved in file edits."""
+        # Create a test file with indented content
+        with open(self.test_file, "w", encoding="utf-8") as f:
+            f.write("    def test_function():\n        return 'test'\n")
 
-        # Apply our indentation preservation
-        result = preserve_indentation(old, new)
+        # Edit with different indentation in new_text
+        edits = [
+            {
+                "old_text": "    def test_function():\n        return 'test'",
+                "new_text": "def modified_function():\n    return 'modified'",
+            }
+        ]
 
-        # Should maintain the original indentation style
-        expected = "def modified():\n\tdef inner_func():\n\t    # All spaces now\n\t    return False"
+        # Explicitly enable preserve_indentation
+        options = {"preserve_indentation": True}
+        result = edit_file(str(self.test_file), edits, options=options)
+        self.assertTrue(result["success"])
 
-        self.assertEqual(result, expected)
+        # Check that indentation was preserved
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Should preserve the 4-space indentation from original
+        self.assertIn("    def modified_function():", content)
+        self.assertIn("        return 'modified'", content)
 
     def test_snake_case_options(self):
         """Test that only snake_case options are supported."""

@@ -5,28 +5,17 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from src.file_tools.edit_file import (
-    EditOperation,
-    MatchResult,
-    apply_edits,
     create_unified_diff,
     edit_file,
-    preserve_indentation,
+    normalize_line_endings,
 )
 
 
 class TestEditFileUtils(unittest.TestCase):
-    def test_preserve_indentation(self):
-        old_text = "    def function():\n        return True"
-        new_text = "def new_function():\n    return False"
-        preserved = preserve_indentation(old_text, new_text)
-        self.assertEqual(preserved, "    def new_function():\n        return False")
-
-    def test_preserve_indentation_empty_lines(self):
-        # Test with empty lines to ensure they're preserved correctly
-        old_text = "    def function():\n\n        return True"
-        new_text = "def new_function():\n\n    return False"
-        preserved = preserve_indentation(old_text, new_text)
-        self.assertEqual(preserved, "    def new_function():\n\n        return False")
+    def test_normalize_line_endings(self):
+        text_with_crlf = "line1\r\nline2\r\nline3"
+        normalized = normalize_line_endings(text_with_crlf)
+        self.assertEqual(normalized, "line1\nline2\nline3")
 
     def test_create_unified_diff(self):
         original = "line1\nline2\nline3"
@@ -38,46 +27,7 @@ class TestEditFileUtils(unittest.TestCase):
         self.assertIn("+modified", diff)
 
 
-class TestApplyEdits(unittest.TestCase):
-    def test_apply_edits_exact_match(self):
-        content = "def old_function():\n    return True"
-        edits = [EditOperation(old_text="old_function", new_text="new_function")]
-        modified, results, changes_made = apply_edits(content, edits)
-        self.assertEqual(modified, "def new_function():\n    return True")
-        self.assertEqual(results[0]["match_type"], "exact")
-
-    def test_apply_edits_multiple(self):
-        content = (
-            "def function_one():\n    return 1\n\ndef function_two():\n    return 2"
-        )
-        edits = [
-            EditOperation(old_text="function_one", new_text="function_1"),
-            EditOperation(old_text="function_two", new_text="function_2"),
-        ]
-        modified, results, changes_made = apply_edits(content, edits)
-        self.assertEqual(
-            modified,
-            "def function_1():\n    return 1\n\ndef function_2():\n    return 2",
-        )
-        self.assertEqual(len(results), 2)
-
-    def test_apply_edits_preserve_indentation(self):
-        content = "    if condition:\n        return True"
-        edits = [
-            EditOperation(
-                old_text="if condition:\n        return True",
-                new_text="if new_condition:\n    return False",
-            )
-        ]
-        modified, results, changes_made = apply_edits(content, edits)
-        self.assertEqual(modified, "    if new_condition:\n        return False")
-
-    def test_apply_edits_no_match(self):
-        content = "def function():\n    return True"
-        edits = [EditOperation(old_text="nonexistent", new_text="replacement")]
-        modified, results, changes_made = apply_edits(content, edits)
-        # Check that the match was marked as failed
-        self.assertEqual(results[0]["match_type"], "failed")
+# TestApplyEdits class removed as apply_edits is now internal to edit_file
 
 
 class TestEditFile(unittest.TestCase):
