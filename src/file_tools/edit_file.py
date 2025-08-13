@@ -144,15 +144,17 @@ def edit_file(
             match_results.append(match_result)
             edits_applied += 1
         else:
-            # Check if edit is already applied (new_text exists and old_text doesn't)
+            # Check if edit is already applied using contextual verification
             if preserve_indentation:
                 # Need to check both the original new_text and the indentation-preserved version
                 final_new_text, _ = _preserve_basic_indentation(old_text, new_text)
-                edit_already_applied = (final_new_text in current_content) or (
-                    new_text in current_content
-                )
+                edit_already_applied = _is_edit_already_applied(
+                    current_content, old_text, final_new_text
+                ) or _is_edit_already_applied(current_content, old_text, new_text)
             else:
-                edit_already_applied = new_text in current_content
+                edit_already_applied = _is_edit_already_applied(
+                    current_content, old_text, new_text
+                )
 
             if edit_already_applied:
                 match_results.append(
@@ -250,6 +252,25 @@ def _create_diff(original: str, modified: str, filename: str) -> str:
             lineterm="",
         )
     )
+
+
+def _is_edit_already_applied(content: str, old_text: str, new_text: str) -> bool:
+    """
+    Check if an edit has already been applied by verifying contextual conditions.
+
+    Returns True if:
+    1. old_text is NOT found in content AND
+    2. new_text IS found in content
+
+    This prevents false positives where new_text appears elsewhere in the file.
+    """
+    old_text_exists = old_text in content
+    new_text_exists = new_text in content
+
+    # Edit is considered already applied only if:
+    # - The old text is no longer present, AND
+    # - The new text is present
+    return not old_text_exists and new_text_exists
 
 
 def _preserve_basic_indentation(old_text: str, new_text: str) -> tuple[str, str]:

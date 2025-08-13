@@ -77,6 +77,30 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             result2["message"], "No changes needed - content already in desired state"
         )
 
+    def test_false_positive_already_applied_bug_fix(self):
+        """Test fix for false positive in already-applied detection where new_text appears elsewhere."""
+        # Create a file where new_text appears elsewhere but edit should still be applied
+        with open(self.test_file, "w", encoding="utf-8") as f:
+            f.write('function_name = "test"\nprint("test")\n')
+
+        # This edit should be applied, not skipped due to "test" appearing in print statement
+        edits = [{"old_text": "function_name", "new_text": "test"}]
+        result = edit_file(str(self.test_file), edits)
+
+        # Should succeed and actually make the change
+        self.assertTrue(result["success"])
+        self.assertNotEqual(
+            result["diff"], "", "Edit should produce a diff, not be skipped"
+        )
+
+        # Verify the edit was applied correctly
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn('test = "test"', content)
+        self.assertNotIn('function_name = "test"', content)
+        # The print statement should remain unchanged
+        self.assertIn('print("test")', content)
+
     def test_first_occurrence_replacement(self):
         """Test that only the first occurrence of a pattern is replaced."""
         # Create a file with repeating identical patterns
