@@ -47,7 +47,7 @@ asyncio_default_fixture_loop_scope = "function"
 
 [tool.black]
 line-length = 88
-target-version = ["py313"]
+target-version = ["py311"]
 
 [tool.isort]
 profile = "black"
