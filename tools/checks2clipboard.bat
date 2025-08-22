@@ -26,7 +26,7 @@ if %PYLINT_EXIT_CODE% neq 0 (
     exit /b 1
 )
 
-REM Run pytest if Pylint passed
+REM Run pytest after Pylint passes
 pytest tests > checks_output.txt 2>&1
 set PYTEST_EXIT_CODE=%errorlevel%
 
@@ -47,6 +47,35 @@ if %PYTEST_EXIT_CODE% neq 0 (
 
     type checks_clipboard.txt | clip
     echo Pytest detected test failures. Output copied to clipboard.
+    del checks_output.txt
+    del checks_clipboard.txt
+    exit /b 1
+)
+
+REM Run mypy with strict checks if Pylint and Pytest passed
+python -m mypy --strict src tests > checks_output.txt 2>&1
+set MYPY_EXIT_CODE=%errorlevel%
+
+REM Check mypy results
+if %MYPY_EXIT_CODE% neq 0 (
+    (
+        echo INSTRUCTIONS FOR LLM: MYPY TYPE CHECKING RESULTS
+        echo Mypy has found type checking issues in the code:
+        echo - Review type annotation problems
+        echo - Fix issues related to:
+        echo   1. Missing type annotations
+        echo   2. Incompatible types
+        echo   3. Optional/None handling errors
+        echo   4. Function return type mismatches
+        echo - Ensure all code follows strict typing standards
+        echo - special cases:
+        echo   - in the case of `@pytest.fixture`, if necessary `# type: ignore[misc]` could be added
+        echo.
+        type checks_output.txt
+    ) > checks_clipboard.txt
+
+    type checks_clipboard.txt | clip
+    echo Mypy detected type checking errors. Output copied to clipboard.
     del checks_output.txt
     del checks_clipboard.txt
     exit /b 1
