@@ -16,7 +16,7 @@ from src.file_tools.file_operations import (
 from tests.conftest import TEST_CONTENT, TEST_DIR, TEST_FILE
 
 
-def test_save_file(project_dir):
+def test_save_file(project_dir: Path) -> None:
     """Test writing to a file."""
     # Test writing to a file
     result = save_file(str(TEST_FILE), TEST_CONTENT, project_dir=project_dir)
@@ -34,7 +34,7 @@ def test_save_file(project_dir):
     assert content == TEST_CONTENT
 
 
-def test_save_file_atomic_overwrite(project_dir):
+def test_save_file_atomic_overwrite(project_dir: Path) -> None:
     """Test atomically overwriting an existing file."""
     # Create absolute path for test file
     abs_file_path = project_dir / TEST_FILE
@@ -72,7 +72,7 @@ def test_save_file_atomic_overwrite(project_dir):
     assert len(temp_files) == 0
 
 
-def test_save_file_security(project_dir):
+def test_save_file_security(project_dir: Path) -> None:
     """Test security checks in save_file."""
     # Try to write a file outside the project directory
     with pytest.raises(ValueError) as excinfo:
@@ -87,7 +87,7 @@ def test_save_file_security(project_dir):
     assert "outside the project directory" in str(excinfo.value)
 
 
-def test_read_file(project_dir):
+def test_read_file(project_dir: Path) -> None:
     """Test reading from a file."""
     # Create an absolute path for test file creation
     abs_file_path = project_dir / TEST_FILE
@@ -103,7 +103,7 @@ def test_read_file(project_dir):
     assert content == TEST_CONTENT
 
 
-def test_read_file_not_found(project_dir):
+def test_read_file_not_found(project_dir: Path) -> None:
     """Test reading a file that doesn't exist."""
     non_existent_file = TEST_DIR / "non_existent.txt"
 
@@ -117,7 +117,7 @@ def test_read_file_not_found(project_dir):
         read_file(str(non_existent_file), project_dir=project_dir)
 
 
-def test_read_file_security(project_dir):
+def test_read_file_security(project_dir: Path) -> None:
     """Test security checks in read_file."""
     # Try to read a file outside the project directory
     with pytest.raises(ValueError) as excinfo:
@@ -128,7 +128,7 @@ def test_read_file_security(project_dir):
     assert "outside the project directory" in str(excinfo.value)
 
 
-def test_delete_file(project_dir):
+def test_delete_file(project_dir: Path) -> None:
     """Test deleting a file."""
     # Create a file to delete
     file_to_delete = TEST_DIR / "file_to_delete.txt"
@@ -149,7 +149,7 @@ def test_delete_file(project_dir):
     assert not abs_file_path.exists()
 
 
-def test_delete_file_not_found(project_dir):
+def test_delete_file_not_found(project_dir: Path) -> None:
     """Test deleting a file that doesn't exist."""
     non_existent_file = TEST_DIR / "non_existent_file.txt"
 
@@ -163,7 +163,7 @@ def test_delete_file_not_found(project_dir):
         delete_file(str(non_existent_file), project_dir=project_dir)
 
 
-def test_delete_file_is_directory(project_dir):
+def test_delete_file_is_directory(project_dir: Path) -> None:
     """Test attempting to delete a directory."""
     # Create a directory
     dir_path = TEST_DIR / "test_directory"
@@ -187,7 +187,7 @@ def test_delete_file_is_directory(project_dir):
     shutil.rmtree(abs_dir_path)
 
 
-def test_delete_file_security(project_dir):
+def test_delete_file_security(project_dir: Path) -> None:
     """Test security checks in delete_file."""
     # Try to delete a file outside the project directory
     with pytest.raises(ValueError) as excinfo:
@@ -198,7 +198,7 @@ def test_delete_file_security(project_dir):
     assert "outside the project directory" in str(excinfo.value)
 
 
-def test_append_file(project_dir):
+def test_append_file(project_dir: Path) -> None:
     """Test appending content to a file."""
     # Create absolute path for test file
     abs_file_path = project_dir / TEST_FILE
@@ -223,7 +223,7 @@ def test_append_file(project_dir):
     assert content == expected_content
 
 
-def test_append_file_empty(project_dir):
+def test_append_file_empty(project_dir: Path) -> None:
     """Test appending to an empty file."""
     # Create the empty file
     empty_file = TEST_DIR / "empty_file.txt"
@@ -245,7 +245,7 @@ def test_append_file_empty(project_dir):
     assert content == append_content
 
 
-def test_append_file_not_found(project_dir):
+def test_append_file_not_found(project_dir: Path) -> None:
     """Test appending to a file that doesn't exist."""
     non_existent_file = TEST_DIR / "non_existent_append.txt"
 
@@ -259,7 +259,7 @@ def test_append_file_not_found(project_dir):
         append_file(str(non_existent_file), "This should fail", project_dir=project_dir)
 
 
-def test_append_file_is_directory(project_dir):
+def test_append_file_is_directory(project_dir: Path) -> None:
     """Test attempting to append to a directory."""
     # Create a directory
     dir_path = TEST_DIR / "test_append_directory"
@@ -280,7 +280,7 @@ def test_append_file_is_directory(project_dir):
     shutil.rmtree(abs_dir_path)
 
 
-def test_append_file_security(project_dir):
+def test_append_file_security(project_dir: Path) -> None:
     """Test security checks in append_file."""
     # Try to append to a file outside the project directory
     with pytest.raises(ValueError) as excinfo:
@@ -293,7 +293,7 @@ def test_append_file_security(project_dir):
     assert "outside the project directory" in str(excinfo.value)
 
 
-def test_append_file_large_content(project_dir):
+def test_append_file_large_content(project_dir: Path) -> None:
     """Test appending large content to a file."""
     # Create absolute path for test file
     large_file = TEST_DIR / "large_file.txt"

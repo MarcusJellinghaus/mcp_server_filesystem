@@ -10,7 +10,7 @@ from src.file_tools.path_utils import normalize_path
 from tests.conftest import TEST_DIR
 
 
-def test_normalize_path_relative():
+def test_normalize_path_relative() -> None:
     """Test normalizing a relative path."""
     # Define the project directory for testing
     project_dir = Path(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
@@ -25,7 +25,7 @@ def test_normalize_path_relative():
     assert rel_path == relative_path
 
 
-def test_normalize_path_absolute():
+def test_normalize_path_absolute() -> None:
     """Test normalizing an absolute path."""
     # Define the project directory for testing
     project_dir = Path(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
@@ -41,7 +41,7 @@ def test_normalize_path_absolute():
     assert rel_path == str(test_file)
 
 
-def test_normalize_path_security_error_absolute():
+def test_normalize_path_security_error_absolute() -> None:
     """Test security check with an absolute path outside the project directory."""
     # Define the project directory for testing
     project_dir = Path(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
@@ -55,7 +55,7 @@ def test_normalize_path_security_error_absolute():
     assert "outside the project directory" in str(excinfo.value)
 
 
-def test_normalize_path_security_error_relative():
+def test_normalize_path_security_error_relative() -> None:
     """Test security check with a relative path that tries to escape."""
     # Define the project directory for testing
     project_dir = Path(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))

@@ -3,7 +3,8 @@
 import os
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from typing import Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -25,26 +26,26 @@ TEST_CONTENT = "This is API test content."
 
 
 @pytest.fixture(autouse=True)
-def setup_server(project_dir):
+def setup_server(project_dir: Path) -> Generator[None, None, None]:
     """Setup the server with the project directory."""
     set_project_dir(project_dir)
     yield
 
 
-def setup_function():
+def setup_function() -> None:
     """Setup for each test function."""
     # Ensure the test directory exists
     TEST_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def teardown_function():
+def teardown_function() -> None:
     """Teardown for each test function."""
     # Clean up any test files
     if TEST_FILE.exists():
         TEST_FILE.unlink()
 
 
-def test_save_file(project_dir):
+def test_save_file(project_dir: Path) -> None:
     """Test the save_file tool."""
     result = save_file(str(TEST_FILE), TEST_CONTENT)
 
@@ -59,7 +60,7 @@ def test_save_file(project_dir):
     assert content == TEST_CONTENT
 
 
-def test_read_file(project_dir):
+def test_read_file(project_dir: Path) -> None:
     """Test the read_file tool."""
     # Create absolute path for test file
     abs_file_path = project_dir / TEST_FILE
@@ -73,7 +74,7 @@ def test_read_file(project_dir):
     assert content == TEST_CONTENT
 
 
-def test_read_file_not_found():
+def test_read_file_not_found() -> None:
     """Test the read_file tool with a non-existent file."""
     non_existent_file = TEST_DIR / "non_existent.txt"
 
@@ -85,7 +86,7 @@ def test_read_file_not_found():
         read_file(str(non_existent_file))
 
 
-def test_append_file(project_dir):
+def test_append_file(project_dir: Path) -> None:
     """Test the append_file tool."""
     # Create absolute path for test file
     abs_file_path = project_dir / TEST_FILE
@@ -110,7 +111,7 @@ def test_append_file(project_dir):
     assert content == expected_content
 
 
-def test_append_file_empty(project_dir):
+def test_append_file_empty(project_dir: Path) -> None:
     """Test appending to an empty file."""
     # Create the empty file
     empty_file = TEST_DIR / "empty_file.txt"
@@ -132,7 +133,7 @@ def test_append_file_empty(project_dir):
     assert content == append_content
 
 
-def test_append_file_not_found():
+def test_append_file_not_found() -> None:
     """Test appending to a file that doesn't exist."""
     non_existent_file = TEST_DIR / "non_existent_append.txt"
 
@@ -146,7 +147,7 @@ def test_append_file_not_found():
 
 
 @patch("src.server.list_files_util")
-def test_list_directory(mock_list_files, project_dir):
+def test_list_directory(mock_list_files: MagicMock, project_dir: Path) -> None:
     """Test the list_directory tool."""
     # Create absolute path for test file
     abs_file_path = project_dir / TEST_FILE
@@ -169,7 +170,7 @@ def test_list_directory(mock_list_files, project_dir):
 
 
 @patch("src.server.list_files_util")
-def test_list_directory_directory_not_found(mock_list_files, project_dir):
+def test_list_directory_directory_not_found(mock_list_files: MagicMock, project_dir: Path) -> None:
     """Test the list_directory tool with a non-existent directory."""
     # Mock list_files to raise FileNotFoundError
     mock_list_files.side_effect = FileNotFoundError("Directory not found")
@@ -179,7 +180,7 @@ def test_list_directory_directory_not_found(mock_list_files, project_dir):
 
 
 @patch("src.server.list_files_util")
-def test_list_directory_with_gitignore(mock_list_files, project_dir):
+def test_list_directory_with_gitignore(mock_list_files: MagicMock, project_dir: Path) -> None:
     """Test the list_directory tool with gitignore filtering."""
     # Mock list_files to return filtered files
     mock_list_files.return_value = [
@@ -199,7 +200,7 @@ def test_list_directory_with_gitignore(mock_list_files, project_dir):
 
 
 @patch("src.server.list_files_util")
-def test_list_directory_error_handling(mock_list_files, project_dir):
+def test_list_directory_error_handling(mock_list_files: MagicMock, project_dir: Path) -> None:
     """Test error handling in the list_directory tool."""
     # Mock list_files to raise an exception
     mock_list_files.side_effect = Exception("Test error")

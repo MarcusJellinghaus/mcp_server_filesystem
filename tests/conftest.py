@@ -3,6 +3,7 @@
 import os
 import shutil
 import sys
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -38,13 +39,13 @@ def _is_temporary_test_file(item: Path) -> bool:
 
 
 @pytest.fixture
-def project_dir():
+def project_dir() -> Path:
     """Fixture to provide the project directory for tests."""
     return PROJECT_DIR
 
 
 @pytest.fixture(autouse=True)
-def setup_and_cleanup():
+def setup_and_cleanup() -> Generator[None, None, None]:
     """
     Fixture to set up and clean up test environment.
 
