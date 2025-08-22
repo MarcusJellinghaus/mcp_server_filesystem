@@ -2,7 +2,7 @@ import difflib
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .path_utils import normalize_path
 
@@ -13,8 +13,8 @@ def edit_file(
     file_path: str,
     edits: List[Dict[str, str]],
     dry_run: bool = False,
-    options: Dict[str, Any] = None,
-    project_dir: Path = None,
+    options: Optional[Dict[str, Any]] = None,
+    project_dir: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """
     Make selective edits to a file with simplified, reliable processing.
@@ -52,7 +52,7 @@ def edit_file(
 
     # Resolve file path
     if project_dir:
-        abs_path, rel_path = normalize_path(file_path, project_dir)
+        abs_path, _ = normalize_path(file_path, project_dir)
         file_path = str(abs_path)
     else:
         abs_path = Path(file_path)

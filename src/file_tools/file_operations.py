@@ -136,7 +136,7 @@ def save_file(file_path: str, content: str, project_dir: Path) -> bool:
                     f"Unicode encode error while writing to {rel_path}: {str(e)}"
                 )
                 raise ValueError(
-                    f"Content contains characters that cannot be encoded. Please check the encoding."
+                    "Content contains characters that cannot be encoded. Please check the encoding."
                 ) from e
 
         # Atomically replace the target file
@@ -153,8 +153,7 @@ def save_file(file_path: str, content: str, project_dir: Path) -> bool:
         logger.debug(f"Successfully wrote {len(content)} bytes to {rel_path}")
         return True
 
-    except Exception as e:
-        logger.error(f"Error writing to file {rel_path}: {str(e)}")
+    except Exception:
         raise
 
     finally:
@@ -230,8 +229,7 @@ def append_file(file_path: str, content: str, project_dir: Path) -> bool:
         logger.debug(f"Appending {len(content)} bytes to {rel_path}")
         return save_file(file_path, combined_content, project_dir)
 
-    except Exception as e:
-        logger.error(f"Error appending to file {rel_path}: {str(e)}")
+    except Exception:
         raise
 
 

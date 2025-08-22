@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import structlog
 from mcp.server.fastmcp import FastMCP
@@ -23,7 +23,7 @@ structured_logger = structlog.get_logger(__name__)
 mcp = FastMCP("File System Service")
 
 # Store the project directory as a module-level variable
-_project_dir: Path = None
+_project_dir: Optional[Path] = None
 
 
 @log_function_call
@@ -196,7 +196,7 @@ def edit_file(
     file_path: str,
     edits: List[Dict[str, str]],
     dry_run: bool = False,
-    options: Dict[str, Any] = None,
+    options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Make selective edits to files using exact string matching.
 
@@ -233,7 +233,7 @@ def edit_file(
 
     if not isinstance(edits, list) or not edits:
         logger.error(f"Invalid edits parameter: {edits}")
-        raise ValueError(f"Edits must be a non-empty list")
+        raise ValueError("Edits must be a non-empty list")
 
     if _project_dir is None:
         raise ValueError("Project directory has not been set")

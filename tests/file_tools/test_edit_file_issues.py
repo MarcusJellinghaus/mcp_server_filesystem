@@ -14,24 +14,24 @@ from src.file_tools.edit_file import (
 class TestEditFileIndentationIssues(unittest.TestCase):
     """Tests specifically designed to test simplified indentation handling."""
 
-    def test_normalize_line_endings(self):
+    def test_normalize_line_endings(self) -> None:
         """Test line ending normalization."""
         text_with_mixed = "line1\r\nline2\nline3\r\n"
         normalized = normalize_line_endings(text_with_mixed)
         expected = "line1\nline2\nline3\n"
         self.assertEqual(normalized, expected)
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Create a temporary directory and file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
         self.project_dir = Path(self.temp_dir.name)
         self.test_file = self.project_dir / "test_file.py"
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Clean up after tests
         self.temp_dir.cleanup()
 
-    def test_extreme_indentation_handling(self):
+    def test_extreme_indentation_handling(self) -> None:
         """Test handling code with extreme indentation discrepancies."""
         # Create a Python file with complex and inconsistent indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -57,7 +57,7 @@ class TestEditFileIndentationIssues(unittest.TestCase):
         self.assertIn("            if verbose and results['total_lines'] > 0:", content)
         self.assertIn('                print(f"Summary:")', content)
 
-    def test_optimization_edit_already_applied(self):
+    def test_optimization_edit_already_applied(self) -> None:
         """Test the optimization in edit_file that checks if edits are already applied."""
         # Create a file
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -77,7 +77,7 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             result2["message"], "No changes needed - content already in desired state"
         )
 
-    def test_false_positive_already_applied_bug_fix(self):
+    def test_false_positive_already_applied_bug_fix(self) -> None:
         """Test fix for false positive in already-applied detection where new_text appears elsewhere."""
         # Create a file where new_text appears elsewhere but edit should still be applied
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -101,7 +101,7 @@ class TestEditFileIndentationIssues(unittest.TestCase):
         # The print statement should remain unchanged
         self.assertIn('print("test")', content)
 
-    def test_first_occurrence_replacement(self):
+    def test_first_occurrence_replacement(self) -> None:
         """Test that only the first occurrence of a pattern is replaced."""
         # Create a file with repeating identical patterns
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -144,7 +144,7 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             "Only one occurrence should be replaced with the new pattern",
         )
 
-    def test_basic_indentation_preservation(self):
+    def test_basic_indentation_preservation(self) -> None:
         """Test that basic indentation is preserved in file edits."""
         # Create a test file with indented content
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -171,7 +171,7 @@ class TestEditFileIndentationIssues(unittest.TestCase):
         self.assertIn("    def modified_function():", content)
         self.assertIn("        return 'modified'", content)
 
-    def test_snake_case_options(self):
+    def test_snake_case_options(self) -> None:
         """Test that only snake_case options are supported."""
         # Create a test file
         with open(self.test_file, "w", encoding="utf-8") as f:

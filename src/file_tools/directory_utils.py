@@ -7,9 +7,9 @@ We use the external igittigitt library for handling .gitignore patterns.
 import logging
 import os
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
-from igittigitt import IgnoreParser
+from igittigitt import IgnoreParser  # type: ignore[import-not-found]
 
 from .path_utils import normalize_path
 
@@ -40,7 +40,7 @@ def _discover_files(directory: Path, project_dir: Path) -> List[str]:
 
 def read_gitignore_rules(
     gitignore_path: Path,
-) -> Tuple[Optional[Callable], Optional[str]]:
+) -> Tuple[Optional[Callable[..., Any]], Optional[str]]:
     """Read and parse a .gitignore file to create a matcher function.
 
     Args:
@@ -66,7 +66,7 @@ def read_gitignore_rules(
         parser.parse_rule_file(gitignore_path)
 
         # Create a matcher function that mimics the behavior of the old parse_gitignore
-        def matcher(path):
+        def matcher(path: Any) -> bool:
             return parser.match(path)
 
         return matcher, gitignore_content
@@ -77,7 +77,7 @@ def read_gitignore_rules(
 
 
 def apply_gitignore_filter(
-    file_paths: List[str], matcher: Callable, project_dir: Path
+    file_paths: List[str], matcher: Callable[..., Any], project_dir: Path
 ) -> List[str]:
     """Filter a list of file paths using a gitignore matcher function.
 
@@ -128,7 +128,7 @@ def filter_with_gitignore(
     gitignore_path = base_dir / ".gitignore"
 
     # Get the matcher function from the gitignore file
-    matcher, gitignore_content = read_gitignore_rules(gitignore_path)
+    matcher, _ = read_gitignore_rules(gitignore_path)
 
     if matcher is None:
         return file_paths
@@ -155,7 +155,7 @@ def list_files(
     if project_dir is None:
         raise ValueError("Project directory cannot be None")
 
-    abs_path, rel_path = normalize_path(directory, project_dir)
+    abs_path, rel_path = normalize_path(str(directory), project_dir)
 
     if not abs_path.exists():
         raise FileNotFoundError(f"Directory '{directory}' does not exist")

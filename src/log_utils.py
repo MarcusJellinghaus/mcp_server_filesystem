@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional, TypeVar, cast
 
 import structlog
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger.jsonlogger import JsonFormatter  # type: ignore[attr-defined]
 
 # Type variable for function return types
 T = TypeVar("T")
@@ -42,7 +42,7 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
         json_handler = logging.FileHandler(log_file)
 
         # This formatter ensures timestamp and level are included as separate fields in JSON
-        json_formatter = jsonlogger.JsonFormatter(
+        json_formatter = JsonFormatter(
             fmt="%(timestamp)s %(level)s %(name)s %(message)s %(module)s %(funcName)s %(lineno)d",
             timestamp=True,
         )
@@ -159,7 +159,7 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
                 result_for_log = f"<Large result of type {type(result).__name__}, length: {len(str(result))}>"
 
             # Attempt to make result JSON serializable for structured logging
-            serializable_result = None
+            serializable_result: Any = None
             try:
                 if result is not None:
                     json.dumps(result)  # Test if result is JSON serializable
