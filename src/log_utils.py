@@ -154,7 +154,7 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
             elapsed_ms = round((time.time() - start_time) * 1000, 2)
 
             # Handle large results
-            result_for_log = result
+            result_for_log: Any = result
             if isinstance(result, (list, dict)) and len(str(result)) > 1000:
                 result_for_log = f"<Large result of type {type(result).__name__}, length: {len(str(result))}>"
 

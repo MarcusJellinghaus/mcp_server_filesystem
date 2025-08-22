@@ -152,9 +152,6 @@ def save_file(file_path: str, content: str, project_dir: Path) -> bool:
         logger.debug(f"Successfully wrote {len(content)} bytes to {rel_path}")
         return True
 
-    except Exception:
-        raise
-
     finally:
         # Clean up the temporary file if it still exists
         if temp_file and temp_file.exists():
@@ -226,9 +223,6 @@ def append_file(file_path: str, content: str, project_dir: Path) -> bool:
         # Use save_file to write the combined content
         logger.debug(f"Appending {len(content)} bytes to {rel_path}")
         return save_file(file_path, combined_content, project_dir)
-
-    except Exception:
-        raise
 
 
 def delete_file(file_path: str, project_dir: Path) -> bool:
