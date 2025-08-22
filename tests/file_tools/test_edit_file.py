@@ -12,12 +12,12 @@ from src.file_tools.edit_file import (
 
 
 class TestEditFileUtils(unittest.TestCase):
-    def test_normalize_line_endings(self):
+    def test_normalize_line_endings(self) -> None:
         text_with_crlf = "line1\r\nline2\r\nline3"
         normalized = normalize_line_endings(text_with_crlf)
         self.assertEqual(normalized, "line1\nline2\nline3")
 
-    def test_create_unified_diff(self):
+    def test_create_unified_diff(self) -> None:
         original = "line1\nline2\nline3"
         modified = "line1\nmodified\nline3"
         diff = create_unified_diff(original, modified, "test.txt")
@@ -31,7 +31,7 @@ class TestEditFileUtils(unittest.TestCase):
 
 
 class TestEditFile(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # Create a temporary directory and file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
         self.project_dir = Path(self.temp_dir.name)
@@ -39,11 +39,11 @@ class TestEditFile(unittest.TestCase):
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write("def test_function():\n    return 'test'\n")
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Clean up after tests
         self.temp_dir.cleanup()
 
-    def test_edit_file_success(self):
+    def test_edit_file_success(self) -> None:
         edits = [
             {"old_text": "test_function", "new_text": "modified_function"},
             {"old_text": "'test'", "new_text": "'modified'"},
@@ -61,7 +61,7 @@ class TestEditFile(unittest.TestCase):
 
         self.assertEqual(content, "def modified_function():\n    return 'modified'\n")
 
-    def test_edit_file_with_project_dir(self):
+    def test_edit_file_with_project_dir(self) -> None:
         edits = [{"old_text": "test_function", "new_text": "modified_function"}]
 
         # Use relative path with project_dir
@@ -77,7 +77,7 @@ class TestEditFile(unittest.TestCase):
 
         self.assertEqual(content, "def modified_function():\n    return 'test'\n")
 
-    def test_edit_file_dry_run(self):
+    def test_edit_file_dry_run(self) -> None:
         edits = [{"old_text": "test_function", "new_text": "modified_function"}]
 
         result = edit_file(str(self.test_file), edits, dry_run=True)
@@ -92,7 +92,7 @@ class TestEditFile(unittest.TestCase):
 
         self.assertEqual(content, "def test_function():\n    return 'test'\n")
 
-    def test_edit_file_with_options(self):
+    def test_edit_file_with_options(self) -> None:
         edits = [{"old_text": "test_function", "new_text": "modified_function"}]
 
         # Use options parameter with snake_case
@@ -108,13 +108,13 @@ class TestEditFile(unittest.TestCase):
 
         self.assertEqual(content, "def modified_function():\n    return 'test'\n")
 
-    def test_edit_file_not_found(self):
+    def test_edit_file_not_found(self) -> None:
         edits = [{"old_text": "test_function", "new_text": "modified_function"}]
 
         with self.assertRaises(FileNotFoundError):
             edit_file("nonexistent_file.txt", edits)
 
-    def test_edit_file_failed_match(self):
+    def test_edit_file_failed_match(self) -> None:
         edits = [{"old_text": "nonexistent_function", "new_text": "modified_function"}]
 
         result = edit_file(str(self.test_file), edits)
@@ -127,7 +127,7 @@ class TestEditFile(unittest.TestCase):
 class TestEditFileOptimization(unittest.TestCase):
     """Tests for the optimization in edit_file that checks if edits are already applied."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Create a temporary directory and file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
         self.project_dir = Path(self.temp_dir.name)
@@ -135,11 +135,11 @@ class TestEditFileOptimization(unittest.TestCase):
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write("def test_function():\n    return 'test'\n")
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Clean up after tests
         self.temp_dir.cleanup()
 
-    def test_edit_already_applied(self):
+    def test_edit_already_applied(self) -> None:
         # First apply an edit
         edits = [{"old_text": "test_function", "new_text": "modified_function"}]
         result1 = edit_file(str(self.test_file), edits)
@@ -158,17 +158,17 @@ class TestEditFileOptimization(unittest.TestCase):
 class TestEditFileChallenges(unittest.TestCase):
     """Tests that verify specific challenges with the edit_file function."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Create a temporary directory and file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
         self.project_dir = Path(self.temp_dir.name)
         self.test_file = self.project_dir / "test_file.py"
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Clean up after tests
         self.temp_dir.cleanup()
 
-    def test_edit_large_block(self):
+    def test_edit_large_block(self) -> None:
         """Test editing a large block of code."""
         # Create a Python file with nested indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -195,7 +195,7 @@ class TestEditFileChallenges(unittest.TestCase):
         self.assertIn("filtered_data = self.filter_data()", content)
         self.assertIn('"filtered": len(filtered_data),', content)
 
-    def test_multiple_edits_to_same_region(self):
+    def test_multiple_edits_to_same_region(self) -> None:
         """Test handling of multiple edits that target overlapping regions."""
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write(
@@ -226,7 +226,7 @@ class TestEditFileChallenges(unittest.TestCase):
         self.assertIn("    sum_val = x + y + z", content)
         self.assertIn("    product = x * y * (1 if z == 0 else z)", content)
 
-    def test_handling_mixed_indentation(self):
+    def test_handling_mixed_indentation(self) -> None:
         """Test handling files with mixed indentation styles."""
         # Create a file with mixed tabs and spaces indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -250,7 +250,7 @@ class TestEditFileChallenges(unittest.TestCase):
         self.assertIn("    return 1 + 10", content)  # spaces preserved
         self.assertIn("\treturn 2 + 20", content)  # tab preserved
 
-    def test_indentation_changes(self):
+    def test_indentation_changes(self) -> None:
         """Test editing code with extreme indentation discrepancies."""
         # Create a Python file with extreme indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -276,7 +276,7 @@ class TestEditFileChallenges(unittest.TestCase):
         self.assertIn("            if verbose and results['total_lines'] > 0:", content)
         self.assertIn('                print(f"Summary:")', content)
 
-    def test_nested_code_blocks_with_empty_diff(self):
+    def test_nested_code_blocks_with_empty_diff(self) -> None:
         """Test the issue where edit_file reports success but returns empty diffs."""
         # Create a Python file with nested structures
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -332,7 +332,7 @@ class TestEditFileChallenges(unittest.TestCase):
             "Edit operations with no changes needed should still report success",
         )
 
-    def test_first_occurrence_replacement(self):
+    def test_first_occurrence_replacement(self) -> None:
         """Test that only the first occurrence of a pattern is replaced."""
         # Create a file with repeating identical patterns
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -375,7 +375,7 @@ class TestEditFileChallenges(unittest.TestCase):
             "Only one occurrence should be replaced with the new pattern",
         )
 
-    def test_markdown_bullet_point_indentation(self):
+    def test_markdown_bullet_point_indentation(self) -> None:
         """Test proper handling of markdown bullet point indentation."""
         # Step 1: Create a markdown file with nested bullet points
         markdown_file = self.project_dir / "test_markdown.md"

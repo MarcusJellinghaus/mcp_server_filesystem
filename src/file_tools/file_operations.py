@@ -91,8 +91,7 @@ def save_file(file_path: str, content: str, project_dir: Path) -> bool:
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
-
-    if not isinstance(content, str):
+    elif not isinstance(content, str):
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
 
@@ -197,8 +196,7 @@ def append_file(file_path: str, content: str, project_dir: Path) -> bool:
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
-
-    if not isinstance(content, str):
+    elif not isinstance(content, str):
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
 

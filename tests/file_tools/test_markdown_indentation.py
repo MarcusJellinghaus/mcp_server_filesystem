@@ -9,16 +9,16 @@ from src.file_tools.edit_file import edit_file
 class TestMarkdownIndentation(unittest.TestCase):
     """Test specifically for markdown indentation issues."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Create a temporary directory for testing
         self.temp_dir = tempfile.TemporaryDirectory()
         self.project_dir = Path(self.temp_dir.name)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Clean up after tests
         self.temp_dir.cleanup()
 
-    def test_bullet_point_indentation(self):
+    def test_bullet_point_indentation(self) -> None:
         # Create a markdown file with nested bullet points
         markdown_file = self.project_dir / "markdown_test_temp.md"
         with open(markdown_file, "w", encoding="utf-8") as f:

@@ -18,7 +18,7 @@ from src.file_tools.directory_utils import (
 from tests.conftest import TEST_DIR
 
 
-def test_discover_files(project_dir):
+def test_discover_files(project_dir) -> None:
     """Test discovering files in a directory recursively."""
     # Create test directory structure
     test_dir = project_dir / TEST_DIR
@@ -49,7 +49,7 @@ def test_discover_files(project_dir):
     assert rel_paths.issuperset(expected_paths)
 
 
-def test_git_directory_exclusion(project_dir):
+def test_git_directory_exclusion(project_dir) -> None:
     """Test that .git directory is excluded from file discovery."""
     # Create test directory structure
     test_dir = project_dir / TEST_DIR
@@ -82,7 +82,7 @@ def test_git_directory_exclusion(project_dir):
     assert git_path not in discovered_paths
 
 
-def test_read_gitignore_rules_no_file():
+def test_read_gitignore_rules_no_file() -> None:
     """Test reading gitignore rules when no file exists."""
     # Use a temporary directory to ensure no .gitignore exists
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -96,7 +96,7 @@ def test_read_gitignore_rules_no_file():
         assert content is None
 
 
-def test_read_gitignore_rules_with_file():
+def test_read_gitignore_rules_with_file() -> None:
     """Test reading gitignore rules from an existing file."""
     # Create a temporary .gitignore file
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -124,7 +124,7 @@ def test_read_gitignore_rules_with_file():
         assert matcher(not_ignored_file) is False
 
 
-def test_apply_gitignore_filter(project_dir):
+def test_apply_gitignore_filter(project_dir) -> None:
     """Test applying gitignore filter with a predefined matcher."""
 
     # Create a simple matcher function that ignores files with .log extension
@@ -149,7 +149,7 @@ def test_apply_gitignore_filter(project_dir):
     assert apply_gitignore_filter(file_paths, None, project_dir) == file_paths
 
 
-def test_filter_with_gitignore_no_gitignore(project_dir):
+def test_filter_with_gitignore_no_gitignore(project_dir) -> None:
     """Test filtering files when no .gitignore file exists."""
     # Create a list of file paths
     file_paths = [
@@ -172,7 +172,7 @@ def test_filter_with_gitignore_no_gitignore(project_dir):
     assert set(filtered_files) == set(file_paths)
 
 
-def test_list_files_basic(project_dir):
+def test_list_files_basic(project_dir) -> None:
     """Test listing files in a directory."""
     # Create test directory structure
     test_dir = project_dir / TEST_DIR
@@ -211,7 +211,7 @@ def test_list_files_basic(project_dir):
             assert actual_files == expected_files
 
 
-def test_list_files_with_gitignore(project_dir):
+def test_list_files_with_gitignore(project_dir) -> None:
     """Test listing files with gitignore filtering."""
     # Create test directory structure
     test_dir = project_dir / TEST_DIR
@@ -248,7 +248,7 @@ def test_list_files_with_gitignore(project_dir):
             assert not any(f.endswith("ignore.log") for f in files)
 
 
-def test_list_files_without_gitignore(project_dir):
+def test_list_files_without_gitignore(project_dir) -> None:
     """Test listing files without gitignore filtering."""
     # Create test directory structure
     test_dir = project_dir / TEST_DIR
@@ -279,7 +279,7 @@ def test_list_files_without_gitignore(project_dir):
         }
 
 
-def test_list_files_directory_not_found(project_dir):
+def test_list_files_directory_not_found(project_dir) -> None:
     """Test listing files in a non-existent directory."""
     non_existent_dir = "testdata/non_existent_dir"
 
@@ -291,7 +291,7 @@ def test_list_files_directory_not_found(project_dir):
     assert f"Directory '{non_existent_dir}' does not exist" in str(excinfo.value)
 
 
-def test_list_files_not_a_directory(project_dir):
+def test_list_files_not_a_directory(project_dir) -> None:
     """Test listing files on a path that is not a directory."""
     # Create a file
     test_file = project_dir / TEST_DIR / "not_a_dir.txt"
@@ -305,7 +305,7 @@ def test_list_files_not_a_directory(project_dir):
     assert "is not a directory" in str(excinfo.value)
 
 
-def test_list_files_with_exception(project_dir):
+def test_list_files_with_exception(project_dir) -> None:
     """Test handling of unexpected exceptions in list_files."""
     # Mock _discover_files to raise an exception
     with patch(

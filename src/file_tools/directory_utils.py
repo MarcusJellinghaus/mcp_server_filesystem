@@ -67,7 +67,7 @@ def read_gitignore_rules(
 
         # Create a matcher function that mimics the behavior of the old parse_gitignore
         def matcher(path: Any) -> bool:
-            return parser.match(path)
+            return bool(parser.match(path))
 
         return matcher, gitignore_content
 
@@ -77,7 +77,7 @@ def read_gitignore_rules(
 
 
 def apply_gitignore_filter(
-    file_paths: List[str], matcher: Callable[..., Any], project_dir: Path
+    file_paths: List[str], matcher: Optional[Callable[..., Any]], project_dir: Path
 ) -> List[str]:
     """Filter a list of file paths using a gitignore matcher function.
 

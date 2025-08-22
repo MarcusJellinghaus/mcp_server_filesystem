@@ -78,13 +78,11 @@ def edit_file(
             return _error_result(
                 f"Edit {i} must be a dict, got {type(edit)}", file_path
             )
-
-        if "old_text" not in edit or "new_text" not in edit:
+        elif "old_text" not in edit or "new_text" not in edit:
             return _error_result(
                 f"Edit {i} missing required keys 'old_text' or 'new_text'", file_path
             )
-
-        if not isinstance(edit["old_text"], str) or not isinstance(
+        elif not isinstance(edit["old_text"], str) or not isinstance(
             edit["new_text"], str
         ):
             return _error_result(f"Edit {i} values must be strings", file_path)

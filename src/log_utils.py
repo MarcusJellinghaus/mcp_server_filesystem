@@ -165,7 +165,7 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
                     json.dumps(result)  # Test if result is JSON serializable
                     serializable_result = result
             except (TypeError, OverflowError):
-                serializable_result = str(result)
+                serializable_result = str(result) if result is not None else None
 
             # Log completion
             if has_structured:
