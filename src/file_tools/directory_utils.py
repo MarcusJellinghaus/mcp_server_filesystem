@@ -133,9 +133,8 @@ def filter_with_gitignore(
     if matcher is None:
         return file_paths
 
-    else:
-        # Use the matcher for more complex gitignore patterns
-        return apply_gitignore_filter(file_paths, matcher, project_dir)
+    # Use the matcher for more complex gitignore patterns
+    return apply_gitignore_filter(file_paths, matcher, project_dir)
 
 
 def list_files(

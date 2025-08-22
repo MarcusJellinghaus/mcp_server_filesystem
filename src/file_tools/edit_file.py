@@ -324,17 +324,16 @@ def _preserve_basic_indentation(old_text: str, new_text: str) -> tuple[str, str]
         message = f"Applied indentation ({len(old_indent)} spaces) to unindented replacement text"
         return result, message
 
-    elif old_indent and new_indent:
+    if old_indent and new_indent:
         message = f"Preserved existing indentation (old: {len(old_indent)}, new: {len(new_indent)} spaces)"
         return new_text, message
 
-    elif not old_indent and new_indent:
+    if not old_indent and new_indent:
         message = f"Kept new text indentation ({len(new_indent)} spaces, old had none)"
         return new_text, message
 
-    else:
-        # Neither has indentation
-        return new_text, "No indentation processing needed (neither text is indented)"
+    # Neither has indentation
+    return new_text, "No indentation processing needed (neither text is indented)"
 
 
 # Legacy compatibility functions (simplified versions)
