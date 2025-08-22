@@ -1,3 +1,4 @@
+# mypy: warn-unreachable=False
 import difflib
 import logging
 import os
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def edit_file(
     file_path: str,
-    edits: List[Dict[str, str]],
+    edits: List[Dict[str, Any]],
     dry_run: bool = False,
     options: Optional[Dict[str, Any]] = None,
     project_dir: Optional[Path] = None,
@@ -82,9 +83,10 @@ def edit_file(
             return _error_result(
                 f"Edit {i} missing required keys 'old_text' or 'new_text'", file_path
             )
-        if not isinstance(edit["old_text"], str) or not isinstance(
-            edit["new_text"], str
-        ):
+        # Check types of the values - we know keys exist from above check
+        old_text_val = edit["old_text"]
+        new_text_val = edit["new_text"]
+        if not isinstance(old_text_val, str) or not isinstance(new_text_val, str):
             return _error_result(f"Edit {i} values must be strings", file_path)
 
     # Extract options

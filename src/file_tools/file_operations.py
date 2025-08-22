@@ -4,6 +4,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
+from typing import Any, Optional
 
 from .path_utils import normalize_path
 
@@ -66,7 +67,7 @@ def read_file(file_path: str, project_dir: Path) -> str:
             file_handle.close()
 
 
-def save_file(file_path: str, content: str, project_dir: Path) -> bool:
+def save_file(file_path: str, content: Any, project_dir: Path) -> bool:
     """
     Write content to a file atomically.
 
@@ -167,7 +168,7 @@ def save_file(file_path: str, content: str, project_dir: Path) -> bool:
 write_file = save_file
 
 
-def append_file(file_path: str, content: str, project_dir: Path) -> bool:
+def append_file(file_path: str, content: Any, project_dir: Path) -> bool:
     """
     Append content to the end of a file.
 

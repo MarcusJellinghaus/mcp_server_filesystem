@@ -89,7 +89,7 @@ def read_file(file_path: str) -> str:
 
 @mcp.tool()
 @log_function_call
-def save_file(file_path: str, content: str) -> bool:
+def save_file(file_path: str, content: Any) -> bool:
     """Write content to a file.
 
     Args:
@@ -106,8 +106,7 @@ def save_file(file_path: str, content: str) -> bool:
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
-
-    if not isinstance(content, str):
+    elif not isinstance(content, str):
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
 
@@ -125,7 +124,7 @@ def save_file(file_path: str, content: str) -> bool:
 
 @mcp.tool()
 @log_function_call
-def append_file(file_path: str, content: str) -> bool:
+def append_file(file_path: str, content: Any) -> bool:
     """Append content to the end of a file.
 
     Args:
@@ -142,8 +141,7 @@ def append_file(file_path: str, content: str) -> bool:
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
-
-    if not isinstance(content, str):
+    elif not isinstance(content, str):
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
 
