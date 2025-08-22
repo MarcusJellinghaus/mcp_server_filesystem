@@ -53,7 +53,7 @@ if %PYTEST_EXIT_CODE% neq 0 (
 )
 
 REM Run mypy with strict checks if Pylint and Pytest passed
-python -m mypy --strict src tests > checks_output.txt 2>&1
+python -m mypy --strict --warn-unreachable src tests > checks_output.txt 2>&1
 set MYPY_EXIT_CODE=%errorlevel%
 
 REM Check mypy results
