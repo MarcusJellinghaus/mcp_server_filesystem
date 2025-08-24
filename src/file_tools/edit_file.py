@@ -1,4 +1,4 @@
-# mypy: warn-unreachable=False
+
 import difflib
 import logging
 import os
@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 
 def edit_file(
     file_path: str,
-    edits: List[Dict[str, Any]],
+    edits: List[Dict[str, str]],
     dry_run: bool = False,
-    options: Optional[Dict[str, Any]] = None,
+    options: Optional[Dict[str, bool]] = None,
     project_dir: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """
@@ -76,18 +76,15 @@ def edit_file(
     # Validate edit operations
     for i, edit in enumerate(edits):
         if not isinstance(edit, dict):
-            return _error_result(
-                f"Edit {i} must be a dict, got {type(edit)}", file_path
-            )
+            return _error_result(f"Edit {i} must be a dict, got {type(edit)}", file_path)  # type: ignore[unreachable]
+        
+        # Check existence of required keys
         if "old_text" not in edit or "new_text" not in edit:
-            return _error_result(
-                f"Edit {i} missing required keys 'old_text' or 'new_text'", file_path
-            )
-        # Check types of the values - we know keys exist from above check
-        old_text_val = edit["old_text"]
-        new_text_val = edit["new_text"]
-        if not isinstance(old_text_val, str) or not isinstance(new_text_val, str):
-            return _error_result(f"Edit {i} values must be strings", file_path)
+            return _error_result(f"Edit {i} missing required keys 'old_text' or 'new_text'", file_path)
+        
+        # Check types of values
+        if not isinstance(edit["old_text"], str) or not isinstance(edit["new_text"], str):
+            return _error_result(f"Edit {i} values must be strings", file_path)  # type: ignore[unreachable]
 
     # Extract options
     preserve_indentation = False  # Default to False for safety

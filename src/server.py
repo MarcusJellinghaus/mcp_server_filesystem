@@ -194,7 +194,7 @@ def edit_file(
     file_path: str,
     edits: List[Dict[str, str]],
     dry_run: bool = False,
-    options: Optional[Dict[str, Any]] = None,
+    options: Optional[Dict[str, bool]] = None,
 ) -> Dict[str, Any]:
     """Make selective edits to files using exact string matching.
 

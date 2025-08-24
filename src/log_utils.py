@@ -153,19 +153,20 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
             result = func(*args, **kwargs)
             elapsed_ms = round((time.time() - start_time) * 1000, 2)
 
-            # Handle large results
-            result_for_log: Any = result
+            # Prepare result for logging
+            result_for_log: Any
+            serializable_result: Any
             if isinstance(result, (list, dict)) and len(str(result)) > 1000:
                 result_for_log = f"<Large result of type {type(result).__name__}, length: {len(str(result))}>"
-
-            # Attempt to make result JSON serializable for structured logging
-            serializable_result: Any = None
-            try:
-                if result is not None:
+                serializable_result = result_for_log
+            else:
+                result_for_log = result
+                # Make result JSON serializable for structured logging
+                try:
                     json.dumps(result)  # Test if result is JSON serializable
                     serializable_result = result
-            except (TypeError, OverflowError):
-                serializable_result = str(result) if result is not None else None
+                except (TypeError, OverflowError):
+                    serializable_result = str(result) if result is not None else None
 
             # Log completion
             if has_structured:

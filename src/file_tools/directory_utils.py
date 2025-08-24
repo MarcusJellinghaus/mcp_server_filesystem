@@ -7,9 +7,9 @@ We use the external igittigitt library for handling .gitignore patterns.
 import logging
 import os
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
-from igittigitt import IgnoreParser  # type: ignore[import-not-found]
+from igittigitt import IgnoreParser
 
 from .path_utils import normalize_path
 
@@ -40,7 +40,7 @@ def _discover_files(directory: Path, project_dir: Path) -> List[str]:
 
 def read_gitignore_rules(
     gitignore_path: Path,
-) -> Tuple[Optional[Callable[..., Any]], Optional[str]]:
+) -> Tuple[Optional[Callable[[str], bool]], Optional[str]]:
     """Read and parse a .gitignore file to create a matcher function.
 
     Args:
@@ -66,7 +66,7 @@ def read_gitignore_rules(
         parser.parse_rule_file(gitignore_path)
 
         # Create a matcher function that mimics the behavior of the old parse_gitignore
-        def matcher(path: Any) -> bool:
+        def matcher(path: str) -> bool:
             return bool(parser.match(path))
 
         return matcher, gitignore_content
@@ -77,7 +77,7 @@ def read_gitignore_rules(
 
 
 def apply_gitignore_filter(
-    file_paths: List[str], matcher: Optional[Callable[..., Any]], project_dir: Path
+    file_paths: List[str], matcher: Optional[Callable[[str], bool]], project_dir: Path
 ) -> List[str]:
     """Filter a list of file paths using a gitignore matcher function.
 
