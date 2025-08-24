@@ -2,7 +2,7 @@ import difflib
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .path_utils import normalize_path
 
@@ -13,8 +13,8 @@ def edit_file(
     file_path: str,
     edits: List[Dict[str, str]],
     dry_run: bool = False,
-    options: Dict[str, Any] = None,
-    project_dir: Path = None,
+    options: Optional[Dict[str, bool]] = None,
+    project_dir: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """
     Make selective edits to a file with simplified, reliable processing.
@@ -52,7 +52,7 @@ def edit_file(
 
     # Resolve file path
     if project_dir:
-        abs_path, rel_path = normalize_path(file_path, project_dir)
+        abs_path, _ = normalize_path(file_path, project_dir)
         file_path = str(abs_path)
     else:
         abs_path = Path(file_path)
@@ -75,19 +75,19 @@ def edit_file(
     # Validate edit operations
     for i, edit in enumerate(edits):
         if not isinstance(edit, dict):
-            return _error_result(
-                f"Edit {i} must be a dict, got {type(edit)}", file_path
-            )
+            return _error_result(f"Edit {i} must be a dict, got {type(edit)}", file_path)  # type: ignore[unreachable]
 
+        # Check existence of required keys
         if "old_text" not in edit or "new_text" not in edit:
             return _error_result(
                 f"Edit {i} missing required keys 'old_text' or 'new_text'", file_path
             )
 
+        # Check types of values
         if not isinstance(edit["old_text"], str) or not isinstance(
             edit["new_text"], str
         ):
-            return _error_result(f"Edit {i} values must be strings", file_path)
+            return _error_result(f"Edit {i} values must be strings", file_path)  # type: ignore[unreachable]
 
     # Extract options
     preserve_indentation = False  # Default to False for safety
@@ -324,17 +324,16 @@ def _preserve_basic_indentation(old_text: str, new_text: str) -> tuple[str, str]
         message = f"Applied indentation ({len(old_indent)} spaces) to unindented replacement text"
         return result, message
 
-    elif old_indent and new_indent:
+    if old_indent and new_indent:
         message = f"Preserved existing indentation (old: {len(old_indent)}, new: {len(new_indent)} spaces)"
         return new_text, message
 
-    elif not old_indent and new_indent:
+    if not old_indent and new_indent:
         message = f"Kept new text indentation ({len(new_indent)} spaces, old had none)"
         return new_text, message
 
-    else:
-        # Neither has indentation
-        return new_text, "No indentation processing needed (neither text is indented)"
+    # Neither has indentation
+    return new_text, "No indentation processing needed (neither text is indented)"
 
 
 # Legacy compatibility functions (simplified versions)

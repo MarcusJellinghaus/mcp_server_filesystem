@@ -3,6 +3,7 @@
 import os
 import sys
 from pathlib import Path
+from typing import Generator
 
 import pytest
 
@@ -22,7 +23,7 @@ Line 5 stays the same."""
 
 
 @pytest.fixture(autouse=True)
-def setup_test_file(project_dir):
+def setup_test_file(project_dir: Path) -> Generator[None, None, None]:
     """Setup and teardown for each test."""
     # Setup: Ensure the test directory exists and create the test file
     test_dir_path = project_dir / TEST_DIR
@@ -48,7 +49,7 @@ def setup_test_file(project_dir):
 
 
 @pytest.mark.asyncio
-async def test_edit_file_exact_match(project_dir):
+async def test_edit_file_exact_match(project_dir: Path) -> None:
     """Test the edit_file tool with exact matching."""
     # First create the test file - use absolute path for reliability
     absolute_path = str(project_dir / TEST_FILE)
@@ -77,7 +78,7 @@ async def test_edit_file_exact_match(project_dir):
 
 
 @pytest.mark.asyncio
-async def test_edit_file_dry_run(project_dir):
+async def test_edit_file_dry_run(project_dir: Path) -> None:
     """Test the edit_file tool in dry run mode."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
@@ -107,7 +108,7 @@ async def test_edit_file_dry_run(project_dir):
 
 
 @pytest.mark.asyncio
-async def test_edit_file_multiple_edits(project_dir):
+async def test_edit_file_multiple_edits(project_dir: Path) -> None:
     """Test the edit_file tool with multiple edits."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
@@ -139,7 +140,7 @@ async def test_edit_file_multiple_edits(project_dir):
 
 
 @pytest.mark.asyncio
-async def test_edit_file_error_handling(project_dir):
+async def test_edit_file_error_handling(project_dir: Path) -> None:
     """Test error handling in the edit_file tool."""
     # First create the test file
     absolute_path = str(project_dir / TEST_FILE)
@@ -162,7 +163,7 @@ async def test_edit_file_error_handling(project_dir):
 
 
 @pytest.mark.asyncio
-async def test_edit_file_indentation(project_dir):
+async def test_edit_file_indentation(project_dir: Path) -> None:
     """Test that the edit_file API handles indentation correctly."""
     # Load indentation test data from the test data file
     # Fixed path: removed the extra "tests" directory since project_dir is already tests/

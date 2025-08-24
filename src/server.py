@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import structlog
 from mcp.server.fastmcp import FastMCP
@@ -23,7 +23,7 @@ structured_logger = structlog.get_logger(__name__)
 mcp = FastMCP("File System Service")
 
 # Store the project directory as a module-level variable
-_project_dir: Path = None
+_project_dir: Optional[Path] = None
 
 
 @log_function_call
@@ -89,7 +89,7 @@ def read_file(file_path: str) -> str:
 
 @mcp.tool()
 @log_function_call
-def save_file(file_path: str, content: str) -> bool:
+def save_file(file_path: str, content: Any) -> bool:
     """Write content to a file.
 
     Args:
@@ -106,8 +106,7 @@ def save_file(file_path: str, content: str) -> bool:
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
-
-    if not isinstance(content, str):
+    elif not isinstance(content, str):
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
 
@@ -125,7 +124,7 @@ def save_file(file_path: str, content: str) -> bool:
 
 @mcp.tool()
 @log_function_call
-def append_file(file_path: str, content: str) -> bool:
+def append_file(file_path: str, content: Any) -> bool:
     """Append content to the end of a file.
 
     Args:
@@ -142,8 +141,7 @@ def append_file(file_path: str, content: str) -> bool:
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
-
-    if not isinstance(content, str):
+    elif not isinstance(content, str):
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
 
@@ -196,7 +194,7 @@ def edit_file(
     file_path: str,
     edits: List[Dict[str, str]],
     dry_run: bool = False,
-    options: Dict[str, Any] = None,
+    options: Optional[Dict[str, bool]] = None,
 ) -> Dict[str, Any]:
     """Make selective edits to files using exact string matching.
 
@@ -233,7 +231,7 @@ def edit_file(
 
     if not isinstance(edits, list) or not edits:
         logger.error(f"Invalid edits parameter: {edits}")
-        raise ValueError(f"Edits must be a non-empty list")
+        raise ValueError("Edits must be a non-empty list")
 
     if _project_dir is None:
         raise ValueError("Project directory has not been set")

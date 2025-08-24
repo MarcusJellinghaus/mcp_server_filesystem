@@ -8,17 +8,17 @@ from src.file_tools.edit_file import _is_edit_already_applied, edit_file
 class TestEditAlreadyAppliedFix(unittest.TestCase):
     """Tests for the fix to already-applied detection false positives."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Create a temporary directory and file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
         self.project_dir = Path(self.temp_dir.name)
         self.test_file = self.project_dir / "test_file.py"
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Clean up after tests
         self.temp_dir.cleanup()
 
-    def test_is_edit_already_applied_helper_function(self):
+    def test_is_edit_already_applied_helper_function(self) -> None:
         """Test the _is_edit_already_applied helper function directly."""
         # Test case 1: Edit not applied yet (old text exists, new text doesn't)
         content = "function_name = 'original'"
@@ -45,7 +45,7 @@ class TestEditAlreadyAppliedFix(unittest.TestCase):
         new_text = "modified_function"
         self.assertFalse(_is_edit_already_applied(content, old_text, new_text))
 
-    def test_false_positive_prevention_single_line(self):
+    def test_false_positive_prevention_single_line(self) -> None:
         """Test that the fix prevents false positives with single-line edits."""
         # Create a file where new_text appears elsewhere but edit is not applied
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -66,7 +66,7 @@ class TestEditAlreadyAppliedFix(unittest.TestCase):
         self.assertIn('test = "test"', content)
         self.assertNotIn('function_name = "test"', content)
 
-    def test_false_positive_prevention_multiline(self):
+    def test_false_positive_prevention_multiline(self) -> None:
         """Test that the fix prevents false positives with multi-line edits."""
         # Create a file where part of new_text appears elsewhere
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -100,7 +100,7 @@ class TestEditAlreadyAppliedFix(unittest.TestCase):
         # The comment should still be there (unchanged)
         self.assertIn('# Comment mentions: return "result"', content)
 
-    def test_legitimate_already_applied_detection(self):
+    def test_legitimate_already_applied_detection(self) -> None:
         """Test that legitimate already-applied cases are still detected correctly."""
         # Create a file and apply an edit
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -121,7 +121,7 @@ class TestEditAlreadyAppliedFix(unittest.TestCase):
             result2["message"], "No changes needed - content already in desired state"
         )
 
-    def test_false_positive_with_preserve_indentation(self):
+    def test_false_positive_with_preserve_indentation(self) -> None:
         """Test false positive prevention when preserve_indentation is enabled."""
         # Create a file where new_text appears with different indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
@@ -145,7 +145,7 @@ class TestEditAlreadyAppliedFix(unittest.TestCase):
         self.assertIn('    new_variable = "value"', content)
         self.assertNotIn('    old_variable = "value"', content)
 
-    def test_complex_false_positive_scenario(self):
+    def test_complex_false_positive_scenario(self) -> None:
         """Test a complex scenario that could trigger false positives."""
         # Create a file with function names that could conflict
         with open(self.test_file, "w", encoding="utf-8") as f:

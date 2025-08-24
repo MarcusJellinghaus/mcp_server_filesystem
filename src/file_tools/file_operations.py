@@ -4,6 +4,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
+from typing import Any, Optional
 
 from .path_utils import normalize_path
 
@@ -66,7 +67,7 @@ def read_file(file_path: str, project_dir: Path) -> str:
             file_handle.close()
 
 
-def save_file(file_path: str, content: str, project_dir: Path) -> bool:
+def save_file(file_path: str, content: Any, project_dir: Path) -> bool:
     """
     Write content to a file atomically.
 
@@ -91,8 +92,7 @@ def save_file(file_path: str, content: str, project_dir: Path) -> bool:
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
-
-    if not isinstance(content, str):
+    elif not isinstance(content, str):
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
 
@@ -136,7 +136,7 @@ def save_file(file_path: str, content: str, project_dir: Path) -> bool:
                     f"Unicode encode error while writing to {rel_path}: {str(e)}"
                 )
                 raise ValueError(
-                    f"Content contains characters that cannot be encoded. Please check the encoding."
+                    "Content contains characters that cannot be encoded. Please check the encoding."
                 ) from e
 
         # Atomically replace the target file
@@ -153,10 +153,6 @@ def save_file(file_path: str, content: str, project_dir: Path) -> bool:
         logger.debug(f"Successfully wrote {len(content)} bytes to {rel_path}")
         return True
 
-    except Exception as e:
-        logger.error(f"Error writing to file {rel_path}: {str(e)}")
-        raise
-
     finally:
         # Clean up the temporary file if it still exists
         if temp_file and temp_file.exists():
@@ -172,7 +168,7 @@ def save_file(file_path: str, content: str, project_dir: Path) -> bool:
 write_file = save_file
 
 
-def append_file(file_path: str, content: str, project_dir: Path) -> bool:
+def append_file(file_path: str, content: Any, project_dir: Path) -> bool:
     """
     Append content to the end of a file.
 
@@ -198,8 +194,7 @@ def append_file(file_path: str, content: str, project_dir: Path) -> bool:
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
-
-    if not isinstance(content, str):
+    elif not isinstance(content, str):
         logger.error(f"Invalid content type: {type(content)}")
         raise ValueError(f"Content must be a string, got {type(content)}")
 
@@ -219,20 +214,15 @@ def append_file(file_path: str, content: str, project_dir: Path) -> bool:
         logger.error(f"Path is not a file: {file_path}")
         raise IsADirectoryError(f"Path '{file_path}' is not a file")
 
-    try:
-        # Read existing content
-        existing_content = read_file(file_path, project_dir)
+    # Read existing content
+    existing_content = read_file(file_path, project_dir)
 
-        # Append new content
-        combined_content = existing_content + content
+    # Append new content
+    combined_content = existing_content + content
 
-        # Use save_file to write the combined content
-        logger.debug(f"Appending {len(content)} bytes to {rel_path}")
-        return save_file(file_path, combined_content, project_dir)
-
-    except Exception as e:
-        logger.error(f"Error appending to file {rel_path}: {str(e)}")
-        raise
+    # Use save_file to write the combined content
+    logger.debug(f"Appending {len(content)} bytes to {rel_path}")
+    return save_file(file_path, combined_content, project_dir)
 
 
 def delete_file(file_path: str, project_dir: Path) -> bool:

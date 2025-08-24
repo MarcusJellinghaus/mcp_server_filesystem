@@ -3,6 +3,7 @@
 import os
 import shutil
 import sys
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -19,14 +20,32 @@ TEST_FILE = TEST_DIR / "test_file.txt"
 TEST_CONTENT = "This is test content."
 
 
+def _is_temporary_test_file(item: Path) -> bool:
+    """Check if a file should be considered a temporary test file.
+
+    Args:
+        item: Path to the file to check
+
+    Returns:
+        True if the file is a temporary test file
+    """
+    return (
+        item.name.startswith("tmp")
+        or item.name.endswith(".txt")
+        or item.name.endswith(".log")
+        or item.name.endswith(".py")
+        or item.name.endswith(".md")
+    )
+
+
 @pytest.fixture
-def project_dir():
+def project_dir() -> Path:
     """Fixture to provide the project directory for tests."""
     return PROJECT_DIR
 
 
 @pytest.fixture(autouse=True)
-def setup_and_cleanup():
+def setup_and_cleanup() -> Generator[None, None, None]:
     """
     Fixture to set up and clean up test environment.
 
@@ -88,16 +107,12 @@ def setup_and_cleanup():
 
         # Remove any leftover temporary files including Python files
         for item in abs_test_dir.iterdir():
-            if item.is_file() and (
-                item.name.startswith("tmp")
-                or item.name.endswith(".txt")
-                or item.name.endswith(".log")
-                or item.name.endswith(".py")
-                or item.name.endswith(".md")
-            ):
-                # Don't remove the permanent test data files
-                if item.name not in ["test_file.txt", "test_api_file.txt"]:
-                    item.unlink()
+            # Check if file should be removed
+            is_temp_file = item.is_file() and _is_temporary_test_file(item)
+            is_permanent_file = item.name in ["test_file.txt", "test_api_file.txt"]
+
+            if is_temp_file and not is_permanent_file:
+                item.unlink()
             elif item.is_dir() and item.name not in [".git", "ignored_dir", "subdir"]:
                 shutil.rmtree(item)
     except Exception as e:

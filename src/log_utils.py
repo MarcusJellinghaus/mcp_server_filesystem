@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional, TypeVar, cast
 
 import structlog
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger.jsonlogger import JsonFormatter  # type: ignore[attr-defined]
 
 # Type variable for function return types
 T = TypeVar("T")
@@ -42,7 +42,7 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
         json_handler = logging.FileHandler(log_file)
 
         # This formatter ensures timestamp and level are included as separate fields in JSON
-        json_formatter = jsonlogger.JsonFormatter(
+        json_formatter = JsonFormatter(
             fmt="%(timestamp)s %(level)s %(name)s %(message)s %(module)s %(funcName)s %(lineno)d",
             timestamp=True,
         )
@@ -153,19 +153,20 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
             result = func(*args, **kwargs)
             elapsed_ms = round((time.time() - start_time) * 1000, 2)
 
-            # Handle large results
-            result_for_log = result
+            # Prepare result for logging
+            result_for_log: Any
+            serializable_result: Any
             if isinstance(result, (list, dict)) and len(str(result)) > 1000:
                 result_for_log = f"<Large result of type {type(result).__name__}, length: {len(str(result))}>"
-
-            # Attempt to make result JSON serializable for structured logging
-            serializable_result = None
-            try:
-                if result is not None:
+                serializable_result = result_for_log
+            else:
+                result_for_log = result
+                # Make result JSON serializable for structured logging
+                try:
                     json.dumps(result)  # Test if result is JSON serializable
                     serializable_result = result
-            except (TypeError, OverflowError):
-                serializable_result = str(result)
+                except (TypeError, OverflowError):
+                    serializable_result = str(result) if result is not None else None
 
             # Log completion
             if has_structured:

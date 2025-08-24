@@ -6,7 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -16,7 +16,7 @@ from src.log_utils import log_function_call, setup_logging
 class TestSetupLogging:
     """Tests for the setup_logging function."""
 
-    def test_setup_logging_console_only(self):
+    def test_setup_logging_console_only(self) -> None:
         """Test that console logging is configured correctly."""
         # Setup
         root_logger = logging.getLogger()
@@ -33,7 +33,7 @@ class TestSetupLogging:
         assert isinstance(handlers[0], logging.StreamHandler)
         assert root_logger.level == logging.INFO
 
-    def test_setup_logging_with_file(self):
+    def test_setup_logging_with_file(self) -> None:
         """Test that file logging is configured correctly."""
         # Setup
         temp_dir = tempfile.mkdtemp()
@@ -69,10 +69,10 @@ class TestSetupLogging:
                 import shutil
 
                 shutil.rmtree(temp_dir, ignore_errors=True)
-            except:
+            except Exception:
                 pass
 
-    def test_invalid_log_level(self):
+    def test_invalid_log_level(self) -> None:
         """Test that an invalid log level raises a ValueError."""
         with pytest.raises(ValueError):
             setup_logging("INVALID_LEVEL")
@@ -82,12 +82,12 @@ class TestLogFunctionCall:
     """Tests for the log_function_call decorator."""
 
     @patch("src.log_utils.stdlogger")
-    def test_log_function_call_basic(self, mock_stdlogger):
+    def test_log_function_call_basic(self, mock_stdlogger: MagicMock) -> None:
         """Test the basic functionality of the decorator."""
 
         # Define a test function
         @log_function_call
-        def test_func(a, b):
+        def test_func(a: int, b: int) -> int:
             return a + b
 
         # Execute
@@ -98,12 +98,12 @@ class TestLogFunctionCall:
         assert mock_stdlogger.debug.call_count == 2  # Called for start and end logging
 
     @patch("src.log_utils.stdlogger")
-    def test_log_function_call_with_exception(self, mock_stdlogger):
+    def test_log_function_call_with_exception(self, mock_stdlogger: MagicMock) -> None:
         """Test that exceptions are properly logged."""
 
         # Define a test function that raises an exception
         @log_function_call
-        def failing_func():
+        def failing_func() -> None:
             raise ValueError("Test error")
 
         # Execute and verify
@@ -115,12 +115,12 @@ class TestLogFunctionCall:
         assert mock_stdlogger.error.call_count == 1
 
     @patch("src.log_utils.stdlogger")
-    def test_log_function_call_with_path_param(self, mock_stdlogger):
+    def test_log_function_call_with_path_param(self, mock_stdlogger: MagicMock) -> None:
         """Test that Path objects are properly serialized."""
 
         # Define a test function with a Path parameter
         @log_function_call
-        def path_func(file_path):
+        def path_func(file_path: Path) -> str:
             return str(file_path)
 
         # Execute
@@ -143,12 +143,14 @@ class TestLogFunctionCall:
         assert "path_func" in call_args
 
     @patch("src.log_utils.stdlogger")
-    def test_log_function_call_with_large_result(self, mock_stdlogger):
+    def test_log_function_call_with_large_result(
+        self, mock_stdlogger: MagicMock
+    ) -> None:
         """Test that large results are properly truncated in logs."""
 
         # Define a test function that returns a large list
         @log_function_call
-        def large_result_func():
+        def large_result_func() -> list[int]:
             return [i for i in range(1000)]
 
         # Execute
@@ -166,8 +168,8 @@ class TestLogFunctionCall:
     @patch("src.log_utils.structlog")
     @patch("src.log_utils.stdlogger")
     def test_log_function_call_with_structured_logging(
-        self, mock_stdlogger, mock_structlog
-    ):
+        self, mock_stdlogger: MagicMock, mock_structlog: MagicMock
+    ) -> None:
         """Test that structured logging is used when available."""
         # Setup mock for structlog and for checking if FileHandler is present
         mock_structlogger = mock_structlog.get_logger.return_value
@@ -176,7 +178,7 @@ class TestLogFunctionCall:
         with patch("src.log_utils.any", return_value=True):
             # Define a test function
             @log_function_call
-            def test_func(a, b):
+            def test_func(a: int, b: int) -> int:
                 return a + b
 
             # Execute
