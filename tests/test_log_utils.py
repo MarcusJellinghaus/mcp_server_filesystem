@@ -143,7 +143,9 @@ class TestLogFunctionCall:
         assert "path_func" in call_args
 
     @patch("src.log_utils.stdlogger")
-    def test_log_function_call_with_large_result(self, mock_stdlogger: MagicMock) -> None:
+    def test_log_function_call_with_large_result(
+        self, mock_stdlogger: MagicMock
+    ) -> None:
         """Test that large results are properly truncated in logs."""
 
         # Define a test function that returns a large list

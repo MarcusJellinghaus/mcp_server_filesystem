@@ -170,7 +170,9 @@ def test_list_directory(mock_list_files: MagicMock, project_dir: Path) -> None:
 
 
 @patch("src.server.list_files_util")
-def test_list_directory_directory_not_found(mock_list_files: MagicMock, project_dir: Path) -> None:
+def test_list_directory_directory_not_found(
+    mock_list_files: MagicMock, project_dir: Path
+) -> None:
     """Test the list_directory tool with a non-existent directory."""
     # Mock list_files to raise FileNotFoundError
     mock_list_files.side_effect = FileNotFoundError("Directory not found")
@@ -180,7 +182,9 @@ def test_list_directory_directory_not_found(mock_list_files: MagicMock, project_
 
 
 @patch("src.server.list_files_util")
-def test_list_directory_with_gitignore(mock_list_files: MagicMock, project_dir: Path) -> None:
+def test_list_directory_with_gitignore(
+    mock_list_files: MagicMock, project_dir: Path
+) -> None:
     """Test the list_directory tool with gitignore filtering."""
     # Mock list_files to return filtered files
     mock_list_files.return_value = [
@@ -200,7 +204,9 @@ def test_list_directory_with_gitignore(mock_list_files: MagicMock, project_dir: 
 
 
 @patch("src.server.list_files_util")
-def test_list_directory_error_handling(mock_list_files: MagicMock, project_dir: Path) -> None:
+def test_list_directory_error_handling(
+    mock_list_files: MagicMock, project_dir: Path
+) -> None:
     """Test error handling in the list_directory tool."""
     # Mock list_files to raise an exception
     mock_list_files.side_effect = Exception("Test error")

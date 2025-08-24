@@ -22,10 +22,10 @@ TEST_CONTENT = "This is test content."
 
 def _is_temporary_test_file(item: Path) -> bool:
     """Check if a file should be considered a temporary test file.
-    
+
     Args:
         item: Path to the file to check
-        
+
     Returns:
         True if the file is a temporary test file
     """
@@ -110,7 +110,7 @@ def setup_and_cleanup() -> Generator[None, None, None]:
             # Check if file should be removed
             is_temp_file = item.is_file() and _is_temporary_test_file(item)
             is_permanent_file = item.name in ["test_file.txt", "test_api_file.txt"]
-            
+
             if is_temp_file and not is_permanent_file:
                 item.unlink()
             elif item.is_dir() and item.name not in [".git", "ignored_dir", "subdir"]:

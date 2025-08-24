@@ -1,4 +1,3 @@
-
 import difflib
 import logging
 import os
@@ -77,13 +76,17 @@ def edit_file(
     for i, edit in enumerate(edits):
         if not isinstance(edit, dict):
             return _error_result(f"Edit {i} must be a dict, got {type(edit)}", file_path)  # type: ignore[unreachable]
-        
+
         # Check existence of required keys
         if "old_text" not in edit or "new_text" not in edit:
-            return _error_result(f"Edit {i} missing required keys 'old_text' or 'new_text'", file_path)
-        
+            return _error_result(
+                f"Edit {i} missing required keys 'old_text' or 'new_text'", file_path
+            )
+
         # Check types of values
-        if not isinstance(edit["old_text"], str) or not isinstance(edit["new_text"], str):
+        if not isinstance(edit["old_text"], str) or not isinstance(
+            edit["new_text"], str
+        ):
             return _error_result(f"Edit {i} values must be strings", file_path)  # type: ignore[unreachable]
 
     # Extract options
