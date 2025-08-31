@@ -327,6 +327,23 @@ pip install -e ".[dev]"
 
 ```
 
+### MCP Configuration Management Tool
+
+For easy configuration and installation of this MCP server, you can use the **mcp-config** development tool:
+
+```bash
+# Quick installation and configuration
+npx mcp-config mcp-server-filesystem
+```
+
+The [mcp-config tool](https://github.com/MarcusJellinghaus/mcp-config) provides:
+- **1-line MCP server install** - Quick setup with interactive prompts
+- **Configuration management** - Easy configuration for Claude, Windsurf, and Cursor
+- **Server repository** - Browse and install from a curated list of MCP servers
+- **Interactive interface** - User-friendly CLI for managing multiple MCP servers
+
+This tool simplifies the process of adding MCP servers to your development environment and handles the configuration file setup automatically.
+
 ## Testing
 
 The project includes pytest-based unit tests in the `tests/` directory. See [tests/README.md](tests/README.md) for details on test structure and execution.
