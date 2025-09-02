@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Optional
 
-from .path_utils import normalize_path
+from mcp_server_filesystem.file_tools.path_utils import normalize_path
 
 logger = logging.getLogger(__name__)
 
