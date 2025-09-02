@@ -221,14 +221,33 @@ edit_file("indented.py", [
 
 ### MCP Configuration Management Tool
 
-For easy configuration and installation of this MCP server, you can use the **mcp-config** development tool:
+For easy configuration and installation of this MCP server, you can use the **mcp-config** development tool. This CLI tool simplifies the process of managing MCP server configurations across multiple clients (Claude Desktop, VS Code, etc.).
+
+#### Installation
 
 ```bash
-# Quick installation and configuration
-npx mcp-config mcp-server-filesystem
+# Install mcp-config
+pip install git+https://github.com/MarcusJellinghaus/mcp-config.git
 ```
 
-This tool simplifies the process of adding MCP servers to your development environment and handles the configuration file setup automatically.
+#### Quick Setup
+
+```bash
+# Setup for Claude Desktop with automatic configuration
+mcp-config setup mcp-server-filesystem "Filesystem Server" --project-dir /path/to/your/project
+
+# Setup with custom log configuration
+mcp-config setup mcp-server-filesystem "Filesystem Server" \
+  --project-dir /path/to/your/project \
+  --log-level DEBUG \
+  --log-file /custom/path/server.log
+```
+
+**Learn more:** [mcp-config on GitHub](https://github.com/MarcusJellinghaus/mcp-config)
+
+This tool eliminates the manual configuration steps and reduces setup errors by handling path resolution, environment detection, and client-specific configuration formats automatically.
+
+
 
 ## License
 
@@ -240,6 +259,7 @@ The MIT License is a permissive license that allows reuse with minimal restricti
 
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 - [MCP Python Code Checker](https://github.com/MarcusJellinghaus/mcp_server_code_checker_python)
+- [MCP Configuration Tool](https://github.com/MarcusJellinghaus/mcp-config)
 - [Cline MCP Servers Documentation](https://docs.cline.bot/mcp-servers/configuring-mcp-servers)
 - [Cline Extension for VSCode](https://github.com/saoudrizwan/claude-dev)
 - [Model Context Protocol Documentation](https://modelcontextprotocol.io/)
