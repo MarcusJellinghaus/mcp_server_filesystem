@@ -185,7 +185,9 @@ def test_list_files_basic(project_dir: Path) -> None:
             f.write(f"Content for {file_path.name}")
 
     # Test listing files with a mock to handle platform-specific path separators
-    with patch("mcp_server_filesystem.file_tools.directory_utils._discover_files") as mock_discover:
+    with patch(
+        "mcp_server_filesystem.file_tools.directory_utils._discover_files"
+    ) as mock_discover:
         # Configure the mock to return our test files with consistent path separators
         mock_discover.return_value = [
             "testdata/test_file_tools/test1.txt",
@@ -225,7 +227,9 @@ def test_list_files_with_gitignore(project_dir: Path) -> None:
     gitignore_path.write_text("*.log")
 
     # Mock the discovery and filtering
-    with patch("mcp_server_filesystem.file_tools.directory_utils._discover_files") as mock_discover:
+    with patch(
+        "mcp_server_filesystem.file_tools.directory_utils._discover_files"
+    ) as mock_discover:
         # Configure the mock to return our test files
         mock_discover.return_value = [
             "testdata/test_file_tools/keep.txt",
@@ -262,7 +266,9 @@ def test_list_files_without_gitignore(project_dir: Path) -> None:
     gitignore_path.write_text("*.log")
 
     # Mock the discovery
-    with patch("mcp_server_filesystem.file_tools.directory_utils._discover_files") as mock_discover:
+    with patch(
+        "mcp_server_filesystem.file_tools.directory_utils._discover_files"
+    ) as mock_discover:
         # Configure the mock to return both files
         mock_discover.return_value = [
             "testdata/test_file_tools/keep.txt",
