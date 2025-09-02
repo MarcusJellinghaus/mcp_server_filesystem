@@ -35,6 +35,12 @@ dev = [
     "black>=24.10.0",
     "isort>=5.13.2",
 ]
+config = [
+    "mcp-config @ git+https://github.com/MarcusJellinghaus/mcp-config.git",
+]
+
+[project.scripts]
+mcp-server-filesystem = "src.main:main"
 
 [project.urls]
 "Homepage" = "https://github.com/MarcusJellinghaus/mcp-server-filesystem"

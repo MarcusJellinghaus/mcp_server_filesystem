@@ -46,15 +46,10 @@ pip install -e .
 
 ## Running the Server
 
+Once installed, you can use the `mcp-server-filesystem` command directly:
+
 ```bash
-python -m src.main --project-dir /path/to/project [--log-level LEVEL] [--log-file PATH]
-```
-
-Alternatively, you can add the current directory to your PYTHONPATH and run the script directly:
-
-```cmd
-set PYTHONPATH=%PYTHONPATH%;.
-python .\src\main.py --project-dir /path/to/project [--log-level LEVEL] [--log-file PATH]
+mcp-server-filesystem --project-dir /path/to/project [--log-level LEVEL] [--log-file PATH]
 ```
 
 ### Command Line Arguments:
@@ -80,60 +75,6 @@ The server provides flexible logging options:
 
 This server can be integrated with different Claude interfaces. Each requires a specific configuration.
 
-## VSCode & Cline Extension Integration
-
-The Cline extension for VSCode allows you to use Claude directly in your code editor. For more information about configuring MCP servers with Cline, see the [Cline MCP Servers documentation](https://docs.cline.bot/mcp-servers/configuring-mcp-servers).
-
-### Configuration Steps for VSCode/Cline
-
-1. **Locate the Cline MCP configuration file**:
-   - Windows: `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json`
-   - macOS: `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
-
-2. **Add the MCP server configuration** (create the file if it doesn't exist):
-
-```json
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "C:\\path\\to\\mcp_server_filesystem\\.venv\\Scripts\\python.exe",
-      "args": [
-        "C:\\path\\to\\mcp_server_filesystem\\src\\main.py",
-        "--project-dir",
-        "C:\\Users\\YourUsername\\Documents\\Projects\\MyProject",
-        "--log-level",
-        "INFO"
-      ],
-      "env": {
-        "PYTHONPATH": "C:\\path\\to\\mcp_server_filesystem\\"
-      },
-      "disabled": false,
-      "autoApprove": [
-        "list_directory",
-        "read_file"
-      ]
-    }
-  }
-}
-```
-
-3. **Important VSCode/Cline-specific notes**:
-   - Replace `${workspaceFolder}` with the actual full path to your project directory
-   - Example: `"C:\\Users\\YourUsername\\Documents\\Projects\\MyProject"`
-   - Replace all `C:\\path\\to\\` instances with your actual paths
-   - Use double backslashes (`\\`) in paths on Windows, forward slashes (`/`) on macOS/Linux
-   - The project directory should be the folder you want Claude to access
-   - Only add operations to the `autoApprove` array that you want to be executed without requiring your approval each time
-   - For better security, consider only auto-approving read-only operations like `list_directory` and `read_file`
-
-4. **Restart VSCode** and test by asking Claude to "List the files in my current project directory"
-
-### Troubleshooting VSCode/Cline Integration
-
-- Check logs at: `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\logs` (Windows) or `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/logs` (macOS)
-- Verify the Python executable path points to your virtual environment
-- Ensure all paths in your configuration are correct
-
 ## Claude Desktop App Integration
 
 The Claude Desktop app can also use this file system server.
@@ -150,64 +91,36 @@ The Claude Desktop app can also use this file system server.
 {
   "mcpServers": {
     "filesystem": {
-      "command": "C:\\path\\to\\mcp_server_filesystem\\.venv\\Scripts\\python.exe",
-      "args": [                
-        "C:\\path\\to\\mcp_server_filesystem\\src\\main.py",
+      "command": "mcp-server-filesystem",
+      "args": [
         "--project-dir",
         "C:\\path\\to\\your\\specific\\project",
         "--log-level",
         "INFO"
-      ],
-      "env": {
-        "PYTHONPATH": "C:\\path\\to\\mcp_server_filesystem\\"
-      },
-      "disabled": false,
-      "autoApprove": [
-        "list_directory",
-        "read_file"
       ]
     }
   }
 }
 ```
 
-3. **Important Claude Desktop-specific notes**:
+3. **Configuration notes**:
+   - The `mcp-server-filesystem` command should be available in your PATH after installation
    - You must specify an explicit project directory path in `--project-dir`
-   - Replace all `C:\\path\\to\\` instances with your actual paths
+   - Replace the project directory path with your actual project path
    - The project directory should be the folder you want Claude to access
-   - Only add operations to the `autoApprove` array that you want to be executed without requiring your approval each time
-   - For better security, consider only auto-approving read-only operations like `list_directory` and `read_file`
 
 4. **Restart the Claude Desktop app** to apply changes
 
 ### Troubleshooting Claude Desktop Integration
 
 - Check logs at: `%APPDATA%\Claude\logs` (Windows) or `~/Library/Application Support/Claude/logs` (macOS)
+- Verify the `mcp-server-filesystem` command is available in your PATH (run `mcp-server-filesystem --help` to test)
 - Ensure the specified project directory exists and is accessible
 - Verify all paths in your configuration are correct
 
-## Using MCP Inspector
+## Contributing
 
-MCP Inspector allows you to debug and test your MCP server:
-
-1. Start MCP Inspector by running:
-
-```bash
-npx @modelcontextprotocol/inspector \
-  uv \
-  --directory C:\path\to\mcp_server_filesystem \
-  run \
-  src\main.py
-```
-
-2. In the MCP Inspector web UI, configure with the following:
-   - Python interpreter: `C:\path\to\mcp_server_filesystem\.venv\Scripts\python.exe`
-   - Arguments: `C:\path\to\mcp_server_filesystem\src\main.py --project-dir C:\path\to\your\project --log-level DEBUG`
-   - Environment variables:
-     - Name: `PYTHONPATH`
-     - Value: `C:\path\to\mcp_server_filesystem\`
-
-3. This will launch the server and provide a debug interface for testing the available tools.
+For development setup, testing, and contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Available Tools
 
@@ -306,39 +219,35 @@ edit_file("indented.py", [
 - Files are written atomically to prevent data corruption
 - Delete operations are restricted to the project directory for safety
 
-## Development
+### MCP Configuration Management Tool
 
-### Setting up the development environment on windows
+For easy configuration and installation of this MCP server, you can use the **mcp-config** development tool. This CLI tool simplifies the process of managing MCP server configurations across multiple clients (Claude Desktop, VS Code, etc.).
 
-```cmd
-REM Clone the repository
-git clone https://github.com/MarcusJellinghaus/mcp_server_filesystem.git
-cd mcp-server-filesystem
-
-REM Create and activate a virtual environment
-python -m venv .venv
-.venv\Scripts\activate
-
-REM Install dependencies
-pip install -e .
-
-REM Install development dependencies
-pip install -e ".[dev]"
-
-```
-
-## Testing
-
-The project includes pytest-based unit tests in the `tests/` directory. See [tests/README.md](tests/README.md) for details on test structure and execution.
-
-For LLM-based testing, see [tests/LLM_Test.md](tests/LLM_Test.md). This file contains test instructions that can be directly pasted to an LLM to verify MCP server functionality.
-
-## Running with MCP Dev Tools
+#### Installation
 
 ```bash
-# Set the PYTHONPATH and run the server module using mcp dev
-set PYTHONPATH=. && mcp dev src/server.py
+# Install mcp-config
+pip install git+https://github.com/MarcusJellinghaus/mcp-config.git
 ```
+
+#### Quick Setup
+
+```bash
+# Setup for Claude Desktop with automatic configuration
+mcp-config setup mcp-server-filesystem "Filesystem Server" --project-dir /path/to/your/project
+
+# Setup with custom log configuration
+mcp-config setup mcp-server-filesystem "Filesystem Server" \
+  --project-dir /path/to/your/project \
+  --log-level DEBUG \
+  --log-file /custom/path/server.log
+```
+
+**Learn more:** [mcp-config on GitHub](https://github.com/MarcusJellinghaus/mcp-config)
+
+This tool eliminates the manual configuration steps and reduces setup errors by handling path resolution, environment detection, and client-specific configuration formats automatically.
+
+
 
 ## License
 
@@ -350,6 +259,7 @@ The MIT License is a permissive license that allows reuse with minimal restricti
 
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 - [MCP Python Code Checker](https://github.com/MarcusJellinghaus/mcp_server_code_checker_python)
+- [MCP Configuration Tool](https://github.com/MarcusJellinghaus/mcp-config)
 - [Cline MCP Servers Documentation](https://docs.cline.bot/mcp-servers/configuring-mcp-servers)
 - [Cline Extension for VSCode](https://github.com/saoudrizwan/claude-dev)
 - [Model Context Protocol Documentation](https://modelcontextprotocol.io/)
