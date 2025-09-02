@@ -2,14 +2,12 @@
 
 import os
 import shutil
-import sys
 from collections.abc import Generator
 from pathlib import Path
 
 import pytest
 
-# Add project root to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Python path is now configured via pytest configuration in pyproject.toml
 
 # Set up the project directory for testing
 PROJECT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))

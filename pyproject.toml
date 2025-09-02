@@ -53,7 +53,7 @@ mcp-server-filesystem = "mcp_server_filesystem.main:main"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
-pythonpath = ["."]
+pythonpath = ["src"]
 
 [tool.black]
 line-length = 88
@@ -63,6 +63,16 @@ target-version = ["py311"]
 profile = "black"
 line_length = 88
 float_to_top = true
+
+[tool.mypy]
+mypy_path = "src"
+namespace_packages = true
+explicit_package_bases = true
+strict = true
+warn_unreachable = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_decorators = true
 
 [tool.setuptools.packages.find]
 where = ["src"]

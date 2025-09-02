@@ -1,7 +1,5 @@
 """Tests for the MCP server API endpoints."""
 
-import os
-import sys
 from pathlib import Path
 from typing import Generator
 from unittest.mock import MagicMock, patch
@@ -16,8 +14,7 @@ from mcp_server_filesystem.server import (
     set_project_dir,
 )
 
-# Add project root to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Python path is now configured via pytest configuration in pyproject.toml
 
 # Test constants
 TEST_DIR = Path("testdata/test_file_tools")
