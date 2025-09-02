@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.server import (
+from mcp_server_filesystem.server import (
     append_file,
     list_directory,
     read_file,
@@ -146,7 +146,7 @@ def test_append_file_not_found() -> None:
         append_file(str(non_existent_file), "This should fail")
 
 
-@patch("src.server.list_files_util")
+@patch("mcp_server_filesystem.server.list_files_util")
 def test_list_directory(mock_list_files: MagicMock, project_dir: Path) -> None:
     """Test the list_directory tool."""
     # Create absolute path for test file
@@ -169,7 +169,7 @@ def test_list_directory(mock_list_files: MagicMock, project_dir: Path) -> None:
     assert str(TEST_FILE) in files
 
 
-@patch("src.server.list_files_util")
+@patch("mcp_server_filesystem.server.list_files_util")
 def test_list_directory_directory_not_found(
     mock_list_files: MagicMock, project_dir: Path
 ) -> None:
@@ -181,7 +181,7 @@ def test_list_directory_directory_not_found(
         list_directory()
 
 
-@patch("src.server.list_files_util")
+@patch("mcp_server_filesystem.server.list_files_util")
 def test_list_directory_with_gitignore(
     mock_list_files: MagicMock, project_dir: Path
 ) -> None:
@@ -203,7 +203,7 @@ def test_list_directory_with_gitignore(
     assert str(TEST_DIR / ".gitignore") in files
 
 
-@patch("src.server.list_files_util")
+@patch("mcp_server_filesystem.server.list_files_util")
 def test_list_directory_error_handling(
     mock_list_files: MagicMock, project_dir: Path
 ) -> None:

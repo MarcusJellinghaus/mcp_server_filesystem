@@ -7,7 +7,7 @@ from typing import Generator
 
 import pytest
 
-from src.server import edit_file, save_file, set_project_dir
+from mcp_server_filesystem.server import edit_file, save_file, set_project_dir
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

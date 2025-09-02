@@ -5,15 +5,15 @@ from typing import Any, Dict, List, Optional
 import structlog
 from mcp.server.fastmcp import FastMCP
 
-# Import utility functions from the main package
-from src.file_tools import append_file as append_file_util
-from src.file_tools import delete_file as delete_file_util
-from src.file_tools import edit_file as edit_file_util
-from src.file_tools import list_files as list_files_util
-from src.file_tools import normalize_path
-from src.file_tools import read_file as read_file_util
-from src.file_tools import save_file as save_file_util
-from src.log_utils import log_function_call
+# Import utility functions from the main package - using relative imports to avoid module resolution issues
+from .file_tools import append_file as append_file_util
+from .file_tools import delete_file as delete_file_util
+from .file_tools import edit_file as edit_file_util
+from .file_tools import list_files as list_files_util
+from .file_tools import normalize_path
+from .file_tools import read_file as read_file_util
+from .file_tools import save_file as save_file_util
+from .log_utils import log_function_call
 
 # Initialize loggers
 logger = logging.getLogger(__name__)

@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from src.file_tools.edit_file import (
+from mcp_server_filesystem.file_tools.edit_file import (
     create_unified_diff,
     edit_file,
     normalize_line_endings,

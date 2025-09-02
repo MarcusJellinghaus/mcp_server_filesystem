@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.file_tools.edit_file import edit_file
+from mcp_server_filesystem.file_tools.edit_file import edit_file
 
 
 class TestMarkdownIndentation(unittest.TestCase):

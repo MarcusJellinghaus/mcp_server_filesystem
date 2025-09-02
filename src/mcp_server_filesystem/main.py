@@ -9,7 +9,7 @@ from pathlib import Path
 import structlog
 
 # Import logging utilities
-from src.log_utils import setup_logging
+from .log_utils import setup_logging
 
 # Create loggers
 stdlogger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ def main() -> None:
     )
 
     # Import here to avoid circular imports (after logging is configured)
-    from src.server import run_server
+    from .server import run_server
 
     stdlogger.info(f"Starting MCP server with project directory: {project_dir}")
     if log_file:
