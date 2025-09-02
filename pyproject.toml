@@ -34,13 +34,14 @@ dev = [
     "pylint>=3.3.3",
     "black>=24.10.0",
     "isort>=5.13.2",
+    "mcp-code-checker @ git+https://github.com/MarcusJellinghaus/mcp-code-checker.git",
 ]
 config = [
     "mcp-config @ git+https://github.com/MarcusJellinghaus/mcp-config.git",
 ]
 
 [project.scripts]
-mcp-server-filesystem = "src.main:main"
+mcp-server-filesystem = "mcp_server_filesystem.main:main"
 
 [project.urls]
 "Homepage" = "https://github.com/MarcusJellinghaus/mcp-server-filesystem"
@@ -50,6 +51,7 @@ mcp-server-filesystem = "src.main:main"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["src"]
 
 [tool.black]
 line-length = 88
@@ -59,6 +61,22 @@ target-version = ["py311"]
 profile = "black"
 line_length = 88
 float_to_top = true
+
+[tool.mypy]
+mypy_path = "src"
+namespace_packages = true
+explicit_package_bases = true
+strict = true
+warn_unreachable = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_decorators = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
 
 [build-system]
 requires = ["setuptools>=61.0"]

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 # Import functions directly from the module
-from src.file_tools.file_operations import (
+from mcp_server_filesystem.file_tools.file_operations import (
     append_file,
     delete_file,
     read_file,

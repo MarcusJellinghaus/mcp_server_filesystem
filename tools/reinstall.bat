@@ -2,10 +2,6 @@
 REM Reinstall mcp-server-filesystem package in development mode
 REM This script uninstalls and reinstalls the package to ensure clean installation
 REM 
-REM For easy MCP server configuration management, consider using:
-REM   npx mcp-config mcp-server-filesystem
-REM   https://github.com/MarcusJellinghaus/mcp-config
-REM 
 echo =============================================
 echo MCP-Server-Filesystem Package Reinstallation
 echo =============================================
@@ -41,9 +37,5 @@ echo.
 echo =============================================
 echo Reinstallation completed successfully!
 echo You can now use: mcp-server-filesystem --help
-echo.
-echo For easy configuration with MCP clients, use:
-echo   npx mcp-config mcp-server-filesystem
-echo   (Development tool: https://github.com/MarcusJellinghaus/mcp-config)
 echo =============================================
 pause

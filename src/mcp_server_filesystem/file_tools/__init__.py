@@ -1,15 +1,15 @@
 """File operation tools for MCP server."""
 
-from src.file_tools.directory_utils import list_files
-from src.file_tools.edit_file import edit_file
-from src.file_tools.file_operations import (
+from mcp_server_filesystem.file_tools.directory_utils import list_files
+from mcp_server_filesystem.file_tools.edit_file import edit_file
+from mcp_server_filesystem.file_tools.file_operations import (
     append_file,
     delete_file,
     read_file,
     save_file,
     write_file,
 )
-from src.file_tools.path_utils import normalize_path
+from mcp_server_filesystem.file_tools.path_utils import normalize_path
 
 # Define what functions are exposed when importing from this package
 __all__ = [
