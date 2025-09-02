@@ -43,8 +43,6 @@ config = [
 [project.scripts]
 mcp-server-filesystem = "mcp_server_filesystem.main:main"
 
-
-
 [project.urls]
 "Homepage" = "https://github.com/MarcusJellinghaus/mcp-server-filesystem"
 "Bug Tracker" = "https://github.com/MarcusJellinghaus/mcp-server-filesystem/issues"
