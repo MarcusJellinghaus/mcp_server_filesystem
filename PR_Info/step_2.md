@@ -5,6 +5,7 @@ Implement basic file move/rename functionality using standard filesystem operati
 
 ## Prerequisites
 - Step 1 completed (git_operations.py module exists)
+- GitPython installed as a required dependency
 
 ## Test-Driven Development Approach
 Write tests for basic move functionality, then implement the feature.
@@ -178,10 +179,6 @@ Add to `src/mcp_server_filesystem/file_tools/file_operations.py`:
 # Add these imports at the top
 import shutil
 from typing import Dict, Any
-from mcp_server_filesystem.file_tools.git_operations import (
-    is_git_repository,
-    is_file_tracked
-)
 from mcp_server_filesystem.log_utils import log_function_call  # Use existing decorator
 
 @log_function_call  # Automatic logging of parameters, timing, and exceptions

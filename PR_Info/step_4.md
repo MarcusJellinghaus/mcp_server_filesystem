@@ -228,7 +228,7 @@ def move_file(
 ```
 
 ### 3. Update pyproject.toml
-Update `pyproject.toml` to include GitPython as an optional dependency:
+Ensure `pyproject.toml` includes GitPython as a required dependency:
 
 ```toml
 [project]
@@ -242,12 +242,10 @@ dependencies = [
     "mcp[cli]>=1.3.0",
     "structlog>=25.2.0",
     "python-json-logger>=3.3.0",
+    "GitPython>=3.1.0",  # Required for git operations
 ]
 
 [project.optional-dependencies]
-git = [
-    "GitPython>=3.1.0",  # For git operations (optional)
-]
 dev = [
     "pytest>=8.3.5",
     "pytest-asyncio>=0.25.3",
@@ -255,7 +253,6 @@ dev = [
     "black>=24.10.0",
     "isort>=5.13.2",
     "mcp-code-checker @ git+https://github.com/MarcusJellinghaus/mcp-code-checker.git",
-    "GitPython>=3.1.0",  # Include in dev for testing
 ]
 # ... rest of configuration ...
 ```
@@ -291,14 +288,14 @@ move_file("src/util.py", "src/helpers/util.py")
 move_file("tracked.txt", "moved.txt", use_git=False)
 ```
 
-**Note:** For full git integration, install with: `pip install -e .[git]`
+**Note:** GitPython is installed automatically as a required dependency.
 ```
 
 ## Verification Commands
 
 ```bash
-# Install with git support
-pip install -e .[git]
+# Install the package (GitPython will be installed automatically)
+pip install -e .
 
 # Run server tests
 pytest tests/test_server.py::TestServerMoveEndpoint -v

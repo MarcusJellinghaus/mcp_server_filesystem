@@ -18,15 +18,16 @@ Implement a new `move_file` tool that:
 - Provides clear feedback about which method was used
 
 ## Technical Approach
-- Use GitPython library for git operations (with graceful fallback if not installed)
+- Use GitPython library for git operations (required dependency)
 - Add new module for git operations (`git_operations.py`)
 - Extend existing file operations with move functionality
 - Expose new functionality through MCP server tool
 - Maintain backwards compatibility and existing code patterns
 - **Leverage existing logging infrastructure (`log_utils.py` and `@log_function_call` decorator)**
+- **Raise clear errors if GitPython is not installed**
 
 ## Dependencies
-- GitPython (>=3.1.0) - optional dependency with graceful degradation
+- GitPython (>=3.1.0) - required dependency for git operations
 - Existing dependencies remain unchanged
 
 ## Implementation Steps
@@ -87,7 +88,8 @@ def move_file(
 ```
 
 ## Risk Mitigation
-- GitPython is optional - system works without it
+- Clear dependency requirements in documentation and pyproject.toml
 - Extensive error handling and logging
-- Fallback mechanisms for all git operations
+- Clear error messages if GitPython is not installed
 - No breaking changes to existing API
+- Simple, predictable behavior without conditional code paths

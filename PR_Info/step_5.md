@@ -313,7 +313,6 @@ def _handle_case_rename(
         # Check if we should use git
         should_use_git = (
             use_git and
-            HAS_GITPYTHON and
             is_git_repository(project_dir) and
             is_file_tracked(src_abs, project_dir)
         )

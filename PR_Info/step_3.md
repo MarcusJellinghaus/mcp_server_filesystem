@@ -1,12 +1,12 @@
 # Step 3: Integrate Git Support for Tracked Files
 
 ## Objective
-Enhance the move functionality to use `git mv` for git-tracked files, preserving version history while maintaining fallback to filesystem operations.
+Enhance the move functionality to use `git mv` for git-tracked files, preserving version history while maintaining fallback to filesystem operations when git operations fail.
 
 ## Prerequisites
 - Step 1 completed (git detection functions)
-- Step 2 completed (basic move functionality)
-- GitPython installed (optional, for full functionality)
+- Step 2 completed (basic move functionality)  
+- GitPython installed as required dependency
 
 ## Test-Driven Development Approach
 Write tests for git integration, then enhance the move function to support git operations.
@@ -22,18 +22,17 @@ from pathlib import Path
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
+from git import Repo
+from git.exc import GitCommandError
+
 from mcp_server_filesystem.file_tools.file_operations import move_file
-from mcp_server_filesystem.file_tools.git_operations import HAS_GITPYTHON
 
 
 class TestGitMoveIntegration:
     """Test git integration in move operations."""
     
-    @pytest.mark.skipif(not HAS_GITPYTHON, reason="GitPython not installed")
     def test_move_tracked_file_uses_git(self, tmp_path):
         """Test that tracked files are moved using git mv."""
-        from git import Repo
-        
         # Create a git repository
         repo = Repo.init(tmp_path)
         
@@ -66,11 +65,8 @@ class TestGitMoveIntegration:
         status = repo.git.status("--short")
         assert "R" in status  # R indicates renamed
     
-    @pytest.mark.skipif(not HAS_GITPYTHON, reason="GitPython not installed")
     def test_move_untracked_file_uses_filesystem(self, tmp_path):
         """Test that untracked files use filesystem operations even in git repo."""
-        from git import Repo
-        
         # Create a git repository
         Repo.init(tmp_path)
         
@@ -120,11 +116,8 @@ class TestGitMoveIntegration:
                 mock_is_repo.assert_not_called()
                 mock_is_tracked.assert_not_called()
     
-    @pytest.mark.skipif(not HAS_GITPYTHON, reason="GitPython not installed")
     def test_git_move_fallback_on_error(self, tmp_path):
         """Test fallback to filesystem when git mv fails."""
-        from git import Repo
-        
         # Create a git repository
         repo = Repo.init(tmp_path)
         
@@ -135,7 +128,7 @@ class TestGitMoveIntegration:
         repo.index.commit("Initial commit")
         
         # Mock git.mv to raise an error
-        with patch.object(repo.git, 'mv', side_effect=Exception("Git error")):
+        with patch.object(repo.git, 'mv', side_effect=GitCommandError("git mv", 128)):
             # Temporarily replace the repo in our function
             with patch('mcp_server_filesystem.file_tools.file_operations.Repo') as MockRepo:
                 MockRepo.return_value = repo
@@ -152,11 +145,8 @@ class TestGitMoveIntegration:
                 assert result["method"] == "filesystem"
                 assert "fallback" in result["message"].lower()
     
-    @pytest.mark.skipif(not HAS_GITPYTHON, reason="GitPython not installed")
     def test_move_tracked_file_to_new_directory(self, tmp_path):
         """Test moving a tracked file to a new directory with git."""
-        from git import Repo
-        
         # Create a git repository
         repo = Repo.init(tmp_path)
         
@@ -183,20 +173,53 @@ class TestGitMoveIntegration:
         moved_file = tmp_path / "newdir" / "moved.txt"
         assert moved_file.exists()
         assert moved_file.read_text() == "content"
+    
+    def test_move_directory_with_tracked_files(self, tmp_path):
+        """Test moving a directory containing tracked files."""
+        # Create a git repository
+        repo = Repo.init(tmp_path)
+        
+        # Create directory with tracked files
+        src_dir = tmp_path / "src_dir"
+        src_dir.mkdir()
+        file1 = src_dir / "tracked1.txt"
+        file2 = src_dir / "tracked2.txt"
+        file1.write_text("content 1")
+        file2.write_text("content 2")
+        
+        repo.index.add([str(file1), str(file2)])
+        repo.index.commit("Initial commit")
+        
+        # Move the directory
+        result = move_file(
+            "src_dir",
+            "dest_dir",
+            project_dir=tmp_path,
+            use_git_if_available=True
+        )
+        
+        assert result["success"] is True
+        assert result["method"] == "git"
+        
+        # Verify directory was moved
+        assert not src_dir.exists()
+        dest_dir = tmp_path / "dest_dir"
+        assert dest_dir.exists()
+        assert (dest_dir / "tracked1.txt").read_text() == "content 1"
+        assert (dest_dir / "tracked2.txt").read_text() == "content 2"
 ```
 
 ### 2. Enhanced Move Function with Git Support
 Update the `move_file` function in `src/mcp_server_filesystem/file_tools/file_operations.py`:
 
 ```python
-# Add GitPython imports at the top (after the existing imports)
-try:
-    from git import Repo
-    from git.exc import GitCommandError
-    HAS_GITPYTHON = True
-except ImportError:
-    HAS_GITPYTHON = False
-    GitCommandError = Exception  # Dummy for type checking
+# Add these imports at the top of the file
+from git import Repo
+from git.exc import GitCommandError
+from mcp_server_filesystem.file_tools.git_operations import (
+    is_git_repository,
+    is_file_tracked
+)
 
 @log_function_call  # Keep existing decorator for automatic logging
 def move_file(
@@ -268,7 +291,7 @@ def move_file(
     
     # Determine if we should use git
     should_use_git = False
-    if use_git_if_available and HAS_GITPYTHON:
+    if use_git_if_available:
         if is_git_repository(project_dir):
             # For directories, check if any file inside is tracked
             if src_abs.is_dir():
@@ -309,7 +332,6 @@ def move_file(
         except (GitCommandError, Exception) as e:
             logger.warning(f"Git move failed for {src_rel}, falling back to filesystem: {e}")
             # Fall through to filesystem move
-            should_use_git = False
     
     # Use filesystem operations (either as primary method or fallback)
     try:
@@ -343,21 +365,14 @@ def move_file(
 ## Verification Commands
 
 ```bash
-# Install GitPython for testing
-pip install GitPython
-
 # Run git integration tests
 pytest tests/file_tools/test_move_git_integration.py -v
 
 # Run all move tests
 pytest tests/file_tools/test_move_operations.py tests/file_tools/test_move_git_integration.py -v
 
-# Test without GitPython
-pip uninstall GitPython
-pytest tests/file_tools/test_move_operations.py -v
-
-# Reinstall GitPython
-pip install GitPython
+# Run all tests to ensure nothing is broken
+pytest tests/ -v
 
 # Check coverage
 pytest tests/file_tools/ --cov=mcp_server_filesystem.file_tools --cov-report=term-missing
@@ -367,14 +382,15 @@ pytest tests/file_tools/ --cov=mcp_server_filesystem.file_tools --cov-report=ter
 - [ ] Git-tracked files are moved using `git mv`
 - [ ] Untracked files use filesystem operations
 - [ ] Git can be explicitly disabled with `use_git_if_available=False`
-- [ ] Graceful fallback when git operations fail
-- [ ] Works without GitPython installed
+- [ ] Graceful fallback to filesystem when git operations fail
 - [ ] Directories with tracked files are handled correctly
 - [ ] Clear logging indicates which method was used
 - [ ] All existing tests still pass
+- [ ] No conditional imports or HAS_GITPYTHON flags
 
 ## Notes
-- GitPython remains optional - system degrades gracefully without it
-- Fallback mechanism ensures reliability
+- GitPython is a required dependency (no conditional imports)
+- Fallback to filesystem operations only when git operations fail
 - Clear feedback about which method was used
-- Maintains backwards compatibility
+- Maintains backwards compatibility with existing code
+- Simpler code without unnecessary conditional logic
