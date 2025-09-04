@@ -1,52 +1,91 @@
-# Pull Request Summary
+# File Move/Rename Feature Implementation Summary
 
-## 🎯 Overview
-This PR improves type safety across the codebase by adding comprehensive type annotations and fixing various type-related issues identified by mypy strict mode.
+## Overview
+Add file move/rename functionality to the MCP File System Server that intelligently uses `git mv` for git-tracked files to preserve history, while falling back to standard filesystem operations for untracked files.
 
-## 📋 Key Changes
+## Problem Statement
+The current MCP File System Server lacks the ability to:
+1. Rename or move files and directories
+2. Automatically create parent directories when moving files to non-existent paths
+3. Preserve git history when moving git-tracked files
 
-### Type Annotations Enhancement
-- **Added explicit type hints** throughout the codebase for function parameters, return types, and variable declarations
-- **Fixed Optional type handling** - properly annotated parameters that can be `None` using `Optional[Type]`
-- **Improved type consistency** - ensured consistent typing for file operations (`content` parameter now accepts `Any` type)
+## Solution
+Implement a new `move_file` tool that:
+- Detects if a file is under git control
+- Uses `git mv` for tracked files to preserve history
+- Falls back to filesystem operations for untracked files
+- Automatically creates parent directories when needed
+- Provides clear feedback about which method was used
 
-### Code Quality Improvements
-- **Removed unreachable code** - eliminated dead code paths after type checking improvements
-- **Simplified conditional logic** - replaced unnecessary `elif` statements with direct `if` statements where appropriate
-- **Fixed import statements** - corrected import for `pythonjsonlogger.jsonlogger.JsonFormatter`
+## Technical Approach
+- Use GitPython library for git operations (with graceful fallback if not installed)
+- Add new module for git operations (`git_operations.py`)
+- Extend existing file operations with move functionality
+- Expose new functionality through MCP server tool
+- Maintain backwards compatibility and existing code patterns
 
-### Test Suite Enhancement
-- **Added type annotations to all test methods** - properly typed test functions with `-> None` return type
-- **Improved test fixtures** - added proper type hints for pytest fixtures including `Generator` types
-- **Enhanced mock typing** - properly typed mock objects as `MagicMock`
+## Dependencies
+- GitPython (>=3.1.0) - optional dependency with graceful degradation
+- Existing dependencies remain unchanged
 
-### Development Tools
-- **Updated mypy checks** in `checks2clipboard.bat` to include strict type checking validation
-- **Added new PR workflow tools**:
-  - `commit_summary.bat` - generates commit messages from git diff
-  - `pr_review.bat` - creates code review prompts
-  - `pr_summary.bat` - generates PR summaries
+## Implementation Steps
+1. **Step 1**: Create git operations module with detection functions
+2. **Step 2**: Implement basic move functionality with filesystem operations
+3. **Step 3**: Integrate git support for tracked files
+4. **Step 4**: Add server endpoint and MCP tool
+5. **Step 5**: Handle edge cases and improve robustness
 
-## 🔧 Technical Details
+## Testing Strategy
+- Follow Test-Driven Development (TDD) approach
+- Write tests before implementation for each step
+- Use mocking for git operations to avoid requiring actual git repositories in tests
+- Test both success and failure scenarios
 
-### Files Modified
-- **Core modules**: Enhanced type safety in `server.py`, `file_operations.py`, `edit_file.py`, `directory_utils.py`, `path_utils.py`, and `log_utils.py`
-- **Test files**: Added comprehensive type annotations to all test files
-- **Configuration**: Updated development tools to include mypy strict checking
+## Success Criteria
+- Files can be moved/renamed within the project directory
+- Git history is preserved for tracked files
+- Parent directories are created automatically when needed
+- Clear feedback about operation method (git vs filesystem)
+- All existing tests continue to pass
+- New functionality has >90% test coverage
 
-### Type Safety Improvements
-- Fixed `_project_dir` initialization from `None` to `Optional[Path]`
-- Properly typed callback functions (e.g., gitignore matcher as `Callable[[str], bool]`)
-- Added explicit type annotations for complex types (dictionaries, lists, optional values)
+## File Structure Changes
+```
+src/mcp_server_filesystem/file_tools/
+├── __init__.py (updated)
+├── git_operations.py (new)
+├── file_operations.py (updated)
+└── ...
 
-## ✅ Testing
-All existing tests pass with the new type annotations. The codebase now passes mypy strict mode checks, ensuring better type safety and reducing potential runtime errors.
+tests/file_tools/
+├── test_git_operations.py (new)
+├── test_move_operations.py (new)
+└── ...
+```
 
-## 🚀 Impact
-- **Improved code reliability** through compile-time type checking
-- **Better IDE support** with enhanced autocomplete and type hints
-- **Easier maintenance** with clearer function signatures and type contracts
-- **Reduced bugs** by catching type-related issues before runtime
+## API Design
+```python
+# Server endpoint
+@mcp.tool()
+def move_file(
+    source_path: str,
+    destination_path: str,
+    create_parents: bool = True,
+    use_git: bool = True
+) -> Dict[str, Any]
 
-## 📝 Notes
-This PR focuses purely on type safety improvements with no functional changes to the application logic. All modifications maintain backward compatibility while improving code quality and maintainability.
+# Response format
+{
+    "success": bool,
+    "method": "git" | "filesystem",
+    "source": str,
+    "destination": str,
+    "message": str
+}
+```
+
+## Risk Mitigation
+- GitPython is optional - system works without it
+- Extensive error handling and logging
+- Fallback mechanisms for all git operations
+- No breaking changes to existing API
