@@ -59,13 +59,17 @@ Implement a new `move_file` tool that:
 ```
 src/mcp_server_filesystem/file_tools/
 ├── __init__.py (updated)
+├── error_messages.py (new)
 ├── git_operations.py (new)
 ├── file_operations.py (updated)
 └── ...
 
 tests/file_tools/
+├── test_error_messages.py (new)
 ├── test_git_operations.py (new)
 ├── test_move_operations.py (new)
+├── test_move_edge_cases.py (new)
+├── test_move_git_integration.py (new)
 └── ...
 ```
 
