@@ -23,6 +23,7 @@ Implement a new `move_file` tool that:
 - Extend existing file operations with move functionality
 - Expose new functionality through MCP server tool
 - Maintain backwards compatibility and existing code patterns
+- **Leverage existing logging infrastructure (`log_utils.py` and `@log_function_call` decorator)**
 
 ## Dependencies
 - GitPython (>=3.1.0) - optional dependency with graceful degradation
@@ -46,6 +47,7 @@ Implement a new `move_file` tool that:
 - Git history is preserved for tracked files
 - Parent directories are created automatically when needed
 - Clear feedback about operation method (git vs filesystem)
+- **All operations logged using existing dual-logging system (standard + structured)**
 - All existing tests continue to pass
 - New functionality has >90% test coverage
 

@@ -182,7 +182,9 @@ from mcp_server_filesystem.file_tools.git_operations import (
     is_git_repository,
     is_file_tracked
 )
+from mcp_server_filesystem.log_utils import log_function_call  # Use existing decorator
 
+@log_function_call  # Automatic logging of parameters, timing, and exceptions
 def move_file(
     source_path: str,
     destination_path: str,
@@ -253,6 +255,7 @@ def move_file(
     # For now, we'll implement only filesystem move
     # Git integration will be added in Step 3
     try:
+        logger.info(f"Moving file: {src_rel} -> {dest_rel}")
         logger.debug(f"Moving {src_rel} to {dest_rel} using filesystem operations")
         
         # Use shutil.move for both files and directories

@@ -154,7 +154,7 @@ Add to `src/mcp_server_filesystem/server.py`:
 from mcp_server_filesystem.file_tools import move_file as move_file_util
 
 @mcp.tool()
-@log_function_call
+@log_function_call  # Already imported in server.py from log_utils
 def move_file(
     source_path: str,
     destination_path: str,

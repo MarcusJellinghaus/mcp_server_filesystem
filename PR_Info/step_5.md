@@ -230,6 +230,7 @@ class TestMoveEdgeCases:
 Update `move_file` in `src/mcp_server_filesystem/file_tools/file_operations.py`:
 
 ```python
+@log_function_call  # Keep decorator for all edge case handling
 def move_file(
     source_path: str,
     destination_path: str,
@@ -259,6 +260,9 @@ def move_file(
         src_abs.name != dest_abs.name
     )
     
+    if is_case_only_rename:
+        logger.debug(f"Detected case-only rename: {src_abs.name} -> {dest_abs.name}")
+    
     # Check if destination already exists (skip for case-only renames)
     if not is_case_only_rename and dest_abs.exists():
         raise FileExistsError(f"Destination '{destination_path}' already exists")
@@ -283,6 +287,7 @@ def move_file(
     # [Rest of the function remains the same...]
 
 
+@log_function_call  # Log this helper function too
 def _handle_case_rename(
     src_abs: Path,
     dest_abs: Path,
@@ -296,6 +301,7 @@ def _handle_case_rename(
     
     This requires a two-step rename through a temporary name.
     """
+    logger.info(f"Handling case-sensitive rename: {src_rel} -> {dest_rel}")
     import tempfile
     import uuid
     

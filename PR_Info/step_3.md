@@ -198,6 +198,7 @@ except ImportError:
     HAS_GITPYTHON = False
     GitCommandError = Exception  # Dummy for type checking
 
+@log_function_call  # Keep existing decorator for automatic logging
 def move_file(
     source_path: str,
     destination_path: str,
@@ -283,6 +284,7 @@ def move_file(
     # Try git move if applicable
     if should_use_git:
         try:
+            logger.info(f"Attempting git move: {src_rel} -> {dest_rel}")
             logger.debug(f"Moving {src_rel} to {dest_rel} using git mv")
             
             repo = Repo(project_dir, search_parent_directories=False)
@@ -305,7 +307,7 @@ def move_file(
             }
             
         except (GitCommandError, Exception) as e:
-            logger.warning(f"Git move failed, falling back to filesystem: {e}")
+            logger.warning(f"Git move failed for {src_rel}, falling back to filesystem: {e}")
             # Fall through to filesystem move
             should_use_git = False
     

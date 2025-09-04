@@ -96,6 +96,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+# Use same logging pattern as existing modules (see file_operations.py)
 logger = logging.getLogger(__name__)
 
 # Try to import GitPython, but make it optional
@@ -123,6 +124,7 @@ def is_git_repository(project_dir: Path) -> bool:
     Returns:
         True if the directory is a git repository, False otherwise
     """
+    logger.debug(f"Checking if {project_dir} is a git repository")
     if not HAS_GITPYTHON:
         # Fallback: check if .git directory exists
         git_dir = project_dir / ".git"
@@ -130,8 +132,10 @@ def is_git_repository(project_dir: Path) -> bool:
     
     try:
         Repo(project_dir, search_parent_directories=False)
+        logger.debug(f"Detected as git repository: {project_dir}")
         return True
     except InvalidGitRepositoryError:
+        logger.debug(f"Not a git repository: {project_dir}")
         return False
     except Exception as e:
         logger.warning(f"Error checking if directory is git repository: {e}")
