@@ -320,16 +320,13 @@ python -c "from mcp_server_filesystem.file_tools.git_operations import is_git_re
 ## Success Criteria
 - [ ] GitPython is listed as a required dependency in pyproject.toml
 - [ ] Tests pass with GitPython installed
-- [ ] Clear ImportError if GitPython is not installed
 - [ ] Functions correctly detect git repositories
 - [ ] Functions correctly identify tracked vs untracked files
-- [ ] Proper error handling and logging
+- [ ] Automatic error handling via `@log_function_call` decorator
 - [ ] No breaking changes to existing code
-- [ ] Code is simpler without conditional imports and fallback logic
 
 ## Notes
 - This step focuses only on detection and basic git move capabilities
-- No fallback mode - GitPython is required
-- Clear error messages if GitPython is missing
-- Simpler, more maintainable code without conditional logic
+- GitPython is a required dependency
+- All error handling happens automatically via existing decorators
 - git_move function added for use in later steps

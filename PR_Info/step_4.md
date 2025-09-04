@@ -1,149 +1,15 @@
 # Step 4: Add Server Endpoint and MCP Tool
 
 ## Objective
-Expose the move functionality as an MCP tool in the server, making it accessible to AI assistants like Claude.
+Expose the move functionality as an MCP tool in the server, making it accessible to AI assistants.
 
 ## Prerequisites
 - Steps 1-3 completed (git operations, basic move, git integration)
 - Move functionality fully tested and working
 
-## Test-Driven Development Approach
-Write tests for the server endpoint, then add the MCP tool registration.
-
 ## Implementation Tasks
 
-### 1. Create Server Endpoint Tests
-Create or update `tests/test_server.py` to include move_file tests:
-
-```python
-"""Tests for server move_file endpoint."""
-import pytest
-from pathlib import Path
-from unittest.mock import patch, MagicMock
-
-from mcp_server_filesystem.server import move_file as server_move_file, set_project_dir
-
-
-class TestServerMoveEndpoint:
-    """Test the move_file server endpoint."""
-    
-    def test_move_file_endpoint_basic(self, tmp_path):
-        """Test basic move operation through server endpoint."""
-        # Set project directory
-        set_project_dir(tmp_path)
-        
-        # Create test file
-        source = tmp_path / "test.txt"
-        source.write_text("test content")
-        
-        # Call server endpoint
-        result = server_move_file(
-            source_path="test.txt",
-            destination_path="moved.txt"
-        )
-        
-        # Verify result
-        assert result["success"] is True
-        assert result["source"] == "test.txt"
-        assert result["destination"] == "moved.txt"
-        
-        # Verify file was moved
-        assert not source.exists()
-        assert (tmp_path / "moved.txt").exists()
-    
-    def test_move_file_endpoint_with_git(self, tmp_path):
-        """Test that git is automatically used when available."""
-        set_project_dir(tmp_path)
-        
-        # Create test file
-        source = tmp_path / "source.txt"
-        source.write_text("content")
-        
-        # Mock git operations to simulate git-tracked file
-        with patch('mcp_server_filesystem.file_tools.git_operations.is_git_repository') as mock_is_repo:
-            with patch('mcp_server_filesystem.file_tools.git_operations.is_file_tracked') as mock_is_tracked:
-                with patch('mcp_server_filesystem.file_tools.git_operations.git_move') as mock_git_move:
-                    mock_is_repo.return_value = True
-                    mock_is_tracked.return_value = True
-                    mock_git_move.return_value = True
-                    
-                    # Server endpoint automatically tries git first
-                    result = server_move_file(
-                        source_path="source.txt",
-                        destination_path="dest.txt"
-                    )
-                    
-                    # Git should be attempted automatically
-                    mock_git_move.assert_called_once()
-    
-    def test_move_file_endpoint_validation(self, tmp_path):
-        """Test endpoint input validation."""
-        set_project_dir(tmp_path)
-        
-        # Test empty source path
-        with pytest.raises(ValueError) as exc:
-            server_move_file("", "dest.txt")
-        assert "non-empty string" in str(exc.value)
-        
-        # Test empty destination path
-        with pytest.raises(ValueError) as exc:
-            server_move_file("source.txt", "")
-        assert "non-empty string" in str(exc.value)
-        
-        # Test None source
-        with pytest.raises(ValueError) as exc:
-            server_move_file(None, "dest.txt")
-        assert "non-empty string" in str(exc.value)
-    
-    def test_move_file_endpoint_no_project_dir(self):
-        """Test that move fails when project directory is not set."""
-        # Reset project directory to None
-        set_project_dir(None)
-        
-        with pytest.raises(ValueError) as exc:
-            server_move_file("source.txt", "dest.txt")
-        assert "Project directory has not been set" in str(exc.value)
-    
-    def test_move_file_endpoint_with_subdirectories(self, tmp_path):
-        """Test moving files to subdirectories through endpoint."""
-        set_project_dir(tmp_path)
-        
-        # Create source file
-        source = tmp_path / "file.txt"
-        source.write_text("data")
-        
-        # Move to new subdirectory (parent dirs created automatically)
-        result = server_move_file(
-            source_path="file.txt",
-            destination_path="subdir/nested/file.txt"
-        )
-        
-        assert result["success"] is True
-        assert (tmp_path / "subdir" / "nested" / "file.txt").exists()
-    
-    def test_move_file_endpoint_error_handling(self, tmp_path):
-        """Test error handling in server endpoint."""
-        set_project_dir(tmp_path)
-        
-        # Try to move non-existent file
-        with pytest.raises(FileNotFoundError) as exc:
-            server_move_file("nonexistent.txt", "dest.txt")
-        assert "does not exist" in str(exc.value)
-        
-        # Create a file
-        source = tmp_path / "source.txt"
-        source.write_text("content")
-        
-        # Try to move to existing destination
-        dest = tmp_path / "existing.txt"
-        dest.write_text("existing")
-        
-        with pytest.raises(FileExistsError) as exc:
-            server_move_file("source.txt", "existing.txt")
-        assert "already exists" in str(exc.value)
-```
-
-### 2. Add Server Endpoint
+### 1. Add Server Endpoint
 Add to `src/mcp_server_filesystem/server.py`:
 
 ```python
@@ -151,164 +17,83 @@ Add to `src/mcp_server_filesystem/server.py`:
 from mcp_server_filesystem.file_tools import move_file as move_file_util
 
 @mcp.tool()
-@log_function_call  # Already imported in server.py from log_utils
+@log_function_call  
 def move_file(
     source_path: str,
     destination_path: str
-) -> Dict[str, Any]:
-    """
-    Move or rename a file or directory.
-    
-    Automatically:
-    - Uses git mv for tracked files to preserve history
-    - Creates parent directories if they don't exist
-    - Falls back to filesystem operations when git isn't available
+) -> bool:
+    """Move or rename a file or directory within the project.
     
     Args:
-        source_path: Path to the file/directory to move (relative to project directory)
-        destination_path: New path for the file/directory (relative to project directory)
+        source_path: Source file/directory path (relative to project)
+        destination_path: Destination path (relative to project)
         
     Returns:
-        Dict with operation details:
-            - success: bool indicating if the move succeeded
-            - method: 'git' or 'filesystem' indicating which method was used
-            - source: normalized source path
-            - destination: normalized destination path
-            - message: descriptive message about the operation
-            
-    Examples:
-        # Simple rename in same directory
-        move_file("old_name.txt", "new_name.txt")
+        True if successful
         
-        # Move to subdirectory (creates it if needed)
-        move_file("file.txt", "subfolder/file.txt")
-        
-        # Move and rename
-        move_file("src/old.py", "lib/new.py")
+    Raises:
+        ValueError: If inputs are invalid
+        FileNotFoundError: If source doesn't exist
+        FileExistsError: If destination already exists
     """
-    # Validate inputs at server level
+    # Validate inputs
     if not source_path or not isinstance(source_path, str):
-        logger.error(f"Invalid source path parameter: {source_path}")
-        raise ValueError(f"Source path must be a non-empty string, got {type(source_path)}")
+        raise ValueError(f"Source path must be a non-empty string")
     
     if not destination_path or not isinstance(destination_path, str):
-        logger.error(f"Invalid destination path parameter: {destination_path}")
-        raise ValueError(f"Destination path must be a non-empty string, got {type(destination_path)}")
+        raise ValueError(f"Destination path must be a non-empty string")
     
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
     
-    logger.info(f"Moving file: {source_path} -> {destination_path}")
+    # Call the underlying function (all logic is handled internally)
+    result = move_file_util(source_path, destination_path, project_dir=_project_dir)
     
-    try:
-        # Call the underlying move function (it handles all defaults internally)
-        result = move_file_util(
-            source_path,
-            destination_path,
-            project_dir=_project_dir
-        )
-        
-        logger.info(f"Move completed: {result['source']} -> {result['destination']} using {result['method']}")
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error moving file {source_path} to {destination_path}: {str(e)}")
-        raise
+    # Return simple boolean - the decorator handles exceptions
+    return result.get("success", False)
 ```
 
-### 3. Update pyproject.toml
-Ensure `pyproject.toml` includes GitPython as a required dependency:
+### 2. Update pyproject.toml
+Add GitPython to dependencies:
 
 ```toml
-[project]
-# ... existing configuration ...
-
 dependencies = [
-    "pathspec>=0.12.1",
-    "igittigitt>=2.1.5",
-    "mcp>=1.3.0",
-    "mcp[server]>=1.3.0",
-    "mcp[cli]>=1.3.0",
-    "structlog>=25.2.0",
-    "python-json-logger>=3.3.0",
+    # ... existing dependencies ...
     "GitPython>=3.1.0",  # Required for git operations
 ]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.3.5",
-    "pytest-asyncio>=0.25.3",
-    "pylint>=3.3.3",
-    "black>=24.10.0",
-    "isort>=5.13.2",
-    "mcp-code-checker @ git+https://github.com/MarcusJellinghaus/mcp-code-checker.git",
-]
-# ... rest of configuration ...
 ```
 
-### 4. Update README.md
-Add documentation for the new tool in the README:
+### 3. Update README.md
+Add documentation for the new tool:
 
 ```markdown
 #### Move File
-Moves or renames files and directories, automatically using git when appropriate.
-
-- Parameters:
-  - `source_path` (string): Path to the file/directory to move
-  - `destination_path` (string): New path for the file/directory
-- Returns: Dict with success status, method used (git/filesystem), and paths
-- Features:
-  - Automatically detects and uses git for version-controlled files
-  - Automatically creates parent directories when moving to new locations
-  - Falls back to filesystem operations when git is unavailable
-  - Preserves git history for tracked files
-
-**Examples:**
-```python
-# Rename a file
-move_file("old_name.py", "new_name.py")
-
-# Move to a new directory (creates dir if needed)
-move_file("src/util.py", "src/helpers/util.py")
-
-# Move and rename
-move_file("src/old.py", "lib/new.py")
-```
-
-**Note:** GitPython is installed automatically as a required dependency.
+- Parameters: `source_path`, `destination_path` 
+- Returns: `bool` (true for success)
+- Creates parent directories as needed
+- Works within project directory only
 ```
 
 ## Verification Commands
 
 ```bash
-# Install the package (GitPython will be installed automatically)
+# Install the package with GitPython
 pip install -e .
 
 # Run server tests
-pytest tests/test_server.py::TestServerMoveEndpoint -v
-
-# Run all tests to ensure nothing broke
-pytest tests/ -v
+pytest tests/test_server.py -v
 
 # Test the server manually
 python -m mcp_server_filesystem.main --project-dir . --log-level DEBUG
-
-# In another terminal, test with MCP client or Claude Desktop
-# The move_file tool should now be available
 ```
 
 ## Success Criteria
-- [ ] Server endpoint properly validates inputs
-- [ ] Parameters are correctly passed to underlying function
-- [ ] Proper error handling and logging
+- [ ] Server endpoint validates inputs
 - [ ] MCP tool registration works
 - [ ] Tool appears in MCP tool list
-- [ ] Documentation is clear and complete
-- [ ] All existing server tests still pass
-- [ ] Project directory validation works
+- [ ] All existing tests pass
 
 ## Notes
-- The server endpoint adds an additional validation layer
-- Logging helps with debugging when used through MCP
-- Clear documentation helps AI assistants use the tool correctly
-- GitPython remains optional - noted in documentation
+- Simple interface with just two parameters
+- All automatic behaviors happen transparently
+- Error handling via `@log_function_call` decorator

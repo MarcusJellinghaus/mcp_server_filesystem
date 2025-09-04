@@ -46,8 +46,7 @@ class TestGitMoveIntegration:
         result = move_file(
             "tracked.txt",
             "moved_tracked.txt",
-            project_dir=tmp_path,
-            use_git_if_available=True
+            project_dir=tmp_path
         )
         
         # Verify git was used
@@ -78,8 +77,7 @@ class TestGitMoveIntegration:
         result = move_file(
             "untracked.txt",
             "moved_untracked.txt",
-            project_dir=tmp_path,
-            use_git_if_available=True
+            project_dir=tmp_path
         )
         
         # Verify filesystem was used
@@ -91,30 +89,7 @@ class TestGitMoveIntegration:
         moved_file = tmp_path / "moved_untracked.txt"
         assert moved_file.exists()
     
-    def test_move_with_git_disabled(self, tmp_path):
-        """Test that git can be explicitly disabled."""
-        # Mock git detection to return True
-        with patch('mcp_server_filesystem.file_tools.file_operations.is_git_repository') as mock_is_repo:
-            with patch('mcp_server_filesystem.file_tools.file_operations.is_file_tracked') as mock_is_tracked:
-                mock_is_repo.return_value = True
-                mock_is_tracked.return_value = True
-                
-                # Create a file
-                source = tmp_path / "file.txt"
-                source.write_text("content")
-                
-                # Move with git disabled
-                result = move_file(
-                    "file.txt",
-                    "moved.txt",
-                    project_dir=tmp_path,
-                    use_git_if_available=False  # Explicitly disable git
-                )
-                
-                # Verify filesystem was used despite git being available
-                assert result["method"] == "filesystem"
-                mock_is_repo.assert_not_called()
-                mock_is_tracked.assert_not_called()
+    # Git is always used automatically for tracked files
     
     def test_git_move_fallback_on_error(self, tmp_path):
         """Test fallback to filesystem when git mv fails."""
@@ -136,8 +111,7 @@ class TestGitMoveIntegration:
                 result = move_file(
                     "tracked.txt",
                     "moved.txt",
-                    project_dir=tmp_path,
-                    use_git_if_available=True
+                    project_dir=tmp_path
                 )
                 
                 # Should fall back to filesystem
@@ -156,13 +130,11 @@ class TestGitMoveIntegration:
         repo.index.add([str(tracked_file)])
         repo.index.commit("Initial commit")
         
-        # Move to new directory
+        # Move to new directory (parent dirs created automatically)
         result = move_file(
             "original.txt",
             "newdir/moved.txt",
-            project_dir=tmp_path,
-            create_parents=True,
-            use_git_if_available=True
+            project_dir=tmp_path
         )
         
         assert result["success"] is True
@@ -194,8 +166,7 @@ class TestGitMoveIntegration:
         result = move_file(
             "src_dir",
             "dest_dir",
-            project_dir=tmp_path,
-            use_git_if_available=True
+            project_dir=tmp_path
         )
         
         assert result["success"] is True
@@ -225,22 +196,19 @@ from mcp_server_filesystem.file_tools.git_operations import (
 def move_file(
     source_path: str,
     destination_path: str,
-    project_dir: Path,
-    create_parents: bool = True,
-    use_git_if_available: bool = True
+    project_dir: Path
 ) -> Dict[str, Any]:
     """
     Move or rename a file or directory.
     
-    This function will use git mv if the file is tracked by git,
-    otherwise it will use standard filesystem operations.
+    Automatically uses git mv if the file is tracked by git,
+    otherwise uses standard filesystem operations.
+    Always creates parent directories if they don't exist.
     
     Args:
         source_path: Source file/directory path (relative to project_dir)
         destination_path: Destination path (relative to project_dir)
         project_dir: Project directory path
-        create_parents: Whether to create parent directories if they don't exist
-        use_git_if_available: Whether to use git mv for tracked files
         
     Returns:
         Dict containing:
@@ -277,32 +245,20 @@ def move_file(
     if dest_abs.exists():
         raise FileExistsError(f"Destination '{destination_path}' already exists")
     
-    # Create parent directories if needed
+    # Automatically create parent directories
     dest_parent = dest_abs.parent
-    if not dest_parent.exists():
-        if create_parents:
-            logger.info(f"Creating parent directory: {dest_parent.relative_to(project_dir)}")
-            dest_parent.mkdir(parents=True, exist_ok=True)
-        else:
-            raise FileNotFoundError(
-                f"Parent directory '{dest_parent.relative_to(project_dir)}' does not exist. "
-                f"Set create_parents=True to create it automatically."
-            )
+    dest_parent.mkdir(parents=True, exist_ok=True)
     
-    # Determine if we should use git
+    # Automatically determine if git should be used
     should_use_git = False
-    if use_git_if_available:
-        if is_git_repository(project_dir):
-            # For directories, check if any file inside is tracked
-            if src_abs.is_dir():
-                # Check if any file in the directory is tracked
-                for file_path in src_abs.rglob('*'):
-                    if file_path.is_file() and is_file_tracked(file_path, project_dir):
-                        should_use_git = True
-                        break
-            else:
-                # For files, check if the file itself is tracked
-                should_use_git = is_file_tracked(src_abs, project_dir)
+    if is_git_repository(project_dir):
+        # Simply check if the source is tracked (for files)
+        # For directories, git mv will handle it or fail gracefully
+        if src_abs.is_file():
+            should_use_git = is_file_tracked(src_abs, project_dir)
+        else:
+            # For directories, just try git mv and let it fail if needed
+            should_use_git = True
     
     # Try git move if applicable
     if should_use_git:
@@ -379,18 +335,14 @@ pytest tests/file_tools/ --cov=mcp_server_filesystem.file_tools --cov-report=ter
 ```
 
 ## Success Criteria
-- [ ] Git-tracked files are moved using `git mv`
+- [ ] Git-tracked files automatically moved using `git mv`
 - [ ] Untracked files use filesystem operations
-- [ ] Git can be explicitly disabled with `use_git_if_available=False`
-- [ ] Graceful fallback to filesystem when git operations fail
-- [ ] Directories with tracked files are handled correctly
-- [ ] Clear logging indicates which method was used
+- [ ] Automatic fallback to filesystem when git operations fail
+- [ ] Directories with tracked files handled correctly
 - [ ] All existing tests still pass
-- [ ] No conditional imports or HAS_GITPYTHON flags
 
 ## Notes
-- GitPython is a required dependency (no conditional imports)
-- Fallback to filesystem operations only when git operations fail
-- Clear feedback about which method was used
-- Maintains backwards compatibility with existing code
-- Simpler code without unnecessary conditional logic
+- GitPython is a required dependency
+- All automatic behaviors happen transparently
+- Fallback to filesystem operations when git operations fail
+- Simple success/failure response

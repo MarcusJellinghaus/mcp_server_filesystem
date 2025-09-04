@@ -1,21 +1,19 @@
 # File Move/Rename Feature Implementation Summary
 
 ## Overview
-Add file move/rename functionality to the MCP File System Server that intelligently uses `git mv` for git-tracked files to preserve history, while falling back to standard filesystem operations for untracked files.
+Add file move/rename functionality to the MCP File System Server that intelligently preserves git history when possible.
 
 ## Problem Statement
 The current MCP File System Server lacks the ability to:
 1. Rename or move files and directories
-2. Automatically create parent directories when moving files to non-existent paths
-3. Preserve git history when moving git-tracked files
+2. Preserve git history when moving git-tracked files
 
 ## Solution
 Implement a new `move_file` tool that:
-- Detects if a file is under git control
-- Uses `git mv` for tracked files to preserve history
-- Falls back to filesystem operations for untracked files
-- Automatically creates parent directories (no parameter needed)
-- Provides clear feedback about which method was used
+- Automatically preserves git history when moving tracked files
+- Handles all file and directory move/rename operations
+- Works seamlessly within the project directory
+- Provides simple success/failure feedback
 
 ## Technical Approach
 - Use GitPython library for git operations (required dependency)
@@ -23,13 +21,8 @@ Implement a new `move_file` tool that:
 - Extend existing file operations with move functionality
 - Expose new functionality through MCP server tool with simplified interface
 - Maintain backwards compatibility and existing code patterns
-- **Leverage existing logging infrastructure (`log_utils.py` and `@log_function_call` decorator)**
-- **Implement consistent error message patterns with actionable hints**
-- **Raise clear errors if GitPython is not installed**
-- **Keep `project_dir` parameter in utility functions for consistency**
-- **Don't expose `project_dir` in MCP tool interface**
-- **Always create parent directories automatically (no parameter needed)**
-- **Always use git when available for tracked files (no parameter needed)**
+- Leverage existing `@log_function_call` decorator for automatic logging and error handling
+- All automatic behaviors (parent directory creation, git usage) happen transparently
 
 ## Dependencies
 - GitPython (>=3.1.0) - required dependency for git operations
@@ -41,7 +34,6 @@ Implement a new `move_file` tool that:
 3. **Step 3**: Integrate git support for tracked files
 4. **Step 4**: Add server endpoint and MCP tool
 5. **Step 5**: Handle edge cases and improve robustness
-6. **Step 6**: Implement consistent error messages across all operations
 
 ## Testing Strategy
 - Follow Test-Driven Development (TDD) approach
@@ -51,11 +43,9 @@ Implement a new `move_file` tool that:
 
 ## Success Criteria
 - Files can be moved/renamed within the project directory
-- Git history is preserved for tracked files (automatic, no configuration)
-- Parent directories are created automatically (always enabled)
-- Clear feedback about operation method (git vs filesystem)
-- **All operations logged using existing dual-logging system (standard + structured)**
-- **Consistent, actionable error messages across all operations**
+- Git history preserved automatically when applicable
+- Simple boolean return (true for success, exception for failure)
+- Works within project directory only
 - All existing tests continue to pass
 - New functionality has >90% test coverage
 
@@ -63,50 +53,32 @@ Implement a new `move_file` tool that:
 ```
 src/mcp_server_filesystem/file_tools/
 ├── __init__.py (updated)
-├── error_messages.py (new)
 ├── git_operations.py (new)
 ├── file_operations.py (updated)
 └── ...
 
 tests/file_tools/
-├── test_error_messages.py (new)
 ├── test_git_operations.py (new)
-├── test_move_operations.py (new)
-├── test_move_edge_cases.py (new)
+├── test_move_operations.py (new) - includes edge cases
 ├── test_move_git_integration.py (new)
 └── ...
 ```
 
 ## API Design
 ```python
-# Utility function (internal)
-def move_file(
-    source_path: str,
-    destination_path: str,
-    project_dir: Path  # Keep for consistency with other utilities
-) -> Dict[str, Any]
-
 # Server endpoint (exposed to LLM)
 @mcp.tool()
 def move_file(
     source_path: str,
     destination_path: str
-    # No project_dir parameter exposed
-) -> Dict[str, Any]
+) -> bool
 
-# Response format
-{
-    "success": bool,
-    "method": "git" | "filesystem",
-    "source": str,
-    "destination": str,
-    "message": str
-}
+# Returns: True if successful, raises exception otherwise
+# All implementation details (git vs filesystem) hidden from LLM
 ```
 
 ## Risk Mitigation
-- Clear dependency requirements in documentation and pyproject.toml
-- Extensive error handling and logging
-- Clear error messages if GitPython is not installed
+- GitPython as required dependency in pyproject.toml
+- Automatic error handling via `@log_function_call` decorator
 - No breaking changes to existing API
-- Simple, predictable behavior without conditional code paths
+- Simple, predictable behavior with all logic hidden internally

@@ -95,8 +95,6 @@ class TestBasicMoveOperations:
         assert dest.exists()
         assert dest.read_text() == "test data"
     
-    # Test removed - parent directories are always created automatically
-    
     def test_move_nonexistent_file_fails(self, project_dir):
         """Test that moving a non-existent file raises an error."""
         with pytest.raises(FileNotFoundError) as exc:
@@ -166,7 +164,7 @@ def move_file(
     """
     Move or rename a file or directory.
     
-    Automatically creates parent directories if needed.
+    Automatically creates parent directories.
     Git integration will be added in Step 3.
     
     Args:
@@ -175,12 +173,9 @@ def move_file(
         project_dir: Project directory path
         
     Returns:
-        Dict containing:
-            - success: bool indicating if the move succeeded
-            - method: 'git' or 'filesystem' indicating method used
-            - source: normalized source path
-            - destination: normalized destination path
-            - message: optional status message
+        True if the move succeeded
+        Note: Internal implementation returns dict for testing,
+        but server endpoint will only return boolean
             
     Raises:
         FileNotFoundError: If source doesn't exist or parent dir doesn't exist
@@ -209,11 +204,9 @@ def move_file(
     if dest_abs.exists():
         raise FileExistsError(f"Destination '{destination_path}' already exists")
     
-    # Always create parent directories if needed
+    # Automatically create parent directories
     dest_parent = dest_abs.parent
-    if not dest_parent.exists():
-        logger.info(f"Creating parent directory: {dest_parent.relative_to(project_dir)}")
-        dest_parent.mkdir(parents=True, exist_ok=True)
+    dest_parent.mkdir(parents=True, exist_ok=True)
     
     # For now, we'll implement only filesystem move
     # Git integration will be added in Step 3
@@ -276,11 +269,10 @@ pytest tests/file_tools/test_move_operations.py --cov=mcp_server_filesystem.file
 - [ ] Basic file rename (same directory) works
 - [ ] Moving files to different directories works
 - [ ] Moving directories works
-- [ ] Parent directories are created when create_parents=True
-- [ ] Proper error when parent doesn't exist and create_parents=False
+- [ ] Parent directories created automatically
 - [ ] Security validation prevents moves outside project directory
 - [ ] All existing tests still pass
-- [ ] Proper logging of operations
+- [ ] Automatic logging via `@log_function_call` decorator
 
 ## Notes
 - This step implements only filesystem operations (no git yet)
