@@ -65,17 +65,13 @@ class TestServerMoveEndpoint:
                 mock_is_repo.return_value = True
                 mock_is_tracked.return_value = True
                 
-                # Call with explicit parameters
+                # Server endpoint always uses defaults internally
                 result = server_move_file(
                     source_path="source.txt",
-                    destination_path="dest.txt",
-                    create_parents=False,
-                    use_git=False
+                    destination_path="dest.txt"
                 )
                 
-                # Verify git was not checked (use_git=False)
-                mock_is_repo.assert_not_called()
-                mock_is_tracked.assert_not_called()
+                # Git will be checked since we always use defaults
                 assert result["method"] == "filesystem"
     
     def test_move_file_endpoint_validation(self, tmp_path):
@@ -157,22 +153,19 @@ from mcp_server_filesystem.file_tools import move_file as move_file_util
 @log_function_call  # Already imported in server.py from log_utils
 def move_file(
     source_path: str,
-    destination_path: str,
-    create_parents: bool = True,
-    use_git: bool = True
+    destination_path: str
 ) -> Dict[str, Any]:
     """
     Move or rename a file or directory.
     
-    Automatically uses git mv for git-tracked files to preserve history.
-    Creates parent directories if they don't exist (when create_parents=True).
-    Falls back to filesystem operations for untracked files or when git fails.
+    Automatically:
+    - Uses git mv for tracked files to preserve history
+    - Creates parent directories if they don't exist
+    - Falls back to filesystem operations when git isn't available
     
     Args:
         source_path: Path to the file/directory to move (relative to project directory)
         destination_path: New path for the file/directory (relative to project directory)
-        create_parents: Whether to create parent directories if they don't exist (default: True)
-        use_git: Whether to use git mv for tracked files (default: True)
         
     Returns:
         Dict with operation details:
@@ -186,14 +179,11 @@ def move_file(
         # Simple rename in same directory
         move_file("old_name.txt", "new_name.txt")
         
-        # Move to subdirectory
+        # Move to subdirectory (creates it if needed)
         move_file("file.txt", "subfolder/file.txt")
         
-        # Move with explicit filesystem (no git)
-        move_file("tracked.txt", "moved.txt", use_git=False)
-        
-        # Move without creating parents
-        move_file("file.txt", "existing_dir/file.txt", create_parents=False)
+        # Move and rename
+        move_file("src/old.py", "lib/new.py")
     """
     # Validate inputs at server level
     if not source_path or not isinstance(source_path, str):
@@ -207,16 +197,16 @@ def move_file(
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
     
-    logger.info(f"Moving file: {source_path} -> {destination_path} (git={use_git}, create_parents={create_parents})")
+    logger.info(f"Moving file: {source_path} -> {destination_path}")
     
     try:
-        # Call the underlying move function
+        # Call the underlying move function with sensible defaults
         result = move_file_util(
             source_path,
             destination_path,
             project_dir=_project_dir,
-            create_parents=create_parents,
-            use_git_if_available=use_git
+            create_parents=True,  # Always create parent directories
+            use_git_if_available=True  # Always try git first
         )
         
         logger.info(f"Move completed: {result['source']} -> {result['destination']} using {result['method']}")
@@ -267,12 +257,10 @@ Moves or renames files and directories, automatically using git when appropriate
 - Parameters:
   - `source_path` (string): Path to the file/directory to move
   - `destination_path` (string): New path for the file/directory
-  - `create_parents` (boolean, optional): Create parent directories if needed (default: true)
-  - `use_git` (boolean, optional): Use git mv for tracked files (default: true)
 - Returns: Dict with success status, method used (git/filesystem), and paths
 - Features:
   - Automatically detects and uses git for version-controlled files
-  - Creates parent directories when moving to new locations
+  - Automatically creates parent directories when moving to new locations
   - Falls back to filesystem operations when git is unavailable
   - Preserves git history for tracked files
 
@@ -284,8 +272,8 @@ move_file("old_name.py", "new_name.py")
 # Move to a new directory (creates dir if needed)
 move_file("src/util.py", "src/helpers/util.py")
 
-# Force filesystem move (no git)
-move_file("tracked.txt", "moved.txt", use_git=False)
+# Move and rename
+move_file("src/old.py", "lib/new.py")
 ```
 
 **Note:** GitPython is installed automatically as a required dependency.

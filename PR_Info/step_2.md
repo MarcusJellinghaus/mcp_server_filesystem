@@ -186,8 +186,8 @@ def move_file(
     source_path: str,
     destination_path: str,
     project_dir: Path,
-    create_parents: bool = True,
-    use_git_if_available: bool = True
+    create_parents: bool = True,  # Internal only, not exposed to LLM
+    use_git_if_available: bool = True  # Internal only, not exposed to LLM
 ) -> Dict[str, Any]:
     """
     Move or rename a file or directory.

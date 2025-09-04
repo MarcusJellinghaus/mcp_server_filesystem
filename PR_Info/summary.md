@@ -14,16 +14,17 @@ Implement a new `move_file` tool that:
 - Detects if a file is under git control
 - Uses `git mv` for tracked files to preserve history
 - Falls back to filesystem operations for untracked files
-- Automatically creates parent directories when needed
+- Automatically creates parent directories (no parameter needed)
 - Provides clear feedback about which method was used
 
 ## Technical Approach
 - Use GitPython library for git operations (required dependency)
 - Add new module for git operations (`git_operations.py`)
 - Extend existing file operations with move functionality
-- Expose new functionality through MCP server tool
+- Expose new functionality through MCP server tool with simplified interface
 - Maintain backwards compatibility and existing code patterns
 - **Leverage existing logging infrastructure (`log_utils.py` and `@log_function_call` decorator)**
+- **Implement consistent error message patterns with actionable hints**
 - **Raise clear errors if GitPython is not installed**
 
 ## Dependencies
@@ -36,6 +37,7 @@ Implement a new `move_file` tool that:
 3. **Step 3**: Integrate git support for tracked files
 4. **Step 4**: Add server endpoint and MCP tool
 5. **Step 5**: Handle edge cases and improve robustness
+6. **Step 6**: Implement consistent error messages across all operations
 
 ## Testing Strategy
 - Follow Test-Driven Development (TDD) approach
@@ -46,9 +48,10 @@ Implement a new `move_file` tool that:
 ## Success Criteria
 - Files can be moved/renamed within the project directory
 - Git history is preserved for tracked files
-- Parent directories are created automatically when needed
+- Parent directories are created automatically
 - Clear feedback about operation method (git vs filesystem)
 - **All operations logged using existing dual-logging system (standard + structured)**
+- **Consistent, actionable error messages across all operations**
 - All existing tests continue to pass
 - New functionality has >90% test coverage
 
@@ -72,9 +75,7 @@ tests/file_tools/
 @mcp.tool()
 def move_file(
     source_path: str,
-    destination_path: str,
-    create_parents: bool = True,
-    use_git: bool = True
+    destination_path: str
 ) -> Dict[str, Any]
 
 # Response format
