@@ -26,6 +26,10 @@ Implement a new `move_file` tool that:
 - **Leverage existing logging infrastructure (`log_utils.py` and `@log_function_call` decorator)**
 - **Implement consistent error message patterns with actionable hints**
 - **Raise clear errors if GitPython is not installed**
+- **Keep `project_dir` parameter in utility functions for consistency**
+- **Don't expose `project_dir` in MCP tool interface**
+- **Always create parent directories automatically (no parameter needed)**
+- **Always use git when available for tracked files (no parameter needed)**
 
 ## Dependencies
 - GitPython (>=3.1.0) - required dependency for git operations
@@ -47,8 +51,8 @@ Implement a new `move_file` tool that:
 
 ## Success Criteria
 - Files can be moved/renamed within the project directory
-- Git history is preserved for tracked files
-- Parent directories are created automatically
+- Git history is preserved for tracked files (automatic, no configuration)
+- Parent directories are created automatically (always enabled)
 - Clear feedback about operation method (git vs filesystem)
 - **All operations logged using existing dual-logging system (standard + structured)**
 - **Consistent, actionable error messages across all operations**
@@ -75,11 +79,19 @@ tests/file_tools/
 
 ## API Design
 ```python
-# Server endpoint
+# Utility function (internal)
+def move_file(
+    source_path: str,
+    destination_path: str,
+    project_dir: Path  # Keep for consistency with other utilities
+) -> Dict[str, Any]
+
+# Server endpoint (exposed to LLM)
 @mcp.tool()
 def move_file(
     source_path: str,
     destination_path: str
+    # No project_dir parameter exposed
 ) -> Dict[str, Any]
 
 # Response format

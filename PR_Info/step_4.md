@@ -51,28 +51,30 @@ class TestServerMoveEndpoint:
         assert not source.exists()
         assert (tmp_path / "moved.txt").exists()
     
-    def test_move_file_endpoint_with_parameters(self, tmp_path):
-        """Test move with explicit parameters."""
+    def test_move_file_endpoint_with_git(self, tmp_path):
+        """Test that git is automatically used when available."""
         set_project_dir(tmp_path)
         
         # Create test file
         source = tmp_path / "source.txt"
         source.write_text("content")
         
-        # Mock git operations to verify parameters are passed
-        with patch('mcp_server_filesystem.file_tools.file_operations.is_git_repository') as mock_is_repo:
-            with patch('mcp_server_filesystem.file_tools.file_operations.is_file_tracked') as mock_is_tracked:
-                mock_is_repo.return_value = True
-                mock_is_tracked.return_value = True
-                
-                # Server endpoint always uses defaults internally
-                result = server_move_file(
-                    source_path="source.txt",
-                    destination_path="dest.txt"
-                )
-                
-                # Git will be checked since we always use defaults
-                assert result["method"] == "filesystem"
+        # Mock git operations to simulate git-tracked file
+        with patch('mcp_server_filesystem.file_tools.git_operations.is_git_repository') as mock_is_repo:
+            with patch('mcp_server_filesystem.file_tools.git_operations.is_file_tracked') as mock_is_tracked:
+                with patch('mcp_server_filesystem.file_tools.git_operations.git_move') as mock_git_move:
+                    mock_is_repo.return_value = True
+                    mock_is_tracked.return_value = True
+                    mock_git_move.return_value = True
+                    
+                    # Server endpoint automatically tries git first
+                    result = server_move_file(
+                        source_path="source.txt",
+                        destination_path="dest.txt"
+                    )
+                    
+                    # Git should be attempted automatically
+                    mock_git_move.assert_called_once()
     
     def test_move_file_endpoint_validation(self, tmp_path):
         """Test endpoint input validation."""
@@ -110,11 +112,10 @@ class TestServerMoveEndpoint:
         source = tmp_path / "file.txt"
         source.write_text("data")
         
-        # Move to new subdirectory
+        # Move to new subdirectory (parent dirs created automatically)
         result = server_move_file(
             source_path="file.txt",
-            destination_path="subdir/nested/file.txt",
-            create_parents=True
+            destination_path="subdir/nested/file.txt"
         )
         
         assert result["success"] is True
@@ -200,13 +201,11 @@ def move_file(
     logger.info(f"Moving file: {source_path} -> {destination_path}")
     
     try:
-        # Call the underlying move function with sensible defaults
+        # Call the underlying move function (it handles all defaults internally)
         result = move_file_util(
             source_path,
             destination_path,
-            project_dir=_project_dir,
-            create_parents=True,  # Always create parent directories
-            use_git_if_available=True  # Always try git first
+            project_dir=_project_dir
         )
         
         logger.info(f"Move completed: {result['source']} -> {result['destination']} using {result['method']}")

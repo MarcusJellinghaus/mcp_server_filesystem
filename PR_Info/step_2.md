@@ -38,8 +38,7 @@ class TestBasicMoveOperations:
         result = move_file(
             "test_file.txt",
             "renamed_file.txt",
-            project_dir=project_dir,
-            use_git_if_available=False  # Disable git for this test
+            project_dir=project_dir
         )
         
         # Verify result
@@ -68,8 +67,7 @@ class TestBasicMoveOperations:
         result = move_file(
             "source.txt",
             "subdir/moved.txt",
-            project_dir=project_dir,
-            use_git_if_available=False
+            project_dir=project_dir
         )
         
         assert result["success"] is True
@@ -79,18 +77,16 @@ class TestBasicMoveOperations:
         assert dest.read_text() == "content to move"
     
     def test_move_file_create_parent_directory(self, project_dir):
-        """Test moving a file to a non-existent directory with create_parents=True."""
+        """Test moving a file to a non-existent directory (auto-creates parents)."""
         # Create source file
         source = project_dir / "file.txt"
         source.write_text("test data")
         
-        # Move to non-existent directory
+        # Move to non-existent directory (parent dirs created automatically)
         result = move_file(
             "file.txt",
             "new/path/to/file.txt",
-            project_dir=project_dir,
-            create_parents=True,
-            use_git_if_available=False
+            project_dir=project_dir
         )
         
         assert result["success"] is True
@@ -99,24 +95,7 @@ class TestBasicMoveOperations:
         assert dest.exists()
         assert dest.read_text() == "test data"
     
-    def test_move_file_no_create_parent_fails(self, project_dir):
-        """Test that moving to non-existent directory fails when create_parents=False."""
-        # Create source file
-        source = project_dir / "source.txt"
-        source.write_text("content")
-        
-        # Try to move to non-existent directory
-        with pytest.raises(FileNotFoundError) as exc:
-            move_file(
-                "source.txt",
-                "nonexistent/dest.txt",
-                project_dir=project_dir,
-                create_parents=False,
-                use_git_if_available=False
-            )
-        
-        assert "Parent directory" in str(exc.value)
-        assert source.exists()  # Source should still exist
+    # Test removed - parent directories are always created automatically
     
     def test_move_nonexistent_file_fails(self, project_dir):
         """Test that moving a non-existent file raises an error."""
@@ -124,8 +103,7 @@ class TestBasicMoveOperations:
             move_file(
                 "nonexistent.txt",
                 "destination.txt",
-                project_dir=project_dir,
-                use_git_if_available=False
+                project_dir=project_dir
             )
         
         assert "does not exist" in str(exc.value)
@@ -141,8 +119,7 @@ class TestBasicMoveOperations:
             move_file(
                 "source.txt",
                 "../outside.txt",
-                project_dir=project_dir,
-                use_git_if_available=False
+                project_dir=project_dir
             )
         
         assert "Security error" in str(exc.value)
@@ -160,8 +137,7 @@ class TestBasicMoveOperations:
         result = move_file(
             "source_dir",
             "moved_dir",
-            project_dir=project_dir,
-            use_git_if_available=False
+            project_dir=project_dir
         )
         
         assert result["success"] is True
@@ -185,22 +161,18 @@ from mcp_server_filesystem.log_utils import log_function_call  # Use existing de
 def move_file(
     source_path: str,
     destination_path: str,
-    project_dir: Path,
-    create_parents: bool = True,  # Internal only, not exposed to LLM
-    use_git_if_available: bool = True  # Internal only, not exposed to LLM
+    project_dir: Path
 ) -> Dict[str, Any]:
     """
     Move or rename a file or directory.
     
-    This function will use git mv if the file is tracked by git,
-    otherwise it will use standard filesystem operations.
+    Automatically creates parent directories if needed.
+    Git integration will be added in Step 3.
     
     Args:
         source_path: Source file/directory path (relative to project_dir)
         destination_path: Destination path (relative to project_dir)
         project_dir: Project directory path
-        create_parents: Whether to create parent directories if they don't exist
-        use_git_if_available: Whether to use git mv for tracked files
         
     Returns:
         Dict containing:
@@ -237,17 +209,11 @@ def move_file(
     if dest_abs.exists():
         raise FileExistsError(f"Destination '{destination_path}' already exists")
     
-    # Create parent directories if needed
+    # Always create parent directories if needed
     dest_parent = dest_abs.parent
     if not dest_parent.exists():
-        if create_parents:
-            logger.info(f"Creating parent directory: {dest_parent.relative_to(project_dir)}")
-            dest_parent.mkdir(parents=True, exist_ok=True)
-        else:
-            raise FileNotFoundError(
-                f"Parent directory '{dest_parent.relative_to(project_dir)}' does not exist. "
-                f"Set create_parents=True to create it automatically."
-            )
+        logger.info(f"Creating parent directory: {dest_parent.relative_to(project_dir)}")
+        dest_parent.mkdir(parents=True, exist_ok=True)
     
     # For now, we'll implement only filesystem move
     # Git integration will be added in Step 3
