@@ -5,9 +5,15 @@ from mcp_server_filesystem.file_tools.edit_file import edit_file
 from mcp_server_filesystem.file_tools.file_operations import (
     append_file,
     delete_file,
+    move_file,
     read_file,
     save_file,
     write_file,
+)
+from mcp_server_filesystem.file_tools.git_operations import (
+    git_move,
+    is_file_tracked,
+    is_git_repository,
 )
 from mcp_server_filesystem.file_tools.path_utils import normalize_path
 
@@ -19,6 +25,10 @@ __all__ = [
     "save_file",
     "append_file",
     "delete_file",
+    "move_file",
     "list_files",
     "edit_file",
+    "is_git_repository",
+    "is_file_tracked",
+    "git_move",
 ]

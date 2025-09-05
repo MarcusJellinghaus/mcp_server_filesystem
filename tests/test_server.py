@@ -168,7 +168,7 @@ def test_list_directory(mock_list_files: MagicMock, project_dir: Path) -> None:
 
 @patch("mcp_server_filesystem.server.list_files_util")
 def test_list_directory_directory_not_found(
-    mock_list_files: MagicMock, project_dir: Path
+    mock_list_files: MagicMock, project_dir: Path  # pylint: disable=unused-argument
 ) -> None:
     """Test the list_directory tool with a non-existent directory."""
     # Mock list_files to raise FileNotFoundError
@@ -210,3 +210,113 @@ def test_list_directory_error_handling(
 
     with pytest.raises(Exception):
         list_directory()
+
+
+def test_move_file(project_dir: Path) -> None:
+    """Test the move_file tool."""
+    # Import move_file here to avoid issues if not yet implemented
+    from mcp_server_filesystem.server import move_file
+
+    # Create source file
+    source_file = TEST_DIR / "source.txt"
+    dest_file = TEST_DIR / "dest.txt"
+    abs_source = project_dir / source_file
+    abs_dest = project_dir / dest_file
+
+    # Create source file
+    abs_source.parent.mkdir(parents=True, exist_ok=True)
+    with open(abs_source, "w", encoding="utf-8") as f:
+        f.write("Test content")
+
+    # Clean up destination if exists
+    if abs_dest.exists():
+        abs_dest.unlink()
+
+    # Move the file
+    result = move_file(str(source_file), str(dest_file))
+
+    assert result is True
+    assert not abs_source.exists()
+    assert abs_dest.exists()
+    with open(abs_dest, "r", encoding="utf-8") as f:
+        assert f.read() == "Test content"
+
+    # Clean up
+    if abs_dest.exists():
+        abs_dest.unlink()
+
+
+def test_move_file_simplified_errors(project_dir: Path) -> None:
+    """Test that server endpoint returns simplified error messages."""
+    # Import move_file here to avoid issues if not yet implemented
+    from mcp_server_filesystem.server import move_file
+
+    # Test file not found
+    with pytest.raises(FileNotFoundError) as exc_info:
+        move_file("nonexistent.txt", "dest.txt")
+    assert str(exc_info.value) == "File not found"  # Simple message
+
+    # Test destination exists
+    source_file = TEST_DIR / "source_exists.txt"
+    dest_file = TEST_DIR / "existing.txt"
+    abs_source = project_dir / source_file
+    abs_dest = project_dir / dest_file
+
+    # Create both files
+    abs_source.parent.mkdir(parents=True, exist_ok=True)
+    with open(abs_source, "w", encoding="utf-8") as f:
+        f.write("Source")
+    with open(abs_dest, "w", encoding="utf-8") as f:
+        f.write("Existing")
+
+    with pytest.raises(FileExistsError) as exc_info2:
+        move_file(str(source_file), str(dest_file))
+    assert str(exc_info2.value) == "Destination already exists"  # Simple message
+
+    # Clean up
+    if abs_source.exists():
+        abs_source.unlink()
+    if abs_dest.exists():
+        abs_dest.unlink()
+
+
+@patch("mcp_server_filesystem.server.move_file_util")
+def test_move_file_permission_error(mock_move: MagicMock, project_dir: Path) -> None:
+    """Test permission error handling in move_file."""
+    # Import move_file here to avoid issues if not yet implemented
+    from mcp_server_filesystem.server import move_file
+
+    # Mock move_file_util to raise PermissionError
+    mock_move.side_effect = PermissionError("Access denied to file: /some/path")
+
+    with pytest.raises(PermissionError) as exc:
+        move_file("readonly.txt", "dest.txt")
+    assert str(exc.value) == "Permission denied"  # Simple message
+
+
+@patch("mcp_server_filesystem.server.move_file_util")
+def test_move_file_security_error(mock_move: MagicMock, project_dir: Path) -> None:
+    """Test security error handling in move_file."""
+    # Import move_file here to avoid issues if not yet implemented
+    from mcp_server_filesystem.server import move_file
+
+    # Mock move_file_util to raise ValueError with security message
+    mock_move.side_effect = ValueError("Security: Path outside project directory")
+
+    with pytest.raises(ValueError) as exc:
+        move_file("../outside.txt", "dest.txt")
+    assert str(exc.value) == "Invalid path"  # Simple message
+
+
+@patch("mcp_server_filesystem.server.move_file_util")
+def test_move_file_generic_error(mock_move: MagicMock, project_dir: Path) -> None:
+    """Test generic error handling in move_file."""
+    # Import move_file here to avoid issues if not yet implemented
+    from mcp_server_filesystem.server import move_file
+
+    # Mock move_file_util to raise a generic exception
+    mock_move.side_effect = RuntimeError("Some complex internal error")
+
+    with pytest.raises(RuntimeError) as exc:
+        move_file("source.txt", "dest.txt")
+    assert str(exc.value) == "Move operation failed"  # Simple message

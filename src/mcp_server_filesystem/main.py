@@ -92,7 +92,7 @@ def main() -> None:
     # Import here to avoid circular imports (after logging is configured)
     from mcp_server_filesystem.server import run_server
 
-    stdlogger.info(f"Starting MCP server with project directory: {project_dir}")
+    stdlogger.info("Starting MCP server with project directory: %s", project_dir)
     if log_file:
         structured_logger.info(
             "Starting MCP server",

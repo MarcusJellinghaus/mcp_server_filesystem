@@ -27,6 +27,7 @@ By connecting your AI assistant to your filesystem, you can transform your workf
 - `append_file`: Append content to the end of a file
 - `delete_this_file`: Delete a specified file from the filesystem
 - `edit_file`: Make selective edits using exact string matching
+- `move_file`: Move or rename files and directories within the project
 - `Structured Logging`: Comprehensive logging system with both human-readable and JSON formats
 
 ## Installation
@@ -134,6 +135,7 @@ The server exposes the following MCP tools:
 | `append_file` | Adds content to existing files | "Add a function to utils.js" |
 | `delete_this_file` | Removes files from the filesystem | "Delete the temporary.txt file" |
 | `edit_file` | Makes selective edits using exact string matching | "Fix the bug in the fetch function" |
+| `move_file` | Moves or renames files and directories | "Rename config.js to settings.js" |
 
 ### Tool Details
 
@@ -211,6 +213,45 @@ edit_file("indented.py", [
 - Use `\n` for line breaks in multi-line replacements
 - If `old_text` appears multiple times, only the first occurrence is replaced
 - Consider using `dry_run=True` to preview changes before applying them
+
+#### Move File
+Moves or renames files and directories within the project directory. Automatically preserves git history when applicable.
+
+**Parameters:**
+- `source_path` (string): Source file/directory path (relative to project)
+- `destination_path` (string): Destination path (relative to project)
+
+**Returns:** Boolean (true for success)
+
+**Features:**
+- Automatically creates parent directories if they don't exist
+- Preserves git history when moving tracked files (uses git mv internally)
+- Falls back to filesystem operations if git is unavailable
+- Works for both files and directories
+- Simple, clear error messages for LLMs
+
+**Examples:**
+```python
+# Rename a file
+move_file("old_name.py", "new_name.py")
+
+# Move a file to a different directory
+move_file("src/temp.py", "archive/temp.py")
+
+# Rename a directory
+move_file("old_folder", "new_folder")
+
+# Move with automatic parent directory creation
+move_file("file.txt", "new_dir/sub_dir/file.txt")  # Creates new_dir/sub_dir if needed
+```
+
+**Error Handling:**
+- Returns simplified error messages suitable for AI assistants:
+  - "File not found" - when source doesn't exist
+  - "Destination already exists" - when target path is occupied
+  - "Permission denied" - for access issues
+  - "Invalid path" - for security violations
+  - "Move operation failed" - for unexpected errors
 
 ## Security Features
 

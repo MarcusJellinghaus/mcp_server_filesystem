@@ -59,7 +59,7 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
                 structlog.processors.StackInfoRenderer(),
                 structlog.processors.format_exc_info,
                 structlog.processors.UnicodeDecoder(),
-                structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+                structlog.processors.JSONRenderer(),  # Use JSONRenderer instead of wrap_for_formatter
             ],
             context_class=dict,
             logger_factory=structlog.stdlib.LoggerFactory(),
@@ -68,7 +68,7 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
         )
 
         # Log initialization message to file only
-        stdlogger.info(f"Logging initialized: file={log_file}, level={log_level}")
+        stdlogger.info("Logging initialized: file=%s, level=%s", log_file, log_level)
     else:
         # CONSOLE LOGGING ONLY (fallback when no file specified)
         console_handler = logging.StreamHandler()
@@ -78,7 +78,7 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
         console_handler.setFormatter(console_formatter)
         root_logger.addHandler(console_handler)
 
-        stdlogger.info(f"Logging initialized: console={log_level}")
+        stdlogger.info("Logging initialized: console=%s", log_level)
 
 
 def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
@@ -144,7 +144,9 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
             )
 
         stdlogger.debug(
-            f"Calling {func_name} with parameters: {json.dumps(serializable_params, default=str)}"
+            "Calling %s with parameters: %s",
+            func_name,
+            json.dumps(serializable_params, default=str),
         )
 
         # Execute function and measure time
@@ -181,7 +183,10 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
                 )
 
             stdlogger.debug(
-                f"{func_name} completed in {elapsed_ms}ms with result: {result_for_log}"
+                "%s completed in %sms with result: %s",
+                func_name,
+                elapsed_ms,
+                result_for_log,
             )
             return result
 
@@ -202,7 +207,11 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
                 )
 
             stdlogger.error(
-                f"{func_name} failed after {elapsed_ms}ms with error: {type(e).__name__}: {str(e)}",
+                "%s failed after %sms with error: %s: %s",
+                func_name,
+                elapsed_ms,
+                type(e).__name__,
+                str(e),
                 exc_info=True,
             )
             raise

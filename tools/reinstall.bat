@@ -7,7 +7,7 @@ echo MCP-Server-Filesystem Package Reinstallation
 echo =============================================
 echo.
 echo [1/3] Uninstalling existing mcp-server-filesystem package...
-pip uninstall mcp-server-filesystem -y
+pip uninstall mcp-server-filesystem mcp-config -y
 if %ERRORLEVEL% NEQ 0 (
     echo Warning: Uninstall failed or package not found
 ) else (
@@ -15,7 +15,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo.
 echo [2/3] Installing package in development mode...
-pip install -e .
+pip install -e ".[dev,config]"
 if %ERRORLEVEL% NEQ 0 (
     echo ✗ Installation failed!
     echo Please check for errors above and try again.
