@@ -50,7 +50,7 @@ def read_gitignore_rules(
         A tuple containing (matcher_function, gitignore_content), or (None, None) if file doesn't exist
     """
     if not gitignore_path.is_file():
-        logger.info(f"No .gitignore file found at {gitignore_path}")
+        logger.info("No .gitignore file found at %s", gitignore_path)
         return None, None
 
     try:
@@ -58,10 +58,10 @@ def read_gitignore_rules(
         with open(gitignore_path, "r") as f:
             gitignore_content = f.read()
 
-        logger.info(f"Gitignore content: {gitignore_content}")
+        logger.info("Gitignore content: %s", gitignore_content)
 
         # Parse the gitignore file to get a matcher function
-        logger.info(f"Parsing gitignore file at {gitignore_path}")
+        logger.info("Parsing gitignore file at %s", gitignore_path)
         parser = IgnoreParser()
         parser.parse_rule_file(gitignore_path)
 
@@ -72,7 +72,7 @@ def read_gitignore_rules(
         return matcher, gitignore_content
 
     except Exception as e:
-        logger.warning(f"Error reading/parsing gitignore: {str(e)}")
+        logger.warning("Error reading/parsing gitignore: %s", str(e))
         return None, None
 
 
@@ -107,7 +107,8 @@ def apply_gitignore_filter(
             filtered_files.append(file_path)
 
     logger.info(
-        f"Applied gitignore filtering: {len(file_paths)} files found, {len(filtered_files)} after filtering"
+        "Applied gitignore filtering: %s files found, %s after filtering",
+        len(file_paths), len(filtered_files)
     )
     return filtered_files
 
@@ -164,7 +165,7 @@ def list_files(
 
     try:
         all_files = _discover_files(abs_path, project_dir)
-        logger.info(f"Discovered {len(all_files)} files in {rel_path}")
+        logger.info("Discovered %s files in %s", len(all_files), rel_path)
 
         if not use_gitignore:
             return all_files
@@ -173,5 +174,5 @@ def list_files(
         return filter_with_gitignore(all_files, abs_path, project_dir)
 
     except Exception as e:
-        logger.error(f"Error listing files in directory {rel_path}: {str(e)}")
+        logger.error("Error listing files in directory %s: %s", rel_path, str(e))
         raise

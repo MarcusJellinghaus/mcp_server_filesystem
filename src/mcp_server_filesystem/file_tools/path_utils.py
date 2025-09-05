@@ -33,11 +33,11 @@ def normalize_path(path: str, project_dir: Path) -> tuple[Path, str]:
             # Make sure the path is inside the project directory
             relative_path = path_obj.relative_to(project_dir)
             return path_obj, str(relative_path)
-        except ValueError:
+        except ValueError as exc:
             raise ValueError(
                 f"Security error: Path '{path}' is outside the project directory '{project_dir}'. "
                 f"All file operations must be within the project directory."
-            )
+            ) from exc
 
     # If the path is already relative, make sure it doesn't try to escape
     absolute_path = project_dir / path_obj

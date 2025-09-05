@@ -38,7 +38,6 @@ def test_mcp_server_move_file() -> bool:
 
         # Import and test directly
         import os
-        import sys
 
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 

@@ -125,7 +125,7 @@ def edit_file(
                     old_text, new_text
                 )
                 if indentation_message:
-                    logger.info(f"Edit {i}: {indentation_message}")
+                    logger.info("Edit %s: %s", i, indentation_message)
                     indentation_info = indentation_message
 
             # Apply replacement (only first occurrence)

@@ -21,17 +21,17 @@ def is_git_repository(project_dir: Path) -> bool:
     Returns:
         True if the directory is a git repository, False otherwise
     """
-    logger.debug(f"Checking if {project_dir} is a git repository")
+    logger.debug("Checking if %s is a git repository", project_dir)
 
     try:
         Repo(project_dir, search_parent_directories=False)
-        logger.debug(f"Detected as git repository: {project_dir}")
+        logger.debug("Detected as git repository: %s", project_dir)
         return True
     except InvalidGitRepositoryError:
-        logger.debug(f"Not a git repository: {project_dir}")
+        logger.debug("Not a git repository: %s", project_dir)
         return False
     except Exception as e:
-        logger.warning(f"Error checking if directory is git repository: {e}")
+        logger.warning("Error checking if directory is git repository: %s", e)
         return False
 
 
@@ -57,7 +57,7 @@ def is_file_tracked(file_path: Path, project_dir: Path) -> bool:
             relative_path = file_path.relative_to(project_dir)
         except ValueError:
             # File is outside project directory
-            logger.debug(f"File {file_path} is outside project directory {project_dir}")
+            logger.debug("File %s is outside project directory %s", file_path, project_dir)
             return False
 
         # Convert to posix path for git (even on Windows)
@@ -79,10 +79,10 @@ def is_file_tracked(file_path: Path, project_dir: Path) -> bool:
         return git_path in tracked_files
 
     except (InvalidGitRepositoryError, GitCommandError) as e:
-        logger.debug(f"Git error checking if file is tracked: {e}")
+        logger.debug("Git error checking if file is tracked: %s", e)
         return False
     except Exception as e:
-        logger.warning(f"Unexpected error checking if file is tracked: {e}")
+        logger.warning("Unexpected error checking if file is tracked: %s", e)
         return False
 
 
@@ -112,7 +112,7 @@ def git_move(source_path: Path, dest_path: Path, project_dir: Path) -> bool:
             source_relative = source_path.relative_to(project_dir)
             dest_relative = dest_path.relative_to(project_dir)
         except ValueError as e:
-            logger.error(f"Paths must be within project directory: {e}")
+            logger.error("Paths must be within project directory: %s", e)
             return False
 
         # Convert to posix paths for git
@@ -120,17 +120,18 @@ def git_move(source_path: Path, dest_path: Path, project_dir: Path) -> bool:
         dest_git = str(dest_relative).replace("\\", "/")
 
         # Execute git mv command
-        logger.info(f"Executing git mv from {source_git} to {dest_git}")
+        logger.info("Executing git mv from %s to %s", source_git, dest_git)
         repo.git.mv(source_git, dest_git)
 
         logger.info(
-            f"Successfully moved file using git from {source_git} to {dest_git}"
+            "Successfully moved file using git from %s to %s",
+            source_git, dest_git
         )
         return True
 
     except GitCommandError as e:
-        logger.error(f"Git move failed: {e}")
+        logger.error("Git move failed: %s", e)
         raise
     except Exception as e:
-        logger.error(f"Unexpected error during git move: {e}")
+        logger.error("Unexpected error during git move: %s", e)
         return False

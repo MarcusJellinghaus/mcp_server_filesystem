@@ -20,7 +20,7 @@ class TestGitDetection:
     def test_is_git_repository_with_actual_repo(self, tmp_path: Path) -> None:
         """Test git repository detection using GitPython."""
         # Create actual git repo
-        repo = Repo.init(tmp_path)
+        Repo.init(tmp_path)
         assert is_git_repository(tmp_path) is True
 
         # Non-git directory
@@ -67,7 +67,7 @@ class TestGitDetection:
         # Create git repo in a subdirectory
         repo_dir = tmp_path / "repo"
         repo_dir.mkdir()
-        repo = Repo.init(repo_dir)
+        Repo.init(repo_dir)
 
         # Create file outside the repo
         outside_file = tmp_path / "outside.txt"

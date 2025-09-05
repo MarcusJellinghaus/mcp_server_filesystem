@@ -38,7 +38,7 @@ def read_file(file_path: str, project_dir: Path) -> str:
     """
     # Validate file_path parameter
     if not file_path or not isinstance(file_path, str):
-        logger.error(f"Invalid file path: {file_path}")
+        logger.error("Invalid file path: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     # Validate project_dir parameter
@@ -49,27 +49,27 @@ def read_file(file_path: str, project_dir: Path) -> str:
     abs_path, rel_path = normalize_path(file_path, project_dir)
 
     if not abs_path.exists():
-        logger.error(f"File not found: {file_path}")
+        logger.error("File not found: %s", file_path)
         raise FileNotFoundError(f"File '{file_path}' does not exist")
 
     if not abs_path.is_file():
-        logger.error(f"Path is not a file: {file_path}")
+        logger.error("Path is not a file: %s", file_path)
         raise IsADirectoryError(f"Path '{file_path}' is not a file")
 
     file_handle = None
     try:
-        logger.debug(f"Reading file: {rel_path}")
+        logger.debug("Reading file: %s", rel_path)
         file_handle = open(abs_path, "r", encoding="utf-8")
         content = file_handle.read()
-        logger.debug(f"Successfully read {len(content)} bytes from {rel_path}")
+        logger.debug("Successfully read %s bytes from %s", len(content), rel_path)
         return content
     except UnicodeDecodeError as e:
-        logger.error(f"Unicode decode error while reading {rel_path}: {str(e)}")
+        logger.error("Unicode decode error while reading %s: %s", rel_path, str(e))
         raise ValueError(
             f"File '{file_path}' contains invalid characters. Ensure it's a valid text file."
         ) from e
     except Exception as e:
-        logger.error(f"Error reading file {rel_path}: {str(e)}")
+        logger.error("Error reading file %s: %s", rel_path, str(e))
         raise
     finally:
         if file_handle is not None:
@@ -94,7 +94,7 @@ def save_file(file_path: str, content: Any, project_dir: Path) -> bool:
     """
     # Validate file_path parameter
     if not file_path or not isinstance(file_path, str):
-        logger.error(f"Invalid file path: {file_path}")
+        logger.error("Invalid file path: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     # Validate content parameter
@@ -102,7 +102,7 @@ def save_file(file_path: str, content: Any, project_dir: Path) -> bool:
         logger.warning("Content is None, treating as empty string")
         content = ""
     elif not isinstance(content, str):
-        logger.error(f"Invalid content type: {type(content)}")
+        logger.error("Invalid content type: %s", type(content))
         raise ValueError(f"Content must be a string, got {type(content)}")
 
     # Validate project_dir parameter
@@ -115,15 +115,15 @@ def save_file(file_path: str, content: Any, project_dir: Path) -> bool:
     # Create directory if it doesn't exist
     try:
         if not abs_path.parent.exists():
-            logger.info(f"Creating directory: {abs_path.parent}")
+            logger.info("Creating directory: %s", abs_path.parent)
             abs_path.parent.mkdir(parents=True)
     except PermissionError as e:
         logger.error(
-            f"Permission denied creating directory {abs_path.parent}: {str(e)}"
+            "Permission denied creating directory %s: %s", abs_path.parent, str(e)
         )
         raise
     except Exception as e:
-        logger.error(f"Error creating directory {abs_path.parent}: {str(e)}")
+        logger.error("Error creating directory %s: %s", abs_path.parent, str(e))
         raise
 
     # Use a temporary file for atomic write
@@ -134,7 +134,7 @@ def save_file(file_path: str, content: Any, project_dir: Path) -> bool:
         temp_fd, temp_path = tempfile.mkstemp(dir=str(abs_path.parent))
         temp_file = Path(temp_path)
 
-        logger.debug(f"Writing to temporary file for {rel_path}")
+        logger.debug("Writing to temporary file for %s", rel_path)
 
         # Write content to temporary file
         with open(temp_fd, "w", encoding="utf-8") as f:
@@ -142,24 +142,24 @@ def save_file(file_path: str, content: Any, project_dir: Path) -> bool:
                 f.write(content)
             except UnicodeEncodeError as e:
                 logger.error(
-                    f"Unicode encode error while writing to {rel_path}: {str(e)}"
+                    "Unicode encode error while writing to %s: %s", rel_path, str(e)
                 )
                 raise ValueError(
                     "Content contains characters that cannot be encoded. Please check the encoding."
                 ) from e
 
         # Atomically replace the target file
-        logger.debug(f"Atomically replacing {rel_path} with temporary file")
+        logger.debug("Atomically replacing %s with temporary file", rel_path)
         try:
             # On Windows, we need to remove the target file first
             if os.name == "nt" and abs_path.exists():
                 abs_path.unlink()
             os.replace(temp_path, str(abs_path))
         except Exception as e:
-            logger.error(f"Error replacing file {rel_path}: {str(e)}")
+            logger.error("Error replacing file %s: %s", rel_path, str(e))
             raise
 
-        logger.debug(f"Successfully wrote {len(content)} bytes to {rel_path}")
+        logger.debug("Successfully wrote %s bytes to %s", len(content), rel_path)
         return True
 
     finally:
@@ -169,7 +169,7 @@ def save_file(file_path: str, content: Any, project_dir: Path) -> bool:
                 temp_file.unlink()
             except Exception as e:
                 logger.warning(
-                    f"Failed to clean up temporary file {temp_file}: {str(e)}"
+                    "Failed to clean up temporary file %s: %s", temp_file, str(e)
                 )
 
 
@@ -196,7 +196,7 @@ def append_file(file_path: str, content: Any, project_dir: Path) -> bool:
     """
     # Validate file_path parameter
     if not file_path or not isinstance(file_path, str):
-        logger.error(f"Invalid file path: {file_path}")
+        logger.error("Invalid file path: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     # Validate content parameter
@@ -204,7 +204,7 @@ def append_file(file_path: str, content: Any, project_dir: Path) -> bool:
         logger.warning("Content is None, treating as empty string")
         content = ""
     elif not isinstance(content, str):
-        logger.error(f"Invalid content type: {type(content)}")
+        logger.error("Invalid content type: %s", type(content))
         raise ValueError(f"Content must be a string, got {type(content)}")
 
     # Validate project_dir parameter
@@ -216,11 +216,11 @@ def append_file(file_path: str, content: Any, project_dir: Path) -> bool:
 
     # Check if the file exists
     if not abs_path.exists():
-        logger.error(f"File not found: {file_path}")
+        logger.error("File not found: %s", file_path)
         raise FileNotFoundError(f"File '{file_path}' does not exist")
 
     if not abs_path.is_file():
-        logger.error(f"Path is not a file: {file_path}")
+        logger.error("Path is not a file: %s", file_path)
         raise IsADirectoryError(f"Path '{file_path}' is not a file")
 
     # Read existing content
@@ -230,7 +230,7 @@ def append_file(file_path: str, content: Any, project_dir: Path) -> bool:
     combined_content = existing_content + content
 
     # Use save_file to write the combined content
-    logger.debug(f"Appending {len(content)} bytes to {rel_path}")
+    logger.debug("Appending %s bytes to %s", len(content), rel_path)
     return save_file(file_path, combined_content, project_dir)
 
 
@@ -253,7 +253,7 @@ def delete_file(file_path: str, project_dir: Path) -> bool:
     """
     # Validate file_path parameter
     if not file_path or not isinstance(file_path, str):
-        logger.error(f"Invalid file path: {file_path}")
+        logger.error("Invalid file path: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     # Validate project_dir parameter
@@ -264,23 +264,23 @@ def delete_file(file_path: str, project_dir: Path) -> bool:
     abs_path, rel_path = normalize_path(file_path, project_dir)
 
     if not abs_path.exists():
-        logger.error(f"File not found: {file_path}")
+        logger.error("File not found: %s", file_path)
         raise FileNotFoundError(f"File '{file_path}' does not exist")
 
     if not abs_path.is_file():
-        logger.error(f"Path is not a file: {file_path}")
+        logger.error("Path is not a file: %s", file_path)
         raise IsADirectoryError(f"Path '{file_path}' is not a file or is a directory")
 
     try:
-        logger.debug(f"Deleting file: {rel_path}")
+        logger.debug("Deleting file: %s", rel_path)
         abs_path.unlink()
-        logger.debug(f"Successfully deleted file: {rel_path}")
+        logger.debug("Successfully deleted file: %s", rel_path)
         return True
     except PermissionError as e:
-        logger.error(f"Permission denied when deleting file {rel_path}: {str(e)}")
+        logger.error("Permission denied when deleting file %s: %s", rel_path, str(e))
         raise
     except Exception as e:
-        logger.error(f"Error deleting file {rel_path}: {str(e)}")
+        logger.error("Error deleting file %s: %s", rel_path, str(e))
         raise
 
 
@@ -358,8 +358,8 @@ def move_file(
     # Try git move if applicable
     if should_use_git:
         try:
-            logger.info(f"Attempting git move: {src_rel} -> {dest_rel}")
-            logger.debug(f"Moving {src_rel} to {dest_rel} using git mv")
+            logger.info("Attempting git move: %s -> %s", src_rel, dest_rel)
+            logger.debug("Moving %s to %s using git mv", src_rel, dest_rel)
 
             repo = Repo(project_dir, search_parent_directories=False)
 
@@ -370,7 +370,7 @@ def move_file(
             # Execute git mv
             repo.git.mv(git_src, git_dest)
 
-            logger.info(f"Successfully moved using git: {src_rel} -> {dest_rel}")
+            logger.info("Successfully moved using git: %s -> %s", src_rel, dest_rel)
 
             return {
                 "success": True,
@@ -382,13 +382,13 @@ def move_file(
 
         except (GitCommandError, Exception) as e:
             logger.warning(
-                f"Git move failed for {src_rel}, falling back to filesystem: {e}"
+                "Git move failed for %s, falling back to filesystem: %s", src_rel, e
             )
             # Fall through to filesystem move
 
     # Use filesystem operations (either as primary method or fallback)
     try:
-        logger.debug(f"Moving {src_rel} to {dest_rel} using filesystem operations")
+        logger.debug("Moving %s to %s using filesystem operations", src_rel, dest_rel)
 
         # Use shutil.move for both files and directories
         shutil.move(str(src_abs), str(dest_abs))
@@ -397,7 +397,7 @@ def move_file(
         if should_use_git:
             message += " (fallback from git)"
 
-        logger.info(f"Successfully moved: {src_rel} -> {dest_rel}")
+        logger.info("Successfully moved: %s -> %s", src_rel, dest_rel)
 
         return {
             "success": True,
@@ -408,8 +408,8 @@ def move_file(
         }
 
     except PermissionError as e:
-        logger.error(f"Permission denied moving {src_rel} to {dest_rel}: {e}")
+        logger.error("Permission denied moving %s to %s: %s", src_rel, dest_rel, e)
         raise
     except Exception as e:
-        logger.error(f"Error moving {src_rel} to {dest_rel}: {e}")
+        logger.error("Error moving %s to %s: %s", src_rel, dest_rel, e)
         raise

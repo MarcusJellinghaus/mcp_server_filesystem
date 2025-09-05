@@ -36,7 +36,7 @@ def set_project_dir(directory: Path) -> None:
     """
     global _project_dir
     _project_dir = Path(directory)
-    logger.info(f"Project directory set to: {_project_dir}")
+    logger.info("Project directory set to: %s", _project_dir)
     structured_logger.info("Project directory set", project_dir=str(_project_dir))
 
 
@@ -52,12 +52,12 @@ def list_directory() -> List[str]:
         if _project_dir is None:
             raise ValueError("Project directory has not been set")
 
-        logger.info(f"Listing all files in project directory: {_project_dir}")
+        logger.info("Listing all files in project directory: %s", _project_dir)
         # Explicitly pass project_dir to list_files_util
         result = list_files_util(".", project_dir=_project_dir, use_gitignore=True)
         return result
     except Exception as e:
-        logger.error(f"Error listing project directory: {str(e)}")
+        logger.error("Error listing project directory: %s", str(e))
         raise
 
 
@@ -73,18 +73,18 @@ def read_file(file_path: str) -> str:
         The contents of the file as a string
     """
     if not file_path or not isinstance(file_path, str):
-        logger.error(f"Invalid file path parameter: {file_path}")
+        logger.error("Invalid file path parameter: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
 
-    logger.info(f"Reading file: {file_path}")
+    logger.info("Reading file: %s", file_path)
     try:
         content = read_file_util(file_path, project_dir=_project_dir)
         return content
     except Exception as e:
-        logger.error(f"Error reading file: {str(e)}")
+        logger.error("Error reading file: %s", str(e))
         raise
 
 
@@ -101,25 +101,25 @@ def save_file(file_path: str, content: Any) -> bool:
         True if the file was written successfully
     """
     if not file_path or not isinstance(file_path, str):
-        logger.error(f"Invalid file path parameter: {file_path}")
+        logger.error("Invalid file path parameter: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
     elif not isinstance(content, str):
-        logger.error(f"Invalid content type: {type(content)}")
+        logger.error("Invalid content type: %s", type(content))
         raise ValueError(f"Content must be a string, got {type(content)}")
 
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
 
-    logger.info(f"Writing to file: {file_path}")
+    logger.info("Writing to file: %s", file_path)
     try:
         success = save_file_util(file_path, content, project_dir=_project_dir)
         return success
     except Exception as e:
-        logger.error(f"Error writing to file: {str(e)}")
+        logger.error("Error writing to file: %s", str(e))
         raise
 
 
@@ -136,25 +136,25 @@ def append_file(file_path: str, content: Any) -> bool:
         True if the content was appended successfully
     """
     if not file_path or not isinstance(file_path, str):
-        logger.error(f"Invalid file path parameter: {file_path}")
+        logger.error("Invalid file path parameter: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     if content is None:
         logger.warning("Content is None, treating as empty string")
         content = ""
     elif not isinstance(content, str):
-        logger.error(f"Invalid content type: {type(content)}")
+        logger.error("Invalid content type: %s", type(content))
         raise ValueError(f"Content must be a string, got {type(content)}")
 
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
 
-    logger.info(f"Appending to file: {file_path}")
+    logger.info("Appending to file: %s", file_path)
     try:
         success = append_file_util(file_path, content, project_dir=_project_dir)
         return success
     except Exception as e:
-        logger.error(f"Error appending to file: {str(e)}")
+        logger.error("Error appending to file: %s", str(e))
         raise
 
 
@@ -172,20 +172,20 @@ def delete_this_file(file_path: str) -> bool:
     # delete_file does not work with Claude Desktop (!!!)  ;-)
     # Validate the file_path parameter
     if not file_path or not isinstance(file_path, str):
-        logger.error(f"Invalid file path parameter: {file_path}")
+        logger.error("Invalid file path parameter: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
 
-    logger.info(f"Deleting file: {file_path}")
+    logger.info("Deleting file: %s", file_path)
     try:
         # Directly delete the file without user confirmation
         success = delete_file_util(file_path, project_dir=_project_dir)
-        logger.info(f"File deleted successfully: {file_path}")
+        logger.info("File deleted successfully: %s", file_path)
         return success
     except Exception as e:
-        logger.error(f"Error deleting file {file_path}: {str(e)}")
+        logger.error("Error deleting file %s: %s", file_path, str(e))
         raise
 
 
@@ -223,20 +223,20 @@ def move_file(source_path: str, destination_path: str) -> bool:
         # Return simple boolean
         return bool(result.get("success", False))
 
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
         # Simplify error message for LLM
-        raise FileNotFoundError("File not found")
-    except FileExistsError:
+        raise FileNotFoundError("File not found") from exc
+    except FileExistsError as exc:
         # Simplify error message for LLM
-        raise FileExistsError("Destination already exists")
-    except PermissionError:
+        raise FileExistsError("Destination already exists") from exc
+    except PermissionError as exc:
         # Simplify error message for LLM
-        raise PermissionError("Permission denied")
+        raise PermissionError("Permission denied") from exc
     except ValueError as e:
         # For security errors, simplify the message
         if "Security" in str(e) or "outside" in str(e).lower():
-            raise ValueError("Invalid path")
-        raise ValueError("Invalid operation")
+            raise ValueError("Invalid path") from e
+        raise ValueError("Invalid operation") from e
     except Exception as e:
         # Catch any other errors and simplify
         raise RuntimeError("Move operation failed") from e
@@ -280,11 +280,11 @@ def edit_file(
     """
     # Basic validation
     if not file_path or not isinstance(file_path, str):
-        logger.error(f"Invalid file path parameter: {file_path}")
+        logger.error("Invalid file path parameter: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
     if not isinstance(edits, list) or not edits:
-        logger.error(f"Invalid edits parameter: {edits}")
+        logger.error("Invalid edits parameter: %s", edits)
         raise ValueError("Edits must be a non-empty list")
 
     if _project_dir is None:
@@ -316,10 +316,11 @@ def edit_file(
                 normalized_options[opt_name] = opt_value
             else:
                 logger.warning(
-                    f"Unsupported option '{opt_name}' ignored. Supported options: {supported_options}"
+                    "Unsupported option '%s' ignored. Supported options: %s",
+                    opt_name, supported_options
                 )
 
-    logger.info(f"Editing file: {file_path}, dry_run: {dry_run}")
+    logger.info("Editing file: %s, dry_run: %s", file_path, dry_run)
 
     try:
         # Call the implementation function
@@ -331,7 +332,7 @@ def edit_file(
             project_dir=_project_dir,
         )
     except Exception as e:
-        logger.error(f"Error editing file {file_path}: {str(e)}")
+        logger.error("Error editing file %s: %s", file_path, str(e))
         raise
 
 
