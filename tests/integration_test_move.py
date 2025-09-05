@@ -5,8 +5,6 @@ This script can be run after installation to verify the feature integration.
 Run: python tests/integration_test_move.py
 """
 
-import json
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -37,10 +35,6 @@ def test_mcp_server_move_file() -> bool:
         # Here we're just verifying the functions are accessible
 
         # Import and test directly
-        import os
-
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
         from mcp_server_filesystem.server import move_file, set_project_dir
 
         # Set up server
