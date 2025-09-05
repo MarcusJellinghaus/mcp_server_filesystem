@@ -191,19 +191,16 @@ def delete_this_file(file_path: str) -> bool:
 
 @mcp.tool()
 @log_function_call
-def move_file(
-    source_path: str,
-    destination_path: str
-) -> bool:
+def move_file(source_path: str, destination_path: str) -> bool:
     """Move or rename a file or directory within the project.
-    
+
     Args:
         source_path: Source file/directory path (relative to project)
         destination_path: Destination path (relative to project)
-        
+
     Returns:
         True if successful
-        
+
     Raises:
         ValueError: If inputs are invalid
         FileNotFoundError: If source doesn't exist
@@ -212,20 +209,20 @@ def move_file(
     # Validate inputs with simple error messages
     if not source_path or not isinstance(source_path, str):
         raise ValueError("Invalid source path")
-    
+
     if not destination_path or not isinstance(destination_path, str):
         raise ValueError("Invalid destination path")
-    
+
     if _project_dir is None:
         raise ValueError("Project directory not configured")
-    
+
     try:
         # Call the underlying function (all logic is handled internally)
         result = move_file_util(source_path, destination_path, project_dir=_project_dir)
-        
+
         # Return simple boolean
         return bool(result.get("success", False))
-        
+
     except FileNotFoundError:
         # Simplify error message for LLM
         raise FileNotFoundError("File not found")

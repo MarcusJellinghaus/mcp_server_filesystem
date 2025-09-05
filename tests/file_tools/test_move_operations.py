@@ -178,7 +178,6 @@ class TestBasicMoveOperations:
         # Note: Actual cleanup happens when fixture's context manager exits
         # The next test will get a completely different temp directory
 
-
     def test_move_with_special_characters(self, temp_project_dir: Path) -> None:
         """Test moving files with special characters in names."""
         # Test various special characters that are allowed in filenames
@@ -192,24 +191,24 @@ class TestBasicMoveOperations:
             "file{with}braces.txt",
             "file@with#symbols.txt",
         ]
-        
+
         for name in special_names:
             # Create source file with special name
             source = temp_project_dir / name
             source.write_text(f"content of {name}")
-            
+
             # Create destination name
             dest_name = f"moved_{name}"
-            
+
             # Move file
             result = move_file(name, dest_name, project_dir=temp_project_dir)
-            
+
             assert result["success"] is True
             assert not source.exists()
             dest = temp_project_dir / dest_name
             assert dest.exists()
             assert dest.read_text() == f"content of {name}"
-            
+
             # Clean up for next iteration
             if dest.exists():
                 dest.unlink()
@@ -219,10 +218,10 @@ class TestBasicMoveOperations:
         # Create empty file
         source = temp_project_dir / "empty.txt"
         source.touch()
-        
+
         # Move empty file
         result = move_file("empty.txt", "moved_empty.txt", project_dir=temp_project_dir)
-        
+
         assert result["success"] is True
         assert not source.exists()
         dest = temp_project_dir / "moved_empty.txt"
@@ -234,22 +233,22 @@ class TestBasicMoveOperations:
         # Create source file
         source = temp_project_dir / "perms_test.txt"
         source.write_text("test content")
-        
+
         # Set specific permissions (only on Unix-like systems)
         if os.name != "nt":  # Not Windows
             original_mode = 0o644
             source.chmod(original_mode)
             original_stat = source.stat()
-            
+
             # Move file
             result = move_file(
                 "perms_test.txt", "moved_perms.txt", project_dir=temp_project_dir
             )
-            
+
             assert result["success"] is True
             dest = temp_project_dir / "moved_perms.txt"
             dest_stat = dest.stat()
-            
+
             # Check that permissions are preserved
             assert dest_stat.st_mode == original_stat.st_mode
         else:
@@ -264,62 +263,68 @@ class TestBasicMoveOperations:
         # Create nested directory structure
         root_dir = temp_project_dir / "root"
         root_dir.mkdir()
-        
+
         # Create nested subdirectories
         (root_dir / "level1").mkdir()
         (root_dir / "level1" / "level2").mkdir()
         (root_dir / "level1" / "level2" / "level3").mkdir()
-        
+
         # Add files at different levels
         (root_dir / "root_file.txt").write_text("root file")
         (root_dir / "level1" / "l1_file.txt").write_text("level 1 file")
         (root_dir / "level1" / "level2" / "l2_file.txt").write_text("level 2 file")
-        (root_dir / "level1" / "level2" / "level3" / "l3_file.txt").write_text("level 3 file")
-        
+        (root_dir / "level1" / "level2" / "level3" / "l3_file.txt").write_text(
+            "level 3 file"
+        )
+
         # Move entire structure
         result = move_file("root", "moved_root", project_dir=temp_project_dir)
-        
+
         assert result["success"] is True
         assert not root_dir.exists()
-        
+
         # Verify entire structure was moved
         moved_dir = temp_project_dir / "moved_root"
         assert moved_dir.exists()
         assert (moved_dir / "root_file.txt").read_text() == "root file"
         assert (moved_dir / "level1" / "l1_file.txt").read_text() == "level 1 file"
-        assert (moved_dir / "level1" / "level2" / "l2_file.txt").read_text() == "level 2 file"
-        assert (moved_dir / "level1" / "level2" / "level3" / "l3_file.txt").read_text() == "level 3 file"
+        assert (
+            moved_dir / "level1" / "level2" / "l2_file.txt"
+        ).read_text() == "level 2 file"
+        assert (
+            moved_dir / "level1" / "level2" / "level3" / "l3_file.txt"
+        ).read_text() == "level 3 file"
 
     def test_move_handles_concurrent_modification(self, temp_project_dir: Path) -> None:
         """Test handling of concurrent modification scenarios."""
         # Create source file
         source = temp_project_dir / "concurrent_test.txt"
         source.write_text("original content")
-        
+
         # Simulate a scenario where file might be modified during move
         # by mocking the filesystem operation
         with patch("shutil.move") as mock_move:
             # Configure mock to simulate a transient error then succeed
             mock_move.side_effect = [
                 OSError("Resource temporarily unavailable"),
-                str(temp_project_dir / "moved_concurrent.txt")
+                str(temp_project_dir / "moved_concurrent.txt"),
             ]
-            
+
             # First call should fail due to mock
             with pytest.raises(OSError):
                 move_file(
-                    "concurrent_test.txt", 
-                    "moved_concurrent.txt", 
-                    project_dir=temp_project_dir
+                    "concurrent_test.txt",
+                    "moved_concurrent.txt",
+                    project_dir=temp_project_dir,
                 )
-            
+
             # Reset mock for successful move
             mock_move.side_effect = None
             mock_move.return_value = str(temp_project_dir / "moved_concurrent.txt")
-            
+
             # Manual move simulation for test
             source.rename(temp_project_dir / "moved_concurrent.txt")
-            
+
             # Verify file was moved despite initial error
             assert not source.exists()
             assert (temp_project_dir / "moved_concurrent.txt").exists()
@@ -338,30 +343,30 @@ class TestBasicMoveOperations:
                 test_target.unlink()
             except OSError:
                 pytest.skip("Symlinks not supported on this Windows system")
-        
+
         # Create target file
         target = temp_project_dir / "target.txt"
         target.write_text("target content")
-        
+
         # Create symlink
         link = temp_project_dir / "link.txt"
         link.symlink_to(target)
-        
+
         # Verify symlink works
         assert link.is_symlink()
         assert link.read_text() == "target content"
-        
+
         # Move the symlink
         result = move_file("link.txt", "moved_link.txt", project_dir=temp_project_dir)
-        
+
         assert result["success"] is True
         assert not link.exists()
-        
+
         moved_link = temp_project_dir / "moved_link.txt"
         assert moved_link.exists()
         assert moved_link.is_symlink()
         assert moved_link.read_text() == "target content"
-        
+
         # Original target should still exist
         assert target.exists()
 
@@ -370,12 +375,12 @@ class TestBasicMoveOperations:
         # Create directory with many files
         large_dir = temp_project_dir / "large_dir"
         large_dir.mkdir()
-        
+
         # Create 100 files
         for i in range(100):
             file = large_dir / f"file_{i:03d}.txt"
             file.write_text(f"Content of file {i}")
-        
+
         # Create some subdirectories with files
         for i in range(10):
             subdir = large_dir / f"subdir_{i}"
@@ -383,22 +388,22 @@ class TestBasicMoveOperations:
             for j in range(10):
                 file = subdir / f"file_{j}.txt"
                 file.write_text(f"Subdir {i} file {j}")
-        
+
         # Move the large directory
         result = move_file("large_dir", "moved_large_dir", project_dir=temp_project_dir)
-        
+
         assert result["success"] is True
         assert not large_dir.exists()
-        
+
         moved_dir = temp_project_dir / "moved_large_dir"
         assert moved_dir.exists()
-        
+
         # Verify all files were moved
         for i in range(100):
             file = moved_dir / f"file_{i:03d}.txt"
             assert file.exists()
             assert file.read_text() == f"Content of file {i}"
-        
+
         # Verify subdirectories
         for i in range(10):
             subdir = moved_dir / f"subdir_{i}"
