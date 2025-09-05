@@ -59,7 +59,7 @@ def setup_logging(log_level: str, log_file: Optional[str] = None) -> None:
                 structlog.processors.StackInfoRenderer(),
                 structlog.processors.format_exc_info,
                 structlog.processors.UnicodeDecoder(),
-                structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+                structlog.processors.JSONRenderer(),  # Use JSONRenderer instead of wrap_for_formatter
             ],
             context_class=dict,
             logger_factory=structlog.stdlib.LoggerFactory(),

@@ -5,6 +5,7 @@ from mcp_server_filesystem.file_tools.edit_file import edit_file
 from mcp_server_filesystem.file_tools.file_operations import (
     append_file,
     delete_file,
+    move_file,
     read_file,
     save_file,
     write_file,
@@ -24,6 +25,7 @@ __all__ = [
     "save_file",
     "append_file",
     "delete_file",
+    "move_file",
     "list_files",
     "edit_file",
     "is_git_repository",

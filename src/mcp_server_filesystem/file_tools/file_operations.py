@@ -2,11 +2,13 @@
 
 import logging
 import os
+import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from mcp_server_filesystem.file_tools.path_utils import normalize_path
+from mcp_server_filesystem.log_utils import log_function_call
 
 logger = logging.getLogger(__name__)
 
@@ -272,4 +274,91 @@ def delete_file(file_path: str, project_dir: Path) -> bool:
         raise
     except Exception as e:
         logger.error(f"Error deleting file {rel_path}: {str(e)}")
+        raise
+
+
+@log_function_call  # Automatic logging of parameters, timing, and exceptions
+def move_file(
+    source_path: str, destination_path: str, project_dir: Path
+) -> Dict[str, Any]:
+    """
+    Move or rename a file or directory.
+
+    Automatically creates parent directories.
+    Git integration will be added in Step 3.
+
+    Args:
+        source_path: Source file/directory path (relative to project_dir)
+        destination_path: Destination path (relative to project_dir)
+        project_dir: Project directory path
+
+    Returns:
+        Dictionary with operation details including:
+        - success: True if the move succeeded
+        - method: "filesystem" for now (will add "git" in Step 3)
+        - source: Source relative path
+        - destination: Destination relative path
+        - message: Description of the operation
+        Note: Server endpoint will simplify this to just boolean
+
+    Raises:
+        FileNotFoundError: If source doesn't exist
+        FileExistsError: If destination already exists
+        ValueError: If paths are invalid or outside project directory
+        PermissionError: If lacking permissions for the operation
+    """
+    # Validate inputs
+    if not source_path or not isinstance(source_path, str):
+        raise ValueError(
+            f"Source path must be a non-empty string, got {type(source_path)}"
+        )
+
+    if not destination_path or not isinstance(destination_path, str):
+        raise ValueError(
+            f"Destination path must be a non-empty string, got {type(destination_path)}"
+        )
+
+    if project_dir is None:
+        raise ValueError("Project directory cannot be None")
+
+    # Normalize paths (this also validates they're within project_dir)
+    src_abs, src_rel = normalize_path(source_path, project_dir)
+    dest_abs, dest_rel = normalize_path(destination_path, project_dir)
+
+    # Check if source exists
+    if not src_abs.exists():
+        raise FileNotFoundError(f"Source file '{source_path}' does not exist")
+
+    # Check if destination already exists
+    if dest_abs.exists():
+        raise FileExistsError(f"Destination '{destination_path}' already exists")
+
+    # Automatically create parent directories
+    dest_parent = dest_abs.parent
+    dest_parent.mkdir(parents=True, exist_ok=True)
+
+    # For now, we'll implement only filesystem move
+    # Git integration will be added in Step 3
+    try:
+        logger.info(f"Moving file: {src_rel} -> {dest_rel}")
+        logger.debug(f"Moving {src_rel} to {dest_rel} using filesystem operations")
+
+        # Use shutil.move for both files and directories
+        shutil.move(str(src_abs), str(dest_abs))
+
+        logger.info(f"Successfully moved: {src_rel} -> {dest_rel}")
+
+        return {
+            "success": True,
+            "method": "filesystem",
+            "source": src_rel,
+            "destination": dest_rel,
+            "message": "File moved using filesystem operations",
+        }
+
+    except PermissionError as e:
+        logger.error(f"Permission denied moving {src_rel} to {dest_rel}: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Error moving {src_rel} to {dest_rel}: {e}")
         raise
