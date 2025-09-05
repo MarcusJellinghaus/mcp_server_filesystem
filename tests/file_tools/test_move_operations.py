@@ -323,3 +323,87 @@ class TestBasicMoveOperations:
             # Verify file was moved despite initial error
             assert not source.exists()
             assert (temp_project_dir / "moved_concurrent.txt").exists()
+
+    def test_move_symlinks(self, temp_project_dir: Path) -> None:
+        """Test moving symbolic links."""
+        # Skip on Windows if symlinks not supported
+        if os.name == "nt":
+            try:
+                # Try to create a test symlink
+                test_link = temp_project_dir / "test_link"
+                test_target = temp_project_dir / "test_target"
+                test_target.touch()
+                test_link.symlink_to(test_target)
+                test_link.unlink()
+                test_target.unlink()
+            except OSError:
+                pytest.skip("Symlinks not supported on this Windows system")
+        
+        # Create target file
+        target = temp_project_dir / "target.txt"
+        target.write_text("target content")
+        
+        # Create symlink
+        link = temp_project_dir / "link.txt"
+        link.symlink_to(target)
+        
+        # Verify symlink works
+        assert link.is_symlink()
+        assert link.read_text() == "target content"
+        
+        # Move the symlink
+        result = move_file("link.txt", "moved_link.txt", project_dir=temp_project_dir)
+        
+        assert result["success"] is True
+        assert not link.exists()
+        
+        moved_link = temp_project_dir / "moved_link.txt"
+        assert moved_link.exists()
+        assert moved_link.is_symlink()
+        assert moved_link.read_text() == "target content"
+        
+        # Original target should still exist
+        assert target.exists()
+
+    def test_move_large_directory(self, temp_project_dir: Path) -> None:
+        """Test moving directories with many files."""
+        # Create directory with many files
+        large_dir = temp_project_dir / "large_dir"
+        large_dir.mkdir()
+        
+        # Create 100 files
+        for i in range(100):
+            file = large_dir / f"file_{i:03d}.txt"
+            file.write_text(f"Content of file {i}")
+        
+        # Create some subdirectories with files
+        for i in range(10):
+            subdir = large_dir / f"subdir_{i}"
+            subdir.mkdir()
+            for j in range(10):
+                file = subdir / f"file_{j}.txt"
+                file.write_text(f"Subdir {i} file {j}")
+        
+        # Move the large directory
+        result = move_file("large_dir", "moved_large_dir", project_dir=temp_project_dir)
+        
+        assert result["success"] is True
+        assert not large_dir.exists()
+        
+        moved_dir = temp_project_dir / "moved_large_dir"
+        assert moved_dir.exists()
+        
+        # Verify all files were moved
+        for i in range(100):
+            file = moved_dir / f"file_{i:03d}.txt"
+            assert file.exists()
+            assert file.read_text() == f"Content of file {i}"
+        
+        # Verify subdirectories
+        for i in range(10):
+            subdir = moved_dir / f"subdir_{i}"
+            assert subdir.exists()
+            for j in range(10):
+                file = subdir / f"file_{j}.txt"
+                assert file.exists()
+                assert file.read_text() == f"Subdir {i} file {j}"
