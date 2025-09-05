@@ -24,9 +24,7 @@ class TestBasicMoveOperations:
         source.write_text("test content")
 
         # Move (rename) the file
-        result = move_file(
-            "test_file.txt", "renamed_file.txt", project_dir=tmp_path
-        )
+        result = move_file("test_file.txt", "renamed_file.txt", project_dir=tmp_path)
 
         # Verify result
         assert result["success"] is True
@@ -51,9 +49,7 @@ class TestBasicMoveOperations:
         subdir.mkdir()
 
         # Move file
-        result = move_file(
-            "source.txt", "subdir/moved.txt", project_dir=tmp_path
-        )
+        result = move_file("source.txt", "subdir/moved.txt", project_dir=tmp_path)
 
         assert result["success"] is True
         assert not source.exists()
@@ -68,9 +64,7 @@ class TestBasicMoveOperations:
         source.write_text("test data")
 
         # Move to non-existent directory (parent dirs created automatically)
-        result = move_file(
-            "file.txt", "new/path/to/file.txt", project_dir=tmp_path
-        )
+        result = move_file("file.txt", "new/path/to/file.txt", project_dir=tmp_path)
 
         assert result["success"] is True
         assert not source.exists()
@@ -81,9 +75,7 @@ class TestBasicMoveOperations:
     def test_move_nonexistent_file_fails(self, tmp_path: Path) -> None:
         """Test that moving a non-existent file raises an error."""
         with pytest.raises(FileNotFoundError) as exc:
-            move_file(
-                "nonexistent.txt", "destination.txt", project_dir=tmp_path
-            )
+            move_file("nonexistent.txt", "destination.txt", project_dir=tmp_path)
 
         # Internal function can have detailed message
         assert "does not exist" in str(exc.value)

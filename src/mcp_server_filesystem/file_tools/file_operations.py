@@ -80,15 +80,15 @@ def _validate_save_parameters(
     file_path: str, content: Any, project_dir: Path
 ) -> tuple[Path, str, str]:
     """Validate and normalize save operation parameters.
-    
+
     Args:
         file_path: Path to file (relative to project_dir)
         content: Content to write to file
         project_dir: Project directory path
-    
+
     Returns:
         Tuple of (abs_path, rel_path, validated_content)
-    
+
     Raises:
         ValueError: If parameters are invalid
     """
@@ -111,16 +111,16 @@ def _validate_save_parameters(
 
     # Normalize the path to be relative to the project directory
     abs_path, rel_path = normalize_path(file_path, project_dir)
-    
+
     return abs_path, rel_path, content
 
 
 def _create_parent_directories(abs_path: Path) -> None:
     """Create parent directories if they don't exist.
-    
+
     Args:
         abs_path: Absolute path to file
-    
+
     Raises:
         PermissionError: If lacking permissions to create directories
         Exception: For other directory creation errors
@@ -139,19 +139,17 @@ def _create_parent_directories(abs_path: Path) -> None:
         raise
 
 
-def _write_file_atomically(
-    abs_path: Path, rel_path: str, content: str
-) -> bool:
+def _write_file_atomically(abs_path: Path, rel_path: str, content: str) -> bool:
     """Write file atomically using a temporary file.
-    
+
     Args:
         abs_path: Absolute path to file
         rel_path: Relative path for logging
         content: Content to write
-    
+
     Returns:
         True if successful
-    
+
     Raises:
         ValueError: If content cannot be encoded
         Exception: For other write errors
@@ -223,10 +221,10 @@ def save_file(file_path: str, content: Any, project_dir: Path) -> bool:
     abs_path, rel_path, validated_content = _validate_save_parameters(
         file_path, content, project_dir
     )
-    
+
     # Create parent directories if needed
     _create_parent_directories(abs_path)
-    
+
     # Write file atomically
     return _write_file_atomically(abs_path, rel_path, validated_content)
 
@@ -346,15 +344,15 @@ def _validate_move_parameters(
     source_path: str, destination_path: str, project_dir: Path
 ) -> tuple[Path, str, Path, str]:
     """Validate and normalize move operation parameters.
-    
+
     Args:
         source_path: Source file/directory path
         destination_path: Destination path
         project_dir: Project directory path
-    
+
     Returns:
         Tuple of (src_abs, src_rel, dest_abs, dest_rel)
-    
+
     Raises:
         ValueError: If paths are invalid
         FileNotFoundError: If source doesn't exist
@@ -391,17 +389,17 @@ def _validate_move_parameters(
 
 def _determine_move_method(src_abs: Path, project_dir: Path) -> bool:
     """Determine if git should be used for the move operation.
-    
+
     Args:
         src_abs: Absolute path to source
         project_dir: Project directory path
-    
+
     Returns:
         True if git should be used, False otherwise
     """
     if not is_git_repository(project_dir):
         return False
-    
+
     # Simply check if the source is tracked (for files)
     # For directories, git mv will handle it or fail gracefully
     if src_abs.is_file():
@@ -411,19 +409,17 @@ def _determine_move_method(src_abs: Path, project_dir: Path) -> bool:
         return True
 
 
-def _execute_git_move(
-    src_rel: str, dest_rel: str, project_dir: Path
-) -> Dict[str, Any]:
+def _execute_git_move(src_rel: str, dest_rel: str, project_dir: Path) -> Dict[str, Any]:
     """Execute move using git mv.
-    
+
     Args:
         src_rel: Relative source path
         dest_rel: Relative destination path
         project_dir: Project directory path
-    
+
     Returns:
         Dict with move result
-    
+
     Raises:
         GitCommandError: If git move fails
     """
@@ -454,17 +450,17 @@ def _execute_filesystem_move(
     src_abs: Path, dest_abs: Path, src_rel: str, dest_rel: str, is_fallback: bool
 ) -> Dict[str, Any]:
     """Execute move using filesystem operations.
-    
+
     Args:
         src_abs: Absolute source path
         dest_abs: Absolute destination path
         src_rel: Relative source path
         dest_rel: Relative destination path
         is_fallback: Whether this is a fallback from git
-    
+
     Returns:
         Dict with move result
-    
+
     Raises:
         PermissionError: If lacking permissions
         Exception: For other move errors
