@@ -9,6 +9,11 @@ from mcp_server_filesystem.file_tools.file_operations import (
     save_file,
     write_file,
 )
+from mcp_server_filesystem.file_tools.git_operations import (
+    git_move,
+    is_file_tracked,
+    is_git_repository,
+)
 from mcp_server_filesystem.file_tools.path_utils import normalize_path
 
 # Define what functions are exposed when importing from this package
@@ -21,4 +26,7 @@ __all__ = [
     "delete_file",
     "list_files",
     "edit_file",
+    "is_git_repository",
+    "is_file_tracked",
+    "git_move",
 ]
