@@ -139,7 +139,7 @@ class TestLogFunctionCall:
         assert first_call[0][1] == "path_func"
         # The second argument should be a JSON string of parameters
         params_json = first_call[0][2]
-        
+
         # NOTE: There's a bug in the decorator where Path objects with __class__.__module__ != "builtins"
         # are incorrectly treated as 'self' parameters and skipped. This results in empty params.
         # For now, we'll just verify the decorator was called and the result is correct.
@@ -155,7 +155,9 @@ class TestLogFunctionCall:
         # The result is the third parameter (after func_name and elapsed_ms)
         result_arg = second_call[0][3]
         # On Windows, the path might be represented differently
-        assert str(test_path).replace('/', '\\') in str(result_arg) or str(test_path) in str(result_arg)
+        assert str(test_path).replace("/", "\\") in str(result_arg) or str(
+            test_path
+        ) in str(result_arg)
 
     @patch("mcp_server_filesystem.log_utils.stdlogger")
     def test_log_function_call_with_large_result(

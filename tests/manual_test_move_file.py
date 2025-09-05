@@ -15,7 +15,6 @@ from mcp_server_filesystem.server import move_file, set_project_dir
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 
-
 def test_move_file_feature() -> bool:
     """Test the move_file feature with various scenarios."""
 

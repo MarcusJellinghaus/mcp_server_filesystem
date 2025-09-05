@@ -317,7 +317,8 @@ def edit_file(
             else:
                 logger.warning(
                     "Unsupported option '%s' ignored. Supported options: %s",
-                    opt_name, supported_options
+                    opt_name,
+                    supported_options,
                 )
 
     logger.info("Editing file: %s, dry_run: %s", file_path, dry_run)

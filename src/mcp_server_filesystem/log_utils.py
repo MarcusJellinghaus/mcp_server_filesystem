@@ -145,7 +145,8 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
 
         stdlogger.debug(
             "Calling %s with parameters: %s",
-            func_name, json.dumps(serializable_params, default=str)
+            func_name,
+            json.dumps(serializable_params, default=str),
         )
 
         # Execute function and measure time
@@ -183,7 +184,9 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
 
             stdlogger.debug(
                 "%s completed in %sms with result: %s",
-                func_name, elapsed_ms, result_for_log
+                func_name,
+                elapsed_ms,
+                result_for_log,
             )
             return result
 
@@ -205,7 +208,10 @@ def log_function_call(func: Callable[..., T]) -> Callable[..., T]:
 
             stdlogger.error(
                 "%s failed after %sms with error: %s: %s",
-                func_name, elapsed_ms, type(e).__name__, str(e),
+                func_name,
+                elapsed_ms,
+                type(e).__name__,
+                str(e),
                 exc_info=True,
             )
             raise

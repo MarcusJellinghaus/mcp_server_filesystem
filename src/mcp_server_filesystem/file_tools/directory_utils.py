@@ -108,7 +108,8 @@ def apply_gitignore_filter(
 
     logger.info(
         "Applied gitignore filtering: %s files found, %s after filtering",
-        len(file_paths), len(filtered_files)
+        len(file_paths),
+        len(filtered_files),
     )
     return filtered_files
 

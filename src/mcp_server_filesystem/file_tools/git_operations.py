@@ -57,7 +57,9 @@ def is_file_tracked(file_path: Path, project_dir: Path) -> bool:
             relative_path = file_path.relative_to(project_dir)
         except ValueError:
             # File is outside project directory
-            logger.debug("File %s is outside project directory %s", file_path, project_dir)
+            logger.debug(
+                "File %s is outside project directory %s", file_path, project_dir
+            )
             return False
 
         # Convert to posix path for git (even on Windows)
@@ -124,8 +126,7 @@ def git_move(source_path: Path, dest_path: Path, project_dir: Path) -> bool:
         repo.git.mv(source_git, dest_git)
 
         logger.info(
-            "Successfully moved file using git from %s to %s",
-            source_git, dest_git
+            "Successfully moved file using git from %s to %s", source_git, dest_git
         )
         return True
 
