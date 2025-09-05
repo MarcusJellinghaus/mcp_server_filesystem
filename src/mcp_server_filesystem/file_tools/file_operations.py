@@ -7,6 +7,13 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from git import Repo
+from git.exc import GitCommandError
+
+from mcp_server_filesystem.file_tools.git_operations import (
+    is_file_tracked,
+    is_git_repository,
+)
 from mcp_server_filesystem.file_tools.path_utils import normalize_path
 from mcp_server_filesystem.log_utils import log_function_call
 
@@ -284,8 +291,9 @@ def move_file(
     """
     Move or rename a file or directory.
 
-    Automatically creates parent directories.
-    Git integration will be added in Step 3.
+    Automatically uses git mv if the file is tracked by git,
+    otherwise uses standard filesystem operations.
+    Always creates parent directories if they don't exist.
 
     Args:
         source_path: Source file/directory path (relative to project_dir)
@@ -293,13 +301,12 @@ def move_file(
         project_dir: Project directory path
 
     Returns:
-        Dictionary with operation details including:
-        - success: True if the move succeeded
-        - method: "filesystem" for now (will add "git" in Step 3)
-        - source: Source relative path
-        - destination: Destination relative path
-        - message: Description of the operation
-        Note: Server endpoint will simplify this to just boolean
+        Dict containing:
+            - success: bool indicating if the move succeeded
+            - method: 'git' or 'filesystem' indicating method used
+            - source: normalized source path
+            - destination: normalized destination path
+            - message: optional status message
 
     Raises:
         FileNotFoundError: If source doesn't exist
@@ -337,14 +344,58 @@ def move_file(
     dest_parent = dest_abs.parent
     dest_parent.mkdir(parents=True, exist_ok=True)
 
-    # For now, we'll implement only filesystem move
-    # Git integration will be added in Step 3
+    # Automatically determine if git should be used
+    should_use_git = False
+    if is_git_repository(project_dir):
+        # Simply check if the source is tracked (for files)
+        # For directories, git mv will handle it or fail gracefully
+        if src_abs.is_file():
+            should_use_git = is_file_tracked(src_abs, project_dir)
+        else:
+            # For directories, just try git mv and let it fail if needed
+            should_use_git = True
+
+    # Try git move if applicable
+    if should_use_git:
+        try:
+            logger.info(f"Attempting git move: {src_rel} -> {dest_rel}")
+            logger.debug(f"Moving {src_rel} to {dest_rel} using git mv")
+
+            repo = Repo(project_dir, search_parent_directories=False)
+
+            # Convert paths to posix format for git (even on Windows)
+            git_src = src_rel.replace("\\", "/")
+            git_dest = dest_rel.replace("\\", "/")
+
+            # Execute git mv
+            repo.git.mv(git_src, git_dest)
+
+            logger.info(f"Successfully moved using git: {src_rel} -> {dest_rel}")
+
+            return {
+                "success": True,
+                "method": "git",
+                "source": src_rel,
+                "destination": dest_rel,
+                "message": "File moved using git mv (preserving history)",
+            }
+
+        except (GitCommandError, Exception) as e:
+            logger.warning(
+                f"Git move failed for {src_rel}, falling back to filesystem: {e}"
+            )
+            # Fall through to filesystem move
+
+    # Use filesystem operations (either as primary method or fallback)
     try:
-        logger.info(f"Moving file: {src_rel} -> {dest_rel}")
         logger.debug(f"Moving {src_rel} to {dest_rel} using filesystem operations")
 
         # Use shutil.move for both files and directories
         shutil.move(str(src_abs), str(dest_abs))
+
+        message = "File moved using filesystem operations"
+        if should_use_git:
+            message += " (fallback from git)"
 
         logger.info(f"Successfully moved: {src_rel} -> {dest_rel}")
 
@@ -353,7 +404,7 @@ def move_file(
             "method": "filesystem",
             "source": src_rel,
             "destination": dest_rel,
-            "message": "File moved using filesystem operations",
+            "message": message,
         }
 
     except PermissionError as e:
