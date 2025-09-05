@@ -65,20 +65,16 @@ def is_file_tracked(file_path: Path, project_dir: Path) -> bool:
         # Convert to posix path for git (even on Windows)
         git_path = str(relative_path).replace("\\", "/")
 
-        # Check if file is in the index (staged) or committed
-        # This is more accurate than just using ls-files
+        # Use git ls-files to check if file is tracked
+        # This returns all files that git knows about (staged or committed)
         try:
-            # Try to get the file from the index
-            _ = repo.odb.stream(repo.index.entries[(git_path, 0)].binsha)
-            return True
-        except (KeyError, AttributeError):
-            # File not in index, check if it's in committed files
-            pass
-
-        # Get list of tracked files using ls-files
-        tracked_files = repo.git.ls_files().split("\n") if repo.git.ls_files() else []
-
-        return git_path in tracked_files
+            # Use ls-files with the specific file to avoid loading all files
+            result = repo.git.ls_files(git_path)
+            # If git returns the file path, it's tracked
+            return bool(result and git_path in result)
+        except GitCommandError:
+            # File is not tracked
+            return False
 
     except (InvalidGitRepositoryError, GitCommandError) as e:
         logger.debug("Git error checking if file is tracked: %s", e)
