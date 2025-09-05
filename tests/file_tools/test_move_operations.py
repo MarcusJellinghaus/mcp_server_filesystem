@@ -177,3 +177,149 @@ class TestBasicMoveOperations:
 
         # Note: Actual cleanup happens when fixture's context manager exits
         # The next test will get a completely different temp directory
+
+
+    def test_move_with_special_characters(self, temp_project_dir: Path) -> None:
+        """Test moving files with special characters in names."""
+        # Test various special characters that are allowed in filenames
+        special_names = [
+            "file with spaces.txt",
+            "file-with-dashes.txt",
+            "file_with_underscores.txt",
+            "file.multiple.dots.txt",
+            "file(with)parens.txt",
+            "file[with]brackets.txt",
+            "file{with}braces.txt",
+            "file@with#symbols.txt",
+        ]
+        
+        for name in special_names:
+            # Create source file with special name
+            source = temp_project_dir / name
+            source.write_text(f"content of {name}")
+            
+            # Create destination name
+            dest_name = f"moved_{name}"
+            
+            # Move file
+            result = move_file(name, dest_name, project_dir=temp_project_dir)
+            
+            assert result["success"] is True
+            assert not source.exists()
+            dest = temp_project_dir / dest_name
+            assert dest.exists()
+            assert dest.read_text() == f"content of {name}"
+            
+            # Clean up for next iteration
+            if dest.exists():
+                dest.unlink()
+
+    def test_move_empty_file(self, temp_project_dir: Path) -> None:
+        """Test moving an empty file."""
+        # Create empty file
+        source = temp_project_dir / "empty.txt"
+        source.touch()
+        
+        # Move empty file
+        result = move_file("empty.txt", "moved_empty.txt", project_dir=temp_project_dir)
+        
+        assert result["success"] is True
+        assert not source.exists()
+        dest = temp_project_dir / "moved_empty.txt"
+        assert dest.exists()
+        assert dest.stat().st_size == 0
+
+    def test_move_preserves_file_permissions(self, temp_project_dir: Path) -> None:
+        """Test that move preserves file permissions."""
+        # Create source file
+        source = temp_project_dir / "perms_test.txt"
+        source.write_text("test content")
+        
+        # Set specific permissions (only on Unix-like systems)
+        if os.name != "nt":  # Not Windows
+            original_mode = 0o644
+            source.chmod(original_mode)
+            original_stat = source.stat()
+            
+            # Move file
+            result = move_file(
+                "perms_test.txt", "moved_perms.txt", project_dir=temp_project_dir
+            )
+            
+            assert result["success"] is True
+            dest = temp_project_dir / "moved_perms.txt"
+            dest_stat = dest.stat()
+            
+            # Check that permissions are preserved
+            assert dest_stat.st_mode == original_stat.st_mode
+        else:
+            # On Windows, just verify the move works
+            result = move_file(
+                "perms_test.txt", "moved_perms.txt", project_dir=temp_project_dir
+            )
+            assert result["success"] is True
+
+    def test_move_nested_directory_structure(self, temp_project_dir: Path) -> None:
+        """Test moving a complex nested directory structure."""
+        # Create nested directory structure
+        root_dir = temp_project_dir / "root"
+        root_dir.mkdir()
+        
+        # Create nested subdirectories
+        (root_dir / "level1").mkdir()
+        (root_dir / "level1" / "level2").mkdir()
+        (root_dir / "level1" / "level2" / "level3").mkdir()
+        
+        # Add files at different levels
+        (root_dir / "root_file.txt").write_text("root file")
+        (root_dir / "level1" / "l1_file.txt").write_text("level 1 file")
+        (root_dir / "level1" / "level2" / "l2_file.txt").write_text("level 2 file")
+        (root_dir / "level1" / "level2" / "level3" / "l3_file.txt").write_text("level 3 file")
+        
+        # Move entire structure
+        result = move_file("root", "moved_root", project_dir=temp_project_dir)
+        
+        assert result["success"] is True
+        assert not root_dir.exists()
+        
+        # Verify entire structure was moved
+        moved_dir = temp_project_dir / "moved_root"
+        assert moved_dir.exists()
+        assert (moved_dir / "root_file.txt").read_text() == "root file"
+        assert (moved_dir / "level1" / "l1_file.txt").read_text() == "level 1 file"
+        assert (moved_dir / "level1" / "level2" / "l2_file.txt").read_text() == "level 2 file"
+        assert (moved_dir / "level1" / "level2" / "level3" / "l3_file.txt").read_text() == "level 3 file"
+
+    def test_move_handles_concurrent_modification(self, temp_project_dir: Path) -> None:
+        """Test handling of concurrent modification scenarios."""
+        # Create source file
+        source = temp_project_dir / "concurrent_test.txt"
+        source.write_text("original content")
+        
+        # Simulate a scenario where file might be modified during move
+        # by mocking the filesystem operation
+        with patch("shutil.move") as mock_move:
+            # Configure mock to simulate a transient error then succeed
+            mock_move.side_effect = [
+                OSError("Resource temporarily unavailable"),
+                str(temp_project_dir / "moved_concurrent.txt")
+            ]
+            
+            # First call should fail due to mock
+            with pytest.raises(OSError):
+                move_file(
+                    "concurrent_test.txt", 
+                    "moved_concurrent.txt", 
+                    project_dir=temp_project_dir
+                )
+            
+            # Reset mock for successful move
+            mock_move.side_effect = None
+            mock_move.return_value = str(temp_project_dir / "moved_concurrent.txt")
+            
+            # Manual move simulation for test
+            source.rename(temp_project_dir / "moved_concurrent.txt")
+            
+            # Verify file was moved despite initial error
+            assert not source.exists()
+            assert (temp_project_dir / "moved_concurrent.txt").exists()

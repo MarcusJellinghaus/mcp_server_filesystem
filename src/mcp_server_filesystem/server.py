@@ -10,6 +10,7 @@ from mcp_server_filesystem.file_tools import append_file as append_file_util
 from mcp_server_filesystem.file_tools import delete_file as delete_file_util
 from mcp_server_filesystem.file_tools import edit_file as edit_file_util
 from mcp_server_filesystem.file_tools import list_files as list_files_util
+from mcp_server_filesystem.file_tools import move_file as move_file_util
 from mcp_server_filesystem.file_tools import normalize_path
 from mcp_server_filesystem.file_tools import read_file as read_file_util
 from mcp_server_filesystem.file_tools import save_file as save_file_util
@@ -186,6 +187,62 @@ def delete_this_file(file_path: str) -> bool:
     except Exception as e:
         logger.error(f"Error deleting file {file_path}: {str(e)}")
         raise
+
+
+@mcp.tool()
+@log_function_call
+def move_file(
+    source_path: str,
+    destination_path: str
+) -> bool:
+    """Move or rename a file or directory within the project.
+    
+    Args:
+        source_path: Source file/directory path (relative to project)
+        destination_path: Destination path (relative to project)
+        
+    Returns:
+        True if successful
+        
+    Raises:
+        ValueError: If inputs are invalid
+        FileNotFoundError: If source doesn't exist
+        FileExistsError: If destination already exists
+    """
+    # Validate inputs with simple error messages
+    if not source_path or not isinstance(source_path, str):
+        raise ValueError("Invalid source path")
+    
+    if not destination_path or not isinstance(destination_path, str):
+        raise ValueError("Invalid destination path")
+    
+    if _project_dir is None:
+        raise ValueError("Project directory not configured")
+    
+    try:
+        # Call the underlying function (all logic is handled internally)
+        result = move_file_util(source_path, destination_path, project_dir=_project_dir)
+        
+        # Return simple boolean
+        return bool(result.get("success", False))
+        
+    except FileNotFoundError:
+        # Simplify error message for LLM
+        raise FileNotFoundError("File not found")
+    except FileExistsError:
+        # Simplify error message for LLM
+        raise FileExistsError("Destination already exists")
+    except PermissionError:
+        # Simplify error message for LLM
+        raise PermissionError("Permission denied")
+    except ValueError as e:
+        # For security errors, simplify the message
+        if "Security" in str(e) or "outside" in str(e).lower():
+            raise ValueError("Invalid path")
+        raise ValueError("Invalid operation")
+    except Exception as e:
+        # Catch any other errors and simplify
+        raise RuntimeError("Move operation failed") from e
 
 
 @mcp.tool()
