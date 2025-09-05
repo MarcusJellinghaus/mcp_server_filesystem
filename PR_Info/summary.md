@@ -23,6 +23,7 @@ Implement a new `move_file` tool that:
 - Maintain backwards compatibility and existing code patterns
 - Leverage existing `@log_function_call` decorator for automatic logging and error handling
 - All automatic behaviors (parent directory creation, git usage) happen transparently
+- Simplify error messages at the server endpoint level for LLM clarity
 
 ## Dependencies
 - GitPython (>=3.1.0) - required dependency for git operations
@@ -48,6 +49,19 @@ Implement a new `move_file` tool that:
 - Works within project directory only
 - All existing tests continue to pass
 - New functionality has >90% test coverage
+- Error messages at server endpoint are simplified for LLM clarity
+
+## Error Message Strategy
+- **Internal functions** (in file_operations.py, git_operations.py):
+  - Can use detailed error messages for debugging
+  - Include paths, system details, git errors for logging
+- **Server endpoint** (in server.py, exposed to LLM):
+  - Catches and simplifies all error messages
+  - "File not found" instead of path details
+  - "Destination already exists" instead of filesystem specifics
+  - "Permission denied" instead of system error details
+  - "Invalid path" for security violations
+  - "Move operation failed" for unexpected errors
 
 ## File Structure Changes
 ```
@@ -75,6 +89,10 @@ def move_file(
 
 # Returns: True if successful, raises exception otherwise
 # All implementation details (git vs filesystem) hidden from LLM
+# Error messages are simplified for LLM consumption:
+#   - "File not found" (no path details)
+#   - "Destination already exists" (no filesystem specifics)
+#   - "Permission denied" (no system details)
 ```
 
 ## Risk Mitigation

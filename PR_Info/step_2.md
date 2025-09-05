@@ -104,6 +104,7 @@ class TestBasicMoveOperations:
                 project_dir=project_dir
             )
         
+        # Internal function can have detailed message
         assert "does not exist" in str(exc.value)
     
     def test_move_file_outside_project_fails(self, project_dir):
@@ -120,7 +121,8 @@ class TestBasicMoveOperations:
                 project_dir=project_dir
             )
         
-        assert "Security error" in str(exc.value)
+        # Internal function can have detailed security message
+        assert "Security error" in str(exc.value) or "outside project" in str(exc.value)
         assert source.exists()  # Source should still exist
     
     def test_move_directory(self, project_dir):

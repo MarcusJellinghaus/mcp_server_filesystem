@@ -36,21 +36,40 @@ def move_file(
         FileNotFoundError: If source doesn't exist
         FileExistsError: If destination already exists
     """
-    # Validate inputs
+    # Validate inputs with simple error messages
     if not source_path or not isinstance(source_path, str):
-        raise ValueError(f"Source path must be a non-empty string")
+        raise ValueError("Invalid source path")
     
     if not destination_path or not isinstance(destination_path, str):
-        raise ValueError(f"Destination path must be a non-empty string")
+        raise ValueError("Invalid destination path")
     
     if _project_dir is None:
-        raise ValueError("Project directory has not been set")
+        raise ValueError("Project directory not configured")
     
-    # Call the underlying function (all logic is handled internally)
-    result = move_file_util(source_path, destination_path, project_dir=_project_dir)
-    
-    # Return simple boolean - the decorator handles exceptions
-    return result.get("success", False)
+    try:
+        # Call the underlying function (all logic is handled internally)
+        result = move_file_util(source_path, destination_path, project_dir=_project_dir)
+        
+        # Return simple boolean
+        return result.get("success", False)
+        
+    except FileNotFoundError:
+        # Simplify error message for LLM
+        raise FileNotFoundError("File not found")
+    except FileExistsError:
+        # Simplify error message for LLM
+        raise FileExistsError("Destination already exists")
+    except PermissionError:
+        # Simplify error message for LLM
+        raise PermissionError("Permission denied")
+    except ValueError as e:
+        # For security errors, simplify the message
+        if "Security" in str(e) or "outside" in str(e).lower():
+            raise ValueError("Invalid path")
+        raise ValueError("Invalid operation")
+    except Exception:
+        # Catch any other errors and simplify
+        raise Exception("Move operation failed")
 ```
 
 ### 2. Update pyproject.toml
@@ -63,7 +82,34 @@ dependencies = [
 ]
 ```
 
-### 3. Update README.md
+### 3. Create Server Tests
+Add tests for the server endpoint to verify simplified error messages:
+
+```python
+# Add to tests/test_server.py
+
+def test_move_file_simplified_errors(server_instance):
+    """Test that server endpoint returns simplified error messages."""
+    
+    # Test file not found
+    with pytest.raises(FileNotFoundError) as exc:
+        server_instance.move_file("nonexistent.txt", "dest.txt")
+    assert str(exc.value) == "File not found"  # Simple message
+    
+    # Test destination exists
+    # ... create files first ...
+    with pytest.raises(FileExistsError) as exc:
+        server_instance.move_file("source.txt", "existing.txt")
+    assert str(exc.value) == "Destination already exists"  # Simple message
+    
+    # Test permission error simulation
+    # ... set up permission scenario ...
+    with pytest.raises(PermissionError) as exc:
+        server_instance.move_file("readonly.txt", "dest.txt")
+    assert str(exc.value) == "Permission denied"  # Simple message
+```
+
+### 4. Update README.md
 Add documentation for the new tool:
 
 ```markdown
@@ -72,6 +118,7 @@ Add documentation for the new tool:
 - Returns: `bool` (true for success)
 - Creates parent directories as needed
 - Works within project directory only
+- Simple error messages for clarity
 ```
 
 ## Verification Commands
