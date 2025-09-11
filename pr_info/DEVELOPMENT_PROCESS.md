@@ -99,6 +99,18 @@ Please update the files in folder `pr_info`
 Please do targeted changes.
 ```
 
+#### Task Tracker Update Prompt:
+```
+Please read the implementation steps in `pr_info/steps/` and 
+update `pr_info/TASK_TRACKER.md` to add all the implementation steps as tasks in the Tasks section.
+Follow the task format specified in the TASK_TRACKER.md file, 
+marking each step as incomplete [ ] and linking to the corresponding step file. 
+Review `pr_info/DEVELOPMENT_PROCESS.md` for context on the workflow and task requirements. 
+Each task should include the 3 quality checks (pylint, pytest, mypy) and 
+git commit preparation as outlined in the development process. 
+Also add the Feature Completion tasks for PR review and summary creation at the end.
+```
+
 ### 2. Implementation Steps
 
 **Objective:** Complete each implementation step with full validation
