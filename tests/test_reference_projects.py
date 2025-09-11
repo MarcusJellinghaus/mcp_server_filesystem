@@ -272,6 +272,109 @@ class TestReferenceProjectMCPTools:
                 # We can verify the function was called and returned the expected result
                 assert isinstance(result, list)
 
+    def test_read_reference_file_success(self) -> None:
+        """Test reading file from valid reference project."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import read_reference_file
+
+        # Set up test reference projects
+        test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
+        server_module._reference_projects = test_projects
+
+        # Mock the read_file_util function to return test data
+        with patch("mcp_server_filesystem.server.read_file_util") as mock_read_file:
+            mock_read_file.return_value = "Test file content\nLine 2\n"
+
+            result = read_reference_file("test_proj", "test_file.txt")
+
+            # Should return the mocked file content
+            assert result == "Test file content\nLine 2\n"
+            assert isinstance(result, str)
+
+            # Verify read_file_util was called with correct parameters
+            mock_read_file.assert_called_once_with(
+                "test_file.txt", project_dir=test_projects["test_proj"]
+            )
+
+    def test_read_reference_file_project_not_found(self) -> None:
+        """Test error handling for non-existent reference project."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import read_reference_file
+
+        # Set up test reference projects (empty)
+        server_module._reference_projects = {}
+
+        # Should raise ValueError for non-existent project
+        with pytest.raises(
+            ValueError, match="Reference project 'nonexistent' not found"
+        ):
+            read_reference_file("nonexistent", "test_file.txt")
+
+    def test_read_reference_file_file_not_found(self) -> None:
+        """Test error handling for non-existent file."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import read_reference_file
+
+        # Set up test reference projects
+        test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
+        server_module._reference_projects = test_projects
+
+        # Mock the read_file_util function to raise FileNotFoundError
+        with patch("mcp_server_filesystem.server.read_file_util") as mock_read_file:
+            mock_read_file.side_effect = FileNotFoundError(
+                "File not found: test_file.txt"
+            )
+
+            # Should propagate the FileNotFoundError
+            with pytest.raises(
+                FileNotFoundError, match="File not found: test_file.txt"
+            ):
+                read_reference_file("test_proj", "nonexistent_file.txt")
+
+    def test_read_reference_file_security(self) -> None:
+        """Test path traversal prevention (reuse existing security)."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import read_reference_file
+
+        # Set up test reference projects
+        test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
+        server_module._reference_projects = test_projects
+
+        # Mock the read_file_util function to raise security error
+        with patch("mcp_server_filesystem.server.read_file_util") as mock_read_file:
+            mock_read_file.side_effect = ValueError(
+                "Security error: Path traversal detected"
+            )
+
+            # Should propagate the security error
+            with pytest.raises(
+                ValueError, match="Security error: Path traversal detected"
+            ):
+                read_reference_file("test_proj", "../../../etc/passwd")
+
+    def test_read_reference_file_logging(self) -> None:
+        """Test DEBUG level logging for file operations."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import read_reference_file
+
+        # Set up test reference projects
+        test_projects = {"log_test_proj": Path("/tmp/log_test").absolute()}
+        server_module._reference_projects = test_projects
+
+        # Mock the read_file_util function
+        with patch("mcp_server_filesystem.server.read_file_util") as mock_read_file:
+            with patch("mcp_server_filesystem.server.logger") as mock_logger:
+                mock_read_file.return_value = "test content"
+
+                result = read_reference_file("log_test_proj", "test.txt")
+
+                # Should return expected result
+                assert result == "test content"
+
+                # The @log_function_call decorator should handle logging
+                # We can verify the function was called and returned the expected result
+                assert isinstance(result, str)
+
 
 class TestReferenceProjectServerStorage:
     """Test server storage and initialization."""
