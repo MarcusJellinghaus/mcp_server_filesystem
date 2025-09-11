@@ -102,62 +102,25 @@ def read_reference_file(reference_name: str, file_path: str) -> str:
     Returns:
         The contents of the file as a string
     """
-    try:
-        # Validate reference_name parameter
-        if not reference_name or not isinstance(reference_name, str):
-            logger.error("Invalid reference_name parameter: %s", reference_name)
-            raise ValueError(
-                f"Reference name must be a non-empty string, got {type(reference_name)}"
-            )
+    # Check if reference project exists
+    if reference_name not in _reference_projects:
+        logger.error("Reference project '%s' not found", reference_name)
+        raise ValueError(f"Reference project '{reference_name}' not found")
 
-        # Validate file_path parameter
-        if not file_path or not isinstance(file_path, str):
-            logger.error("Invalid file_path parameter: %s", file_path)
-            raise ValueError(
-                f"File path must be a non-empty string, got {type(file_path)}"
-            )
+    # Get reference project path
+    ref_path = _reference_projects[reference_name]
 
-        # Check if reference project exists
-        if reference_name not in _reference_projects:
-            available_projects = list(_reference_projects.keys())
-            logger.error(
-                "Reference project '%s' not found. Available projects: %s",
-                reference_name,
-                available_projects,
-            )
-            raise ValueError(
-                f"Reference project '{reference_name}' not found. Available projects: {available_projects}"
-            )
+    # Log operation at DEBUG level
+    logger.debug(
+        "Reading file '%s' from reference project '%s' at path: %s",
+        file_path,
+        reference_name,
+        ref_path,
+    )
 
-        # Get reference project path
-        ref_path = _reference_projects[reference_name]
-
-        # Log operation at DEBUG level
-        logger.debug(
-            "Reading file '%s' from reference project '%s' at path: %s",
-            file_path,
-            reference_name,
-            ref_path,
-        )
-
-        # Call read_file_util with the reference project directory
-        result = read_file_util(file_path, project_dir=ref_path)
-
-        logger.debug(
-            "Successfully read file '%s' from reference project '%s'",
-            file_path,
-            reference_name,
-        )
-        return result
-
-    except Exception as e:
-        logger.error(
-            "Error reading file '%s' from reference project '%s': %s",
-            file_path,
-            reference_name,
-            str(e),
-        )
-        raise
+    # Call read_file_util with the reference project directory
+    # The utility function handles all parameter validation and security checks
+    return read_file_util(file_path, project_dir=ref_path)
 
 
 @mcp.tool()
@@ -171,49 +134,24 @@ def list_reference_directory(reference_name: str) -> List[str]:
     Returns:
         A list of filenames in the reference project directory
     """
-    try:
-        # Validate reference_name parameter
-        if not reference_name or not isinstance(reference_name, str):
-            logger.error("Invalid reference_name parameter: %s", reference_name)
-            raise ValueError(
-                f"Reference name must be a non-empty string, got {type(reference_name)}"
-            )
+    # Check if reference project exists
+    if reference_name not in _reference_projects:
+        logger.error("Reference project '%s' not found", reference_name)
+        raise ValueError(f"Reference project '{reference_name}' not found")
 
-        # Check if reference project exists
-        if reference_name not in _reference_projects:
-            available_projects = list(_reference_projects.keys())
-            logger.error(
-                "Reference project '%s' not found. Available projects: %s",
-                reference_name,
-                available_projects,
-            )
-            raise ValueError(
-                f"Reference project '{reference_name}' not found. Available projects: {available_projects}"
-            )
+    # Get reference project path
+    ref_path = _reference_projects[reference_name]
 
-        # Get reference project path
-        ref_path = _reference_projects[reference_name]
+    # Log operation at DEBUG level
+    logger.debug(
+        "Listing files in reference project '%s' at path: %s",
+        reference_name,
+        ref_path,
+    )
 
-        # Log operation at DEBUG level
-        logger.debug(
-            "Listing files in reference project '%s' at path: %s",
-            reference_name,
-            ref_path,
-        )
-
-        # Call list_files_util with gitignore filtering enabled
-        result = list_files_util(".", project_dir=ref_path, use_gitignore=True)
-
-        logger.debug(
-            "Found %d files in reference project '%s'", len(result), reference_name
-        )
-        return result
-
-    except Exception as e:
-        logger.error(
-            "Error listing reference directory '%s': %s", reference_name, str(e)
-        )
-        raise
+    # Call list_files_util with gitignore filtering enabled
+    # The utility function handles all parameter validation
+    return list_files_util(".", project_dir=ref_path, use_gitignore=True)
 
 
 @mcp.tool()
