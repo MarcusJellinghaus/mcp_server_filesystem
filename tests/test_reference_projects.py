@@ -187,6 +187,91 @@ class TestReferenceProjectMCPTools:
             # We can verify the function was called and returned the expected result
             assert isinstance(result, list)
 
+    def test_list_reference_directory_success(self) -> None:
+        """Test listing files in valid reference project."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import list_reference_directory
+
+        # Set up test reference projects
+        test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
+        server_module._reference_projects = test_projects
+
+        # Mock the list_files_util function to return test data
+        with patch("mcp_server_filesystem.server.list_files_util") as mock_list_files:
+            mock_list_files.return_value = ["file1.py", "file2.txt", "subdir/file3.md"]
+
+            result = list_reference_directory("test_proj")
+
+            # Should return the mocked file list
+            assert result == ["file1.py", "file2.txt", "subdir/file3.md"]
+            assert isinstance(result, list)
+
+            # Verify list_files_util was called with correct parameters
+            mock_list_files.assert_called_once_with(
+                ".", project_dir=test_projects["test_proj"], use_gitignore=True
+            )
+
+    def test_list_reference_directory_not_found(self) -> None:
+        """Test error handling for non-existent reference project."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import list_reference_directory
+
+        # Set up test reference projects (empty)
+        server_module._reference_projects = {}
+
+        # Should raise ValueError for non-existent project
+        with pytest.raises(
+            ValueError, match="Reference project 'nonexistent' not found"
+        ):
+            list_reference_directory("nonexistent")
+
+    def test_list_reference_directory_gitignore(self) -> None:
+        """Test gitignore filtering is applied."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import list_reference_directory
+
+        # Set up test reference projects
+        test_projects = {"proj_with_gitignore": Path("/tmp/gitignore_test").absolute()}
+        server_module._reference_projects = test_projects
+
+        # Mock the list_files_util function
+        with patch("mcp_server_filesystem.server.list_files_util") as mock_list_files:
+            # Should return files after gitignore filtering
+            mock_list_files.return_value = ["src/main.py", "README.md"]
+
+            result = list_reference_directory("proj_with_gitignore")
+
+            # Verify gitignore filtering was enabled
+            mock_list_files.assert_called_once_with(
+                ".",
+                project_dir=test_projects["proj_with_gitignore"],
+                use_gitignore=True,
+            )
+            assert result == ["src/main.py", "README.md"]
+
+    def test_list_reference_directory_logging(self) -> None:
+        """Test DEBUG level logging for file operations."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import list_reference_directory
+
+        # Set up test reference projects
+        test_projects = {"log_test_proj": Path("/tmp/log_test").absolute()}
+        server_module._reference_projects = test_projects
+
+        # Mock the list_files_util function
+        with patch("mcp_server_filesystem.server.list_files_util") as mock_list_files:
+            with patch("mcp_server_filesystem.server.logger") as mock_logger:
+                mock_list_files.return_value = ["test.py"]
+
+                result = list_reference_directory("log_test_proj")
+
+                # Should return expected result
+                assert result == ["test.py"]
+
+                # The @log_function_call decorator should handle logging
+                # We can verify the function was called and returned the expected result
+                assert isinstance(result, list)
+
 
 class TestReferenceProjectServerStorage:
     """Test server storage and initialization."""

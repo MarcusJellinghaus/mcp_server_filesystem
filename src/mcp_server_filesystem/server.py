@@ -92,6 +92,62 @@ def get_reference_projects() -> List[str]:
 
 @mcp.tool()
 @log_function_call
+def list_reference_directory(reference_name: str) -> List[str]:
+    """List files and directories in a reference project directory.
+
+    Args:
+        reference_name: Name of the reference project to list
+
+    Returns:
+        A list of filenames in the reference project directory
+    """
+    try:
+        # Validate reference_name parameter
+        if not reference_name or not isinstance(reference_name, str):
+            logger.error("Invalid reference_name parameter: %s", reference_name)
+            raise ValueError(
+                f"Reference name must be a non-empty string, got {type(reference_name)}"
+            )
+
+        # Check if reference project exists
+        if reference_name not in _reference_projects:
+            available_projects = list(_reference_projects.keys())
+            logger.error(
+                "Reference project '%s' not found. Available projects: %s",
+                reference_name,
+                available_projects,
+            )
+            raise ValueError(
+                f"Reference project '{reference_name}' not found. Available projects: {available_projects}"
+            )
+
+        # Get reference project path
+        ref_path = _reference_projects[reference_name]
+
+        # Log operation at DEBUG level
+        logger.debug(
+            "Listing files in reference project '%s' at path: %s",
+            reference_name,
+            ref_path,
+        )
+
+        # Call list_files_util with gitignore filtering enabled
+        result = list_files_util(".", project_dir=ref_path, use_gitignore=True)
+
+        logger.debug(
+            "Found %d files in reference project '%s'", len(result), reference_name
+        )
+        return result
+
+    except Exception as e:
+        logger.error(
+            "Error listing reference directory '%s': %s", reference_name, str(e)
+        )
+        raise
+
+
+@mcp.tool()
+@log_function_call
 def list_directory() -> List[str]:
     """List files and directories in the project directory.
 

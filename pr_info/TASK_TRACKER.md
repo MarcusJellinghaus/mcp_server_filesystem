@@ -42,7 +42,7 @@ This tracks **Feature Implementation** consisting of multiple **Implementation S
   - Run quality checks: pylint, pytest, mypy
   - Prepare git commit
 
-- [ ] **Step 4: Directory Listing MCP Tool (TDD)** - [details](steps/step_4.md)
+- [x] **Step 4: Directory Listing MCP Tool (TDD)** - [details](steps/step_4.md)
   - Write tests for `list_reference_directory()` MCP tool
   - Implement tool to list files in reference projects with gitignore filtering
   - Run quality checks: pylint, pytest, mypy
