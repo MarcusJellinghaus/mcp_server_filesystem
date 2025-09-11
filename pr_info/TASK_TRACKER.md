@@ -23,7 +23,7 @@ This tracks **Feature Implementation** consisting of multiple **Implementation S
 
 ### Implementation Steps
 
-- [ ] **Step 1: CLI Argument Parsing (TDD)** - [details](steps/step_1.md)
+- [x] **Step 1: CLI Argument Parsing (TDD)** - [details](steps/step_1.md)
   - Write tests for `--reference-project` CLI arguments with validation and parsing
   - Implement argument parsing with auto-rename logic for duplicates
   - Run quality checks: pylint, pytest, mypy
