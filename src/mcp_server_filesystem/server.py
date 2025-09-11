@@ -67,6 +67,31 @@ def set_reference_projects(reference_projects: Dict[str, Path]) -> None:
 
 @mcp.tool()
 @log_function_call
+def get_reference_projects() -> List[str]:
+    """Get list of available reference project names.
+
+    Returns:
+        A list of reference project names that can be used with
+        list_reference_directory() and read_reference_file()
+    """
+    try:
+        if not _reference_projects:
+            logger.info("No reference projects configured")
+            return []
+
+        # Extract keys (project names) and sort them alphabetically
+        project_names = sorted(_reference_projects.keys())
+        logger.info(
+            "Found %d reference projects: %s", len(project_names), project_names
+        )
+        return project_names
+    except Exception as e:
+        logger.error("Error getting reference projects: %s", str(e))
+        raise
+
+
+@mcp.tool()
+@log_function_call
 def list_directory() -> List[str]:
     """List files and directories in the project directory.
 

@@ -36,7 +36,7 @@ This tracks **Feature Implementation** consisting of multiple **Implementation S
   - Run quality checks: pylint, pytest, mypy
   - Prepare git commit
 
-- [ ] **Step 3: Discovery MCP Tool (TDD)** - [details](steps/step_3.md)
+- [x] **Step 3: Discovery MCP Tool (TDD)** - [details](steps/step_3.md)
   - Write tests for `get_reference_projects()` MCP tool
   - Implement tool for LLM discovery of available reference projects
   - Run quality checks: pylint, pytest, mypy

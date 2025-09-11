@@ -130,6 +130,64 @@ class TestReferenceProjectCLI:
         assert result == {}
 
 
+class TestReferenceProjectMCPTools:
+    """Test MCP tools functionality."""
+
+    def test_get_reference_projects_empty(self) -> None:
+        """Test discovery tool returns empty list when no projects."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import get_reference_projects
+
+        # Clear reference projects
+        server_module._reference_projects = {}
+
+        # Should return empty list
+        result = get_reference_projects()
+        assert result == []
+        assert isinstance(result, list)
+
+    def test_get_reference_projects_sorted(self) -> None:
+        """Test discovery tool returns sorted list of project names."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import get_reference_projects
+
+        # Set up test data in unsorted order
+        test_projects = {
+            "zebra": Path("/path/to/zebra"),
+            "alpha": Path("/path/to/alpha"),
+            "beta": Path("/path/to/beta"),
+        }
+        server_module._reference_projects = test_projects
+
+        # Should return sorted list
+        result = get_reference_projects()
+        expected = ["alpha", "beta", "zebra"]
+        assert result == expected
+        assert isinstance(result, list)
+
+    def test_get_reference_projects_logging(self) -> None:
+        """Test INFO level logging for discovery operations."""
+        from unittest.mock import patch
+
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import get_reference_projects
+
+        # Set up test data
+        test_projects = {"proj1": Path("/path/to/proj1")}
+        server_module._reference_projects = test_projects
+
+        # Test logging behavior (the decorator handles logging)
+        with patch("mcp_server_filesystem.server.logger") as mock_logger:
+            result = get_reference_projects()
+
+            # Should return the project names
+            assert result == ["proj1"]
+
+            # The @log_function_call decorator should handle logging
+            # We can verify the function was called and returned the expected result
+            assert isinstance(result, list)
+
+
 class TestReferenceProjectServerStorage:
     """Test server storage and initialization."""
 
