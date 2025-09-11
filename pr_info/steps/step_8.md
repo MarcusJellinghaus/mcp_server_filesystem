@@ -19,7 +19,7 @@ Update README.md and other documentation to explain reference project functional
 - `--reference-project`: Add reference project in format name=/path/to/dir (repeatable)
 
 # Add new section: Reference Projects
-Detailed explanation of reference project functionality, use cases, and examples
+Detailed explanation of reference project functionality, CLI usage, path handling, and practical examples
 ```
 
 ## HOW
@@ -35,8 +35,9 @@ Detailed explanation of reference project functionality, use cases, and examples
 2. Update CLI arguments: add --reference-project description
 3. Add Reference Projects section:
    - Overview and use cases
-   - Configuration examples
+   - CLI configuration examples with path handling
    - Security notes (read-only)
+   - Startup validation behavior
 4. Update Available Tools table with new tools
 5. Add examples to Running the Server section
 ```
@@ -53,5 +54,5 @@ Based on the summary in pr_info/steps/summary.md and completing Steps 1-7, imple
 
 Update README.md to document the new reference project functionality. Add the new tools to the Available Tools table, document the --reference-project CLI argument, and create a new "Reference Projects" section explaining the feature.
 
-Follow the existing documentation style and include practical examples. Explain the read-only nature and use cases for reference projects.
+Follow the existing documentation style and include practical examples with both relative and absolute paths. Explain the read-only nature, startup validation behavior (warnings for invalid references), and use cases for reference projects.
 ```

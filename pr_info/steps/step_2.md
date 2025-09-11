@@ -35,8 +35,8 @@ def run_server(project_dir: Path, reference_projects: Dict[str, Path] = None) ->
 ```
 1. Initialize global _reference_projects as empty dict
 2. In set_reference_projects():
-   - Store reference_projects globally
-   - Log each reference project name and path
+   - Store reference_projects globally (already absolute paths)
+   - Log each reference project name and path with context
 3. In run_server():
    - Call set_project_dir() (existing)
    - IF reference_projects provided: call set_reference_projects()
@@ -46,7 +46,7 @@ def run_server(project_dir: Path, reference_projects: Dict[str, Path] = None) ->
 ## DATA
 **Input**: `Dict[str, Path]` - mapping of project names to directory paths  
 **Storage**: `_reference_projects: Dict[str, Path]` - global module variable  
-**Logging**: Info level messages for each reference project configured
+**Logging**: Info level messages with reference project context for debugging
 
 ## LLM Prompt
 ```

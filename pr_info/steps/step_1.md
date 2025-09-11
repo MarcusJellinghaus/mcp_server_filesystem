@@ -19,7 +19,11 @@ parser.add_argument(
 
 # New validation function
 def validate_reference_projects(reference_args: List[str]) -> Dict[str, Path]:
-    """Parse and validate reference project arguments."""
+    """Parse and validate reference project arguments.
+    
+    Validates name format and path existence. Logs warnings for invalid
+    references and continues with valid ones only.
+    """
     pass
 
 # Extended main() function signature remains the same
@@ -40,22 +44,25 @@ def main() -> None:
 2. FOR each reference_project_arg:
    - Split on '=' to get name and path
    - Validate name format (alphanumeric + underscore/hyphen)
+   - Convert path to absolute path (same as main project)
    - Validate path exists and is directory
+   - IF invalid: log warning and skip
 3. Check for duplicate names
-4. Return Dict[str, Path] mapping
+4. Return Dict[str, Path] mapping (only valid references)
 5. Pass to server initialization
 ```
 
 ## DATA
 **Input**: `List[str]` like `["proj1=/path/to/proj1", "proj2=/path/to/proj2"]`  
 **Output**: `Dict[str, Path]` like `{"proj1": Path("/path/to/proj1"), "proj2": Path("/path/to/proj2")}`  
-**Validation**: Name regex `^[a-zA-Z0-9_-]+$`, path exists and is directory
+**Validation**: Name regex `^[a-zA-Z0-9_-]+$`, path converted to absolute and validated as existing directory  
+**Error Handling**: Log warnings for invalid references, continue with valid ones
 
 ## LLM Prompt
 ```
 Based on the summary in pr_info/steps/summary.md, implement Step 1: Extend CLI argument parsing for reference projects.
 
-Add support for --reference-project CLI arguments in src/mcp_server_filesystem/main.py. The argument should accept format "name=/path/to/dir" and be repeatable. Create validation that ensures names are alphanumeric+underscore/hyphen only and paths exist as directories. Names must be unique.
+Add support for --reference-project CLI arguments in src/mcp_server_filesystem/main.py. The argument should accept format "name=/path/to/dir" and be repeatable. Create validation that ensures names are alphanumeric+underscore/hyphen only and paths exist as directories. Convert paths to absolute paths (same as main project). Names must be unique.
 
-Follow the existing code patterns in main.py and maintain all current functionality. Add clear error messages for validation failures.
+Log warnings for invalid references and continue with valid ones only. Follow the existing code patterns in main.py and maintain all current functionality.
 ```

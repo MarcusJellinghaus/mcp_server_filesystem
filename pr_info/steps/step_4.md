@@ -30,16 +30,17 @@ def list_reference_directory(reference_name: str) -> List[str]:
 - Validate `reference_name` parameter (non-empty string, exists in `_reference_projects`)
 - Reuse existing `list_files_util(".", project_dir=ref_path, use_gitignore=True)`
 - Follow same error handling pattern as `list_directory()`
-- Log warnings for invalid reference names
+- Log operations with reference project context for debugging
 
 ## ALGORITHM
 ```
 1. Validate reference_name is non-empty string
 2. Check if reference_name exists in _reference_projects
-3. IF not found: log warning, return helpful error message
+3. IF not found: return helpful error message (reuse existing error patterns)
 4. Get reference project path from _reference_projects[reference_name]
-5. Call list_files_util(".", project_dir=ref_path, use_gitignore=True)
-6. Return file list
+5. Log operation with reference project context
+6. Call list_files_util(".", project_dir=ref_path, use_gitignore=True)
+7. Return file list
 ```
 
 ## DATA
@@ -54,5 +55,5 @@ Based on the summary in pr_info/steps/summary.md and completing Steps 1-3, imple
 
 In src/mcp_server_filesystem/server.py, add the list_reference_directory() function that lists files in a reference project. Reuse the existing list_files_util() function with the reference project path.
 
-Include validation for the reference_name parameter and return helpful error messages for non-existent projects (following design decision for runtime error handling). Follow the same patterns as the existing list_directory() function.
+Include validation for the reference_name parameter and return helpful error messages for non-existent projects using existing error handling patterns. Add logging with reference project context for debugging. Follow the same patterns as the existing list_directory() function.
 ```

@@ -31,11 +31,12 @@ class TestReferenceProjectTools:
 ## ALGORITHM
 ```
 1. Create test fixtures (temp directories, sample reference projects)
-2. Test CLI parsing: valid args, invalid formats, duplicate names
-3. Test server integration: initialization, storage, logging
-4. Test MCP tools: discovery, listing, reading, error cases
-5. Test security: path traversal prevention, directory containment
-6. Test edge cases: empty projects, missing directories, etc.
+2. Test CLI parsing: valid args, invalid formats, duplicate names, path normalization
+3. Test validation: startup warnings for invalid references, continuing with valid ones
+4. Test server integration: initialization, storage, logging with context
+5. Test MCP tools: discovery, listing, reading, error cases with existing error patterns
+6. Test security: path traversal prevention, directory containment
+7. Test edge cases: empty projects, missing directories, relative/absolute paths
 ```
 
 ## DATA
@@ -50,5 +51,5 @@ Based on the summary in pr_info/steps/summary.md and completing Steps 1-6, imple
 
 Create tests/test_reference_projects.py with test classes for CLI parsing, server integration, and MCP tools. Follow existing test patterns from tests/test_server.py.
 
-Test both success and error cases, including validation, security (path traversal), and edge cases. Use pytest fixtures for temporary directories and ensure tests are isolated and repeatable.
+Test both success and error cases, including path normalization, startup validation with warnings, security (path traversal), and edge cases. Test that error handling reuses existing patterns. Use pytest fixtures for temporary directories and ensure tests are isolated and repeatable.
 ```

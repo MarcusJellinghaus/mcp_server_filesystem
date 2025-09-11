@@ -37,10 +37,11 @@ def read_reference_file(reference_name: str, file_path: str) -> str:
 ```
 1. Validate reference_name (non-empty, exists in _reference_projects)
 2. Validate file_path (non-empty string, same as read_file())
-3. IF reference not found: log warning, return helpful error message
+3. IF reference not found: return helpful error message (reuse existing error patterns)
 4. Get reference project path from _reference_projects[reference_name]
-5. Call read_file_util(file_path, project_dir=ref_path)
-6. Return file contents
+5. Log operation with reference project context
+6. Call read_file_util(file_path, project_dir=ref_path)
+7. Return file contents
 ```
 
 ## DATA
@@ -55,5 +56,5 @@ Based on the summary in pr_info/steps/summary.md and completing Steps 1-4, imple
 
 In src/mcp_server_filesystem/server.py, add the read_reference_file() function that reads files from reference projects. Reuse the existing read_file_util() function with the reference project path.
 
-Follow the same validation patterns as the existing read_file() function for file_path parameter. Include reference_name validation and helpful error messages for non-existent projects. Maintain the same security model by reusing existing utilities.
+Follow the same validation patterns as the existing read_file() function for file_path parameter. Include reference_name validation and helpful error messages for non-existent projects using existing error handling patterns. Add logging with reference project context for debugging. Maintain the same security model by reusing existing utilities.
 ```
