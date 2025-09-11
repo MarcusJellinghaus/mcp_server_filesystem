@@ -461,3 +461,124 @@ class TestReferenceProjectServerStorage:
             # Should log warning for empty name
             mock_logger.warning.assert_called()
             assert result == {}
+
+
+class TestReferenceProjectIntegration:
+    """Test CLI to server integration."""
+
+    @patch("mcp_server_filesystem.server.run_server")
+    @patch("mcp_server_filesystem.main.Path.exists")
+    @patch("mcp_server_filesystem.main.Path.is_dir")
+    def test_main_with_reference_projects(
+        self, mock_is_dir: MagicMock, mock_exists: MagicMock, mock_run_server: MagicMock
+    ) -> None:
+        """Test main() passes reference projects to run_server()."""
+        # Mock path validation for both project dir and reference projects
+        mock_exists.return_value = True
+        mock_is_dir.return_value = True
+
+        # Mock sys.argv to simulate CLI arguments
+        test_args = [
+            "script.py",
+            "--project-dir",
+            "/test/project",
+            "--reference-project",
+            "proj1=/path/to/proj1",
+            "--reference-project",
+            "proj2=/path/to/proj2",
+        ]
+
+        with patch("sys.argv", test_args):
+            with patch("mcp_server_filesystem.main.setup_logging"):
+                from mcp_server_filesystem.main import main
+
+                main()
+
+                # Verify run_server was called with correct arguments
+                mock_run_server.assert_called_once()
+                call_args = mock_run_server.call_args
+
+                # Check project_dir argument (positional)
+                assert call_args[0][0] == Path("/test/project").absolute()
+
+                # Check reference_projects argument (keyword)
+                expected_ref_projects = {
+                    "proj1": Path("/path/to/proj1").absolute(),
+                    "proj2": Path("/path/to/proj2").absolute(),
+                }
+                assert call_args[1]["reference_projects"] == expected_ref_projects
+
+    @patch("mcp_server_filesystem.server.run_server")
+    @patch("mcp_server_filesystem.main.Path.exists")
+    @patch("mcp_server_filesystem.main.Path.is_dir")
+    def test_main_without_reference_projects(
+        self, mock_is_dir: MagicMock, mock_exists: MagicMock, mock_run_server: MagicMock
+    ) -> None:
+        """Test main() works without reference projects (backward compatibility)."""
+        # Mock path validation
+        mock_exists.return_value = True
+        mock_is_dir.return_value = True
+
+        # Mock sys.argv without reference projects
+        test_args = ["script.py", "--project-dir", "/test/project"]
+
+        with patch("sys.argv", test_args):
+            with patch("mcp_server_filesystem.main.setup_logging"):
+                from mcp_server_filesystem.main import main
+
+                main()
+
+                # Verify run_server was called with correct arguments
+                mock_run_server.assert_called_once()
+                call_args = mock_run_server.call_args
+
+                # Check project_dir argument (positional)
+                assert call_args[0][0] == Path("/test/project").absolute()
+
+                # Check reference_projects argument (keyword) - should be empty dict
+                assert call_args[1]["reference_projects"] == {}
+
+    @patch("mcp_server_filesystem.server.run_server")
+    @patch("mcp_server_filesystem.main.Path.exists")
+    @patch("mcp_server_filesystem.main.Path.is_dir")
+    def test_main_with_auto_rename(
+        self, mock_is_dir: MagicMock, mock_exists: MagicMock, mock_run_server: MagicMock
+    ) -> None:
+        """Test main() handles duplicate names with auto-rename."""
+        # Mock path validation
+        mock_exists.return_value = True
+        mock_is_dir.return_value = True
+
+        # Mock sys.argv with duplicate project names
+        test_args = [
+            "script.py",
+            "--project-dir",
+            "/test/project",
+            "--reference-project",
+            "proj=/path/to/proj1",
+            "--reference-project",
+            "proj=/path/to/proj2",
+            "--reference-project",
+            "proj=/path/to/proj3",
+        ]
+
+        with patch("sys.argv", test_args):
+            with patch("mcp_server_filesystem.main.setup_logging"):
+                from mcp_server_filesystem.main import main
+
+                main()
+
+                # Verify run_server was called with correct arguments
+                mock_run_server.assert_called_once()
+                call_args = mock_run_server.call_args
+
+                # Check project_dir argument (positional)
+                assert call_args[0][0] == Path("/test/project").absolute()
+
+                # Check reference_projects argument with auto-rename
+                expected_ref_projects = {
+                    "proj": Path("/path/to/proj1").absolute(),
+                    "proj_2": Path("/path/to/proj2").absolute(),
+                    "proj_3": Path("/path/to/proj3").absolute(),
+                }
+                assert call_args[1]["reference_projects"] == expected_ref_projects

@@ -159,6 +159,11 @@ def main() -> None:
         "Structured logger initialized in main", log_level=args.log_level
     )
 
+    # Parse reference projects
+    reference_projects = {}
+    if args.reference_project:
+        reference_projects = validate_reference_projects(args.reference_project)
+
     # Import here to avoid circular imports (after logging is configured)
     from mcp_server_filesystem.server import run_server
 
@@ -171,8 +176,8 @@ def main() -> None:
             log_file=log_file,
         )
 
-    # Run the server with the project directory
-    run_server(project_dir)
+    # Run the server with the project directory and reference projects
+    run_server(project_dir, reference_projects=reference_projects)
 
 
 if __name__ == "__main__":

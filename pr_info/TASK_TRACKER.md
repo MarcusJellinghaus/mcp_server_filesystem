@@ -54,7 +54,7 @@ This tracks **Feature Implementation** consisting of multiple **Implementation S
   - Run quality checks: pylint, pytest, mypy
   - Prepare git commit
 
-- [ ] **Step 6: CLI to Server Integration (TDD)** - [details](steps/step_6.md)
+- [x] **Step 6: CLI to Server Integration (TDD)** - [details](steps/step_6.md)
   - Write tests for integration between CLI argument parsing and server initialization
   - Implement integration in `main()` function to pass reference projects to server
   - Run quality checks: pylint, pytest, mypy
