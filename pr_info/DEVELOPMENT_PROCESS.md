@@ -169,7 +169,7 @@ Please implement!
 Please verify your implementation running the various checks of the MCP server and by solving potential issues (and repeat).
 Please do not invent extra complexity not mentioned in the project plan.
 Please let me know in case you encounter any issues or need a decision.
-Please prepare a commit summary.
+Please provide a short concise commit message stating the step name in the title.
 Once you are done, please chack again that task description on `pr_info/TASK_TRACKER.md` to ensure that everything is done.
 Once everything is done, please mark the task as done.
 Please work only on one task. Do not pick further tasks.

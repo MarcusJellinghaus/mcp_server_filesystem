@@ -26,6 +26,9 @@ mcp = FastMCP("File System Service")
 # Store the project directory as a module-level variable
 _project_dir: Optional[Path] = None
 
+# Store reference projects as a module-level variable
+_reference_projects: Dict[str, Path] = {}
+
 
 @log_function_call
 def set_project_dir(directory: Path) -> None:
@@ -38,6 +41,28 @@ def set_project_dir(directory: Path) -> None:
     _project_dir = Path(directory)
     logger.info("Project directory set to: %s", _project_dir)
     structured_logger.info("Project directory set", project_dir=str(_project_dir))
+
+
+@log_function_call
+def set_reference_projects(reference_projects: Dict[str, Path]) -> None:
+    """Set the reference projects for file operations.
+
+    Args:
+        reference_projects: Dictionary mapping project names to directory paths
+    """
+    global _reference_projects
+    _reference_projects = (
+        reference_projects.copy()
+    )  # Create a copy to avoid external modifications
+
+    # Log each reference project
+    for project_name, project_path in reference_projects.items():
+        logger.info("Reference project '%s' set to: %s", project_name, project_path)
+        structured_logger.info(
+            "Reference project set",
+            project_name=project_name,
+            project_path=str(project_path),
+        )
 
 
 @mcp.tool()
@@ -338,11 +363,14 @@ def edit_file(
 
 
 @log_function_call
-def run_server(project_dir: Path) -> None:
-    """Run the MCP server with the given project directory.
+def run_server(
+    project_dir: Path, reference_projects: Optional[Dict[str, Path]] = None
+) -> None:
+    """Run the MCP server with the given project directory and optional reference projects.
 
     Args:
         project_dir: Path to the project directory
+        reference_projects: Optional dictionary mapping project names to directory paths
     """
     logger.debug("Entering run_server function")
     structured_logger.debug(
@@ -351,6 +379,10 @@ def run_server(project_dir: Path) -> None:
 
     # Set the project directory
     set_project_dir(project_dir)
+
+    # Set reference projects if provided
+    if reference_projects:
+        set_reference_projects(reference_projects)
 
     # Run the server
     logger.info("Starting MCP server")

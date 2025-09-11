@@ -15,98 +15,203 @@ class TestReferenceProjectCLI:
 
     def test_parse_single_reference_project(self) -> None:
         """Test parsing single reference project argument."""
-        with patch('sys.argv', ['script.py', '--project-dir', '/tmp', 
-                                '--reference-project', 'proj1=/path/to/proj1']):
+        with patch(
+            "sys.argv",
+            [
+                "script.py",
+                "--project-dir",
+                "/tmp",
+                "--reference-project",
+                "proj1=/path/to/proj1",
+            ],
+        ):
             args = parse_args()
-            assert args.reference_project == ['proj1=/path/to/proj1']
+            assert args.reference_project == ["proj1=/path/to/proj1"]
 
     def test_parse_multiple_reference_projects(self) -> None:
         """Test parsing multiple reference project arguments."""
-        with patch('sys.argv', ['script.py', '--project-dir', '/tmp',
-                                '--reference-project', 'proj1=/path/to/proj1',
-                                '--reference-project', 'proj2=/path/to/proj2']):
+        with patch(
+            "sys.argv",
+            [
+                "script.py",
+                "--project-dir",
+                "/tmp",
+                "--reference-project",
+                "proj1=/path/to/proj1",
+                "--reference-project",
+                "proj2=/path/to/proj2",
+            ],
+        ):
             args = parse_args()
-            assert args.reference_project == ['proj1=/path/to/proj1', 'proj2=/path/to/proj2']
+            assert args.reference_project == [
+                "proj1=/path/to/proj1",
+                "proj2=/path/to/proj2",
+            ]
 
-    @patch('mcp_server_filesystem.main.Path.exists')
-    @patch('mcp_server_filesystem.main.Path.is_dir')
-    def test_auto_rename_duplicates(self, mock_is_dir: MagicMock, mock_exists: MagicMock) -> None:
+    @patch("mcp_server_filesystem.main.Path.exists")
+    @patch("mcp_server_filesystem.main.Path.is_dir")
+    def test_auto_rename_duplicates(
+        self, mock_is_dir: MagicMock, mock_exists: MagicMock
+    ) -> None:
         """Test auto-renaming duplicate project names."""
         # Mock path validation
         mock_exists.return_value = True
         mock_is_dir.return_value = True
-        
+
         # Test duplicate names get auto-renamed
-        reference_args = ['proj=/path/to/proj1', 'proj=/path/to/proj2', 'proj=/path/to/proj3']
+        reference_args = [
+            "proj=/path/to/proj1",
+            "proj=/path/to/proj2",
+            "proj=/path/to/proj3",
+        ]
         result = validate_reference_projects(reference_args)
-        
+
         expected = {
-            'proj': Path('/path/to/proj1').absolute(),
-            'proj_2': Path('/path/to/proj2').absolute(), 
-            'proj_3': Path('/path/to/proj3').absolute()
+            "proj": Path("/path/to/proj1").absolute(),
+            "proj_2": Path("/path/to/proj2").absolute(),
+            "proj_3": Path("/path/to/proj3").absolute(),
         }
         assert result == expected
 
-    @patch('mcp_server_filesystem.main.structured_logger')
-    @patch('mcp_server_filesystem.main.Path.exists')
-    def test_invalid_format_warnings(self, mock_exists: MagicMock, mock_logger: MagicMock) -> None:
+    @patch("mcp_server_filesystem.main.structured_logger")
+    @patch("mcp_server_filesystem.main.Path.exists")
+    def test_invalid_format_warnings(
+        self, mock_exists: MagicMock, mock_logger: MagicMock
+    ) -> None:
         """Test warnings for invalid argument formats."""
         mock_exists.return_value = False
-        
+
         # Test invalid format (no '=' separator)
-        reference_args = ['invalid_format', 'valid=/path/to/proj']
+        reference_args = ["invalid_format", "valid=/path/to/proj"]
         result = validate_reference_projects(reference_args)
-        
+
         # Should log warning for invalid format
         mock_logger.warning.assert_called()
         # Check if the warning was called with the expected message
         calls = mock_logger.warning.call_args_list
         assert len(calls) > 0
         # Look for the specific warning message about missing '='
-        found_invalid_format = any('missing' in str(call) and '=' in str(call) for call in calls)
+        found_invalid_format = any(
+            "missing" in str(call) and "=" in str(call) for call in calls
+        )
         assert found_invalid_format
 
-    @patch('mcp_server_filesystem.main.Path.exists')
-    @patch('mcp_server_filesystem.main.Path.is_dir')
-    def test_path_normalization(self, mock_is_dir: MagicMock, mock_exists: MagicMock) -> None:
+    @patch("mcp_server_filesystem.main.Path.exists")
+    @patch("mcp_server_filesystem.main.Path.is_dir")
+    def test_path_normalization(
+        self, mock_is_dir: MagicMock, mock_exists: MagicMock
+    ) -> None:
         """Test conversion to absolute paths."""
         # Mock path validation
         mock_exists.return_value = True
         mock_is_dir.return_value = True
-        
+
         # Test relative path gets converted to absolute
-        reference_args = ['proj=./relative/path']
+        reference_args = ["proj=./relative/path"]
         result = validate_reference_projects(reference_args)
-        
+
         # Should contain absolute path
-        assert 'proj' in result
-        assert result['proj'].is_absolute()
-        
-    @patch('mcp_server_filesystem.main.structured_logger')
-    @patch('mcp_server_filesystem.main.Path.exists')  
-    def test_nonexistent_path_warning(self, mock_exists: MagicMock, mock_logger: MagicMock) -> None:
+        assert "proj" in result
+        assert result["proj"].is_absolute()
+
+    @patch("mcp_server_filesystem.main.structured_logger")
+    @patch("mcp_server_filesystem.main.Path.exists")
+    def test_nonexistent_path_warning(
+        self, mock_exists: MagicMock, mock_logger: MagicMock
+    ) -> None:
         """Test warnings for non-existent paths."""
         mock_exists.return_value = False
-        
-        reference_args = ['proj=/nonexistent/path']
+
+        reference_args = ["proj=/nonexistent/path"]
         result = validate_reference_projects(reference_args)
-        
+
         # Should log warning and return empty dict
         mock_logger.warning.assert_called()
         assert result == {}
 
-    @patch('mcp_server_filesystem.main.Path.exists')
-    @patch('mcp_server_filesystem.main.Path.is_dir')
-    def test_empty_name_validation(self, mock_is_dir: MagicMock, mock_exists: MagicMock) -> None:
+
+class TestReferenceProjectServerStorage:
+    """Test server storage and initialization."""
+
+    def test_set_reference_projects(self) -> None:
+        """Test setting reference projects storage."""
+        import mcp_server_filesystem.server as server_module
+        from mcp_server_filesystem.server import set_reference_projects
+
+        # Test setting reference projects
+        test_projects = {
+            "proj1": Path("/path/to/proj1").absolute(),
+            "proj2": Path("/path/to/proj2").absolute(),
+        }
+
+        set_reference_projects(test_projects)
+
+        # Check that the global variable was updated
+        assert server_module._reference_projects == test_projects
+
+    def test_run_server_with_reference_projects(self) -> None:
+        """Test run_server accepts reference projects parameter."""
+        from unittest.mock import patch
+
+        from mcp_server_filesystem.server import run_server
+
+        # Test that run_server can be called with reference_projects parameter
+        test_projects = {
+            "proj1": Path("/path/to/proj1").absolute(),
+            "proj2": Path("/path/to/proj2").absolute(),
+        }
+
+        # Mock the mcp.run() call to avoid actually starting the server
+        with patch("mcp_server_filesystem.server.mcp.run") as mock_run:
+            with patch(
+                "mcp_server_filesystem.server.set_reference_projects"
+            ) as mock_set_ref:
+                run_server(Path("/test/project"), reference_projects=test_projects)
+
+                # Verify that set_reference_projects was called with the correct arguments
+                mock_set_ref.assert_called_once_with(test_projects)
+                mock_run.assert_called_once()
+
+    def test_reference_projects_logging(self) -> None:
+        """Test INFO level logging during initialization."""
+        from unittest.mock import patch
+
+        from mcp_server_filesystem.server import set_reference_projects
+
+        test_projects = {
+            "proj1": Path("/path/to/proj1").absolute(),
+            "proj2": Path("/path/to/proj2").absolute(),
+        }
+
+        # Test logging behavior
+        with patch("mcp_server_filesystem.server.logger") as mock_logger:
+            with patch(
+                "mcp_server_filesystem.server.structured_logger"
+            ) as mock_structured:
+                set_reference_projects(test_projects)
+
+                # Verify INFO level logging was called
+                assert mock_logger.info.called
+                assert mock_structured.info.called
+
+                # Check that project details were logged
+                info_calls = mock_logger.info.call_args_list
+                assert len(info_calls) >= 1
+
+    @patch("mcp_server_filesystem.main.Path.exists")
+    @patch("mcp_server_filesystem.main.Path.is_dir")
+    def test_empty_name_validation(
+        self, mock_is_dir: MagicMock, mock_exists: MagicMock
+    ) -> None:
         """Test validation of empty project names."""
         mock_exists.return_value = True
         mock_is_dir.return_value = True
-        
+
         # Test empty name gets rejected
-        reference_args = ['=/path/to/proj']
-        with patch('mcp_server_filesystem.main.structured_logger') as mock_logger:
+        reference_args = ["=/path/to/proj"]
+        with patch("mcp_server_filesystem.main.structured_logger") as mock_logger:
             result = validate_reference_projects(reference_args)
-            
+
             # Should log warning for empty name
             mock_logger.warning.assert_called()
             assert result == {}

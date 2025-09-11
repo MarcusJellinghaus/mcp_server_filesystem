@@ -29,7 +29,7 @@ This tracks **Feature Implementation** consisting of multiple **Implementation S
   - Run quality checks: pylint, pytest, mypy
   - Prepare git commit
 
-- [ ] **Step 2: Server Storage (TDD)** - [details](steps/step_2.md)
+- [x] **Step 2: Server Storage (TDD)** - [details](steps/step_2.md)
   - Write tests for global storage and initialization function
   - Implement `_reference_projects` global variable and `set_reference_projects()` function
   - Update `run_server()` signature to accept reference projects

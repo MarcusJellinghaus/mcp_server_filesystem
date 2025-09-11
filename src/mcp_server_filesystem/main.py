@@ -59,65 +59,65 @@ def parse_args() -> argparse.Namespace:
 
 def validate_reference_projects(reference_args: List[str]) -> Dict[str, Path]:
     """Parse and validate reference project arguments.
-    
+
     Validates name format (very permissive) and path existence. Logs warnings for invalid
     references and continues with valid ones only. Auto-renames duplicates.
     """
     if not reference_args:
         return {}
-    
+
     validated_projects: Dict[str, Path] = {}
-    
+
     for arg in reference_args:
         # Split on first '=' only
-        if '=' not in arg:
+        if "=" not in arg:
             structured_logger.warning(
                 "Invalid reference project format (missing '=')",
                 argument=arg,
-                expected_format="name=/path/to/dir"
+                expected_format="name=/path/to/dir",
             )
             continue
-            
-        name, path_str = arg.split('=', 1)
-        
+
+        name, path_str = arg.split("=", 1)
+
         # Validate name is not empty
         if not name:
             structured_logger.warning(
                 "Invalid reference project format (empty name)",
                 argument=arg,
-                expected_format="name=/path/to/dir"
+                expected_format="name=/path/to/dir",
             )
             continue
-            
+
         # Convert to absolute path
         project_path = Path(path_str).absolute()
-        
+
         # Validate path exists and is directory
         if not project_path.exists():
             structured_logger.warning(
                 "Reference project path does not exist",
                 name=name,
-                path=str(project_path)
+                path=str(project_path),
             )
             continue
-            
+
         if not project_path.is_dir():
             structured_logger.warning(
                 "Reference project path is not a directory",
                 name=name,
-                path=str(project_path)
+                path=str(project_path),
             )
             continue
-        
+
         # Handle duplicate names with auto-rename
         final_name = name
         counter = 2
         while final_name in validated_projects:
             final_name = f"{name}_{counter}"
             counter += 1
-            
+
         validated_projects[final_name] = project_path
-        
+
     return validated_projects
 
 
