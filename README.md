@@ -38,7 +38,7 @@ By connecting your AI assistant to your filesystem, you can transform your workf
 ```bash
 # Clone the repository
 git clone https://github.com/MarcusJellinghaus/mcp_server_filesystem.git
-cd mcp-server-filesystem
+cd mcp_server_filesystem
 
 # Create and activate a virtual environment (optional but recommended)
 python -m venv venv
@@ -359,17 +359,16 @@ Lists files and directories in a reference project, with the same gitignore filt
 
 **Parameters:**
 - `reference_name` (string): Name of the reference project
-- `directory_path` (string, optional): Subdirectory path within the reference project (defaults to root)
 
 **Returns:** List of strings containing file and directory names
 
 **Examples:**
 ```python
-# List root directory of reference project
+# List root directory of reference project (shows subdirectories)
 list_reference_directory("docs")
 
-# List subdirectory
-list_reference_directory("examples", "src/components")
+# Then read files from subdirectories using read_reference_file
+read_reference_file("examples", "src/components/Button.tsx")
 ```
 
 **Features:**

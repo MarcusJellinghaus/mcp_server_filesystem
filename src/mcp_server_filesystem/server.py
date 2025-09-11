@@ -37,7 +37,7 @@ def set_project_dir(directory: Path) -> None:
     Args:
         directory: The project directory path
     """
-    global _project_dir
+    global _project_dir  # pylint: disable=global-statement
     _project_dir = Path(directory)
     logger.info("Project directory set to: %s", _project_dir)
     structured_logger.info("Project directory set", project_dir=str(_project_dir))
@@ -50,7 +50,7 @@ def set_reference_projects(reference_projects: Dict[str, Path]) -> None:
     Args:
         reference_projects: Dictionary mapping project names to directory paths
     """
-    global _reference_projects
+    global _reference_projects  # pylint: disable=global-statement
     _reference_projects = (
         reference_projects.copy()
     )  # Create a copy to avoid external modifications
