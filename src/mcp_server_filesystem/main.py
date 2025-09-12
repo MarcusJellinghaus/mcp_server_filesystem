@@ -5,6 +5,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List
 
 import structlog
 
@@ -48,7 +49,76 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Log only to console, ignore --log-file parameter.",
     )
+    parser.add_argument(
+        "--reference-project",
+        action="append",
+        help="Reference project in format name=/path/to/dir (can be repeated)",
+    )
     return parser.parse_args()
+
+
+def validate_reference_projects(reference_args: List[str]) -> Dict[str, Path]:
+    """Parse and validate reference project arguments.
+
+    Validates name format (very permissive) and path existence. Logs warnings for invalid
+    references and continues with valid ones only. Auto-renames duplicates.
+    """
+    if not reference_args:
+        return {}
+
+    validated_projects: Dict[str, Path] = {}
+
+    for arg in reference_args:
+        # Split on first '=' only
+        if "=" not in arg:
+            structured_logger.warning(
+                "Invalid reference project format (missing '=')",
+                argument=arg,
+                expected_format="name=/path/to/dir",
+            )
+            continue
+
+        name, path_str = arg.split("=", 1)
+
+        # Validate name is not empty
+        if not name:
+            structured_logger.warning(
+                "Invalid reference project format (empty name)",
+                argument=arg,
+                expected_format="name=/path/to/dir",
+            )
+            continue
+
+        # Convert to absolute path
+        project_path = Path(path_str).absolute()
+
+        # Validate path exists and is directory
+        if not project_path.exists():
+            structured_logger.warning(
+                "Reference project path does not exist",
+                name=name,
+                path=str(project_path),
+            )
+            continue
+
+        if not project_path.is_dir():
+            structured_logger.warning(
+                "Reference project path is not a directory",
+                name=name,
+                path=str(project_path),
+            )
+            continue
+
+        # Handle duplicate names with auto-rename
+        final_name = name
+        counter = 2
+        while final_name in validated_projects:
+            final_name = f"{name}_{counter}"
+            counter += 1
+
+        validated_projects[final_name] = project_path
+
+    return validated_projects
 
 
 def main() -> None:
@@ -89,6 +159,11 @@ def main() -> None:
         "Structured logger initialized in main", log_level=args.log_level
     )
 
+    # Parse reference projects
+    reference_projects = {}
+    if args.reference_project:
+        reference_projects = validate_reference_projects(args.reference_project)
+
     # Import here to avoid circular imports (after logging is configured)
     from mcp_server_filesystem.server import run_server
 
@@ -101,8 +176,8 @@ def main() -> None:
             log_file=log_file,
         )
 
-    # Run the server with the project directory
-    run_server(project_dir)
+    # Run the server with the project directory and reference projects
+    run_server(project_dir, reference_projects=reference_projects)
 
 
 if __name__ == "__main__":

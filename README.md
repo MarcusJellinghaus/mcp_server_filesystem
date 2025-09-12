@@ -28,6 +28,9 @@ By connecting your AI assistant to your filesystem, you can transform your workf
 - `delete_this_file`: Delete a specified file from the filesystem
 - `edit_file`: Make selective edits using exact string matching
 - `move_file`: Move or rename files and directories within the project
+- `get_reference_projects`: Discover available reference projects
+- `list_reference_directory`: List files in reference projects
+- `read_reference_file`: Read files from reference projects
 - `Structured Logging`: Comprehensive logging system with both human-readable and JSON formats
 
 ## Installation
@@ -35,7 +38,7 @@ By connecting your AI assistant to your filesystem, you can transform your workf
 ```bash
 # Clone the repository
 git clone https://github.com/MarcusJellinghaus/mcp_server_filesystem.git
-cd mcp-server-filesystem
+cd mcp_server_filesystem
 
 # Create and activate a virtual environment (optional but recommended)
 python -m venv venv
@@ -50,12 +53,13 @@ pip install -e .
 Once installed, you can use the `mcp-server-filesystem` command directly:
 
 ```bash
-mcp-server-filesystem --project-dir /path/to/project [--log-level LEVEL] [--log-file PATH]
+mcp-server-filesystem --project-dir /path/to/project [--reference-project NAME=/path/to/reference]... [--log-level LEVEL] [--log-file PATH]
 ```
 
 ### Command Line Arguments:
 
 - `--project-dir`: (Required) Directory to serve files from
+- `--reference-project`: (Optional) Add reference project in format name=/path/to/dir (repeatable, auto-renames duplicates)
 - `--log-level`: (Optional) Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 - `--log-file`: (Optional) Path for structured JSON logs. If not specified, logs to mcp_filesystem_server_{timestamp}.log in project_dir/logs/.
 
@@ -71,6 +75,78 @@ The server provides flexible logging options:
 - Automatic error context capture
 - Configurable log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 - Use `--console-only` to disable file logging
+
+## Reference Projects
+
+Reference projects allow you to provide AI assistants with read-only access to additional codebases or directories for context and reference. This feature enables the LLM to browse and read files from multiple projects while maintaining write access only to the main project directory.
+
+### Features
+
+- **Read-only access**: Reference projects can only be browsed and read from, never modified
+- **Multiple projects**: Configure multiple reference projects simultaneously
+- **Auto-discovery**: LLM can discover available reference projects
+- **Security**: Same path validation and gitignore filtering as main project
+- **Flexible paths**: Supports both relative and absolute paths
+
+### Configuration
+
+Use the `--reference-project` argument to add reference projects:
+
+```bash
+# Single reference project
+mcp-server-filesystem --project-dir ./my-project --reference-project docs=./documentation
+
+# Multiple reference projects
+mcp-server-filesystem --project-dir ./my-project \
+  --reference-project docs=./documentation \
+  --reference-project examples=/home/user/examples \
+  --reference-project libs=../shared-libraries
+
+# Absolute paths
+mcp-server-filesystem --project-dir /path/to/main/project \
+  --reference-project utils=/usr/local/utils \
+  --reference-project config=/etc/myapp
+```
+
+### Auto-Rename Behavior
+
+If you specify duplicate reference project names, they are automatically renamed with numeric suffixes:
+
+```bash
+# This configuration:
+mcp-server-filesystem --project-dir ./project \
+  --reference-project docs=./docs1 \
+  --reference-project docs=./docs2 \
+  --reference-project docs=./docs3
+
+# Results in these reference project names:
+# - docs (points to ./docs1)
+# - docs_2 (points to ./docs2)  
+# - docs_3 (points to ./docs3)
+```
+
+### Startup Validation
+
+The server validates reference projects at startup:
+
+- **Valid references**: Added successfully and available to the LLM
+- **Invalid references**: Logged as warnings, but server continues with valid ones
+- **Path resolution**: Relative paths are resolved relative to the current working directory
+
+### Use Cases
+
+- **Documentation browsing**: Give the LLM access to project documentation or wikis
+- **Code examples**: Reference example projects or templates
+- **Shared libraries**: Browse common utility libraries or frameworks
+- **Configuration files**: Access system or application configuration directories
+- **Multi-project development**: Work on one project while referencing related projects
+
+### Security Notes
+
+- Reference projects are **strictly read-only** - no write, edit, or delete operations are possible
+- All paths are validated to prevent directory traversal attacks
+- Gitignore filtering is automatically applied to hide irrelevant files
+- Path access is restricted to the specified reference project directories
 
 ## Integration Options
 
@@ -96,6 +172,10 @@ The Claude Desktop app can also use this file system server.
       "args": [
         "--project-dir",
         "C:\\path\\to\\your\\specific\\project",
+        "--reference-project",
+        "docs=C:\\path\\to\\documentation",
+        "--reference-project",
+        "examples=C:\\path\\to\\examples",
         "--log-level",
         "INFO"
       ]
@@ -136,6 +216,9 @@ The server exposes the following MCP tools:
 | `delete_this_file` | Removes files from the filesystem | "Delete the temporary.txt file" |
 | `edit_file` | Makes selective edits using exact string matching | "Fix the bug in the fetch function" |
 | `move_file` | Moves or renames files and directories | "Rename config.js to settings.js" |
+| `get_reference_projects` | Lists available reference projects | "What reference projects are available?" |
+| `list_reference_directory` | Lists files in a reference project | "List files in the docs reference project" |
+| `read_reference_file` | Reads files from reference projects | "Show me the README from the examples project" |
 
 ### Tool Details
 
@@ -253,12 +336,88 @@ move_file("file.txt", "new_dir/sub_dir/file.txt")  # Creates new_dir/sub_dir if 
   - "Invalid path" - for security violations
   - "Move operation failed" - for unexpected errors
 
+#### Get Reference Projects
+Discovery tool for LLMs to find available reference projects.
+
+**Parameters:** None
+
+**Returns:** List of strings containing reference project names
+
+**Example:**
+```python
+get_reference_projects()
+# Returns: ["docs", "examples", "utils"]
+```
+
+**Use Cases:**
+- LLM discovers what reference projects are available
+- Initial exploration of additional codebases
+- Dynamic selection of reference projects to browse
+
+#### List Reference Directory
+Lists files and directories in a reference project, with the same gitignore filtering as the main project.
+
+**Parameters:**
+- `reference_name` (string): Name of the reference project
+
+**Returns:** List of strings containing file and directory names
+
+**Examples:**
+```python
+# List root directory of reference project (shows subdirectories)
+list_reference_directory("docs")
+
+# Then read files from subdirectories using read_reference_file
+read_reference_file("examples", "src/components/Button.tsx")
+```
+
+**Features:**
+- Automatic gitignore filtering (same as main project)
+- Excludes .git directories
+- Returns relative paths within the reference project
+- Validates reference project exists
+
+#### Read Reference File
+Reads the contents of a file from a reference project.
+
+**Parameters:**
+- `reference_name` (string): Name of the reference project
+- `file_path` (string): Path to the file within the reference project (relative to reference project root)
+
+**Returns:** String containing the file contents
+
+**Examples:**
+```python
+# Read README from docs reference project
+read_reference_file("docs", "README.md")
+
+# Read source file from examples project
+read_reference_file("examples", "src/app.py")
+
+# Read config file
+read_reference_file("config", "settings/production.yml")
+```
+
+**Features:**
+- Read-only access (no modification possible)
+- Same path validation as main project files
+- Supports any text-based file format
+- Returns raw file contents as string
+
+**Error Handling:**
+- "Reference project not found" - when reference_name doesn't exist
+- "File not found" - when file doesn't exist in reference project
+- "Invalid path" - for security violations or path traversal attempts
+- "Permission denied" - for access issues
+
 ## Security Features
 
 - All paths are normalized and validated to ensure they remain within the project directory
-- Path traversal attacks are prevented
+- Reference projects use the same path validation and security measures
+- Path traversal attacks are prevented for both main project and reference projects
 - Files are written atomically to prevent data corruption
 - Delete operations are restricted to the project directory for safety
+- Reference projects are strictly read-only to prevent accidental modifications
 
 ### MCP Configuration Management Tool
 
@@ -277,9 +436,16 @@ pip install git+https://github.com/MarcusJellinghaus/mcp-config.git
 # Setup for Claude Desktop with automatic configuration
 mcp-config setup mcp-server-filesystem "Filesystem Server" --project-dir /path/to/your/project
 
+# Setup with reference projects
+mcp-config setup mcp-server-filesystem "Filesystem Server" \
+  --project-dir /path/to/your/project \
+  --reference-project docs=/path/to/documentation \
+  --reference-project examples=/path/to/examples
+
 # Setup with custom log configuration
 mcp-config setup mcp-server-filesystem "Filesystem Server" \
   --project-dir /path/to/your/project \
+  --reference-project utils=/shared/utilities \
   --log-level DEBUG \
   --log-file /custom/path/server.log
 ```

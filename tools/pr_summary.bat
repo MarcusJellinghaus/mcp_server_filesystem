@@ -46,11 +46,11 @@ set TEMP_FILE=%TEMP%\pr_summary_%RANDOM%_%TIME:~6,2%%TIME:~9,2%.txt
 
 REM Generate git diff and create PR summary prompt
 (
-    echo Please read the information in folder `PR_Info` ^(if any^) and review the code changes ^(git output^)
+    echo Please read the information in folder `PR_Info` ^(including any implementation steps in `PR_Info/steps/`^) and review the code changes ^(git output^)
     echo Can you please create a limited size summary for a pull request?
     echo Please do not refer to the files in `PR_Info` directly !
-    echo Please save the pull request summary in markdown file ^(as `PR_Info\summary.md`^) so that I can easily copy/paste it.
-    echo Last step, delete all files from folder `PR_Info`
+    echo Please save the pull request summary in markdown file ^(as `PR_Info\pr_summary.md`^) so that I can easily copy/paste it.
+    echo Last step: 1^) Delete the `PR_Info/steps/` subfolder and 2^) Clear the Tasks section from `TASK_TRACKER.md` ^(keep the template structure^)
     echo.
     echo === GIT DIFF ===
     echo.

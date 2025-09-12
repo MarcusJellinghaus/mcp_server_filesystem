@@ -26,6 +26,9 @@ mcp = FastMCP("File System Service")
 # Store the project directory as a module-level variable
 _project_dir: Optional[Path] = None
 
+# Store reference projects as a module-level variable
+_reference_projects: Dict[str, Path] = {}
+
 
 @log_function_call
 def set_project_dir(directory: Path) -> None:
@@ -34,10 +37,121 @@ def set_project_dir(directory: Path) -> None:
     Args:
         directory: The project directory path
     """
-    global _project_dir
+    global _project_dir  # pylint: disable=global-statement
     _project_dir = Path(directory)
     logger.info("Project directory set to: %s", _project_dir)
     structured_logger.info("Project directory set", project_dir=str(_project_dir))
+
+
+@log_function_call
+def set_reference_projects(reference_projects: Dict[str, Path]) -> None:
+    """Set the reference projects for file operations.
+
+    Args:
+        reference_projects: Dictionary mapping project names to directory paths
+    """
+    global _reference_projects  # pylint: disable=global-statement
+    _reference_projects = (
+        reference_projects.copy()
+    )  # Create a copy to avoid external modifications
+
+    # Log each reference project
+    for project_name, project_path in reference_projects.items():
+        logger.info("Reference project '%s' set to: %s", project_name, project_path)
+        structured_logger.info(
+            "Reference project set",
+            project_name=project_name,
+            project_path=str(project_path),
+        )
+
+
+@mcp.tool()
+@log_function_call
+def get_reference_projects() -> List[str]:
+    """Get list of available reference project names.
+
+    Returns:
+        A list of reference project names that can be used with
+        list_reference_directory() and read_reference_file()
+    """
+    try:
+        if not _reference_projects:
+            logger.info("No reference projects configured")
+            return []
+
+        # Extract keys (project names) and sort them alphabetically
+        project_names = sorted(_reference_projects.keys())
+        logger.info(
+            "Found %d reference projects: %s", len(project_names), project_names
+        )
+        return project_names
+    except Exception as e:
+        logger.error("Error getting reference projects: %s", str(e))
+        raise
+
+
+@mcp.tool()
+@log_function_call
+def read_reference_file(reference_name: str, file_path: str) -> str:
+    """Read the contents of a file from a reference project.
+
+    Args:
+        reference_name: Name of the reference project
+        file_path: Path to the file to read (relative to reference project directory)
+
+    Returns:
+        The contents of the file as a string
+    """
+    # Check if reference project exists
+    if reference_name not in _reference_projects:
+        logger.error("Reference project '%s' not found", reference_name)
+        raise ValueError(f"Reference project '{reference_name}' not found")
+
+    # Get reference project path
+    ref_path = _reference_projects[reference_name]
+
+    # Log operation at DEBUG level
+    logger.debug(
+        "Reading file '%s' from reference project '%s' at path: %s",
+        file_path,
+        reference_name,
+        ref_path,
+    )
+
+    # Call read_file_util with the reference project directory
+    # The utility function handles all parameter validation and security checks
+    return read_file_util(file_path, project_dir=ref_path)
+
+
+@mcp.tool()
+@log_function_call
+def list_reference_directory(reference_name: str) -> List[str]:
+    """List files and directories in a reference project directory.
+
+    Args:
+        reference_name: Name of the reference project to list
+
+    Returns:
+        A list of filenames in the reference project directory
+    """
+    # Check if reference project exists
+    if reference_name not in _reference_projects:
+        logger.error("Reference project '%s' not found", reference_name)
+        raise ValueError(f"Reference project '{reference_name}' not found")
+
+    # Get reference project path
+    ref_path = _reference_projects[reference_name]
+
+    # Log operation at DEBUG level
+    logger.debug(
+        "Listing files in reference project '%s' at path: %s",
+        reference_name,
+        ref_path,
+    )
+
+    # Call list_files_util with gitignore filtering enabled
+    # The utility function handles all parameter validation
+    return list_files_util(".", project_dir=ref_path, use_gitignore=True)
 
 
 @mcp.tool()
@@ -338,11 +452,14 @@ def edit_file(
 
 
 @log_function_call
-def run_server(project_dir: Path) -> None:
-    """Run the MCP server with the given project directory.
+def run_server(
+    project_dir: Path, reference_projects: Optional[Dict[str, Path]] = None
+) -> None:
+    """Run the MCP server with the given project directory and optional reference projects.
 
     Args:
         project_dir: Path to the project directory
+        reference_projects: Optional dictionary mapping project names to directory paths
     """
     logger.debug("Entering run_server function")
     structured_logger.debug(
@@ -351,6 +468,10 @@ def run_server(project_dir: Path) -> None:
 
     # Set the project directory
     set_project_dir(project_dir)
+
+    # Set reference projects if provided
+    if reference_projects:
+        set_reference_projects(reference_projects)
 
     # Run the server
     logger.info("Starting MCP server")

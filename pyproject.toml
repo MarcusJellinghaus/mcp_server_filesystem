@@ -45,9 +45,9 @@ config = [
 mcp-server-filesystem = "mcp_server_filesystem.main:main"
 
 [project.urls]
-"Homepage" = "https://github.com/MarcusJellinghaus/mcp-server-filesystem"
-"Bug Tracker" = "https://github.com/MarcusJellinghaus/mcp-server-filesystem/issues"
-"Documentation" = "https://github.com/MarcusJellinghaus/mcp-server-filesystem#readme"
+"Homepage" = "https://github.com/MarcusJellinghaus/mcp_server_filesystem"
+"Bug Tracker" = "https://github.com/MarcusJellinghaus/mcp_server_filesystem/issues"
+"Documentation" = "https://github.com/MarcusJellinghaus/mcp_server_filesystem#readme"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
