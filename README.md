@@ -341,12 +341,19 @@ Discovery tool for LLMs to find available reference projects.
 
 **Parameters:** None
 
-**Returns:** List of strings containing reference project names
+**Returns:** Dictionary containing:
+- `count`: Number of available projects
+- `projects`: List of project names
+- `usage`: Instructions for next steps
 
 **Example:**
 ```python
 get_reference_projects()
-# Returns: ["docs", "examples", "utils"]
+# Returns: {
+#   "count": 3,
+#   "projects": ["docs", "examples", "utils"],
+#   "usage": "Use these 3 projects with list_reference_directory() and read_reference_file()"
+# }
 ```
 
 **Use Cases:**

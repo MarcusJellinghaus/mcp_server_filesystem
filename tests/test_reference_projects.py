@@ -134,20 +134,25 @@ class TestReferenceProjectMCPTools:
     """Test MCP tools functionality."""
 
     def test_get_reference_projects_empty(self) -> None:
-        """Test discovery tool returns empty list when no projects."""
+        """Test discovery tool returns empty dict when no projects."""
         import mcp_server_filesystem.server as server_module
         from mcp_server_filesystem.server import get_reference_projects
 
         # Clear reference projects
         server_module._reference_projects = {}
 
-        # Should return empty list
+        # Should return structured dict with empty projects list
         result = get_reference_projects()
-        assert result == []
-        assert isinstance(result, list)
+        expected = {
+            "count": 0,
+            "projects": [],
+            "usage": "No reference projects available",
+        }
+        assert result == expected
+        assert isinstance(result, dict)
 
     def test_get_reference_projects_sorted(self) -> None:
-        """Test discovery tool returns sorted list of project names."""
+        """Test discovery tool returns sorted list of project names in structured dict."""
         import mcp_server_filesystem.server as server_module
         from mcp_server_filesystem.server import get_reference_projects
 
@@ -159,11 +164,16 @@ class TestReferenceProjectMCPTools:
         }
         server_module._reference_projects = test_projects
 
-        # Should return sorted list
+        # Should return structured dict with sorted projects list
         result = get_reference_projects()
-        expected = ["alpha", "beta", "zebra"]
+        expected = {
+            "count": 3,
+            "projects": ["alpha", "beta", "zebra"],
+            "usage": "Use these 3 projects with list_reference_directory() and read_reference_file()",
+        }
         assert result == expected
-        assert isinstance(result, list)
+        assert isinstance(result, dict)
+        assert result["projects"] == ["alpha", "beta", "zebra"]
 
     def test_get_reference_projects_logging(self) -> None:
         """Test INFO level logging for discovery operations."""
@@ -180,12 +190,17 @@ class TestReferenceProjectMCPTools:
         with patch("mcp_server_filesystem.server.logger") as mock_logger:
             result = get_reference_projects()
 
-            # Should return the project names
-            assert result == ["proj1"]
+            # Should return structured dict with project names
+            expected = {
+                "count": 1,
+                "projects": ["proj1"],
+                "usage": "Use these 1 projects with list_reference_directory() and read_reference_file()",
+            }
+            assert result == expected
 
             # The @log_function_call decorator should handle logging
             # We can verify the function was called and returned the expected result
-            assert isinstance(result, list)
+            assert isinstance(result, dict)
 
     def test_list_reference_directory_success(self) -> None:
         """Test listing files in valid reference project."""

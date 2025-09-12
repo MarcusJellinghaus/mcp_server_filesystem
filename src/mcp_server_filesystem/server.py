@@ -67,24 +67,41 @@ def set_reference_projects(reference_projects: Dict[str, Path]) -> None:
 
 @mcp.tool()
 @log_function_call
-def get_reference_projects() -> List[str]:
-    """Get list of available reference project names.
+def get_reference_projects() -> Dict[str, Any]:
+    """Get available reference project names.
 
     Returns:
-        A list of project names (strings) available as reference projects
-        These can be used with list_reference_directory() and read_reference_file()
+        Dictionary containing:
+        - count: Number of available projects
+        - projects: List of project names
+        - usage: Instructions for next steps
+
+    Use the returned project names with list_reference_directory() and read_reference_file()
     """
     try:
+        # Return structured dict instead of simple list because MCP tool responses
+        # can be ambiguous when displaying arrays - items may appear concatenated
+        # or unclear to LLMs. This format ensures clear communication.
+
         if not _reference_projects:
             logger.info("No reference projects configured")
-            return []
+            return {
+                "count": 0,
+                "projects": [],
+                "usage": "No reference projects available",
+            }
 
-        # Extract keys (project names) and sort them alphabetically
         project_names = sorted(_reference_projects.keys())
         logger.info(
             "Found %d reference projects: %s", len(project_names), project_names
         )
-        return project_names
+
+        return {
+            "count": len(project_names),
+            "projects": project_names,
+            "usage": f"Use these {len(project_names)} projects with list_reference_directory() and read_reference_file()",
+        }
+
     except Exception as e:
         logger.error("Error getting reference projects: %s", str(e))
         raise
