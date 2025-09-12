@@ -146,7 +146,7 @@ class TestReferenceProjectMCPTools:
         expected = {
             "count": 0,
             "projects": [],
-            "usage": "No reference projects available"
+            "usage": "No reference projects available",
         }
         assert result == expected
         assert isinstance(result, dict)
@@ -169,7 +169,7 @@ class TestReferenceProjectMCPTools:
         expected = {
             "count": 3,
             "projects": ["alpha", "beta", "zebra"],
-            "usage": "Use these 3 projects with list_reference_directory() and read_reference_file()"
+            "usage": "Use these 3 projects with list_reference_directory() and read_reference_file()",
         }
         assert result == expected
         assert isinstance(result, dict)
@@ -194,7 +194,7 @@ class TestReferenceProjectMCPTools:
             expected = {
                 "count": 1,
                 "projects": ["proj1"],
-                "usage": "Use these 1 projects with list_reference_directory() and read_reference_file()"
+                "usage": "Use these 1 projects with list_reference_directory() and read_reference_file()",
             }
             assert result == expected
 

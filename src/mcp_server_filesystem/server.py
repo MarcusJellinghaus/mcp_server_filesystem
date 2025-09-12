@@ -88,16 +88,18 @@ def get_reference_projects() -> Dict[str, Any]:
             return {
                 "count": 0,
                 "projects": [],
-                "usage": "No reference projects available"
+                "usage": "No reference projects available",
             }
 
         project_names = sorted(_reference_projects.keys())
-        logger.info("Found %d reference projects: %s", len(project_names), project_names)
+        logger.info(
+            "Found %d reference projects: %s", len(project_names), project_names
+        )
 
         return {
             "count": len(project_names),
             "projects": project_names,
-            "usage": f"Use these {len(project_names)} projects with list_reference_directory() and read_reference_file()"
+            "usage": f"Use these {len(project_names)} projects with list_reference_directory() and read_reference_file()",
         }
 
     except Exception as e:
