@@ -71,8 +71,8 @@ def get_reference_projects() -> List[str]:
     """Get list of available reference project names.
 
     Returns:
-        A list of reference project names that can be used with
-        list_reference_directory() and read_reference_file()
+        A list of project names (strings) available as reference projects
+        These can be used with list_reference_directory() and read_reference_file()
     """
     try:
         if not _reference_projects:
