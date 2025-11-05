@@ -2,7 +2,8 @@
 
 import re
 from pathlib import Path
-from typing import Tuple
+
+from packaging.version import InvalidVersion, Version  # type: ignore[import-not-found]
 
 
 class VersionError(Exception):
@@ -45,10 +46,9 @@ def get_version_from_pyproject(pyproject_path: Path | None = None) -> str:
         raise FileNotFoundError(f"pyproject.toml not found at {pyproject_path}")
 
     try:
-        import tomli  # type: ignore
+        import tomli  # type: ignore[import-not-found]
     except ImportError:
-        # tomli is not available in runtime, only needed for version validation
-        # Try reading manually as fallback
+        # tomli is not available, try reading manually as fallback
         content = pyproject_path.read_text()
         match = re.search(r'version\s*=\s*"([^"]+)"', content)
         if match:
@@ -57,8 +57,6 @@ def get_version_from_pyproject(pyproject_path: Path | None = None) -> str:
 
     with open(pyproject_path, "rb") as f:
         try:
-            import tomli
-
             data = tomli.load(f)
         except Exception as e:
             raise VersionError(f"Failed to parse pyproject.toml: {e}") from e
@@ -73,7 +71,7 @@ def get_version_from_pyproject(pyproject_path: Path | None = None) -> str:
 
 def validate_version_format(version: str) -> bool:
     """
-    Validate that version string follows semantic versioning.
+    Validate that version string is valid.
 
     Args:
         version: Version string to validate
@@ -84,16 +82,13 @@ def validate_version_format(version: str) -> bool:
     Raises:
         VersionFormatError: If version format is invalid
     """
-    # Semantic versioning pattern: MAJOR.MINOR.PATCH with optional pre-release
-    pattern = r"^\d+\.\d+\.\d+(?:-(alpha|beta|rc)\d*)?$"
-
-    if not re.match(pattern, version):
+    try:
+        Version(version)
+        return True
+    except InvalidVersion as e:
         raise VersionFormatError(
-            f"Invalid version format: {version}. "
-            "Expected format: MAJOR.MINOR.PATCH[-prerelease]"
-        )
-
-    return True
+            f"Invalid version format: {version}. Error: {e}"
+        ) from e
 
 
 def is_prerelease(version: str) -> bool:
@@ -104,12 +99,15 @@ def is_prerelease(version: str) -> bool:
         version: Version string to check
 
     Returns:
-        True if version contains pre-release identifier (alpha, beta, rc)
+        True if version is a pre-release
     """
-    return bool(re.search(r"-(alpha|beta|rc)", version))
+    try:
+        return bool(Version(version).is_prerelease)
+    except InvalidVersion:
+        return False
 
 
-def parse_version(version: str) -> Tuple[int, int, int, str]:
+def parse_version(version: str) -> tuple[int, int, int, str]:
     """
     Parse version string into components.
 
@@ -124,15 +122,16 @@ def parse_version(version: str) -> Tuple[int, int, int, str]:
         VersionFormatError: If version format is invalid
     """
     validate_version_format(version)
+    v = Version(version)
 
-    # Split on hyphen to separate version from pre-release
-    parts = version.split("-", 1)
-    version_parts = parts[0].split(".")
-    prerelease = parts[1] if len(parts) > 1 else ""
+    major = v.release[0] if len(v.release) > 0 else 0
+    minor = v.release[1] if len(v.release) > 1 else 0
+    patch = v.release[2] if len(v.release) > 2 else 0
 
-    major = int(version_parts[0])
-    minor = int(version_parts[1])
-    patch = int(version_parts[2])
+    prerelease = ""
+    if v.is_prerelease and v.pre:
+        prerelease_type, prerelease_num = v.pre
+        prerelease = f"{prerelease_type}{prerelease_num}"
 
     return major, minor, patch, prerelease
 
@@ -153,47 +152,16 @@ def compare_versions(version1: str, version2: str) -> int:
     Raises:
         VersionFormatError: If either version format is invalid
     """
-    v1_parts = parse_version(version1)
-    v2_parts = parse_version(version2)
+    try:
+        v1 = Version(version1)
+        v2 = Version(version2)
+    except InvalidVersion as e:
+        raise VersionFormatError(f"Invalid version format: {e}") from e
 
-    # Compare major, minor, patch
-    v1_major, v1_minor, v1_patch, v1_pre = v1_parts
-    v2_major, v2_minor, v2_patch, v2_pre = v2_parts
-
-    # Compare major version
-    if v1_major < v2_major:
+    if v1 < v2:
         return -1
-    if v1_major > v2_major:
+    if v1 > v2:
         return 1
-
-    # Compare minor version
-    if v1_minor < v2_minor:
-        return -1
-    if v1_minor > v2_minor:
-        return 1
-
-    # Compare patch version
-    if v1_patch < v2_patch:
-        return -1
-    if v1_patch > v2_patch:
-        return 1
-
-    # If base versions are equal, compare pre-release
-    # No pre-release (stable) is greater than any pre-release
-
-    if not v1_pre and not v2_pre:
-        return 0
-    if not v1_pre:
-        return 1
-    if not v2_pre:
-        return -1
-
-    # Both have pre-release, compare them
-    if v1_pre < v2_pre:
-        return -1
-    if v1_pre > v2_pre:
-        return 1
-
     return 0
 
 

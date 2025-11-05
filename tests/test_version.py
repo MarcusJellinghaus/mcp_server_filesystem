@@ -97,19 +97,13 @@ class TestValidateVersionFormat:
     def test_invalid_version_formats(self):
         """Test invalid version formats."""
         with pytest.raises(VersionFormatError):
-            validate_version_format("1.0")  # Missing patch
+            validate_version_format("invalid")  # Invalid string
 
         with pytest.raises(VersionFormatError):
-            validate_version_format("1")  # Only major
-
-        with pytest.raises(VersionFormatError):
-            validate_version_format("v1.0.0")  # Has 'v' prefix
+            validate_version_format("")  # Empty string
 
         with pytest.raises(VersionFormatError):
             validate_version_format("1.0.0-gamma")  # Invalid pre-release identifier
-
-        with pytest.raises(VersionFormatError):
-            validate_version_format("1.0.0.1")  # Four components
 
 
 class TestIsPrerelease:
