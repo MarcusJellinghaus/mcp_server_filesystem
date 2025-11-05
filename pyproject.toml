@@ -35,6 +35,7 @@ dev = [
     "pylint>=3.3.3",
     "black>=24.10.0",
     "isort>=5.13.2",
+    "tomli>=2.0.0",
     "mcp-code-checker @ git+https://github.com/MarcusJellinghaus/mcp-code-checker.git",
 ]
 config = [
