@@ -84,5 +84,6 @@ requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-version_scheme = "guess-next-dev"
-local_scheme = "no-local-version"
+# Version is automatically determined from git tags
+# Tag format: v0.1.0 -> version 0.1.0
+# Between releases: 0.1.0.devN+gHASH (includes commit count and hash)

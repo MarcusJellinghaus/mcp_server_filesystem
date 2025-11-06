@@ -11,6 +11,7 @@ import structlog
 
 # Import logging utilities
 from mcp_server_filesystem.log_utils import setup_logging
+from mcp_server_filesystem import __version__
 
 # Create loggers
 stdlogger = logging.getLogger(__name__)
@@ -24,7 +25,15 @@ def parse_args() -> argparse.Namespace:
     Returns:
         Parsed arguments
     """
-    parser = argparse.ArgumentParser(description="MCP File System Server")
+    parser = argparse.ArgumentParser(
+        description="MCP File System Server - A Model Context Protocol server providing file operation tools"
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"mcp-server-filesystem {__version__}",
+        help="Show version number and exit",
+    )
     parser.add_argument(
         "--project-dir",
         type=str,
