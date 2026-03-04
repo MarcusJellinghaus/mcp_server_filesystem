@@ -17,16 +17,40 @@ venv/
 
 # Package info
 *.egg-info/
+build/
+dist/
 
-# Testing cache
-.pytest_cache/
-.mypy_cache/
-
-# default log folder used by mcp servers
+# Default log folder used by mcp servers
 /logs/
 
-# MCP configuration files (may contain sensitive paths)
-.mcp.*.json
+# Cache files
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# VSCode Claude session status
+# Platform-specific MCP configurations
+.mcp.linux.json
+.mcp.windows.json
+.mcp.macos.json
+checks_output.txt
+bash.exe.stackdump
+/.mcp-coder-tmp/
+*.isorted
+
+# Log folder for LLM sessions etc
+/.mcp-coder/*
+
+# Transient commit message file (used by implement workflow)
+pr_info/.commit_message.txt
+
+# CI check temporary files
+pr_info/.ci_problem_description.md
+
+# Test artifacts (cleanup safety net)
+temp_integration_test.py
+
+# VSCodeClaude session files (auto-generated)
 .vscodeclaude_status.txt
+.vscodeclaude_analysis.json
+.vscodeclaude_start.bat
+.vscodeclaude_start.sh
