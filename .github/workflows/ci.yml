@@ -30,3 +30,26 @@ jobs:
           pip install -e ".[dev]"
       - name: Run ${{ matrix.check.name }}
         run: ${{ matrix.check.cmd }}
+
+  architecture:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - {name: "import-linter", cmd: "lint-imports"}
+          - {name: "tach", cmd: "tach check"}
+          - {name: "pycycle", cmd: "pycycle --here"}
+          - {name: "vulture", cmd: "vulture src tests vulture_whitelist.py --min-confidence 60"}
+    name: ${{ matrix.check.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev,architecture]"
+      - name: Run ${{ matrix.check.name }}
+        run: ${{ matrix.check.cmd }}

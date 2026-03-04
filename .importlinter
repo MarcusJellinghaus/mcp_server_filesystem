@@ -1,0 +1,111 @@
+# =============================================================================
+# Import Linter Configuration
+# =============================================================================
+# Enforces architectural boundaries to maintain clean code structure.
+# Run with: lint-imports (or tools/lint_imports.bat)
+# =============================================================================
+
+[importlinter]
+root_packages =
+    mcp_server_filesystem
+    tests
+root_package_paths =
+    src
+    .
+include_external_packages = True
+
+# -----------------------------------------------------------------------------
+# Contract: Layered Architecture
+# -----------------------------------------------------------------------------
+# Ensures dependencies flow in one direction:
+#   main -> server -> file_tools -> (no internal dependencies)
+#
+# Why this matters:
+# - Prevents circular dependencies
+# - Keeps entry point (main) as thin orchestration layer
+# - Server focuses on MCP protocol, delegates to file_tools
+# - File tools are independent, reusable utilities
+# -----------------------------------------------------------------------------
+[importlinter:contract:layered_architecture]
+name = Layered Architecture
+type = layers
+layers =
+    mcp_server_filesystem.main
+    mcp_server_filesystem.server
+    mcp_server_filesystem.file_tools
+    mcp_server_filesystem.log_utils
+
+# -----------------------------------------------------------------------------
+# Contract: File Tools Independence
+# -----------------------------------------------------------------------------
+# File tool modules should not depend on each other where possible.
+# This keeps each tool focused and independently testable.
+# -----------------------------------------------------------------------------
+[importlinter:contract:file_tools_independence]
+name = File Tools Module Independence
+type = independence
+modules =
+    mcp_server_filesystem.file_tools.directory_utils
+    mcp_server_filesystem.file_tools.path_utils
+
+# -----------------------------------------------------------------------------
+# Contract: MCP Library Isolation
+# -----------------------------------------------------------------------------
+# The 'mcp' package should only be imported by main.py and server.py.
+# File tools should remain MCP-agnostic for reusability.
+# -----------------------------------------------------------------------------
+[importlinter:contract:mcp_library_isolation]
+name = MCP Library Isolation
+type = forbidden
+source_modules =
+    mcp_server_filesystem
+forbidden_modules =
+    mcp
+ignore_imports =
+    mcp_server_filesystem.main -> mcp
+    mcp_server_filesystem.server -> mcp
+
+# -----------------------------------------------------------------------------
+# Contract: GitPython Library Isolation
+# -----------------------------------------------------------------------------
+# The 'git' package should only be used by git_operations module.
+# -----------------------------------------------------------------------------
+[importlinter:contract:gitpython_isolation]
+name = GitPython Library Isolation
+type = forbidden
+source_modules =
+    mcp_server_filesystem
+forbidden_modules =
+    git
+ignore_imports =
+    mcp_server_filesystem.file_tools.git_operations -> git
+
+# -----------------------------------------------------------------------------
+# Contract: Structlog Library Isolation
+# -----------------------------------------------------------------------------
+# Structured logging should only be configured in log_utils.
+# Other modules should use standard logging.
+# -----------------------------------------------------------------------------
+[importlinter:contract:structlog_isolation]
+name = Structlog Library Isolation
+type = forbidden
+source_modules =
+    mcp_server_filesystem
+forbidden_modules =
+    structlog
+ignore_imports =
+    mcp_server_filesystem.log_utils -> structlog
+    mcp_server_filesystem.main -> structlog
+
+# -----------------------------------------------------------------------------
+# Contract: Source Code Independence from Tests
+# -----------------------------------------------------------------------------
+# Production code should never import from test modules.
+# -----------------------------------------------------------------------------
+[importlinter:contract:no_test_imports_in_source]
+name = Source Code Independence from Tests
+type = forbidden
+source_modules =
+    mcp_server_filesystem
+forbidden_modules =
+    tests

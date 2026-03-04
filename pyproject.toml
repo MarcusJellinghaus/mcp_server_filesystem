@@ -32,10 +32,18 @@ dependencies = [
 dev = [
     "pytest>=8.3.5",
     "pytest-asyncio>=0.25.3",
+    "pytest-xdist>=3.6.1",
     "pylint>=3.3.3",
     "black>=24.10.0",
     "isort>=5.13.2",
+    "mypy>=1.13.0",
     "mcp-code-checker @ git+https://github.com/MarcusJellinghaus/mcp-code-checker.git",
+]
+architecture = [
+    "import-linter>=2.0",
+    "tach>=0.14.3",
+    "pycycle>=0.0.9",
+    "vulture>=2.11",
 ]
 config = [
     "mcp-config @ git+https://github.com/MarcusJellinghaus/mcp-config.git",

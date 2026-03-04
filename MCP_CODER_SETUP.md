@@ -67,6 +67,8 @@ mcp__code-checker__run_pytest_check(extra_args=["-n", "auto"])
 
 ### Development Tools
 
+#### Code Quality Scripts
+
 | Script | Purpose |
 |--------|---------|
 | `tools/format_all.bat/.sh` | Format code with black and isort |
@@ -74,6 +76,16 @@ mcp__code-checker__run_pytest_check(extra_args=["-n", "auto"])
 | `tools/pylint_check.bat` | Run pylint error checks |
 | `tools/mypy_check.bat` | Run mypy type checks |
 | `tools/pytest_check.bat` | Run pytest in parallel mode |
+
+#### Architecture Enforcement Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `tools/lint_imports.bat/.sh` | Check import contracts (layered architecture) |
+| `tools/tach_check.bat/.sh` | Check architectural boundaries |
+| `tools/pycycle_check.bat/.sh` | Detect circular dependencies |
+| `tools/vulture_check.bat/.sh` | Find dead/unused code |
+| `tools/run_all_checks.bat/.sh` | Run ALL checks (quality + architecture) |
 
 ## Slash Commands
 
@@ -199,7 +211,9 @@ This will:
 
 ## CI/CD Pipeline
 
-The CI workflow runs on every push and PR:
+### Code Quality Checks (All Branches)
+
+Runs on every push and PR:
 
 - ✅ **black** - Code formatting check
 - ✅ **isort** - Import sorting check
@@ -207,7 +221,18 @@ The CI workflow runs on every push and PR:
 - ✅ **pytest** - Test suite (parallel execution)
 - ✅ **mypy** - Strict type checking
 
+### Architecture Checks (PRs Only)
+
+Runs only on pull requests:
+
+- ✅ **import-linter** - Enforce layered architecture and library isolation
+- ✅ **tach** - Check module boundaries and dependencies
+- ✅ **pycycle** - Detect circular dependencies
+- ✅ **vulture** - Find dead/unused code
+
 All checks run in parallel with `fail-fast: false` to see all issues at once.
+
+**Why PR-only for architecture?** These checks are more expensive and most valuable when reviewing code changes.
 
 ## Dependency Management
 
@@ -254,8 +279,50 @@ Dependabot is configured to:
 
 3. Review test output for specific failures
 
+## Architecture Enforcement
+
+This repository uses four tools to maintain clean architecture:
+
+### Install Architecture Tools
+
+```bash
+pip install -e ".[architecture]"
+```
+
+This installs:
+- **import-linter** - Contract-based import validation
+- **tach** - Module boundary enforcement
+- **pycycle** - Circular dependency detection
+- **vulture** - Dead code detection
+
+### Run Architecture Checks
+
+```bash
+# Run all checks at once
+tools\run_all_checks.bat  # Windows
+./tools/run_all_checks.sh  # Linux/Mac
+
+# Or run individually
+tools\lint_imports.bat     # Import contracts
+tools\tach_check.bat       # Module boundaries
+tools\pycycle_check.bat    # Circular dependencies
+tools\vulture_check.bat    # Dead code
+```
+
+### Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `.importlinter` | Define import contracts and library isolation |
+| `tach.toml` | Define architectural layers and module dependencies |
+| `vulture_whitelist.py` | Whitelist intentionally "unused" code (MCP handlers, fixtures) |
+| `.large-files-allowlist` | Files allowed to exceed size limits |
+
+**See:** `docs/ARCHITECTURE.md` for detailed architecture documentation.
+
 ## Additional Resources
 
+- [Architecture Guide](docs/ARCHITECTURE.md) - **Start here for architecture details**
 - [mcp_coder Documentation](https://github.com/MarcusJellinghaus/mcp_coder)
 - [Repository Setup Guide](https://github.com/MarcusJellinghaus/mcp_coder/blob/main/docs/repository-setup.md)
 - [Claude Code Configuration](https://github.com/MarcusJellinghaus/mcp_coder/blob/main/docs/configuration/claude-code.md)
