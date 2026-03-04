@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(black:*), Bash(isort:*), mcp__filesystem__read_file, mcp__filesystem__list_directory
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(./tools/format_all.sh:*), Read, Glob, Grep
 workflow-stage: utility
 suggested-next: (context-dependent)
 ---
@@ -10,8 +10,7 @@ Follow this process to commit and push your changes:
 
 ## 1. Format Code
 ```bash
-black src tests
-isort --profile=black --float-to-top src tests
+./tools/format_all.sh
 ```
 
 ## 2. Review Changes
@@ -28,7 +27,7 @@ Create a commit with a clear, conventional commit message:
 - Use format: `type(scope): description`
 - Types: feat, fix, docs, style, refactor, test, chore
 - Keep summary under 50 characters
-- Add detailed description if needed
+- **No Claude Code footer or attribution in commit message**
 
 ## 5. Push
 ```bash

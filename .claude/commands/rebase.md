@@ -1,16 +1,26 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git fetch:*), Bash(git rebase:*), Bash(git add:*), Bash(git commit:*), Bash(git push --force-with-lease:*), Bash(git diff:*), Bash(git checkout --ours:*), Bash(git checkout --theirs:*), Bash(git rebase --abort:*), Bash(black:*), Bash(isort:*), mcp__code-checker__run_all_checks, mcp__code-checker__run_pylint_check, mcp__code-checker__run_pytest_check, mcp__code-checker__run_mypy_check, mcp__filesystem__read_file, mcp__filesystem__edit_file
+allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git fetch:*), Bash(git rebase:*), Bash(git add:*), Bash(git commit:*), Bash(git push --force-with-lease:*), Bash(git diff:*), Bash(git checkout --ours:*), Bash(git checkout --theirs:*), Bash(git rebase --abort:*), Bash(./tools/format_all.sh:*), Bash(mcp-coder gh-tool get-base-branch), mcp__code-checker__run_all_checks, mcp__code-checker__run_pylint_check, mcp__code-checker__run_pytest_check, mcp__code-checker__run_mypy_check, mcp__filesystem__read_file, mcp__filesystem__edit_file
 workflow-stage: utility
 suggested-next: (context-dependent)
 ---
 
-# Rebase Branch onto Main
+# Rebase Branch onto Base Branch
 
-Rebase the current feature branch onto main and resolve conflicts.
+Rebase the current feature branch onto its base branch and resolve conflicts.
 
-**Core philosophy:** Main is the source of truth. The feature branch adapts to main. For conflicts, preserve main's improvements and rework the feature branch code to fit.
+**Core philosophy:** Main is the source of truth. The feature branch adapts to main. For source code conflicts, preserve main's improvements and rework the feature branch code to fit.
 
 **Note on `--ours`/`--theirs` during rebase:** `--ours` = main (the branch being rebased onto), `--theirs` = feature branch commits being replayed.
+
+If the rebase becomes complex, suggest switching to cherry-picking as an alternative approach.
+
+## Determine Base Branch
+
+First, detect the correct base branch:
+```bash
+BASE_BRANCH=$(mcp-coder gh-tool get-base-branch)
+echo "Rebasing onto: $BASE_BRANCH"
+```
 
 ## Pre-flight Checks (Abort if any fail)
 
@@ -18,22 +28,19 @@ Rebase the current feature branch onto main and resolve conflicts.
 2. Not already in rebase/merge state
 3. Not on main/master branch
 4. Remote origin exists
+5. `pr_info/` does not exist on the base branch — if it does, abort with error: `"pr_info/ exists on <BASE_BRANCH>. This folder should only exist on feature branches. Check your branch setup."`
 
 ## Workflow
 
 1. `git fetch origin`
-2. `git rebase origin/main`
+2. `git rebase origin/${BASE_BRANCH}`
 3. For each conflict:
-   - Resolve manually, preserving main's improvements
-   - Rework feature branch changes to fit
+   - If file is under `pr_info/`: auto-resolve with `git checkout --theirs <file>` (keep feature branch version), then `git add <file>` — no user input needed
+   - For all other files: resolve manually, preserving main's improvements; rework feature branch changes to fit
    - Verify no conflict markers remain
    - `git add <file>`
    - `git rebase --continue`
-4. Format code:
-   ```bash
-   black src tests
-   isort --profile=black --float-to-top src tests
-   ```
+4. `./tools/format_all.sh`
 5. Run code checks: `mcp__code-checker__run_pytest_check`, `mcp__code-checker__run_pylint_check`, `mcp__code-checker__run_mypy_check`
 6. Fix any issues from merge
 7. Report summary and ask for user confirmation
@@ -43,10 +50,11 @@ Rebase the current feature branch onto main and resolve conflicts.
 
 | File Type | Strategy |
 |-----------|----------|
-| Code files (`.py`) | Keep both sides, merge imports, preserve main's structure |
+| `pr_info/` files | Auto-resolve with `--theirs` (keep feature branch version) |
+| Code files (`.py`, `.js`, etc.) | Keep both sides, merge imports |
 | Test files | Keep all tests from both sides |
-| Config files (`pyproject.toml`) | Merge additively, prefer main for conflicts |
-| Lockfiles | Accept theirs (`--theirs`), notify user |
+| Config files | Merge additively, prefer HEAD for same keys |
+| Lockfiles (`*-lock.json`, `*.lock`) | Accept theirs (`--theirs`), notify user to regenerate after rebase |
 
 ## Abort Rules (in priority order)
 

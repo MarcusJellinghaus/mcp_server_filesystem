@@ -119,17 +119,15 @@ mcp__code-checker__run_pytest_check(extra_args=["-n", "auto"])
 **MANDATORY: Before ANY commit:**
 
 ```bash
-# ALWAYS run formatting before committing
-black src tests
-isort --profile=black --float-to-top src tests
+# ALWAYS run format_all before committing
+./tools/format_all.sh
 
 # Then verify formatting worked
 git diff  # Should show formatting changes if any
 ```
 
 **Format all code before committing:**
-- Run `black src tests` to format code
-- Run `isort --profile=black --float-to-top src tests` to sort imports
+- Run `./tools/format_all.sh` to format with black and isort
 - Review the changes to ensure they're formatting-only
 - Stage the formatted files
 - Then commit
@@ -170,6 +168,13 @@ mcp_server_filesystem/
 - Tests are in `tests/`
 - Python 3.11+ required
 - Uses MCP protocol for server implementation
+
+## 📏 File Size Check
+
+Check for large files (>750 lines) that may impact LLM context:
+```bash
+mcp-coder check file-size --max-lines 750
+```
 
 ## 🎯 Development Guidelines
 

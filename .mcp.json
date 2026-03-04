@@ -28,9 +28,9 @@
         "--log-level",
         "INFO",
         "--reference-project",
-        "p_coder=${USERPROFILE}\\Documents\\GitHub\\mcp_coder",
+        "p_coder=${USERPROFILE}\\Documents\\VSCC\\mcp_coder",
         "--reference-project",
-        "p_checker=${USERPROFILE}\\Documents\\GitHub\\mcp-code-checker"
+        "p_checker=${USERPROFILE}\\Documents\\VSCC\\mcp-code-checker"
       ],
       "env": {
         "PYTHONPATH": "${MCP_CODER_VENV_DIR}\\Lib\\"

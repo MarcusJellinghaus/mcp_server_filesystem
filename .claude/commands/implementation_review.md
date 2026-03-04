@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git fetch:*), Bash(git status:*), Bash(git diff:*), mcp__filesystem__read_file, mcp__filesystem__list_directory
+allowed-tools: Bash(git fetch:*), Bash(git status:*), Bash(git diff:*), Bash(mcp-coder check branch-status:*), Bash(mcp-coder git-tool compact-diff:*), mcp__filesystem__read_file, mcp__filesystem__list_directory
 workflow-stage: code-review
 suggested-next: commit_push
 ---
@@ -10,6 +10,7 @@ suggested-next: commit_push
 ```bash
 git fetch
 git status
+mcp-coder check branch-status --llm-truncate
 ```
 
 Confirm and display the current feature branch name.
@@ -22,7 +23,7 @@ Confirm and display the current feature branch name.
 
 Get the changes to review:
 ```bash
-git diff main...HEAD
+mcp-coder git-tool compact-diff
 ```
 
 No need to run all checks manually - the CLAUDE.md file requires all quality checks to pass after every change.
