@@ -28,7 +28,7 @@
         "--log-level",
         "INFO",
         "--reference-project",
-        "p_coder=${USERPROFILE}\\Documents\\VSCC\\mcp_coder",
+        "p_coder=C:\\Users\\Marcus\\Documents\\GitHub\\mcp_coder",
         "--reference-project",
         "p_checker=${USERPROFILE}\\Documents\\VSCC\\mcp-code-checker"
       ],
