@@ -42,7 +42,7 @@ dev = [
 architecture = [
     "import-linter>=2.0",
     "tach>=0.14.3",
-    "pycycle>=0.0.9",
+    "pycycle>=0.0.8",
     "vulture>=2.11",
 ]
 config = [
