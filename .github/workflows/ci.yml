@@ -1,45 +1,32 @@
-name: Python CI
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: ["*"]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [3.11]
-
+        check:
+          - {name: "black", cmd: "black --check src tests"}
+          - {name: "isort", cmd: "isort --check --profile=black --float-to-top src tests"}
+          - {name: "pylint", cmd: "pylint -E ./src ./tests"}
+          - {name: "pytest", cmd: "pytest -n auto"}
+          - {name: "mypy", cmd: "mypy --strict src tests"}
+    name: ${{ matrix.check.name }}
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install .
-        python -m pip install .[dev]
-        
-    - name: Check formatting with black
-      run: |
-        black --check src tests
-        
-    - name: Check imports with isort
-      run: |
-        isort --check --profile=black --float-to-top src tests
-        
-    - name: Check for errors with pylint
-      run: |
-        pylint -E ./src ./tests
-        
-    - name: Run tests
-      run: |
-        pytest tests
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+      - name: Run ${{ matrix.check.name }}
+        run: ${{ matrix.check.cmd }}

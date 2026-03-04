@@ -24,3 +24,9 @@ venv/
 
 # default log folder used by mcp servers
 /logs/
+
+# MCP configuration files (may contain sensitive paths)
+.mcp.*.json
+
+# VSCode Claude session status
+.vscodeclaude_status.txt

@@ -1,5 +1,12 @@
 #!/bin/bash
-# Format all source code using black and isort
+# Format all Python code with black and isort
+set -e
 
-black src tests
+echo "Running isort..."
 isort --profile=black --float-to-top src tests
+
+echo "Running black..."
+black src tests
+
+echo ""
+echo "✓ Formatting complete!"

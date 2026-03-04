@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__code-checker__run_all_checks",
+      "mcp__code-checker__run_pylint_check",
+      "mcp__code-checker__run_pytest_check",
+      "mcp__code-checker__run_mypy_check",
+      "mcp__filesystem__get_reference_projects",
+      "mcp__filesystem__list_reference_directory",
+      "mcp__filesystem__read_reference_file",
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__read_file",
+      "mcp__filesystem__save_file",
+      "mcp__filesystem__append_file",
+      "mcp__filesystem__delete_this_file",
+      "mcp__filesystem__move_file",
+      "mcp__filesystem__edit_file",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh issue view:*)",
+      "Bash(black:*)",
+      "Bash(isort:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(find:*)",
+      "Bash(git mv:*)",
+      "Skill(commit_push)",
+      "Skill(implementation_review)",
+      "Skill(plan_review)",
+      "Skill(rebase)",
+      "WebFetch(domain:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "code-checker",
+    "filesystem"
+  ]
+}

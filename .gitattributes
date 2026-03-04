@@ -1,2 +1,81 @@
-# Auto detect text files and perform LF normalization
+# =============================================================================
+# Line Ending Configuration
+# =============================================================================
+# This repository uses LF (Unix-style) line endings for all text files.
+# Git will automatically normalize line endings to LF in the repository.
+#
+# Why LF?
+# - Consistency across Windows, Mac, and Linux
+# - Cleaner diffs (no spurious CRLF changes)
+# - Required by most CI/CD systems and containers
+#
+# What this means for you:
+# - Repository: All text files stored with LF
+# - Your working directory: Can use CRLF (Windows) or LF (Mac/Linux)
+# - Git handles the conversion automatically based on your system
+#
+# =============================================================================
+
+# Auto detect text files and normalize line endings to LF in the repo
 * text=auto
+
+# Source code
+*.py text diff=python
+*.pyi text diff=python
+*.pyx text diff=python
+
+# Configuration files
+*.json text
+*.toml text
+*.yaml text
+*.yml text
+*.ini text
+*.cfg text
+
+# Documentation
+*.md text
+*.rst text
+*.txt text
+
+# Shell scripts
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Windows scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Claude Code settings
+# Claude Code may rewrite this file on startup and writes LF on Windows,
+# overriding the CRLF that git would normally check out. Force LF to prevent
+# spurious line-ending-only diffs.
+.claude/settings.local.json text eol=lf
+
+# Git
+.gitattributes text
+.gitignore text
+.gitmodules text
+
+# CI/CD
+.github/**/* text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.gz binary
+*.zip binary
+*.tar binary
+*.pyc binary
+*.pyd binary
+*.so binary
+*.dll binary
+*.exe binary
