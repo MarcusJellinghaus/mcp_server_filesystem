@@ -22,7 +22,6 @@
       "Bash(./tools/format_all.sh:*)",
       "Bash(./tools/lint_imports.sh:*)",
       "Bash(./tools/tach_check.sh:*)",
-      "Bash(start docs/architecture/dependency_graph.html)",
       "Bash(./tools/pycycle_check.sh:*)",
       "Bash(python -m pytest:*)",
       "Bash(./tools/vulture_check.sh:*)",
