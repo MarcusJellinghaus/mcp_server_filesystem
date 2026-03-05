@@ -42,13 +42,13 @@ if "%VIRTUAL_ENV%"=="" (
 echo [OK] Running in virtual environment: %VIRTUAL_ENV%
 echo.
 
-echo [1/5] Uninstalling existing package...
+echo [1/4] Uninstalling existing package...
 uv pip uninstall mcp-server-filesystem 2>nul
 echo [OK] Done
 echo.
 
-echo [2/5] Installing package in development mode...
-uv pip install -e .
+echo [2/4] Installing package with development dependencies...
+uv pip install -e ".[dev]"
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Installation failed!
     echo Please check for errors above and try again.
@@ -58,18 +58,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Package installed successfully
 echo.
 
-echo [3/5] Installing development dependencies...
-uv pip install -e ".[dev]"
-if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Development dependencies installation failed!
-    echo Please check for errors above and try again.
-    pause
-    exit /b 1
-)
-echo [OK] Development dependencies installed successfully
-echo.
-
-echo [4/5] Verifying package import...
+echo [3/4] Verifying package import...
 python -c "import mcp_server_filesystem; print('mcp_server_filesystem imported successfully')"
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Import verification failed!
@@ -80,7 +69,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Package import verified successfully
 echo.
 
-echo [5/5] Verifying CLI entry point...
+echo [4/4] Verifying CLI entry point...
 mcp-server-filesystem --help >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] CLI entry point verification failed!
