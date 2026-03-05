@@ -31,6 +31,19 @@ jobs:
       - name: Run ${{ matrix.check.name }}
         run: ${{ matrix.check.cmd }}
 
+  file-size:
+    runs-on: ubuntu-latest
+    name: file-size
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install mcp-coder
+        run: pip install "mcp-coder @ git+https://github.com/MarcusJellinghaus/mcp_coder.git"
+      - name: Check file sizes
+        run: mcp-coder check file-size --max-lines 750 --allowlist-file .large-files-allowlist
+
   architecture:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
