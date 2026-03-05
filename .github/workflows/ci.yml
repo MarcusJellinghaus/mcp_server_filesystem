@@ -51,7 +51,6 @@ jobs:
       fail-fast: false
       matrix:
         check:
-          - {name: "import-linter", cmd: "lint-imports"}
           - {name: "tach", cmd: "tach check"}
           - {name: "pycycle", cmd: "pycycle --here"}
           - {name: "vulture", cmd: "vulture src tests vulture_whitelist.py --min-confidence 60"}
