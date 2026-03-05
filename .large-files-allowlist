@@ -1,0 +1,14 @@
+# Large Files Allowlist
+# ======================
+# Files in this list are allowed to exceed the maximum line count limit.
+# Format: One file path per line (relative to project root)
+#
+# Guidelines for adding files:
+# - Only add files that MUST be large due to their nature
+# - Add a comment explaining WHY the file needs to be large
+# - Consider refactoring instead of adding to this list
+#
+# Check with: mcp-coder check file-size --max-lines 750
+
+# Example (uncomment if needed):
+# src/mcp_server_filesystem/server.py  # MCP protocol handlers - many tool definitions

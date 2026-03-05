@@ -1,0 +1,67 @@
+---
+allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git fetch:*), Bash(git rebase:*), Bash(git add:*), Bash(git commit:*), Bash(git push --force-with-lease:*), Bash(git diff:*), Bash(git checkout --ours:*), Bash(git checkout --theirs:*), Bash(git rebase --abort:*), Bash(./tools/format_all.sh:*), Bash(mcp-coder gh-tool get-base-branch), mcp__code-checker__run_all_checks, mcp__code-checker__run_pylint_check, mcp__code-checker__run_pytest_check, mcp__code-checker__run_mypy_check, mcp__filesystem__read_file, mcp__filesystem__edit_file
+workflow-stage: utility
+suggested-next: (context-dependent)
+---
+
+# Rebase Branch onto Base Branch
+
+Rebase the current feature branch onto its base branch and resolve conflicts.
+
+**Core philosophy:** Main is the source of truth. The feature branch adapts to main. For source code conflicts, preserve main's improvements and rework the feature branch code to fit.
+
+**Note on `--ours`/`--theirs` during rebase:** `--ours` = main (the branch being rebased onto), `--theirs` = feature branch commits being replayed.
+
+If the rebase becomes complex, suggest switching to cherry-picking as an alternative approach.
+
+## Determine Base Branch
+
+First, detect the correct base branch:
+```bash
+BASE_BRANCH=$(mcp-coder gh-tool get-base-branch)
+echo "Rebasing onto: $BASE_BRANCH"
+```
+
+## Pre-flight Checks (Abort if any fail)
+
+1. Working directory is clean (`git status` shows no uncommitted changes)
+2. Not already in rebase/merge state
+3. Not on main/master branch
+4. Remote origin exists
+5. `pr_info/` does not exist on the base branch — if it does, abort with error: `"pr_info/ exists on <BASE_BRANCH>. This folder should only exist on feature branches. Check your branch setup."`
+
+## Workflow
+
+1. `git fetch origin`
+2. `git rebase origin/${BASE_BRANCH}`
+3. For each conflict:
+   - If file is under `pr_info/`: auto-resolve with `git checkout --theirs <file>` (keep feature branch version), then `git add <file>` — no user input needed
+   - For all other files: resolve manually, preserving main's improvements; rework feature branch changes to fit
+   - Verify no conflict markers remain
+   - `git add <file>`
+   - `git rebase --continue`
+4. `./tools/format_all.sh`
+5. Run code checks: `mcp__code-checker__run_pytest_check`, `mcp__code-checker__run_pylint_check`, `mcp__code-checker__run_mypy_check`
+6. Fix any issues from merge
+7. Report summary and ask for user confirmation
+8. `git push --force-with-lease`
+
+## Conflict Resolution Strategies
+
+| File Type | Strategy |
+|-----------|----------|
+| `pr_info/` files | Auto-resolve with `--theirs` (keep feature branch version) |
+| Code files (`.py`, `.js`, etc.) | Keep both sides, merge imports |
+| Test files | Keep all tests from both sides |
+| Config files | Merge additively, prefer HEAD for same keys |
+| Lockfiles (`*-lock.json`, `*.lock`) | Accept theirs (`--theirs`), notify user to regenerate after rebase |
+
+## Abort Rules (in priority order)
+
+1. Any unexpected error - abort, report full error
+2. Binary file conflict - abort, cannot auto-resolve
+3. Conflict markers remain after resolution - abort
+4. Same file conflicts 3+ times - abort
+5. Code quality fails after 2 fix attempts - abort
+
+On abort: run `git rebase --abort`, report which rule triggered, suggest next steps.

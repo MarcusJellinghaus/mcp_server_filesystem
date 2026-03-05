@@ -1,0 +1,51 @@
+@echo off
+REM Run all code quality and architecture checks
+
+echo ========================================
+echo Running All Code Quality Checks
+echo ========================================
+echo.
+
+echo [1/7] Running black...
+call tools\format_all.bat
+if %errorlevel% neq 0 exit /b 1
+echo.
+
+echo [2/7] Running pylint...
+call tools\pylint_check.bat
+if %errorlevel% neq 0 exit /b 1
+echo.
+
+echo [3/7] Running mypy...
+call tools\mypy_check.bat
+if %errorlevel% neq 0 exit /b 1
+echo.
+
+echo [4/7] Running pytest...
+call tools\pytest_check.bat
+if %errorlevel% neq 0 exit /b 1
+echo.
+
+echo ========================================
+echo Running Architecture Checks
+echo ========================================
+echo.
+
+echo [5/7] Running import-linter...
+call tools\lint_imports.bat
+if %errorlevel% neq 0 exit /b 1
+echo.
+
+echo [6/7] Running tach...
+call tools\tach_check.bat
+if %errorlevel% neq 0 exit /b 1
+echo.
+
+echo [7/7] Running pycycle...
+call tools\pycycle_check.bat
+if %errorlevel% neq 0 exit /b 1
+echo.
+
+echo ========================================
+echo ✓ ALL CHECKS PASSED!
+echo ========================================

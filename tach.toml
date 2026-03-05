@@ -1,0 +1,86 @@
+# =============================================================================
+# Tach Configuration - Architectural Boundary Enforcement
+# =============================================================================
+# Enforces clean architecture for MCP server filesystem.
+# Run with: tach check (or tools/tach_check.bat)
+# =============================================================================
+
+exclude = ["**/__pycache__", "build/", "dist/", ".venv/", "*.egg-info/"]
+source_roots = ["src", "."]
+exact = false
+forbid_circular_dependencies = true
+ignore_type_checking_imports = true
+
+# =============================================================================
+# Architectural Layers (top to bottom)
+# =============================================================================
+# entry       - Application entry point (main.py)
+# protocol    - MCP protocol implementation (server.py)
+# tools       - File operation tools
+# utilities   - Shared utilities (logging)
+# =============================================================================
+
+layers = [
+    "entry",
+    "protocol",
+    "tools",
+    "utilities"
+]
+
+# =============================================================================
+# Entry Layer - Application Entry Point
+# =============================================================================
+
+[[modules]]
+path = "mcp_server_filesystem.main"
+layer = "entry"
+depends_on = [
+    { path = "mcp_server_filesystem.server" },
+    { path = "mcp_server_filesystem.log_utils" },
+]
+
+# =============================================================================
+# Protocol Layer - MCP Server Implementation
+# =============================================================================
+
+[[modules]]
+path = "mcp_server_filesystem.server"
+layer = "protocol"
+depends_on = [
+    { path = "mcp_server_filesystem.file_tools" },
+    { path = "mcp_server_filesystem.log_utils" },
+]
+
+# =============================================================================
+# Tools Layer - File Operations
+# =============================================================================
+
+[[modules]]
+path = "mcp_server_filesystem.file_tools"
+layer = "tools"
+depends_on = [
+    { path = "mcp_server_filesystem.log_utils" },
+]
+
+# =============================================================================
+# Utilities Layer - Shared Utilities
+# =============================================================================
+
+[[modules]]
+path = "mcp_server_filesystem.log_utils"
+layer = "utilities"
+depends_on = []
+
+# =============================================================================
+# Test Modules
+# =============================================================================
+
+[[modules]]
+path = "tests"
+depends_on = [
+    { path = "mcp_server_filesystem" },
+    { path = "mcp_server_filesystem.main" },
+    { path = "mcp_server_filesystem.server" },
+    { path = "mcp_server_filesystem.file_tools" },
+    { path = "mcp_server_filesystem.log_utils" },
+]

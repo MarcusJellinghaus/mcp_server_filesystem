@@ -9,9 +9,10 @@ from typing import Dict, List
 
 import structlog
 
+from mcp_server_filesystem import __version__
+
 # Import logging utilities
 from mcp_server_filesystem.log_utils import setup_logging
-from mcp_server_filesystem import __version__
 
 # Create loggers
 stdlogger = logging.getLogger(__name__)
