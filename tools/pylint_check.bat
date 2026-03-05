@@ -2,7 +2,7 @@
 REM Run pylint error check
 
 echo Running pylint (errors only)...
-pylint -E ./src ./tests
+pylint ./src ./tests
 
 if %errorlevel% neq 0 (
     echo.
