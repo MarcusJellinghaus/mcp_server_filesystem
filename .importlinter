@@ -62,7 +62,6 @@ source_modules =
 forbidden_modules =
     mcp
 ignore_imports =
-    mcp_server_filesystem.main -> mcp
     mcp_server_filesystem.server -> mcp
 
 # -----------------------------------------------------------------------------

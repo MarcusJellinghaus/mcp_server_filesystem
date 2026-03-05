@@ -97,7 +97,6 @@ def edit_file(
     # Apply edits sequentially
     current_content = original_content
     match_results = []
-    edits_applied = 0
     edits_failed = 0
 
     for i, edit in enumerate(edits):
@@ -142,7 +141,6 @@ def edit_file(
                 match_result["indentation_applied"] = indentation_info
 
             match_results.append(match_result)
-            edits_applied += 1
         else:
             # Check if edit is already applied using contextual verification
             if preserve_indentation:

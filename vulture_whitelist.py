@@ -48,6 +48,9 @@ _.__version__
 _.temp_dir
 _.temp_git_repo
 _.sample_file
+_.setup_and_cleanup
+_.setup_test_file
+_.setup_server
 
 # =============================================================================
 # Protocol-Required Attributes
