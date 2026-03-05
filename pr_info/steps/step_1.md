@@ -54,7 +54,7 @@ No additional imports required — `edit_file` is the only function under test.
 1. Create a TemporaryDirectory; write a JSON file containing a
    Windows path stored with double backslashes on disk, e.g.:
        {"path": "C:\\Users\\test\\file.json"}
-   (Python raw string: '{"path": "C:\\\\Users\\\\test\\\\file.json"}')
+   (Python string literal: '{"path": "C:\\\\Users\\\\test\\\\file.json"}')
 
 2. Call edit_file() with old_text using SINGLE backslashes
    (simulating the LLM's decoded understanding):
