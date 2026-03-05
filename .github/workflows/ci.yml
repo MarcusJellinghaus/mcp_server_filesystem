@@ -16,7 +16,7 @@ jobs:
         check:
           - {name: "black", cmd: "black --check src tests"}
           - {name: "isort", cmd: "isort --check --profile=black --float-to-top src tests"}
-          - {name: "pylint", cmd: "pylint -E ./src ./tests"}
+          - {name: "pylint", cmd: "pylint ./src ./tests"}
           - {name: "pytest", cmd: "pytest -n auto"}
           - {name: "mypy", cmd: "mypy --strict src tests"}
     name: ${{ matrix.check.name }}

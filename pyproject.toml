@@ -88,10 +88,12 @@ line_length = 88
 float_to_top = true
 
 [tool.pylint.messages_control]
+# W, C, R categories disabled - only errors (E) and fatals (F) are checked
+# Previously disabled individually (now covered by W category above):
 # W1203: Disable lazy % formatting - project prefers f-strings for readability
 # W0621: Disable redefined-outer-name - pytest fixtures standard pattern
-disable = ["W1203", "W0621"]
 # R0401: Enable cyclic-import detection (not enabled by default as it's in refactor category)
+disable = ["W", "C", "R"]
 enable = ["R0401"]
 
 [tool.mypy]

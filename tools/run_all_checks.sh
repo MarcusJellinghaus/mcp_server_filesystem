@@ -12,7 +12,7 @@ echo "[1/7] Running black and isort..."
 echo ""
 
 echo "[2/7] Running pylint..."
-pylint -E ./src ./tests
+pylint ./src ./tests
 echo ""
 
 echo "[3/7] Running mypy..."
