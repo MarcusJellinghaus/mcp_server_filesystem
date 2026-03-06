@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import structlog
 from mcp.server.fastmcp import FastMCP
 
 # Import utility functions from the main package
@@ -18,7 +17,6 @@ from mcp_server_filesystem.log_utils import log_function_call
 
 # Initialize loggers
 logger = logging.getLogger(__name__)
-structured_logger = structlog.get_logger(__name__)
 
 # Create a FastMCP server instance
 mcp = FastMCP("File System Service")
@@ -40,7 +38,6 @@ def set_project_dir(directory: Path) -> None:
     global _project_dir  # pylint: disable=global-statement
     _project_dir = Path(directory)
     logger.info("Project directory set to: %s", _project_dir)
-    structured_logger.info("Project directory set", project_dir=str(_project_dir))
 
 
 @log_function_call
@@ -58,11 +55,6 @@ def set_reference_projects(reference_projects: Dict[str, Path]) -> None:
     # Log each reference project
     for project_name, project_path in reference_projects.items():
         logger.info("Reference project '%s' set to: %s", project_name, project_path)
-        structured_logger.info(
-            "Reference project set",
-            project_name=project_name,
-            project_path=str(project_path),
-        )
 
 
 @mcp.tool()
@@ -479,9 +471,6 @@ def run_server(
         reference_projects: Optional dictionary mapping project names to directory paths
     """
     logger.debug("Entering run_server function")
-    structured_logger.debug(
-        "Entering run_server function", project_dir=str(project_dir)
-    )
 
     # Set the project directory
     set_project_dir(project_dir)
@@ -492,9 +481,7 @@ def run_server(
 
     # Run the server
     logger.info("Starting MCP server")
-    structured_logger.info("Starting MCP server")
     logger.debug("About to call mcp.run()")
-    structured_logger.debug("About to call mcp.run()", project_dir=str(project_dir))
     mcp.run()
     logger.debug(
         "After mcp.run() call - this line will only execute if mcp.run() returns"

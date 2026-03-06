@@ -7,9 +7,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from git import Repo
-from git.exc import GitCommandError
-
+from mcp_server_filesystem.file_tools.git_operations import git_move as git_move_impl
 from mcp_server_filesystem.file_tools.git_operations import (
     is_file_tracked,
     is_git_repository,
@@ -409,10 +407,14 @@ def _determine_move_method(src_abs: Path, project_dir: Path) -> bool:
         return True
 
 
-def _execute_git_move(src_rel: str, dest_rel: str, project_dir: Path) -> Dict[str, Any]:
+def _execute_git_move(
+    src_abs: Path, dest_abs: Path, src_rel: str, dest_rel: str, project_dir: Path
+) -> Dict[str, Any]:
     """Execute move using git mv.
 
     Args:
+        src_abs: Absolute source path
+        dest_abs: Absolute destination path
         src_rel: Relative source path
         dest_rel: Relative destination path
         project_dir: Project directory path
@@ -421,19 +423,12 @@ def _execute_git_move(src_rel: str, dest_rel: str, project_dir: Path) -> Dict[st
         Dict with move result
 
     Raises:
-        GitCommandError: If git move fails
+        Exception: If git move fails
     """
     logger.info("Attempting git move: %s -> %s", src_rel, dest_rel)
     logger.debug("Moving %s to %s using git mv", src_rel, dest_rel)
 
-    repo = Repo(project_dir, search_parent_directories=False)
-
-    # Convert paths to posix format for git (even on Windows)
-    git_src = src_rel.replace("\\", "/")
-    git_dest = dest_rel.replace("\\", "/")
-
-    # Execute git mv
-    repo.git.mv(git_src, git_dest)
+    git_move_impl(src_abs, dest_abs, project_dir)
 
     logger.info("Successfully moved using git: %s -> %s", src_rel, dest_rel)
 
@@ -530,8 +525,8 @@ def move_file(
     # Try git move if applicable
     if should_use_git:
         try:
-            return _execute_git_move(src_rel, dest_rel, project_dir)
-        except (GitCommandError, Exception) as e:
+            return _execute_git_move(src_abs, dest_abs, src_rel, dest_rel, project_dir)
+        except Exception as e:
             logger.warning(
                 "Git move failed for %s, falling back to filesystem: %s", src_rel, e
             )

@@ -74,12 +74,11 @@ class TestGitMoveIntegration:
         repo.index.add([str(tracked_file)])
         repo.index.commit("Initial commit")
 
-        # Mock the Repo class to return a repo with failing git.mv
-        with patch("mcp_server_filesystem.file_tools.file_operations.Repo") as MockRepo:
-            mock_repo = Mock()
-            mock_repo.git.mv.side_effect = GitCommandError("git mv", 128)
-            MockRepo.return_value = mock_repo
-
+        # Mock git_move_impl to simulate a git mv failure
+        with patch(
+            "mcp_server_filesystem.file_tools.file_operations.git_move_impl",
+            side_effect=GitCommandError("git mv", 128),
+        ):
             result = move_file("tracked.txt", "moved.txt", project_dir=tmp_path)
 
             # Should fall back to filesystem
