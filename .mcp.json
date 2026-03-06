@@ -2,7 +2,7 @@
   "mcpServers": {
     "code-checker": {
       "type": "stdio",
-      "command": "${MCP_CODER_VENV_DIR}\\Scripts\\mcp-code-checker.exe",
+      "command": "${VIRTUAL_ENV}\\Scripts\\mcp-code-checker.exe",
       "args": [
         "--project-dir",
         "${MCP_CODER_PROJECT_DIR}",
@@ -21,7 +21,7 @@
     },
     "filesystem": {
       "type": "stdio",
-      "command": "${MCP_CODER_VENV_DIR}\\Scripts\\mcp-server-filesystem.exe",
+      "command": "${VIRTUAL_ENV}\\Scripts\\mcp-server-filesystem.exe",
       "args": [
         "--project-dir",
         "${MCP_CODER_PROJECT_DIR}",
