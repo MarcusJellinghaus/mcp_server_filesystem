@@ -106,7 +106,7 @@ jobs:
           - {name: "pylint", cmd: "pylint --version && pylint ./src ./tests"}
           - {name: "pytest", cmd: "pytest --version && pytest -n auto"}
           - {name: "mypy", cmd: "mypy --version && mypy --strict src tests"}
-          - {name: "file-size", cmd: "mcp-coder check file-size --max-lines 750 --allowlist-file .large-files-allowlist"}
+
     name: ${{ matrix.check.name }}
     steps:
       - uses: actions/checkout@v4
@@ -130,6 +130,18 @@ jobs:
 
       - name: Run ${{ matrix.check.name }}
         run: ${{ matrix.check.cmd }}
+
+  file-size:
+    runs-on: ubuntu-latest
+    name: file-size
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Check file sizes
+        run: uvx --from "git+https://github.com/MarcusJellinghaus/mcp_coder.git" mcp-coder check file-size --max-lines 750 --allowlist-file .large-files-allowlist
 
   architecture:
     runs-on: ubuntu-latest
