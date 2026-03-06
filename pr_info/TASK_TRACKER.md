@@ -21,7 +21,7 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-- [ ] [Step 1 — Write the failing test](./steps/step_1.md)
+- [x] [Step 1 — Write the failing test](./steps/step_1.md)
 - [ ] [Step 2 — Implement the backslash hint](./steps/step_2.md)
 
 ## Pull Request
