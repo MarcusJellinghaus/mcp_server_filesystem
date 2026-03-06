@@ -7,8 +7,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
-import structlog
-
 from mcp_server_filesystem import __version__
 
 # Import logging utilities
@@ -16,7 +14,6 @@ from mcp_server_filesystem.log_utils import setup_logging
 
 # Create loggers
 stdlogger = logging.getLogger(__name__)
-structured_logger = structlog.get_logger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
@@ -81,10 +78,9 @@ def validate_reference_projects(reference_args: List[str]) -> Dict[str, Path]:
     for arg in reference_args:
         # Split on first '=' only
         if "=" not in arg:
-            structured_logger.warning(
-                "Invalid reference project format (missing '=')",
-                argument=arg,
-                expected_format="name=/path/to/dir",
+            stdlogger.warning(
+                "Invalid reference project format (missing '='): argument=%s, expected_format=name=/path/to/dir",
+                arg,
             )
             continue
 
@@ -92,10 +88,9 @@ def validate_reference_projects(reference_args: List[str]) -> Dict[str, Path]:
 
         # Validate name is not empty
         if not name:
-            structured_logger.warning(
-                "Invalid reference project format (empty name)",
-                argument=arg,
-                expected_format="name=/path/to/dir",
+            stdlogger.warning(
+                "Invalid reference project format (empty name): argument=%s, expected_format=name=/path/to/dir",
+                arg,
             )
             continue
 
@@ -104,18 +99,18 @@ def validate_reference_projects(reference_args: List[str]) -> Dict[str, Path]:
 
         # Validate path exists and is directory
         if not project_path.exists():
-            structured_logger.warning(
-                "Reference project path does not exist",
-                name=name,
-                path=str(project_path),
+            stdlogger.warning(
+                "Reference project path does not exist: name=%s, path=%s",
+                name,
+                str(project_path),
             )
             continue
 
         if not project_path.is_dir():
-            structured_logger.warning(
-                "Reference project path is not a directory",
-                name=name,
-                path=str(project_path),
+            stdlogger.warning(
+                "Reference project path is not a directory: name=%s, path=%s",
+                name,
+                str(project_path),
             )
             continue
 
@@ -165,9 +160,6 @@ def main() -> None:
 
     # Add debug logging after logger is initialized
     stdlogger.debug("Logger initialized in main")
-    structured_logger.debug(
-        "Structured logger initialized in main", log_level=args.log_level
-    )
 
     # Parse reference projects
     reference_projects = {}
@@ -177,14 +169,12 @@ def main() -> None:
     # Import here to avoid circular imports (after logging is configured)
     from mcp_server_filesystem.server import run_server
 
-    stdlogger.info("Starting MCP server with project directory: %s", project_dir)
-    if log_file:
-        structured_logger.info(
-            "Starting MCP server",
-            project_dir=str(project_dir),
-            log_level=args.log_level,
-            log_file=log_file,
-        )
+    stdlogger.info(
+        "Starting MCP server: project_dir=%s, log_level=%s, log_file=%s",
+        project_dir,
+        args.log_level,
+        log_file,
+    )
 
     # Run the server with the project directory and reference projects
     run_server(project_dir, reference_projects=reference_projects)
