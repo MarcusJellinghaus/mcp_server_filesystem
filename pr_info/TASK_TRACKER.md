@@ -22,6 +22,6 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 - [x] [Step 1 — Remove `structlog` from `main.py`](./steps/step_1.md)
-- [ ] [Step 2 — Fix `.importlinter`](./steps/step_2.md)
+- [x] [Step 2 — Fix `.importlinter`](./steps/step_2.md)
 
 ## Pull Request
