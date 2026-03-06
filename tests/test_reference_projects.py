@@ -73,7 +73,7 @@ class TestReferenceProjectCLI:
         }
         assert result == expected
 
-    @patch("mcp_server_filesystem.main.structured_logger")
+    @patch("mcp_server_filesystem.main.stdlogger")
     @patch("mcp_server_filesystem.main.Path.exists")
     def test_invalid_format_warnings(
         self, mock_exists: MagicMock, mock_logger: MagicMock
@@ -114,7 +114,7 @@ class TestReferenceProjectCLI:
         assert "proj" in result
         assert result["proj"].is_absolute()
 
-    @patch("mcp_server_filesystem.main.structured_logger")
+    @patch("mcp_server_filesystem.main.stdlogger")
     @patch("mcp_server_filesystem.main.Path.exists")
     def test_nonexistent_path_warning(
         self, mock_exists: MagicMock, mock_logger: MagicMock
@@ -466,7 +466,7 @@ class TestReferenceProjectServerStorage:
 
         # Test empty name gets rejected
         reference_args = ["=/path/to/proj"]
-        with patch("mcp_server_filesystem.main.structured_logger") as mock_logger:
+        with patch("mcp_server_filesystem.main.stdlogger") as mock_logger:
             result = validate_reference_projects(reference_args)
 
             # Should log warning for empty name

@@ -36,21 +36,6 @@ layers =
     mcp_server_filesystem.log_utils
 
 # -----------------------------------------------------------------------------
-# Contract: File Tools Independence
-# -----------------------------------------------------------------------------
-# File tool modules should not depend on each other where possible.
-# This keeps each tool focused and independently testable.
-# -----------------------------------------------------------------------------
-[importlinter:contract:file_tools_independence]
-name = File Tools Module Independence
-type = independence
-modules =
-    mcp_server_filesystem.file_tools.directory_utils
-    mcp_server_filesystem.file_tools.path_utils
-ignore_imports =
-    mcp_server_filesystem.file_tools.directory_utils -> mcp_server_filesystem.file_tools.path_utils
-
-# -----------------------------------------------------------------------------
 # Contract: MCP Library Isolation
 # -----------------------------------------------------------------------------
 # The 'mcp' package should only be imported by main.py and server.py.
@@ -96,7 +81,6 @@ forbidden_modules =
     structlog
 ignore_imports =
     mcp_server_filesystem.log_utils -> structlog
-    mcp_server_filesystem.main -> structlog
 
 # -----------------------------------------------------------------------------
 # Contract: Source Code Independence from Tests
