@@ -23,6 +23,5 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 - [ ] [Step 1 — Remove `structlog` from `main.py`](./steps/step_1.md)
 - [ ] [Step 2 — Fix `.importlinter`](./steps/step_2.md)
-- [ ] [Step 3 — Re-enable `import-linter` in CI and verify](./steps/step_3.md)
 
 ## Pull Request

@@ -63,7 +63,8 @@ None.
 |------|------|------|
 | [Step 1](step_1.md) | `main.py` | Remove structlog; replace 6 calls with stdlogger |
 | [Step 2](step_2.md) | `.importlinter` | Remove broken contract + unneeded exemption |
-| [Step 3](step_3.md) | `ci.yml` | Re-add import-linter; verify locally |
+
+> **Note:** `import-linter` was already re-added to the CI architecture matrix in commit `563934e`. No `ci.yml` change needed — run `lint-imports` locally after Step 2 to verify.
 
 ## TDD Note
 
