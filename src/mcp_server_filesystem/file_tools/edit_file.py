@@ -163,12 +163,20 @@ def edit_file(
                     }
                 )
             else:
+                # LLM/raw-bytes semantic gap: read_file returns raw bytes (e.g. \\ for
+                # JSON-escaped Windows paths), but an LLM may decode \\ to \ and pass
+                # single backslashes in old_text — causing an exact-match failure.
+                doubled = old_text.replace("\\", "\\\\")
+                if doubled != old_text and doubled in current_content:
+                    details = (
+                        f"Text not found: {_truncate(old_text)}\n"
+                        "Hint: file may store backslashes as `\\\\` (double backslashes)"
+                        " — use double backslashes in both `old_text` and `new_text`."
+                    )
+                else:
+                    details = f"Text not found: {_truncate(old_text)}"
                 match_results.append(
-                    {
-                        "edit_index": i,
-                        "match_type": "failed",
-                        "details": f"Text not found: {_truncate(old_text)}",
-                    }
+                    {"edit_index": i, "match_type": "failed", "details": details}
                 )
                 edits_failed += 1
 
