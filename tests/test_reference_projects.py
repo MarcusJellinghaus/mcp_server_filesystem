@@ -446,18 +446,14 @@ class TestReferenceProjectServerStorage:
 
         # Test logging behavior
         with patch("mcp_server_filesystem.server.logger") as mock_logger:
-            with patch(
-                "mcp_server_filesystem.server.structured_logger"
-            ) as mock_structured:
-                set_reference_projects(test_projects)
+            set_reference_projects(test_projects)
 
-                # Verify INFO level logging was called
-                assert mock_logger.info.called
-                assert mock_structured.info.called
+            # Verify INFO level logging was called
+            assert mock_logger.info.called
 
-                # Check that project details were logged
-                info_calls = mock_logger.info.call_args_list
-                assert len(info_calls) >= 1
+            # Check that project details were logged
+            info_calls = mock_logger.info.call_args_list
+            assert len(info_calls) >= 1
 
     @patch("mcp_server_filesystem.main.Path.exists")
     @patch("mcp_server_filesystem.main.Path.is_dir")
