@@ -169,7 +169,7 @@ def main() -> None:
     # Import here to avoid circular imports (after logging is configured)
     from mcp_server_filesystem.server import run_server
 
-    stdlogger.info(
+    stdlogger.debug(
         "Starting MCP server: project_dir=%s, log_level=%s, log_file=%s",
         project_dir,
         args.log_level,
