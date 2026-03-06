@@ -163,8 +163,8 @@ def edit_file(
                     }
                 )
             else:
-                # LLM/raw-bytes semantic gap: read_file returns raw bytes (e.g. \\\ for
-                # JSON-escaped Windows paths), but an LLM may decode \\\ to \ and pass
+                # LLM/raw-bytes semantic gap: read_file returns raw bytes (e.g. \\ for
+                # JSON-escaped Windows paths), but an LLM may decode \\ to \ and pass
                 # single backslashes in old_text — causing an exact-match failure.
                 doubled = old_text.replace("\\", "\\\\")
                 if doubled != old_text and doubled in current_content:
