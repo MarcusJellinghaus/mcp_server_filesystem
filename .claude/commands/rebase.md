@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git fetch:*), Bash(git rebase:*), Bash(git add:*), Bash(git commit:*), Bash(git push --force-with-lease:*), Bash(git diff:*), Bash(git checkout --ours:*), Bash(git checkout --theirs:*), Bash(git rebase --abort:*), Bash(./tools/format_all.sh:*), Bash(mcp-coder gh-tool get-base-branch), mcp__code-checker__run_all_checks, mcp__code-checker__run_pylint_check, mcp__code-checker__run_pytest_check, mcp__code-checker__run_mypy_check, mcp__filesystem__read_file, mcp__filesystem__edit_file
+allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git fetch:*), Bash(git rebase:*), Bash(git add:*), Bash(git commit:*), Bash(git push --force-with-lease:*), Bash(git diff:*), Bash(git checkout --ours:*), Bash(git checkout --theirs:*), Bash(git rebase --abort:*), Bash(./tools/format_all.sh:*), Bash(mcp-coder gh-tool get-base-branch), mcp__code-checker__run_pylint_check, mcp__code-checker__run_pytest_check, mcp__code-checker__run_mypy_check, mcp__filesystem__read_file, mcp__filesystem__edit_file
 workflow-stage: utility
 suggested-next: (context-dependent)
 ---
