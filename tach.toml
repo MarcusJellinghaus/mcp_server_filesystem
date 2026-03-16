@@ -1,7 +1,7 @@
 # =============================================================================
 # Tach Configuration - Architectural Boundary Enforcement
 # =============================================================================
-# Enforces clean architecture for MCP server filesystem.
+# Enforces clean architecture for MCP workspace.
 # Run with: tach check (or tools/tach_check.bat)
 # =============================================================================
 

@@ -3,7 +3,7 @@ REM Reinstall mcp-workspace package in development mode
 REM This script uninstalls and reinstalls the package to ensure clean installation
 
 echo =============================================
-echo MCP-Server-Filesystem Package Reinstallation
+echo mcp-workspace Package Reinstallation
 echo =============================================
 echo.
 
