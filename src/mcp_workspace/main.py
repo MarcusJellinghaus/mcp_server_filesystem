@@ -49,7 +49,7 @@ def parse_args() -> argparse.Namespace:
         "--log-file",
         type=str,
         default=None,
-        help="Path for structured JSON logs (default: mcp_filesystem_server_{timestamp}.log in project_dir/logs/).",
+        help="Path for structured JSON logs (default: mcp_workspace_{timestamp}.log in project_dir/logs/).",
     )
     parser.add_argument(
         "--console-only",
@@ -153,7 +153,7 @@ def main() -> None:
         # Create default log file in project_dir/logs/ with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         logs_dir = project_dir / "logs"
-        log_file = str(logs_dir / f"mcp_filesystem_server_{timestamp}.log")
+        log_file = str(logs_dir / f"mcp_workspace_{timestamp}.log")
 
     # Configure logging now that we have the project directory
     setup_logging(args.log_level, log_file)

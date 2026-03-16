@@ -99,7 +99,7 @@ The project uses:
 3. **Missing dependencies**: Run `pip install -e ".[dev]"` to ensure dev dependencies are installed
 
 ### Development Logs
-- Server logs are written to `project_dir/logs/mcp_filesystem_server_*.log`
+- Server logs are written to `project_dir/logs/mcp_workspace_*.log`
 - Use `--log-level DEBUG` for detailed development logging
 - Check console output for immediate feedback
 
