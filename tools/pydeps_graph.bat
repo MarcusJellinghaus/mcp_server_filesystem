@@ -23,11 +23,11 @@ if not exist "docs\architecture" mkdir "docs\architecture"
 
 REM Always generate DOT file (no GraphViz needed)
 echo Creating DOT file...
-pydeps src/mcp_server_filesystem --max-bacon 2 --cluster --rankdir TB --no-output --show-dot > docs/architecture/pydeps_graph.dot 2>&1
+pydeps src/mcp_workspace --max-bacon 2 --cluster --rankdir TB --no-output --show-dot > docs/architecture/pydeps_graph.dot 2>&1
 
 REM Try to generate SVG (requires GraphViz)
 echo Creating SVG file (requires GraphViz)...
-pydeps src/mcp_server_filesystem --max-bacon 2 --cluster --rankdir TB --noshow -x "tests.*" -o docs/architecture/pydeps_graph.svg 2>nul
+pydeps src/mcp_workspace --max-bacon 2 --cluster --rankdir TB --noshow -x "tests.*" -o docs/architecture/pydeps_graph.svg 2>nul
 
 if %ERRORLEVEL% EQU 0 (
     echo.

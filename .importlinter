@@ -7,7 +7,7 @@
 
 [importlinter]
 root_packages =
-    mcp_server_filesystem
+    mcp_workspace
     tests
 root_package_paths =
     src
@@ -30,10 +30,10 @@ include_external_packages = True
 name = Layered Architecture
 type = layers
 layers =
-    mcp_server_filesystem.main
-    mcp_server_filesystem.server
-    mcp_server_filesystem.file_tools
-    mcp_server_filesystem.log_utils
+    mcp_workspace.main
+    mcp_workspace.server
+    mcp_workspace.file_tools
+    mcp_workspace.log_utils
 
 # -----------------------------------------------------------------------------
 # Contract: MCP Library Isolation
@@ -45,11 +45,11 @@ layers =
 name = MCP Library Isolation
 type = forbidden
 source_modules =
-    mcp_server_filesystem
+    mcp_workspace
 forbidden_modules =
     mcp
 ignore_imports =
-    mcp_server_filesystem.server -> mcp
+    mcp_workspace.server -> mcp
 
 # -----------------------------------------------------------------------------
 # Contract: GitPython Library Isolation
@@ -60,11 +60,11 @@ ignore_imports =
 name = GitPython Library Isolation
 type = forbidden
 source_modules =
-    mcp_server_filesystem
+    mcp_workspace
 forbidden_modules =
     git
 ignore_imports =
-    mcp_server_filesystem.file_tools.git_operations -> git
+    mcp_workspace.file_tools.git_operations -> git
 
 # -----------------------------------------------------------------------------
 # Contract: Structlog Library Isolation
@@ -76,11 +76,11 @@ ignore_imports =
 name = Structlog Library Isolation
 type = forbidden
 source_modules =
-    mcp_server_filesystem
+    mcp_workspace
 forbidden_modules =
     structlog
 ignore_imports =
-    mcp_server_filesystem.log_utils -> structlog
+    mcp_workspace.log_utils -> structlog
 
 # -----------------------------------------------------------------------------
 # Contract: Source Code Independence from Tests
@@ -91,6 +91,6 @@ ignore_imports =
 name = Source Code Independence from Tests
 type = forbidden
 source_modules =
-    mcp_server_filesystem
+    mcp_workspace
 forbidden_modules =
     tests

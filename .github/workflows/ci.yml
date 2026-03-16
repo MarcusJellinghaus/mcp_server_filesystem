@@ -142,7 +142,7 @@ jobs:
 
       - name: Check file sizes
         # mcp-coder is run via uvx in an isolated environment to avoid circular
-        # dependencies (mcp_coder project references mcp_server_filesystem)
+        # dependencies (mcp_coder project references mcp_workspace)
         run: uvx --from "git+https://github.com/MarcusJellinghaus/mcp_coder.git" mcp-coder check file-size --max-lines 750 --allowlist-file .large-files-allowlist
 
   architecture:

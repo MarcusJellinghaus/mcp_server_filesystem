@@ -265,10 +265,10 @@ def main() -> int:
 
     print("  - Generating dependency reports...")
     modules = [
-        "src/mcp_server_filesystem/main.py",
-        "src/mcp_server_filesystem/server.py",
-        "src/mcp_server_filesystem/file_tools",
-        "src/mcp_server_filesystem/log_utils.py",
+        "src/mcp_workspace/main.py",
+        "src/mcp_workspace/server.py",
+        "src/mcp_workspace/file_tools",
+        "src/mcp_workspace/log_utils.py",
     ]
 
     reports = {}

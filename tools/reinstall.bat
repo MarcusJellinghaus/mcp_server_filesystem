@@ -1,5 +1,5 @@
 @echo off
-REM Reinstall mcp-server-filesystem package in development mode
+REM Reinstall mcp-workspace package in development mode
 REM This script uninstalls and reinstalls the package to ensure clean installation
 
 echo =============================================
@@ -43,7 +43,7 @@ echo [OK] Running in virtual environment: %VIRTUAL_ENV%
 echo.
 
 echo [1/4] Uninstalling existing package...
-uv pip uninstall mcp-server-filesystem 2>nul
+uv pip uninstall mcp-workspace 2>nul
 echo [OK] Done
 echo.
 
@@ -59,10 +59,10 @@ echo [OK] Package installed successfully
 echo.
 
 echo [3/4] Verifying package import...
-python -c "import mcp_server_filesystem; print('mcp_server_filesystem imported successfully')"
+python -c "import mcp_workspace; print('mcp_workspace imported successfully')"
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Import verification failed!
-    echo The mcp_server_filesystem package is not working properly.
+    echo The mcp_workspace package is not working properly.
     pause
     exit /b 1
 )
@@ -70,10 +70,10 @@ echo [OK] Package import verified successfully
 echo.
 
 echo [4/4] Verifying CLI entry point...
-mcp-server-filesystem --help >nul 2>&1
+mcp-workspace --help >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] CLI entry point verification failed!
-    echo The mcp-server-filesystem command is not working properly.
+    echo The mcp-workspace command is not working properly.
     pause
     exit /b 1
 )
@@ -82,5 +82,5 @@ echo.
 
 echo =============================================
 echo Reinstallation completed successfully!
-echo You can now use the mcp_server_filesystem module
+echo You can now use the mcp_workspace module
 echo =============================================

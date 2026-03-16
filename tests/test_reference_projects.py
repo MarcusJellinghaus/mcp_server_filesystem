@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mcp_server_filesystem.main import parse_args, validate_reference_projects
+from mcp_workspace.main import parse_args, validate_reference_projects
 
 
 class TestReferenceProjectCLI:
@@ -48,8 +48,8 @@ class TestReferenceProjectCLI:
                 "proj2=/path/to/proj2",
             ]
 
-    @patch("mcp_server_filesystem.main.Path.exists")
-    @patch("mcp_server_filesystem.main.Path.is_dir")
+    @patch("mcp_workspace.main.Path.exists")
+    @patch("mcp_workspace.main.Path.is_dir")
     def test_auto_rename_duplicates(
         self, mock_is_dir: MagicMock, mock_exists: MagicMock
     ) -> None:
@@ -73,8 +73,8 @@ class TestReferenceProjectCLI:
         }
         assert result == expected
 
-    @patch("mcp_server_filesystem.main.stdlogger")
-    @patch("mcp_server_filesystem.main.Path.exists")
+    @patch("mcp_workspace.main.stdlogger")
+    @patch("mcp_workspace.main.Path.exists")
     def test_invalid_format_warnings(
         self, mock_exists: MagicMock, mock_logger: MagicMock
     ) -> None:
@@ -96,8 +96,8 @@ class TestReferenceProjectCLI:
         )
         assert found_invalid_format
 
-    @patch("mcp_server_filesystem.main.Path.exists")
-    @patch("mcp_server_filesystem.main.Path.is_dir")
+    @patch("mcp_workspace.main.Path.exists")
+    @patch("mcp_workspace.main.Path.is_dir")
     def test_path_normalization(
         self, mock_is_dir: MagicMock, mock_exists: MagicMock
     ) -> None:
@@ -114,8 +114,8 @@ class TestReferenceProjectCLI:
         assert "proj" in result
         assert result["proj"].is_absolute()
 
-    @patch("mcp_server_filesystem.main.stdlogger")
-    @patch("mcp_server_filesystem.main.Path.exists")
+    @patch("mcp_workspace.main.stdlogger")
+    @patch("mcp_workspace.main.Path.exists")
     def test_nonexistent_path_warning(
         self, mock_exists: MagicMock, mock_logger: MagicMock
     ) -> None:
@@ -135,8 +135,8 @@ class TestReferenceProjectMCPTools:
 
     def test_get_reference_projects_empty(self) -> None:
         """Test discovery tool returns empty dict when no projects."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import get_reference_projects
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import get_reference_projects
 
         # Clear reference projects
         server_module._reference_projects = {}
@@ -153,8 +153,8 @@ class TestReferenceProjectMCPTools:
 
     def test_get_reference_projects_sorted(self) -> None:
         """Test discovery tool returns sorted list of project names in structured dict."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import get_reference_projects
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import get_reference_projects
 
         # Set up test data in unsorted order
         test_projects = {
@@ -179,15 +179,15 @@ class TestReferenceProjectMCPTools:
         """Test INFO level logging for discovery operations."""
         from unittest.mock import patch
 
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import get_reference_projects
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import get_reference_projects
 
         # Set up test data
         test_projects = {"proj1": Path("/path/to/proj1")}
         server_module._reference_projects = test_projects
 
         # Test logging behavior (the decorator handles logging)
-        with patch("mcp_server_filesystem.server.logger") as mock_logger:
+        with patch("mcp_workspace.server.logger") as mock_logger:
             result = get_reference_projects()
 
             # Should return structured dict with project names
@@ -204,15 +204,15 @@ class TestReferenceProjectMCPTools:
 
     def test_list_reference_directory_success(self) -> None:
         """Test listing files in valid reference project."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import list_reference_directory
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import list_reference_directory
 
         # Set up test reference projects
         test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
         server_module._reference_projects = test_projects
 
         # Mock the list_files_util function to return test data
-        with patch("mcp_server_filesystem.server.list_files_util") as mock_list_files:
+        with patch("mcp_workspace.server.list_files_util") as mock_list_files:
             mock_list_files.return_value = ["file1.py", "file2.txt", "subdir/file3.md"]
 
             result = list_reference_directory("test_proj")
@@ -228,8 +228,8 @@ class TestReferenceProjectMCPTools:
 
     def test_list_reference_directory_not_found(self) -> None:
         """Test error handling for non-existent reference project."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import list_reference_directory
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import list_reference_directory
 
         # Set up test reference projects (empty)
         server_module._reference_projects = {}
@@ -242,15 +242,15 @@ class TestReferenceProjectMCPTools:
 
     def test_list_reference_directory_gitignore(self) -> None:
         """Test gitignore filtering is applied."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import list_reference_directory
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import list_reference_directory
 
         # Set up test reference projects
         test_projects = {"proj_with_gitignore": Path("/tmp/gitignore_test").absolute()}
         server_module._reference_projects = test_projects
 
         # Mock the list_files_util function
-        with patch("mcp_server_filesystem.server.list_files_util") as mock_list_files:
+        with patch("mcp_workspace.server.list_files_util") as mock_list_files:
             # Should return files after gitignore filtering
             mock_list_files.return_value = ["src/main.py", "README.md"]
 
@@ -266,16 +266,16 @@ class TestReferenceProjectMCPTools:
 
     def test_list_reference_directory_logging(self) -> None:
         """Test DEBUG level logging for file operations."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import list_reference_directory
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import list_reference_directory
 
         # Set up test reference projects
         test_projects = {"log_test_proj": Path("/tmp/log_test").absolute()}
         server_module._reference_projects = test_projects
 
         # Mock the list_files_util function
-        with patch("mcp_server_filesystem.server.list_files_util") as mock_list_files:
-            with patch("mcp_server_filesystem.server.logger") as mock_logger:
+        with patch("mcp_workspace.server.list_files_util") as mock_list_files:
+            with patch("mcp_workspace.server.logger") as mock_logger:
                 mock_list_files.return_value = ["test.py"]
 
                 result = list_reference_directory("log_test_proj")
@@ -289,15 +289,15 @@ class TestReferenceProjectMCPTools:
 
     def test_read_reference_file_success(self) -> None:
         """Test reading file from valid reference project."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import read_reference_file
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import read_reference_file
 
         # Set up test reference projects
         test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function to return test data
-        with patch("mcp_server_filesystem.server.read_file_util") as mock_read_file:
+        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
             mock_read_file.return_value = "Test file content\nLine 2\n"
 
             result = read_reference_file("test_proj", "test_file.txt")
@@ -313,8 +313,8 @@ class TestReferenceProjectMCPTools:
 
     def test_read_reference_file_project_not_found(self) -> None:
         """Test error handling for non-existent reference project."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import read_reference_file
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import read_reference_file
 
         # Set up test reference projects (empty)
         server_module._reference_projects = {}
@@ -327,15 +327,15 @@ class TestReferenceProjectMCPTools:
 
     def test_read_reference_file_file_not_found(self) -> None:
         """Test error handling for non-existent file."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import read_reference_file
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import read_reference_file
 
         # Set up test reference projects
         test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function to raise FileNotFoundError
-        with patch("mcp_server_filesystem.server.read_file_util") as mock_read_file:
+        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
             mock_read_file.side_effect = FileNotFoundError(
                 "File not found: test_file.txt"
             )
@@ -348,15 +348,15 @@ class TestReferenceProjectMCPTools:
 
     def test_read_reference_file_security(self) -> None:
         """Test path traversal prevention (reuse existing security)."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import read_reference_file
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import read_reference_file
 
         # Set up test reference projects
         test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function to raise security error
-        with patch("mcp_server_filesystem.server.read_file_util") as mock_read_file:
+        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
             mock_read_file.side_effect = ValueError(
                 "Security error: Path traversal detected"
             )
@@ -369,16 +369,16 @@ class TestReferenceProjectMCPTools:
 
     def test_read_reference_file_logging(self) -> None:
         """Test DEBUG level logging for file operations."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import read_reference_file
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import read_reference_file
 
         # Set up test reference projects
         test_projects = {"log_test_proj": Path("/tmp/log_test").absolute()}
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function
-        with patch("mcp_server_filesystem.server.read_file_util") as mock_read_file:
-            with patch("mcp_server_filesystem.server.logger") as mock_logger:
+        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
+            with patch("mcp_workspace.server.logger") as mock_logger:
                 mock_read_file.return_value = "test content"
 
                 result = read_reference_file("log_test_proj", "test.txt")
@@ -396,8 +396,8 @@ class TestReferenceProjectServerStorage:
 
     def test_set_reference_projects(self) -> None:
         """Test setting reference projects storage."""
-        import mcp_server_filesystem.server as server_module
-        from mcp_server_filesystem.server import set_reference_projects
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import set_reference_projects
 
         # Test setting reference projects
         test_projects = {
@@ -414,7 +414,7 @@ class TestReferenceProjectServerStorage:
         """Test run_server accepts reference projects parameter."""
         from unittest.mock import patch
 
-        from mcp_server_filesystem.server import run_server
+        from mcp_workspace.server import run_server
 
         # Test that run_server can be called with reference_projects parameter
         test_projects = {
@@ -423,10 +423,8 @@ class TestReferenceProjectServerStorage:
         }
 
         # Mock the mcp.run() call to avoid actually starting the server
-        with patch("mcp_server_filesystem.server.mcp.run") as mock_run:
-            with patch(
-                "mcp_server_filesystem.server.set_reference_projects"
-            ) as mock_set_ref:
+        with patch("mcp_workspace.server.mcp.run") as mock_run:
+            with patch("mcp_workspace.server.set_reference_projects") as mock_set_ref:
                 run_server(Path("/test/project"), reference_projects=test_projects)
 
                 # Verify that set_reference_projects was called with the correct arguments
@@ -437,7 +435,7 @@ class TestReferenceProjectServerStorage:
         """Test INFO level logging during initialization."""
         from unittest.mock import patch
 
-        from mcp_server_filesystem.server import set_reference_projects
+        from mcp_workspace.server import set_reference_projects
 
         test_projects = {
             "proj1": Path("/path/to/proj1").absolute(),
@@ -445,7 +443,7 @@ class TestReferenceProjectServerStorage:
         }
 
         # Test logging behavior
-        with patch("mcp_server_filesystem.server.logger") as mock_logger:
+        with patch("mcp_workspace.server.logger") as mock_logger:
             set_reference_projects(test_projects)
 
             # Verify INFO level logging was called
@@ -455,8 +453,8 @@ class TestReferenceProjectServerStorage:
             info_calls = mock_logger.info.call_args_list
             assert len(info_calls) >= 1
 
-    @patch("mcp_server_filesystem.main.Path.exists")
-    @patch("mcp_server_filesystem.main.Path.is_dir")
+    @patch("mcp_workspace.main.Path.exists")
+    @patch("mcp_workspace.main.Path.is_dir")
     def test_empty_name_validation(
         self, mock_is_dir: MagicMock, mock_exists: MagicMock
     ) -> None:
@@ -466,7 +464,7 @@ class TestReferenceProjectServerStorage:
 
         # Test empty name gets rejected
         reference_args = ["=/path/to/proj"]
-        with patch("mcp_server_filesystem.main.stdlogger") as mock_logger:
+        with patch("mcp_workspace.main.stdlogger") as mock_logger:
             result = validate_reference_projects(reference_args)
 
             # Should log warning for empty name
@@ -477,9 +475,9 @@ class TestReferenceProjectServerStorage:
 class TestReferenceProjectIntegration:
     """Test CLI to server integration."""
 
-    @patch("mcp_server_filesystem.server.run_server")
-    @patch("mcp_server_filesystem.main.Path.exists")
-    @patch("mcp_server_filesystem.main.Path.is_dir")
+    @patch("mcp_workspace.server.run_server")
+    @patch("mcp_workspace.main.Path.exists")
+    @patch("mcp_workspace.main.Path.is_dir")
     def test_main_with_reference_projects(
         self, mock_is_dir: MagicMock, mock_exists: MagicMock, mock_run_server: MagicMock
     ) -> None:
@@ -500,8 +498,8 @@ class TestReferenceProjectIntegration:
         ]
 
         with patch("sys.argv", test_args):
-            with patch("mcp_server_filesystem.main.setup_logging"):
-                from mcp_server_filesystem.main import main
+            with patch("mcp_workspace.main.setup_logging"):
+                from mcp_workspace.main import main
 
                 main()
 
@@ -519,9 +517,9 @@ class TestReferenceProjectIntegration:
                 }
                 assert call_args[1]["reference_projects"] == expected_ref_projects
 
-    @patch("mcp_server_filesystem.server.run_server")
-    @patch("mcp_server_filesystem.main.Path.exists")
-    @patch("mcp_server_filesystem.main.Path.is_dir")
+    @patch("mcp_workspace.server.run_server")
+    @patch("mcp_workspace.main.Path.exists")
+    @patch("mcp_workspace.main.Path.is_dir")
     def test_main_without_reference_projects(
         self, mock_is_dir: MagicMock, mock_exists: MagicMock, mock_run_server: MagicMock
     ) -> None:
@@ -534,8 +532,8 @@ class TestReferenceProjectIntegration:
         test_args = ["script.py", "--project-dir", "/test/project"]
 
         with patch("sys.argv", test_args):
-            with patch("mcp_server_filesystem.main.setup_logging"):
-                from mcp_server_filesystem.main import main
+            with patch("mcp_workspace.main.setup_logging"):
+                from mcp_workspace.main import main
 
                 main()
 
@@ -549,9 +547,9 @@ class TestReferenceProjectIntegration:
                 # Check reference_projects argument (keyword) - should be empty dict
                 assert call_args[1]["reference_projects"] == {}
 
-    @patch("mcp_server_filesystem.server.run_server")
-    @patch("mcp_server_filesystem.main.Path.exists")
-    @patch("mcp_server_filesystem.main.Path.is_dir")
+    @patch("mcp_workspace.server.run_server")
+    @patch("mcp_workspace.main.Path.exists")
+    @patch("mcp_workspace.main.Path.is_dir")
     def test_main_with_auto_rename(
         self, mock_is_dir: MagicMock, mock_exists: MagicMock, mock_run_server: MagicMock
     ) -> None:
@@ -574,8 +572,8 @@ class TestReferenceProjectIntegration:
         ]
 
         with patch("sys.argv", test_args):
-            with patch("mcp_server_filesystem.main.setup_logging"):
-                from mcp_server_filesystem.main import main
+            with patch("mcp_workspace.main.setup_logging"):
+                from mcp_workspace.main import main
 
                 main()
 

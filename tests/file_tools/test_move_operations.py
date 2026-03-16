@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from mcp_server_filesystem.file_tools.file_operations import move_file
+from mcp_workspace.file_tools.file_operations import move_file
 
 
 class TestBasicMoveOperations:

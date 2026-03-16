@@ -8,8 +8,8 @@ Thank you for your interest in contributing to the MCP File System Server! This 
 
 ```bash
 # Clone the repository
-git clone https://github.com/MarcusJellinghaus/mcp_server_filesystem.git
-cd mcp-server-filesystem
+git clone https://github.com/MarcusJellinghaus/mcp-workspace.git
+cd mcp-workspace
 
 # Create and activate a virtual environment
 python -m venv .venv
@@ -50,17 +50,17 @@ MCP Inspector is excellent for debugging and testing during development:
 # Start MCP Inspector
 npx @modelcontextprotocol/inspector \
   uv \
-  --directory C:\path\to\mcp_server_filesystem \
+  --directory C:\path\to\mcp_workspace \
   run \
   src\main.py
 ```
 
 In the MCP Inspector web UI, configure:
-- **Python interpreter**: `C:\path\to\mcp_server_filesystem\.venv\Scripts\python.exe`
-- **Arguments**: `C:\path\to\mcp_server_filesystem\src\main.py --project-dir C:\path\to\your\test\project --log-level DEBUG`
+- **Python interpreter**: `C:\path\to\mcp_workspace\.venv\Scripts\python.exe`
+- **Arguments**: `C:\path\to\mcp_workspace\src\main.py --project-dir C:\path\to\your\test\project --log-level DEBUG`
 - **Environment variables**:
   - Name: `PYTHONPATH`
-  - Value: `C:\path\to\mcp_server_filesystem\`
+  - Value: `C:\path\to\mcp_workspace\`
 
 ## Testing
 
@@ -115,7 +115,7 @@ The project uses:
 ## Project Structure
 
 ```
-mcp-server-filesystem/
+mcp-workspace/
 ├── src/                    # Main source code
 │   ├── main.py            # Entry point and CLI
 │   ├── server.py          # MCP server implementation

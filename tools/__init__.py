@@ -1,1 +1,1 @@
-"""Tools package for mcp_server_filesystem development utilities."""
+"""Tools package for mcp_workspace development utilities."""

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 # Import functions directly from the module
-from mcp_server_filesystem.file_tools.path_utils import normalize_path
+from mcp_workspace.file_tools.path_utils import normalize_path
 from tests.conftest import TEST_DIR
 
 

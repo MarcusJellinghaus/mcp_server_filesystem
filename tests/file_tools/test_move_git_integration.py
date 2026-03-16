@@ -7,7 +7,7 @@ import pytest
 from git import Repo
 from git.exc import GitCommandError
 
-from mcp_server_filesystem.file_tools.file_operations import move_file
+from mcp_workspace.file_tools.file_operations import move_file
 
 
 class TestGitMoveIntegration:
@@ -76,7 +76,7 @@ class TestGitMoveIntegration:
 
         # Mock git_move_impl to simulate a git mv failure
         with patch(
-            "mcp_server_filesystem.file_tools.file_operations.git_move_impl",
+            "mcp_workspace.file_tools.file_operations.git_move_impl",
             side_effect=GitCommandError("git mv", 128),
         ):
             result = move_file("tracked.txt", "moved.txt", project_dir=tmp_path)

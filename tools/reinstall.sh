@@ -2,7 +2,7 @@
 # Reinstall package in development mode
 set -e
 
-echo "Reinstalling mcp-server-filesystem in development mode..."
+echo "Reinstalling mcp-workspace in development mode..."
 pip install -e .
 
 echo ""

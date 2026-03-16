@@ -1,6 +1,6 @@
 # Architecture Guide
 
-This document describes the architectural principles and enforcement tools for the mcp_server_filesystem project.
+This document describes the architectural principles and enforcement tools for the mcp_workspace project.
 
 ## Architecture Overview
 
@@ -192,9 +192,9 @@ Runs only on pull requests:
 **Error:**
 ```
 Detected 1 cycle:
-  mcp_server_filesystem.file_tools.file_operations
-  -> mcp_server_filesystem.file_tools.path_utils
-  -> mcp_server_filesystem.file_tools.file_operations
+  mcp_workspace.file_tools.file_operations
+  -> mcp_workspace.file_tools.path_utils
+  -> mcp_workspace.file_tools.file_operations
 ```
 
 **Fix:**
@@ -206,7 +206,7 @@ Detected 1 cycle:
 
 **Error:**
 ```
-mcp_server_filesystem.file_tools cannot import mcp_server_filesystem.server
+mcp_workspace.file_tools cannot import mcp_workspace.server
 (higher layer importing lower layer)
 ```
 
@@ -219,7 +219,7 @@ mcp_server_filesystem.file_tools cannot import mcp_server_filesystem.server
 
 **Error:**
 ```
-mcp_server_filesystem.file_tools.file_operations imports 'git' directly
+mcp_workspace.file_tools.file_operations imports 'git' directly
 (should only be imported by git_operations)
 ```
 

@@ -37,8 +37,8 @@ By connecting your AI assistant to your filesystem, you can transform your workf
 
 ```bash
 # Clone the repository
-git clone https://github.com/MarcusJellinghaus/mcp_server_filesystem.git
-cd mcp_server_filesystem
+git clone https://github.com/MarcusJellinghaus/mcp-workspace.git
+cd mcp_workspace
 
 # Create and activate a virtual environment (optional but recommended)
 python -m venv venv
@@ -50,10 +50,10 @@ pip install -e .
 
 ## Running the Server
 
-Once installed, you can use the `mcp-server-filesystem` command directly:
+Once installed, you can use the `mcp-workspace` command directly:
 
 ```bash
-mcp-server-filesystem --project-dir /path/to/project [--reference-project NAME=/path/to/reference]... [--log-level LEVEL] [--log-file PATH]
+mcp-workspace --project-dir /path/to/project [--reference-project NAME=/path/to/reference]... [--log-level LEVEL] [--log-file PATH]
 ```
 
 ### Command Line Arguments:
@@ -94,16 +94,16 @@ Use the `--reference-project` argument to add reference projects:
 
 ```bash
 # Single reference project
-mcp-server-filesystem --project-dir ./my-project --reference-project docs=./documentation
+mcp-workspace --project-dir ./my-project --reference-project docs=./documentation
 
 # Multiple reference projects
-mcp-server-filesystem --project-dir ./my-project \
+mcp-workspace --project-dir ./my-project \
   --reference-project docs=./documentation \
   --reference-project examples=/home/user/examples \
   --reference-project libs=../shared-libraries
 
 # Absolute paths
-mcp-server-filesystem --project-dir /path/to/main/project \
+mcp-workspace --project-dir /path/to/main/project \
   --reference-project utils=/usr/local/utils \
   --reference-project config=/etc/myapp
 ```
@@ -114,7 +114,7 @@ If you specify duplicate reference project names, they are automatically renamed
 
 ```bash
 # This configuration:
-mcp-server-filesystem --project-dir ./project \
+mcp-workspace --project-dir ./project \
   --reference-project docs=./docs1 \
   --reference-project docs=./docs2 \
   --reference-project docs=./docs3
@@ -168,7 +168,7 @@ The Claude Desktop app can also use this file system server.
 {
   "mcpServers": {
     "filesystem": {
-      "command": "mcp-server-filesystem",
+      "command": "mcp-workspace",
       "args": [
         "--project-dir",
         "C:\\path\\to\\your\\specific\\project",
@@ -185,7 +185,7 @@ The Claude Desktop app can also use this file system server.
 ```
 
 3. **Configuration notes**:
-   - The `mcp-server-filesystem` command should be available in your PATH after installation
+   - The `mcp-workspace` command should be available in your PATH after installation
    - You must specify an explicit project directory path in `--project-dir`
    - Replace the project directory path with your actual project path
    - The project directory should be the folder you want Claude to access
@@ -195,7 +195,7 @@ The Claude Desktop app can also use this file system server.
 ### Troubleshooting Claude Desktop Integration
 
 - Check logs at: `%APPDATA%\Claude\logs` (Windows) or `~/Library/Application Support/Claude/logs` (macOS)
-- Verify the `mcp-server-filesystem` command is available in your PATH (run `mcp-server-filesystem --help` to test)
+- Verify the `mcp-workspace` command is available in your PATH (run `mcp-workspace --help` to test)
 - Ensure the specified project directory exists and is accessible
 - Verify all paths in your configuration are correct
 
@@ -441,16 +441,16 @@ pip install git+https://github.com/MarcusJellinghaus/mcp-config.git
 
 ```bash
 # Setup for Claude Desktop with automatic configuration
-mcp-config setup mcp-server-filesystem "Filesystem Server" --project-dir /path/to/your/project
+mcp-config setup mcp-workspace "Filesystem Server" --project-dir /path/to/your/project
 
 # Setup with reference projects
-mcp-config setup mcp-server-filesystem "Filesystem Server" \
+mcp-config setup mcp-workspace "Filesystem Server" \
   --project-dir /path/to/your/project \
   --reference-project docs=/path/to/documentation \
   --reference-project examples=/path/to/examples
 
 # Setup with custom log configuration
-mcp-config setup mcp-server-filesystem "Filesystem Server" \
+mcp-config setup mcp-workspace "Filesystem Server" \
   --project-dir /path/to/your/project \
   --reference-project utils=/shared/utilities \
   --log-level DEBUG \

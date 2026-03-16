@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from mcp_server_filesystem.file_tools.edit_file import (
+from mcp_workspace.file_tools.edit_file import (
     _is_edit_already_applied,
     edit_file,
 )

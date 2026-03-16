@@ -7,13 +7,13 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from mcp_server_filesystem.file_tools.git_operations import git_move as git_move_impl
-from mcp_server_filesystem.file_tools.git_operations import (
+from mcp_workspace.file_tools.git_operations import git_move as git_move_impl
+from mcp_workspace.file_tools.git_operations import (
     is_file_tracked,
     is_git_repository,
 )
-from mcp_server_filesystem.file_tools.path_utils import normalize_path
-from mcp_server_filesystem.log_utils import log_function_call
+from mcp_workspace.file_tools.path_utils import normalize_path
+from mcp_workspace.log_utils import log_function_call
 
 logger = logging.getLogger(__name__)
 

@@ -7,10 +7,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
-from mcp_server_filesystem import __version__
+from mcp_workspace import __version__
 
 # Import logging utilities
-from mcp_server_filesystem.log_utils import setup_logging
+from mcp_workspace.log_utils import setup_logging
 
 # Create loggers
 stdlogger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"mcp-server-filesystem {__version__}",
+        version=f"mcp-workspace {__version__}",
         help="Show version number and exit",
     )
     parser.add_argument(
@@ -167,7 +167,7 @@ def main() -> None:
         reference_projects = validate_reference_projects(args.reference_project)
 
     # Import here to avoid circular imports (after logging is configured)
-    from mcp_server_filesystem.server import run_server
+    from mcp_workspace.server import run_server
 
     stdlogger.debug(
         "Starting MCP server: project_dir=%s, log_level=%s, log_file=%s",

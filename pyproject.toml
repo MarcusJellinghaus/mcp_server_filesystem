@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "setuptools-scm>=8.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mcp-server-filesystem"
+name = "mcp-workspace"
 dynamic = ["version"]
 authors = [
     {name = "Marcus Jellinghaus"},
@@ -54,12 +54,12 @@ config = [
 ]
 
 [project.scripts]
-mcp-server-filesystem = "mcp_server_filesystem.main:main"
+mcp-workspace = "mcp_workspace.main:main"
 
 [project.urls]
-"Homepage" = "https://github.com/MarcusJellinghaus/mcp_server_filesystem"
-"Bug Tracker" = "https://github.com/MarcusJellinghaus/mcp_server_filesystem/issues"
-"Documentation" = "https://github.com/MarcusJellinghaus/mcp_server_filesystem#readme"
+"Homepage" = "https://github.com/MarcusJellinghaus/mcp-workspace"
+"Bug Tracker" = "https://github.com/MarcusJellinghaus/mcp-workspace/issues"
+"Documentation" = "https://github.com/MarcusJellinghaus/mcp-workspace#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]

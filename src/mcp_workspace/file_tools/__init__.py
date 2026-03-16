@@ -1,8 +1,8 @@
 """File operation tools for MCP server."""
 
-from mcp_server_filesystem.file_tools.directory_utils import list_files
-from mcp_server_filesystem.file_tools.edit_file import edit_file
-from mcp_server_filesystem.file_tools.file_operations import (
+from mcp_workspace.file_tools.directory_utils import list_files
+from mcp_workspace.file_tools.edit_file import edit_file
+from mcp_workspace.file_tools.file_operations import (
     append_file,
     delete_file,
     move_file,
@@ -10,12 +10,12 @@ from mcp_server_filesystem.file_tools.file_operations import (
     save_file,
     write_file,
 )
-from mcp_server_filesystem.file_tools.git_operations import (
+from mcp_workspace.file_tools.git_operations import (
     git_move,
     is_file_tracked,
     is_git_repository,
 )
-from mcp_server_filesystem.file_tools.path_utils import normalize_path
+from mcp_workspace.file_tools.path_utils import normalize_path
 
 # Define what functions are exposed when importing from this package
 __all__ = [
