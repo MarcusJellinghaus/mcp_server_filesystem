@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 
 # Import functions directly from the module
-from mcp_server_filesystem.file_tools.directory_utils import (
+from mcp_workspace.file_tools.directory_utils import (
     _discover_files,
     apply_gitignore_filter,
     filter_with_gitignore,
@@ -186,7 +186,7 @@ def test_list_files_basic(project_dir: Path) -> None:
 
     # Test listing files with a mock to handle platform-specific path separators
     with patch(
-        "mcp_server_filesystem.file_tools.directory_utils._discover_files"
+        "mcp_workspace.file_tools.directory_utils._discover_files"
     ) as mock_discover:
         # Configure the mock to return our test files with consistent path separators
         mock_discover.return_value = [
@@ -196,7 +196,7 @@ def test_list_files_basic(project_dir: Path) -> None:
 
         # When gitignore filtering is active, avoid calling the real filter
         with patch(
-            "mcp_server_filesystem.file_tools.directory_utils.filter_with_gitignore",
+            "mcp_workspace.file_tools.directory_utils.filter_with_gitignore",
             side_effect=lambda files, *args, **kwargs: files,
         ):
             # Test listing files
@@ -228,7 +228,7 @@ def test_list_files_with_gitignore(project_dir: Path) -> None:
 
     # Mock the discovery and filtering
     with patch(
-        "mcp_server_filesystem.file_tools.directory_utils._discover_files"
+        "mcp_workspace.file_tools.directory_utils._discover_files"
     ) as mock_discover:
         # Configure the mock to return our test files
         mock_discover.return_value = [
@@ -238,7 +238,7 @@ def test_list_files_with_gitignore(project_dir: Path) -> None:
 
         # Mock the filter to remove .log files
         with patch(
-            "mcp_server_filesystem.file_tools.directory_utils.filter_with_gitignore"
+            "mcp_workspace.file_tools.directory_utils.filter_with_gitignore"
         ) as mock_filter:
             mock_filter.return_value = ["testdata/test_file_tools/keep.txt"]
 
@@ -267,7 +267,7 @@ def test_list_files_without_gitignore(project_dir: Path) -> None:
 
     # Mock the discovery
     with patch(
-        "mcp_server_filesystem.file_tools.directory_utils._discover_files"
+        "mcp_workspace.file_tools.directory_utils._discover_files"
     ) as mock_discover:
         # Configure the mock to return both files
         mock_discover.return_value = [
@@ -315,7 +315,7 @@ def test_list_files_with_exception(project_dir: Path) -> None:
     """Test handling of unexpected exceptions in list_files."""
     # Mock _discover_files to raise an exception
     with patch(
-        "mcp_server_filesystem.file_tools.directory_utils._discover_files",
+        "mcp_workspace.file_tools.directory_utils._discover_files",
         side_effect=Exception("Test error"),
     ):
         # Test with a mocked exception

@@ -35,7 +35,7 @@ def test_mcp_server_move_file() -> bool:
         # Here we're just verifying the functions are accessible
 
         # Import and test directly
-        from mcp_server_filesystem.server import move_file, set_project_dir
+        from mcp_workspace.server import move_file, set_project_dir
 
         # Set up server
         set_project_dir(test_dir)

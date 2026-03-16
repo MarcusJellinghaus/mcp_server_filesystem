@@ -11,7 +11,7 @@ from typing import Callable, List, Optional, Tuple, Union
 
 from igittigitt import IgnoreParser
 
-from mcp_server_filesystem.file_tools.path_utils import normalize_path
+from mcp_workspace.file_tools.path_utils import normalize_path
 
 logger = logging.getLogger(__name__)
 

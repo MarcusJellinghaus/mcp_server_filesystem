@@ -76,14 +76,14 @@ mcp__filesystem__edit_file
 
 ```python
 # ❌ WRONG - Standard tools
-Read(file_path="src/mcp_server_filesystem/server.py")
-Edit(file_path="src/mcp_server_filesystem/server.py", old_string="...", new_string="...")
+Read(file_path="src/mcp_workspace/server.py")
+Edit(file_path="src/mcp_workspace/server.py", old_string="...", new_string="...")
 Write(file_path="src/new_module.py", content="...")
 Bash("pytest tests/")
 
 # ✅ CORRECT - MCP tools
-mcp__filesystem__read_file(file_path="src/mcp_server_filesystem/server.py")
-mcp__filesystem__edit_file(file_path="src/mcp_server_filesystem/server.py", edits=[...])
+mcp__filesystem__read_file(file_path="src/mcp_workspace/server.py")
+mcp__filesystem__edit_file(file_path="src/mcp_workspace/server.py", edits=[...])
 mcp__filesystem__save_file(file_path="src/new_module.py", content="...")
 mcp__code-checker__run_pytest_check(extra_args=["-n", "auto"])
 ```
@@ -152,9 +152,9 @@ git push
 This project is an MCP server implementation with the following structure:
 
 ```
-mcp_server_filesystem/
+mcp_workspace/
 ├── src/
-│   └── mcp_server_filesystem/  # Main source code
+│   └── mcp_workspace/  # Main source code
 │       ├── main.py             # Entry point
 │       ├── server.py           # MCP server implementation
 │       └── tools/              # MCP tool implementations
@@ -164,7 +164,7 @@ mcp_server_filesystem/
 ```
 
 **Key Points:**
-- Source code is in `src/mcp_server_filesystem/`
+- Source code is in `src/mcp_workspace/`
 - Tests are in `tests/`
 - Python 3.11+ required
 - Uses MCP protocol for server implementation

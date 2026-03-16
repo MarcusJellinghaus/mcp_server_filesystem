@@ -1,7 +1,7 @@
 # =============================================================================
 # Tach Configuration - Architectural Boundary Enforcement
 # =============================================================================
-# Enforces clean architecture for MCP server filesystem.
+# Enforces clean architecture for MCP workspace.
 # Run with: tach check (or tools/tach_check.bat)
 # =============================================================================
 
@@ -32,11 +32,11 @@ layers = [
 # =============================================================================
 
 [[modules]]
-path = "mcp_server_filesystem.main"
+path = "mcp_workspace.main"
 layer = "entry"
 depends_on = [
-    { path = "mcp_server_filesystem.server" },
-    { path = "mcp_server_filesystem.log_utils" },
+    { path = "mcp_workspace.server" },
+    { path = "mcp_workspace.log_utils" },
 ]
 
 # =============================================================================
@@ -44,11 +44,11 @@ depends_on = [
 # =============================================================================
 
 [[modules]]
-path = "mcp_server_filesystem.server"
+path = "mcp_workspace.server"
 layer = "protocol"
 depends_on = [
-    { path = "mcp_server_filesystem.file_tools" },
-    { path = "mcp_server_filesystem.log_utils" },
+    { path = "mcp_workspace.file_tools" },
+    { path = "mcp_workspace.log_utils" },
 ]
 
 # =============================================================================
@@ -56,10 +56,10 @@ depends_on = [
 # =============================================================================
 
 [[modules]]
-path = "mcp_server_filesystem.file_tools"
+path = "mcp_workspace.file_tools"
 layer = "tools"
 depends_on = [
-    { path = "mcp_server_filesystem.log_utils" },
+    { path = "mcp_workspace.log_utils" },
 ]
 
 # =============================================================================
@@ -67,7 +67,7 @@ depends_on = [
 # =============================================================================
 
 [[modules]]
-path = "mcp_server_filesystem.log_utils"
+path = "mcp_workspace.log_utils"
 layer = "utilities"
 depends_on = []
 
@@ -78,9 +78,9 @@ depends_on = []
 [[modules]]
 path = "tests"
 depends_on = [
-    { path = "mcp_server_filesystem" },
-    { path = "mcp_server_filesystem.main" },
-    { path = "mcp_server_filesystem.server" },
-    { path = "mcp_server_filesystem.file_tools" },
-    { path = "mcp_server_filesystem.log_utils" },
+    { path = "mcp_workspace" },
+    { path = "mcp_workspace.main" },
+    { path = "mcp_workspace.server" },
+    { path = "mcp_workspace.file_tools" },
+    { path = "mcp_workspace.log_utils" },
 ]

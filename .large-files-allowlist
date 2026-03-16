@@ -11,4 +11,4 @@
 # Check with: mcp-coder check file-size --max-lines 750
 
 # Example (uncomment if needed):
-# src/mcp_server_filesystem/server.py  # MCP protocol handlers - many tool definitions
+# src/mcp_workspace/server.py  # MCP protocol handlers - many tool definitions
