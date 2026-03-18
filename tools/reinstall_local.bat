@@ -1,9 +1,9 @@
 @echo off
 REM Reinstall mcp-workspace package in development mode
-REM This script uninstalls and reinstalls the package to ensure clean installation
+REM This script ONLY works with the project-local .venv directory
 
 echo =============================================
-echo mcp-workspace Package Reinstallation
+echo mcp-workspace Package Reinstallation (Local)
 echo =============================================
 echo.
 
@@ -28,26 +28,51 @@ REM Check if running in a virtual environment
 if "%VIRTUAL_ENV%"=="" (
     echo [ERROR] Not running in a virtual environment!
     echo.
-    echo This script must be run from within a Python virtual environment.
+    echo This script must be run from within the project-local .venv.
     echo.
-    echo To create a virtual environment:
+    echo To create and activate it:
     echo   python -m venv .venv
-    echo.
-    echo Then activate your virtual environment:
     echo   .venv\Scripts\activate
     echo.
     pause
     exit /b 1
 )
-echo [OK] Running in virtual environment: %VIRTUAL_ENV%
+
+REM Check that the venv is the project-local .venv
+set "SCRIPT_DIR=%~dp0"
+set "PROJECT_DIR=%SCRIPT_DIR%.."
+pushd "%PROJECT_DIR%"
+set "PROJECT_DIR=%CD%"
+popd
+set "EXPECTED_VENV=%PROJECT_DIR%\.venv"
+
+if /I not "%VIRTUAL_ENV%"=="%EXPECTED_VENV%" (
+    echo [ERROR] Wrong virtual environment!
+    echo.
+    echo Active venv:   %VIRTUAL_ENV%
+    echo Expected venv: %EXPECTED_VENV%
+    echo.
+    echo This script only works with the project-local .venv directory.
+    echo Please activate the correct environment:
+    echo   %EXPECTED_VENV%\Scripts\activate
+    echo.
+    pause
+    exit /b 1
+)
+echo [OK] Running in project-local .venv: %VIRTUAL_ENV%
 echo.
 
-echo [1/4] Uninstalling existing package...
+echo [1/5] Uninstalling existing MCP packages...
+echo Uninstalling mcp-workspace...
 uv pip uninstall mcp-workspace 2>nul
+echo Uninstalling mcp-tools-py...
+uv pip uninstall mcp-tools-py 2>nul
+echo Uninstalling mcp-coder...
+uv pip uninstall mcp-coder 2>nul
 echo [OK] Done
 echo.
 
-echo [2/4] Installing package with development dependencies...
+echo [2/5] Installing package with development dependencies...
 uv pip install -e ".[dev]"
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Installation failed!
@@ -58,7 +83,17 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Package installed successfully
 echo.
 
-echo [3/4] Verifying package import...
+echo [3/6] Reinstalling local package (editable, no deps)...
+uv pip install -e . --no-deps
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Local editable reinstall failed!
+    pause
+    exit /b 1
+)
+echo [OK] Local editable install takes precedence
+echo.
+
+echo [4/6] Verifying package import...
 python -c "import mcp_workspace; print('mcp_workspace imported successfully')"
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Import verification failed!
@@ -69,7 +104,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Package import verified successfully
 echo.
 
-echo [4/4] Verifying CLI entry point...
+echo [5/6] Verifying CLI entry point...
 mcp-workspace --help >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] CLI entry point verification failed!
@@ -78,6 +113,15 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 echo [OK] CLI entry point verified successfully
+echo.
+
+echo [6/6] Verifying MCP dependencies...
+python -c "import mcp_tools_py; print('mcp-tools-py installed successfully')"
+if %ERRORLEVEL% NEQ 0 (
+    echo Warning: mcp-tools-py not available
+) else (
+    echo [OK] MCP tools-py verified
+)
 echo.
 
 echo =============================================
