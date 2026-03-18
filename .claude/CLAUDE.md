@@ -17,9 +17,9 @@
 | Read file | `Read()` | `mcp__filesystem__read_file()` |
 | Edit file | `Edit()` | `mcp__filesystem__edit_file()` |
 | Write file | `Write()` | `mcp__filesystem__save_file()` |
-| Run pytest | `Bash("pytest ...")` | `mcp__code-checker__run_pytest_check()` |
-| Run pylint | `Bash("pylint ...")` | `mcp__code-checker__run_pylint_check()` |
-| Run mypy | `Bash("mypy ...")` | `mcp__code-checker__run_mypy_check()` |
+| Run pytest | `Bash("pytest ...")` | `mcp__tools-py__run_pytest_check()` |
+| Run pylint | `Bash("pylint ...")` | `mcp__tools-py__run_pylint_check()` |
+| Run mypy | `Bash("mypy ...")` | `mcp__tools-py__run_mypy_check()` |
 | Git operations | ✅ `Bash("git ...")` | ✅ `Bash("git ...")` (allowed) |
 
 ## 🔴 CRITICAL: Code Quality Requirements
@@ -27,9 +27,9 @@
 **MANDATORY**: After making ANY code changes (after EACH edit), you MUST run ALL THREE code quality checks using the EXACT MCP tool names below:
 
 ```
-mcp__code-checker__run_pylint_check
-mcp__code-checker__run_pytest_check
-mcp__code-checker__run_mypy_check
+mcp__tools-py__run_pylint_check
+mcp__tools-py__run_pytest_check
+mcp__tools-py__run_mypy_check
 ```
 
 This runs:
@@ -47,10 +47,10 @@ This runs:
 **Examples:**
 ```python
 # Standard test run with parallel execution
-mcp__code-checker__run_pytest_check(extra_args=["-n", "auto"])
+mcp__tools-py__run_pytest_check(extra_args=["-n", "auto"])
 
 # Verbose test run for debugging
-mcp__code-checker__run_pytest_check(extra_args=["-n", "auto", "-v", "-s", "--tb=short"])
+mcp__tools-py__run_pytest_check(extra_args=["-n", "auto", "-v", "-s", "--tb=short"])
 ```
 
 ## 📁 MANDATORY: File Access Tools
@@ -85,7 +85,7 @@ Bash("pytest tests/")
 mcp__filesystem__read_file(file_path="src/mcp_workspace/server.py")
 mcp__filesystem__edit_file(file_path="src/mcp_workspace/server.py", edits=[...])
 mcp__filesystem__save_file(file_path="src/new_module.py", content="...")
-mcp__code-checker__run_pytest_check(extra_args=["-n", "auto"])
+mcp__tools-py__run_pytest_check(extra_args=["-n", "auto"])
 ```
 
 **WHY MCP TOOLS ARE MANDATORY:**

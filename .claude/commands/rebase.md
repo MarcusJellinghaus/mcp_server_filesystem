@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git fetch:*), Bash(git rebase:*), Bash(git add:*), Bash(git commit:*), Bash(git push --force-with-lease:*), Bash(git diff:*), Bash(git checkout --ours:*), Bash(git checkout --theirs:*), Bash(git rebase --abort:*), Bash(./tools/format_all.sh:*), Bash(mcp-coder gh-tool get-base-branch), mcp__code-checker__run_pylint_check, mcp__code-checker__run_pytest_check, mcp__code-checker__run_mypy_check, mcp__filesystem__read_file, mcp__filesystem__edit_file
+allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git fetch:*), Bash(git rebase:*), Bash(git add:*), Bash(git commit:*), Bash(git push --force-with-lease:*), Bash(git diff:*), Bash(git checkout --ours:*), Bash(git checkout --theirs:*), Bash(git rebase --abort:*), Bash(./tools/format_all.sh:*), Bash(mcp-coder gh-tool get-base-branch), mcp__tools-py__run_pylint_check, mcp__tools-py__run_pytest_check, mcp__tools-py__run_mypy_check, mcp__filesystem__read_file, mcp__filesystem__edit_file
 workflow-stage: utility
 suggested-next: (context-dependent)
 ---
@@ -41,7 +41,7 @@ echo "Rebasing onto: $BASE_BRANCH"
    - `git add <file>`
    - `git rebase --continue`
 4. `./tools/format_all.sh`
-5. Run code checks: `mcp__code-checker__run_pytest_check`, `mcp__code-checker__run_pylint_check`, `mcp__code-checker__run_mypy_check`
+5. Run code checks: `mcp__tools-py__run_pytest_check`, `mcp__tools-py__run_pylint_check`, `mcp__tools-py__run_mypy_check`
 6. Fix any issues from merge
 7. Report summary and ask for user confirmation
 8. `git push --force-with-lease`

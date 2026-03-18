@@ -472,7 +472,7 @@ The MIT License is a permissive license that allows reuse with minimal restricti
 ## Links
 
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-- [MCP Python Code Checker](https://github.com/MarcusJellinghaus/mcp_server_code_checker_python)
+- [MCP Tools Py](https://github.com/MarcusJellinghaus/mcp-tools-py)
 - [MCP Configuration Tool](https://github.com/MarcusJellinghaus/mcp-config)
 - [Cline MCP Servers Documentation](https://docs.cline.bot/mcp-servers/configuring-mcp-servers)
 - [Cline Extension for VSCode](https://github.com/saoudrizwan/claude-dev)

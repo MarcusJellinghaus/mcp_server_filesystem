@@ -41,7 +41,7 @@ dev = [
     "black>=24.10.0",
     "isort>=5.13.2",
     "mypy>=1.13.0",
-    "mcp-code-checker @ git+https://github.com/MarcusJellinghaus/mcp-code-checker.git",
+    "mcp-tools-py @ git+https://github.com/MarcusJellinghaus/mcp-tools-py.git",
 ]
 architecture = [
     "import-linter>=2.0",
