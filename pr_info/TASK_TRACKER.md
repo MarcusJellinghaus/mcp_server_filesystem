@@ -36,9 +36,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] 2b. Add `project_dir: Path` parameter to `validate_reference_projects()`
 - [x] 2c. Switch reference path resolution from `.absolute()` to `.resolve()`
 - [x] 2d. Add overlap checks (same dir, subdirectory, parent) after existence/directory validation
-- [ ] 2e. Update call site in `main()` to pass `project_dir` to `validate_reference_projects()`
-- [ ] Step 2 quality checks: run pylint, pytest, mypy — fix all issues
-- [ ] Step 2 git commit
+- [x] 2e. Update call site in `main()` to pass `project_dir` to `validate_reference_projects()`
+- [x] Step 2 quality checks: run pylint, pytest, mypy — fix all issues
+- [x] Step 2 git commit
 
 ## Pull Request
 

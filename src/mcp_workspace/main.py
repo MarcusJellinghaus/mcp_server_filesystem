@@ -191,7 +191,9 @@ def main() -> None:
     # Parse reference projects
     reference_projects = {}
     if args.reference_project:
-        reference_projects = validate_reference_projects(args.reference_project)
+        reference_projects = validate_reference_projects(
+            args.reference_project, project_dir
+        )
 
     # Import here to avoid circular imports (after logging is configured)
     from mcp_workspace.server import run_server
