@@ -21,6 +21,27 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Update Tests (TDD — Tests First) — `tests/test_reference_projects.py`
+
+- [ ] 1a. Update existing `validate_reference_projects()` calls to add `project_dir=Path("/unrelated/project")`
+- [ ] 1b. Update ALL `.absolute()` → `.resolve()` in test assertions across entire test file
+- [ ] 1c. Add parameterized overlap detection test using real temp directories (`tmp_path`)
+- [ ] 1d. Strengthen `test_path_normalization` assertion to check canonical path equality
+- [ ] Step 1 quality checks: run pylint, mypy (pytest expected to fail until Step 2)
+- [ ] Step 1 git commit
+
+### Step 2: Implement Overlap Filtering in Production Code — `src/mcp_workspace/main.py`
+
+- [ ] 2a. Update `main()` — switch `project_dir` from `.absolute()` to `.resolve()`
+- [ ] 2b. Add `project_dir: Path` parameter to `validate_reference_projects()`
+- [ ] 2c. Switch reference path resolution from `.absolute()` to `.resolve()`
+- [ ] 2d. Add overlap checks (same dir, subdirectory, parent) after existence/directory validation
+- [ ] 2e. Update call site in `main()` to pass `project_dir` to `validate_reference_projects()`
+- [ ] Step 2 quality checks: run pylint, pytest, mypy — fix all issues
+- [ ] Step 2 git commit
 
 ## Pull Request
+
+- [ ] Review all changes across both steps for consistency and completeness
+- [ ] Verify all quality checks pass (pylint, pytest, mypy)
+- [ ] Prepare PR title and summary
