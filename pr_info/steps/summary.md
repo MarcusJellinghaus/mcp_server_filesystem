@@ -36,3 +36,13 @@ Add overlap detection to `validate_reference_projects()` so that reference proje
 |------|-------------|------|
 | 1 | Tests first: update existing tests + add overlap tests | `tests/test_reference_projects.py` |
 | 2 | Implement overlap filtering + `.resolve()` changes | `src/mcp_workspace/main.py` |
+
+## Review Decisions
+
+See [Decisions.md](./Decisions.md) for the full log. Key decisions:
+
+1. Update `.absolute()` → `.resolve()` across **entire** test file, not just integration tests
+2. Overlap tests use **real temp directories** (`tmp_path`) instead of mocking `Path.resolve`
+3. No symlink edge case test (no special code path)
+4. Resolve `project_dir` once at top of `validate_reference_projects()` for safety
+5. Strengthen `test_path_normalization` to assert canonical path equality

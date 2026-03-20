@@ -44,11 +44,17 @@ project_path = Path(path_str).resolve()
 
 ### 2d. Add overlap checks after existence/directory validation
 
-After the `is_dir()` check and before the duplicate-name handling, add:
+> **Decision 4:** Resolve `project_dir` once at the top of the function (not inside the loop), as a cheap safety net.
+
+At the **top of `validate_reference_projects()`**, before the loop:
+```python
+resolved_project_dir = project_dir.resolve()
+```
+
+Then after the `is_dir()` check and before the duplicate-name handling, add:
 
 **Algorithm (pseudocode):**
 ```
-resolved_project_dir = project_dir.resolve()
 if project_path == resolved_project_dir:
     log warning "same directory"
     continue

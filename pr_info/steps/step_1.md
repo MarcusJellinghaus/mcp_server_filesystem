@@ -30,9 +30,15 @@ to:
 result = validate_reference_projects(reference_args, project_dir=Path("/unrelated/project"))
 ```
 
-### 1b. Update integration test assertions
+> **Decision 1:** Also update `.absolute()` → `.resolve()` in expected values across ALL test classes (not just integration tests). This includes `test_auto_rename_duplicates` expected dict values and any other `.absolute()` usage in the file.
 
-In `TestReferenceProjectIntegration`, the three `test_main_*` methods assert `project_dir` using `.absolute()`. Since production code will switch to `.resolve()`, update these assertions:
+### 1b. Update ALL `.absolute()` → `.resolve()` in test assertions
+
+Update **every** `.absolute()` call in the test file to `.resolve()`. This includes:
+
+- `TestReferenceProjectIntegration`: the three `test_main_*` methods that assert `project_dir` and `expected_ref_projects`
+- `TestReferenceProjectCLI.test_auto_rename_duplicates`: expected dict values use `.absolute()`
+- Any other `.absolute()` usage in the file (e.g., `TestReferenceProjectMCPTools`, `TestReferenceProjectServerStorage`)
 
 ```python
 # Old
@@ -41,35 +47,53 @@ assert call_args[0][0] == Path("/test/project").absolute()
 assert call_args[0][0] == Path("/test/project").resolve()
 ```
 
-Similarly update `expected_ref_projects` paths from `.absolute()` to `.resolve()`.
+> **Decision 1:** Comprehensive update across entire test file, not just integration tests.
 
-### 1c. Add parameterized overlap test
+### 1c. Add parameterized overlap test using real temp directories
 
-Add a single parameterized test to `TestReferenceProjectCLI`:
+Add a single parameterized test to `TestReferenceProjectCLI` using the `tmp_path` fixture to create real directories.
+
+> **Decision 2:** Use real temp directories instead of mocking `Path.resolve`. This avoids fragile global mocking.
 
 **Function signature:**
 ```python
 @pytest.mark.parametrize(
-    "ref_path_str, project_dir_str, expected_count, expected_warning_fragment",
+    "ref_subpath, project_subpath, expected_count, expected_warning_fragment",
     [
-        ("/projects/main", "/projects/main", 0, "same directory"),
-        ("/projects/main/sub", "/projects/main", 0, "subdirectory of the main project"),
-        ("/projects", "/projects/main", 0, "parent of the main project"),
-        ("/projects/other", "/projects/main", 1, None),
+        ("main", "main", 0, "same directory"),
+        ("main/sub", "main", 0, "subdirectory of the main project"),
+        ("projects", "projects/main", 0, "parent of the main project"),
+        ("other", "main", 1, None),
     ],
 )
-def test_overlap_detection(self, ref_path_str, project_dir_str, expected_count, expected_warning_fragment):
+def test_overlap_detection(self, tmp_path, ref_subpath, project_subpath, expected_count, expected_warning_fragment):
 ```
 
 **Pseudocode:**
 ```
-mock Path.exists → True
-mock Path.is_dir → True
-mock Path.resolve → return self (identity, so test paths stay as-is)
-call validate_reference_projects(["ref=" + ref_path_str], project_dir=Path(project_dir_str))
-assert len(result) == expected_count
-if expected_warning_fragment:
-    assert warning_fragment in logger warning call
+# Create real directories under tmp_path
+ref_dir = tmp_path / ref_subpath
+ref_dir.mkdir(parents=True, exist_ok=True)
+project_dir = tmp_path / project_subpath
+project_dir.mkdir(parents=True, exist_ok=True)
+
+# No mocking of Path.resolve needed — real paths resolve correctly
+with patch("mcp_workspace.main.stdlogger") as mock_logger:
+    result = validate_reference_projects([f"ref={ref_dir}"], project_dir=project_dir)
+    assert len(result) == expected_count
+    if expected_warning_fragment:
+        assert any(expected_warning_fragment in str(call) for call in mock_logger.warning.call_args_list)
+```
+
+### 1d. Strengthen `test_path_normalization` assertion
+
+> **Decision 5:** Assert the result equals `Path("./relative/path").resolve()` explicitly, not just `is_absolute()`.
+
+```python
+# Old
+assert result["proj"].is_absolute()
+# New
+assert result["proj"] == Path("./relative/path").resolve()
 ```
 
 ## HOW
@@ -77,7 +101,7 @@ if expected_warning_fragment:
 - Import `pytest` (already imported)
 - Use `@patch("mcp_workspace.main.Path.exists")` and `@patch("mcp_workspace.main.Path.is_dir")` as existing tests do
 - Use `@patch("mcp_workspace.main.stdlogger")` to capture warnings
-- Mock `Path.resolve` to return the path unchanged (so test paths like `/projects/main` are used as-is for comparison)
+- For overlap tests: use `tmp_path` fixture with real directories (no mocking of `Path.resolve`)
 
 ## DATA
 
