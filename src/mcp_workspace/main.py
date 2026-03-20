@@ -64,11 +64,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def validate_reference_projects(reference_args: List[str]) -> Dict[str, Path]:
+def validate_reference_projects(
+    reference_args: List[str], project_dir: Path
+) -> Dict[str, Path]:
     """Parse and validate reference project arguments.
 
     Validates name format (very permissive) and path existence. Logs warnings for invalid
     references and continues with valid ones only. Auto-renames duplicates.
+    Filters out reference projects that overlap with project_dir.
     """
     if not reference_args:
         return {}
