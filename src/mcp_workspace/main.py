@@ -141,8 +141,8 @@ def main() -> None:
         )
         sys.exit(1)
 
-    # Convert to absolute path
-    project_dir = project_dir.absolute()
+    # Convert to canonical resolved path
+    project_dir = project_dir.resolve()
 
     # Generate default log file path if not specified
     if args.console_only:
