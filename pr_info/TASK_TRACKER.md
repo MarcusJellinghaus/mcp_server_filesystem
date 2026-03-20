@@ -23,12 +23,12 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ### Step 1: Update Tests (TDD — Tests First) — `tests/test_reference_projects.py`
 
-- [ ] 1a. Update existing `validate_reference_projects()` calls to add `project_dir=Path("/unrelated/project")`
-- [ ] 1b. Update ALL `.absolute()` → `.resolve()` in test assertions across entire test file
-- [ ] 1c. Add parameterized overlap detection test using real temp directories (`tmp_path`)
-- [ ] 1d. Strengthen `test_path_normalization` assertion to check canonical path equality
-- [ ] Step 1 quality checks: run pylint, mypy (pytest expected to fail until Step 2)
-- [ ] Step 1 git commit
+- [x] 1a. Update existing `validate_reference_projects()` calls to add `project_dir=Path("/unrelated/project")`
+- [x] 1b. Update ALL `.absolute()` → `.resolve()` in test assertions across entire test file
+- [x] 1c. Add parameterized overlap detection test using real temp directories (`tmp_path`)
+- [x] 1d. Strengthen `test_path_normalization` assertion to check canonical path equality
+- [x] Step 1 quality checks: run pylint, mypy (pytest expected to fail until Step 2)
+- [x] Step 1 git commit
 
 ### Step 2: Implement Overlap Filtering in Production Code — `src/mcp_workspace/main.py`
 

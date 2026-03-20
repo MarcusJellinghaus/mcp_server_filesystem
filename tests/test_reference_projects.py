@@ -64,12 +64,14 @@ class TestReferenceProjectCLI:
             "proj=/path/to/proj2",
             "proj=/path/to/proj3",
         ]
-        result = validate_reference_projects(reference_args)
+        result = validate_reference_projects(
+            reference_args, project_dir=Path("/unrelated/project")
+        )
 
         expected = {
-            "proj": Path("/path/to/proj1").absolute(),
-            "proj_2": Path("/path/to/proj2").absolute(),
-            "proj_3": Path("/path/to/proj3").absolute(),
+            "proj": Path("/path/to/proj1").resolve(),
+            "proj_2": Path("/path/to/proj2").resolve(),
+            "proj_3": Path("/path/to/proj3").resolve(),
         }
         assert result == expected
 
@@ -83,7 +85,9 @@ class TestReferenceProjectCLI:
 
         # Test invalid format (no '=' separator)
         reference_args = ["invalid_format", "valid=/path/to/proj"]
-        result = validate_reference_projects(reference_args)
+        result = validate_reference_projects(
+            reference_args, project_dir=Path("/unrelated/project")
+        )
 
         # Should log warning for invalid format
         mock_logger.warning.assert_called()
@@ -101,18 +105,51 @@ class TestReferenceProjectCLI:
     def test_path_normalization(
         self, mock_is_dir: MagicMock, mock_exists: MagicMock
     ) -> None:
-        """Test conversion to absolute paths."""
+        """Test conversion to canonical resolved paths."""
         # Mock path validation
         mock_exists.return_value = True
         mock_is_dir.return_value = True
 
-        # Test relative path gets converted to absolute
+        # Test relative path gets converted to canonical resolved path
         reference_args = ["proj=./relative/path"]
-        result = validate_reference_projects(reference_args)
+        result = validate_reference_projects(
+            reference_args, project_dir=Path("/unrelated/project")
+        )
 
-        # Should contain absolute path
+        # Should contain canonical resolved path
         assert "proj" in result
-        assert result["proj"].is_absolute()
+        assert result["proj"] == Path("./relative/path").resolve()
+
+    @pytest.mark.parametrize(
+        "overlap_type",
+        ["same_dir", "subdirectory", "parent_dir"],
+    )
+    def test_overlap_detection(self, tmp_path: Path, overlap_type: str) -> None:
+        """Test that reference projects overlapping with project_dir are filtered out."""
+        # Create real directory structure
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        child_dir = project_dir / "subdir"
+        child_dir.mkdir()
+        parent_dir = tmp_path
+
+        if overlap_type == "same_dir":
+            ref_path = project_dir
+        elif overlap_type == "subdirectory":
+            ref_path = child_dir
+        else:  # parent_dir
+            ref_path = parent_dir
+
+        reference_args = [f"overlap_ref={ref_path}"]
+
+        with patch("mcp_workspace.main.stdlogger") as mock_logger:
+            result = validate_reference_projects(
+                reference_args, project_dir=project_dir
+            )
+
+            # Overlapping reference should be filtered out
+            assert result == {}
+            mock_logger.warning.assert_called()
 
     @patch("mcp_workspace.main.stdlogger")
     @patch("mcp_workspace.main.Path.exists")
@@ -123,7 +160,9 @@ class TestReferenceProjectCLI:
         mock_exists.return_value = False
 
         reference_args = ["proj=/nonexistent/path"]
-        result = validate_reference_projects(reference_args)
+        result = validate_reference_projects(
+            reference_args, project_dir=Path("/unrelated/project")
+        )
 
         # Should log warning and return empty dict
         mock_logger.warning.assert_called()
@@ -208,7 +247,7 @@ class TestReferenceProjectMCPTools:
         from mcp_workspace.server import list_reference_directory
 
         # Set up test reference projects
-        test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
+        test_projects = {"test_proj": Path("/tmp/test_project").resolve()}
         server_module._reference_projects = test_projects
 
         # Mock the list_files_util function to return test data
@@ -246,7 +285,7 @@ class TestReferenceProjectMCPTools:
         from mcp_workspace.server import list_reference_directory
 
         # Set up test reference projects
-        test_projects = {"proj_with_gitignore": Path("/tmp/gitignore_test").absolute()}
+        test_projects = {"proj_with_gitignore": Path("/tmp/gitignore_test").resolve()}
         server_module._reference_projects = test_projects
 
         # Mock the list_files_util function
@@ -270,7 +309,7 @@ class TestReferenceProjectMCPTools:
         from mcp_workspace.server import list_reference_directory
 
         # Set up test reference projects
-        test_projects = {"log_test_proj": Path("/tmp/log_test").absolute()}
+        test_projects = {"log_test_proj": Path("/tmp/log_test").resolve()}
         server_module._reference_projects = test_projects
 
         # Mock the list_files_util function
@@ -293,7 +332,7 @@ class TestReferenceProjectMCPTools:
         from mcp_workspace.server import read_reference_file
 
         # Set up test reference projects
-        test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
+        test_projects = {"test_proj": Path("/tmp/test_project").resolve()}
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function to return test data
@@ -331,7 +370,7 @@ class TestReferenceProjectMCPTools:
         from mcp_workspace.server import read_reference_file
 
         # Set up test reference projects
-        test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
+        test_projects = {"test_proj": Path("/tmp/test_project").resolve()}
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function to raise FileNotFoundError
@@ -352,7 +391,7 @@ class TestReferenceProjectMCPTools:
         from mcp_workspace.server import read_reference_file
 
         # Set up test reference projects
-        test_projects = {"test_proj": Path("/tmp/test_project").absolute()}
+        test_projects = {"test_proj": Path("/tmp/test_project").resolve()}
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function to raise security error
@@ -373,7 +412,7 @@ class TestReferenceProjectMCPTools:
         from mcp_workspace.server import read_reference_file
 
         # Set up test reference projects
-        test_projects = {"log_test_proj": Path("/tmp/log_test").absolute()}
+        test_projects = {"log_test_proj": Path("/tmp/log_test").resolve()}
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function
@@ -401,8 +440,8 @@ class TestReferenceProjectServerStorage:
 
         # Test setting reference projects
         test_projects = {
-            "proj1": Path("/path/to/proj1").absolute(),
-            "proj2": Path("/path/to/proj2").absolute(),
+            "proj1": Path("/path/to/proj1").resolve(),
+            "proj2": Path("/path/to/proj2").resolve(),
         }
 
         set_reference_projects(test_projects)
@@ -418,8 +457,8 @@ class TestReferenceProjectServerStorage:
 
         # Test that run_server can be called with reference_projects parameter
         test_projects = {
-            "proj1": Path("/path/to/proj1").absolute(),
-            "proj2": Path("/path/to/proj2").absolute(),
+            "proj1": Path("/path/to/proj1").resolve(),
+            "proj2": Path("/path/to/proj2").resolve(),
         }
 
         # Mock the mcp.run() call to avoid actually starting the server
@@ -438,8 +477,8 @@ class TestReferenceProjectServerStorage:
         from mcp_workspace.server import set_reference_projects
 
         test_projects = {
-            "proj1": Path("/path/to/proj1").absolute(),
-            "proj2": Path("/path/to/proj2").absolute(),
+            "proj1": Path("/path/to/proj1").resolve(),
+            "proj2": Path("/path/to/proj2").resolve(),
         }
 
         # Test logging behavior
@@ -465,7 +504,9 @@ class TestReferenceProjectServerStorage:
         # Test empty name gets rejected
         reference_args = ["=/path/to/proj"]
         with patch("mcp_workspace.main.stdlogger") as mock_logger:
-            result = validate_reference_projects(reference_args)
+            result = validate_reference_projects(
+                reference_args, project_dir=Path("/unrelated/project")
+            )
 
             # Should log warning for empty name
             mock_logger.warning.assert_called()
@@ -508,12 +549,12 @@ class TestReferenceProjectIntegration:
                 call_args = mock_run_server.call_args
 
                 # Check project_dir argument (positional)
-                assert call_args[0][0] == Path("/test/project").absolute()
+                assert call_args[0][0] == Path("/test/project").resolve()
 
                 # Check reference_projects argument (keyword)
                 expected_ref_projects = {
-                    "proj1": Path("/path/to/proj1").absolute(),
-                    "proj2": Path("/path/to/proj2").absolute(),
+                    "proj1": Path("/path/to/proj1").resolve(),
+                    "proj2": Path("/path/to/proj2").resolve(),
                 }
                 assert call_args[1]["reference_projects"] == expected_ref_projects
 
@@ -542,7 +583,7 @@ class TestReferenceProjectIntegration:
                 call_args = mock_run_server.call_args
 
                 # Check project_dir argument (positional)
-                assert call_args[0][0] == Path("/test/project").absolute()
+                assert call_args[0][0] == Path("/test/project").resolve()
 
                 # Check reference_projects argument (keyword) - should be empty dict
                 assert call_args[1]["reference_projects"] == {}
@@ -582,12 +623,12 @@ class TestReferenceProjectIntegration:
                 call_args = mock_run_server.call_args
 
                 # Check project_dir argument (positional)
-                assert call_args[0][0] == Path("/test/project").absolute()
+                assert call_args[0][0] == Path("/test/project").resolve()
 
                 # Check reference_projects argument with auto-rename
                 expected_ref_projects = {
-                    "proj": Path("/path/to/proj1").absolute(),
-                    "proj_2": Path("/path/to/proj2").absolute(),
-                    "proj_3": Path("/path/to/proj3").absolute(),
+                    "proj": Path("/path/to/proj1").resolve(),
+                    "proj_2": Path("/path/to/proj2").resolve(),
+                    "proj_3": Path("/path/to/proj3").resolve(),
                 }
                 assert call_args[1]["reference_projects"] == expected_ref_projects
