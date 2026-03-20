@@ -97,8 +97,8 @@ def validate_reference_projects(
             )
             continue
 
-        # Convert to absolute path
-        project_path = Path(path_str).absolute()
+        # Convert to canonical resolved path
+        project_path = Path(path_str).resolve()
 
         # Validate path exists and is directory
         if not project_path.exists():
