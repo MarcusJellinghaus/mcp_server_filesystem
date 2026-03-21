@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(mcp-coder set-status:*)
 workflow-stage: code-review
-suggested-next: (bot runs implement) -> /clear -> implementation_review
+suggested-next: (bot runs implement) -> /clear -> implementation_review or implementation_review_supervised
 ---
 
 # Return to plan-ready after major review issues
@@ -12,7 +12,7 @@ Transitions the issue back to `plan-ready` status for re-implementation when cod
 
 | Situation | Action |
 |-----------|--------|
-| Minor fixes | Fix directly, re-run `/implementation_review` |
+| Minor fixes | Fix directly, re-run `/implementation_review` or `/implementation_review_supervised` |
 | **Major issues** | **This command** (after `/implementation_new_tasks` + `/commit_push`) |
 | Approved | `/implementation_approve` |
 
@@ -31,4 +31,4 @@ Confirm the status change was successful. If it fails, report the error. Do not 
 
 ## Next Steps
 
-Run `mcp-coder implement` to process the new steps, then `/implementation_review`.
+Run `mcp-coder implement` to process the new steps, then `/implementation_review` or `/implementation_review_supervised`.
