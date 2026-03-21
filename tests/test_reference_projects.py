@@ -159,6 +159,8 @@ class TestReferenceProjectCLI:
                 )
             else:
                 mock_logger.warning.assert_not_called()
+                assert "ref" in result
+                assert result["ref"] == ref_dir.resolve()
 
     @patch("mcp_workspace.main.stdlogger")
     @patch("mcp_workspace.main.Path.exists")

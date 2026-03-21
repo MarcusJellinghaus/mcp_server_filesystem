@@ -106,7 +106,7 @@ def validate_reference_projects(
             stdlogger.warning(
                 "Reference project path does not exist: name=%s, path=%s",
                 name,
-                str(project_path),
+                project_path,
             )
             continue
 
@@ -114,7 +114,7 @@ def validate_reference_projects(
             stdlogger.warning(
                 "Reference project path is not a directory: name=%s, path=%s",
                 name,
-                str(project_path),
+                project_path,
             )
             continue
 
@@ -123,21 +123,21 @@ def validate_reference_projects(
             stdlogger.warning(
                 "Reference project '%s' points to the same directory as the main project, ignoring: path=%s",
                 name,
-                str(project_path),
+                project_path,
             )
             continue
         elif project_path.is_relative_to(resolved_project_dir):
             stdlogger.warning(
                 "Reference project '%s' is a subdirectory of the main project, ignoring: path=%s",
                 name,
-                str(project_path),
+                project_path,
             )
             continue
         elif resolved_project_dir.is_relative_to(project_path):
             stdlogger.warning(
                 "Reference project '%s' is a parent of the main project, ignoring: path=%s",
                 name,
-                str(project_path),
+                project_path,
             )
             continue
 
