@@ -121,35 +121,42 @@ class TestReferenceProjectCLI:
         assert result["proj"] == Path("./relative/path").resolve()
 
     @pytest.mark.parametrize(
-        "overlap_type",
-        ["same_dir", "subdirectory", "parent_dir"],
+        "ref_subpath, project_subpath, expected_count, expected_warning_fragment",
+        [
+            ("main", "main", 0, "same directory"),
+            ("main/sub", "main", 0, "subdirectory of the main project"),
+            ("projects", "projects/main", 0, "parent of the main project"),
+            ("other", "main", 1, None),
+        ],
     )
-    def test_overlap_detection(self, tmp_path: Path, overlap_type: str) -> None:
+    def test_overlap_detection(
+        self,
+        tmp_path: Path,
+        ref_subpath: str,
+        project_subpath: str,
+        expected_count: int,
+        expected_warning_fragment: "str | None",
+    ) -> None:
         """Test that reference projects overlapping with project_dir are filtered out."""
         # Create real directory structure
-        project_dir = tmp_path / "project"
-        project_dir.mkdir()
-        child_dir = project_dir / "subdir"
-        child_dir.mkdir()
-        parent_dir = tmp_path
+        ref_dir = tmp_path / ref_subpath
+        ref_dir.mkdir(parents=True, exist_ok=True)
+        project_dir = tmp_path / project_subpath
+        project_dir.mkdir(parents=True, exist_ok=True)
 
-        if overlap_type == "same_dir":
-            ref_path = project_dir
-        elif overlap_type == "subdirectory":
-            ref_path = child_dir
-        else:  # parent_dir
-            ref_path = parent_dir
-
-        reference_args = [f"overlap_ref={ref_path}"]
+        reference_args = [f"ref={ref_dir}"]
 
         with patch("mcp_workspace.main.stdlogger") as mock_logger:
             result = validate_reference_projects(
                 reference_args, project_dir=project_dir
             )
 
-            # Overlapping reference should be filtered out
-            assert result == {}
-            mock_logger.warning.assert_called()
+            assert len(result) == expected_count
+            if expected_warning_fragment:
+                assert any(
+                    expected_warning_fragment in str(call)
+                    for call in mock_logger.warning.call_args_list
+                )
 
     @patch("mcp_workspace.main.stdlogger")
     @patch("mcp_workspace.main.Path.exists")

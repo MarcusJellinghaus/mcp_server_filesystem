@@ -126,14 +126,14 @@ def validate_reference_projects(
                 str(project_path),
             )
             continue
-        if project_path.is_relative_to(resolved_project_dir):
+        elif project_path.is_relative_to(resolved_project_dir):
             stdlogger.warning(
                 "Reference project '%s' is a subdirectory of the main project, ignoring: path=%s",
                 name,
                 str(project_path),
             )
             continue
-        if resolved_project_dir.is_relative_to(project_path):
+        elif resolved_project_dir.is_relative_to(project_path):
             stdlogger.warning(
                 "Reference project '%s' is a parent of the main project, ignoring: path=%s",
                 name,
