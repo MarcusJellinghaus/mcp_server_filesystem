@@ -64,15 +64,19 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def validate_reference_projects(reference_args: List[str]) -> Dict[str, Path]:
+def validate_reference_projects(
+    reference_args: List[str], project_dir: Path
+) -> Dict[str, Path]:
     """Parse and validate reference project arguments.
 
     Validates name format (very permissive) and path existence. Logs warnings for invalid
     references and continues with valid ones only. Auto-renames duplicates.
+    Filters out reference projects that overlap with project_dir.
     """
     if not reference_args:
         return {}
 
+    resolved_project_dir = project_dir.resolve()
     validated_projects: Dict[str, Path] = {}
 
     for arg in reference_args:
@@ -94,15 +98,15 @@ def validate_reference_projects(reference_args: List[str]) -> Dict[str, Path]:
             )
             continue
 
-        # Convert to absolute path
-        project_path = Path(path_str).absolute()
+        # Convert to canonical resolved path
+        project_path = Path(path_str).resolve()
 
         # Validate path exists and is directory
         if not project_path.exists():
             stdlogger.warning(
                 "Reference project path does not exist: name=%s, path=%s",
                 name,
-                str(project_path),
+                project_path,
             )
             continue
 
@@ -110,7 +114,30 @@ def validate_reference_projects(reference_args: List[str]) -> Dict[str, Path]:
             stdlogger.warning(
                 "Reference project path is not a directory: name=%s, path=%s",
                 name,
-                str(project_path),
+                project_path,
+            )
+            continue
+
+        # Check for overlap with the main project directory
+        if project_path == resolved_project_dir:
+            stdlogger.warning(
+                "Reference project '%s' points to the same directory as the main project, ignoring: path=%s",
+                name,
+                project_path,
+            )
+            continue
+        elif project_path.is_relative_to(resolved_project_dir):
+            stdlogger.warning(
+                "Reference project '%s' is a subdirectory of the main project, ignoring: path=%s",
+                name,
+                project_path,
+            )
+            continue
+        elif resolved_project_dir.is_relative_to(project_path):
+            stdlogger.warning(
+                "Reference project '%s' is a parent of the main project, ignoring: path=%s",
+                name,
+                project_path,
             )
             continue
 
@@ -141,8 +168,8 @@ def main() -> None:
         )
         sys.exit(1)
 
-    # Convert to absolute path
-    project_dir = project_dir.absolute()
+    # Convert to canonical resolved path
+    project_dir = project_dir.resolve()
 
     # Generate default log file path if not specified
     if args.console_only:
@@ -164,7 +191,9 @@ def main() -> None:
     # Parse reference projects
     reference_projects = {}
     if args.reference_project:
-        reference_projects = validate_reference_projects(args.reference_project)
+        reference_projects = validate_reference_projects(
+            args.reference_project, project_dir
+        )
 
     # Import here to avoid circular imports (after logging is configured)
     from mcp_workspace.server import run_server
