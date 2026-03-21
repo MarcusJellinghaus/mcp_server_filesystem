@@ -135,7 +135,7 @@ class TestReferenceProjectCLI:
         ref_subpath: str,
         project_subpath: str,
         expected_count: int,
-        expected_warning_fragment: "str | None",
+        expected_warning_fragment: str | None,
     ) -> None:
         """Test that reference projects overlapping with project_dir are filtered out."""
         # Create real directory structure
@@ -157,6 +157,8 @@ class TestReferenceProjectCLI:
                     expected_warning_fragment in str(call)
                     for call in mock_logger.warning.call_args_list
                 )
+            else:
+                mock_logger.warning.assert_not_called()
 
     @patch("mcp_workspace.main.stdlogger")
     @patch("mcp_workspace.main.Path.exists")
