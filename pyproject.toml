@@ -41,7 +41,8 @@ dev = [
     "black>=24.10.0",
     "isort>=5.13.2",
     "mypy>=1.13.0",
-    "mcp-tools-py @ git+https://github.com/MarcusJellinghaus/mcp-tools-py.git",
+    # "mcp-tools-py",  # TODO: uncomment once mcp-tools-py is published on PyPI
+    # "mcp-coder",  # TODO: uncomment once mcp-coder is published on PyPI
 ]
 architecture = [
     "import-linter>=2.0",
@@ -50,7 +51,7 @@ architecture = [
     "vulture>=2.14",
 ]
 config = [
-    "mcp-config @ git+https://github.com/MarcusJellinghaus/mcp-config.git",
+    "mcp-config",
 ]
 
 [project.scripts]
@@ -68,8 +69,9 @@ where = ["src"]
 "*" = ["py.typed"]
 
 [tool.setuptools_scm]
+tag_regex = '^(?P<version>\d+\.\d+\.\d+)$'
 # Version is automatically determined from git tags
-# Tag format: v0.1.0 -> version 0.1.0
+# Tag format: 0.1.0 -> version 0.1.0
 # Between releases: 0.1.0.devN+gHASH (includes commit count and hash)
 
 [tool.pytest.ini_options]
