@@ -138,10 +138,17 @@ git diff  # Should show formatting changes if any
 ```
 git status
 git diff
-git add
-git commit
-git push
+git log
+git fetch
+git ls-tree
+git show
 ```
+
+**⚠️ Bash discipline (applies to subagents too):**
+
+- No `cd` prefix — the working directory is already correct.
+- Stick to approved commands above. Avoid unapproved bash commands — they trigger user authorization prompts and interrupt the workflow.
+- Do not chain approved commands with unapproved ones (e.g. `git status && echo "---" && git diff`). The `echo` makes the whole command unapproved. Run approved commands separately instead.
 
 **Git commit message format:**
 - Use standard commit message format
@@ -175,6 +182,7 @@ mcp_workspace/
 Check for large files (>750 lines) that may impact LLM context:
 ```bash
 mcp-coder check file-size --max-lines 750
+mcp-coder check branch-status --llm-truncate
 ```
 
 ## 🎯 Development Guidelines
