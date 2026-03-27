@@ -27,9 +27,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit message prepared
 
 ### Step 2: Add `is_path_gitignored()` Utility Function
-- [ ] Implementation: tests for `is_path_gitignored()` + function in `directory_utils.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: tests for `is_path_gitignored()` + function in `directory_utils.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 3: Enforce Gitignore in All Server File Tools
 - [ ] Implementation: tests for gitignore enforcement + `_check_not_gitignored()` guard in `server.py` + enforce in 6 tool handlers

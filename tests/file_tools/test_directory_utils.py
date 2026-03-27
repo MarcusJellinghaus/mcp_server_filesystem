@@ -12,6 +12,7 @@ from mcp_workspace.file_tools.directory_utils import (
     _discover_files,
     apply_gitignore_filter,
     filter_with_gitignore,
+    is_path_gitignored,
     is_path_in_git_dir,
     list_files,
     read_gitignore_rules,
@@ -96,6 +97,51 @@ def test_git_directory_exclusion(project_dir: Path) -> None:
 def test_is_path_in_git_dir(path: str, expected: bool) -> None:
     """Check if path is correctly identified as inside .git directory."""
     assert is_path_in_git_dir(path) == expected
+
+
+class TestIsPathGitignored:
+    """Tests for is_path_gitignored()."""
+
+    def test_git_dir_path_always_ignored(self, project_dir: Path) -> None:
+        """Paths inside .git/ are always ignored, even without a .gitignore."""
+        assert is_path_gitignored(".git/config", project_dir) is True
+        assert is_path_gitignored(".git/hooks/pre-commit", project_dir) is True
+
+    def test_no_gitignore_file(self, project_dir: Path) -> None:
+        """Without a .gitignore, non-.git paths are not ignored."""
+        # Ensure no .gitignore exists
+        gitignore = project_dir / ".gitignore"
+        if gitignore.exists():
+            gitignore.unlink()
+        assert is_path_gitignored("src/main.py", project_dir) is False
+
+    def test_matched_pattern(self, project_dir: Path) -> None:
+        """A path matching a .gitignore pattern is ignored."""
+        (project_dir / ".gitignore").write_text("*.log\n")
+        assert is_path_gitignored("debug.log", project_dir) is True
+        assert is_path_gitignored("logs/error.log", project_dir) is True
+
+    def test_unmatched_pattern(self, project_dir: Path) -> None:
+        """A path not matching any .gitignore pattern is not ignored."""
+        (project_dir / ".gitignore").write_text("*.log\n")
+        assert is_path_gitignored("src/main.py", project_dir) is False
+
+    def test_directory_pattern(self, project_dir: Path) -> None:
+        """Directory patterns in .gitignore are respected."""
+        (project_dir / ".gitignore").write_text("node_modules/\n")
+        assert is_path_gitignored("node_modules/pkg/index.js", project_dir) is True
+
+    def test_nonexistent_path(self, project_dir: Path) -> None:
+        """Works on paths that don't exist on disk (e.g., pre-save check)."""
+        (project_dir / ".gitignore").write_text("*.log\n")
+        # File does not exist, but pattern still matches
+        assert is_path_gitignored("future/new.log", project_dir) is True
+        assert is_path_gitignored("future/new.txt", project_dir) is False
+
+    def test_gitignore_itself_not_ignored(self, project_dir: Path) -> None:
+        """.gitignore file itself is not ignored."""
+        (project_dir / ".gitignore").write_text("*.log\n")
+        assert is_path_gitignored(".gitignore", project_dir) is False
 
 
 def test_read_gitignore_rules_no_file() -> None:
