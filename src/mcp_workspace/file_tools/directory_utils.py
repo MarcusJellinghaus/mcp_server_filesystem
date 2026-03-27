@@ -16,14 +16,45 @@ from mcp_workspace.file_tools.path_utils import normalize_path
 logger = logging.getLogger(__name__)
 
 
+def is_path_in_git_dir(path: str) -> bool:
+    """Check if a path is inside a .git directory."""
+    return ".git" in Path(path).parts
+
+
+def is_path_gitignored(path: str, project_dir: Path) -> bool:
+    """Check if a path is gitignored.
+
+    Checks both whether the path is inside a .git directory and whether it
+    matches any pattern in the root .gitignore file.
+
+    Works on non-existent paths (e.g., blocking save_file to a new *.log path).
+
+    Args:
+        path: Relative path to check (relative to project_dir).
+        project_dir: Project root directory containing .gitignore.
+
+    Returns:
+        True if the path should be considered ignored.
+    """
+    if is_path_in_git_dir(path):
+        return True
+
+    gitignore_path = project_dir / ".gitignore"
+    matcher, _ = read_gitignore_rules(gitignore_path)
+    if matcher is None:
+        return False
+
+    abs_path = str(project_dir / path)
+    return bool(matcher(abs_path))
+
+
 def _discover_files(directory: Path, project_dir: Path) -> List[str]:
     """Discover all files recursively, excluding the .git directory."""
     discovered_files = []
 
     for root, dirs, files in os.walk(directory):
         # Skip .git directories
-        if ".git" in dirs:
-            dirs.remove(".git")
+        dirs[:] = [d for d in dirs if not is_path_in_git_dir(d)]
 
         root_path = Path(root)
         try:
