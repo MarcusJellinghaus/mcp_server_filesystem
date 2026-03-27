@@ -59,30 +59,22 @@ dirs[:] = [d for d in dirs if not is_path_in_git_dir(d)]
 ```python
 # tests/file_tools/test_directory_utils.py
 
-def test_is_path_in_git_dir_with_git_config():
-    """Path .git/config is inside .git directory."""
-    assert is_path_in_git_dir(".git/config") is True
-
-def test_is_path_in_git_dir_with_git_hooks():
-    """Path .git/hooks/pre-commit is inside .git directory."""
-    assert is_path_in_git_dir(".git/hooks/pre-commit") is True
-
-def test_is_path_in_git_dir_normal_file():
-    """Normal file path is not inside .git."""
-    assert is_path_in_git_dir("src/main.py") is False
-
-def test_is_path_in_git_dir_gitignore_file():
-    """.gitignore is NOT inside .git directory (it's a regular file)."""
-    assert is_path_in_git_dir(".gitignore") is False
-
-def test_is_path_in_git_dir_dot_git_only():
-    """Bare .git path is inside .git directory."""
-    assert is_path_in_git_dir(".git") is True
-
-def test_git_directory_exclusion_still_works():
-    """Existing test — verify _discover_files() still excludes .git after refactor."""
-    # (existing test_git_directory_exclusion already covers this)
+@pytest.mark.parametrize(
+    "path, expected",
+    [
+        (".git/config", True),
+        (".git/hooks/pre-commit", True),
+        ("src/main.py", False),
+        (".gitignore", False),
+        (".git", True),
+    ],
+)
+def test_is_path_in_git_dir(path: str, expected: bool):
+    """Check if path is correctly identified as inside .git directory."""
+    assert is_path_in_git_dir(path) == expected
 ```
+
+Verify existing `test_git_directory_exclusion` still passes (regression check).
 
 ## Commit Message
 

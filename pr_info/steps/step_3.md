@@ -60,6 +60,13 @@ from mcp_workspace.file_tools.directory_utils import is_path_gitignored
 def _check_not_gitignored(file_path: str) -> None:
     if _project_dir is None:
         return  # Can't check without project_dir; other validation will catch this
+    # Normalize to relative path for gitignore checking
+    path = Path(file_path)
+    if path.is_absolute():
+        try:
+            file_path = str(path.relative_to(_project_dir))
+        except ValueError:
+            return  # Path outside project dir — other validation handles this
     if is_path_gitignored(file_path, _project_dir):
         raise ValueError(
             f"File '{file_path}' is excluded by .gitignore and cannot be accessed. "
@@ -79,13 +86,16 @@ def read_file(file_path: str) -> str:
 
 ### For `move_file` specifically
 
+> **Important:** Place gitignore checks **before** the existing `try/except` block in `move_file`, because that block catches `ValueError` and rewrites the message to `'Invalid operation'`, which would hide the gitignore error.
+
 ```python
 @mcp.tool()
 def move_file(source_path: str, destination_path: str) -> bool:
     # ... existing input validation ...
-    _check_not_gitignored(source_path)       # ← ADD
-    _check_not_gitignored(destination_path)   # ← ADD
-    # ... existing business logic ...
+    _check_not_gitignored(source_path)       # ← BEFORE try/except block
+    _check_not_gitignored(destination_path)   # ← BEFORE try/except block
+    try:
+        # ... existing business logic ...
 ```
 
 ## DATA
