@@ -19,7 +19,7 @@
         "PYTHONPATH": "${MCP_CODER_PROJECT_DIR}/src"
       }
     },
-    "filesystem": {
+    "workspace": {
       "type": "stdio",
       "command": "${VIRTUAL_ENV}\\Scripts\\mcp-workspace.exe",
       "args": [

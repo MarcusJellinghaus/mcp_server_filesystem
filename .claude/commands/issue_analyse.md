@@ -14,6 +14,8 @@ First, fetch the issue details:
 gh issue view $ARGUMENTS
 ```
 
+If no issue number is provided via `$ARGUMENTS`, check `.vscodeclaude_status.txt` for the current issue number.
+
 Then analyze the issue:
 
 Can we discuss this requirement / implementation idea and its feasibility?

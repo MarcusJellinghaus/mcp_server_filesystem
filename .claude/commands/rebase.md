@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git fetch:*), Bash(git rebase:*), Bash(git add:*), Bash(git commit:*), Bash(git push --force-with-lease:*), Bash(git diff:*), Bash(git checkout --ours:*), Bash(git checkout --theirs:*), Bash(git rebase --abort:*), Bash(./tools/format_all.sh:*), Bash(mcp-coder gh-tool get-base-branch), mcp__tools-py__run_pylint_check, mcp__tools-py__run_pytest_check, mcp__tools-py__run_mypy_check, mcp__filesystem__read_file, mcp__filesystem__edit_file
+allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git ls-files *), Bash(git fetch *), Bash(git rebase *), Bash(git add *), Bash(git rm *), Bash(git commit *), Bash(git checkout --ours *), Bash(git remote get-url *), Bash(git checkout --theirs *), Bash(git restore *), Bash(git stash *), Bash(git push --force-with-lease *), Bash(git diff *), Bash(git rev-parse *), Bash(gh run view *), Bash(./tools/format_all.sh), Bash(tools/format_all.bat), Bash(gh issue view *), mcp__tools-py__run_pylint_check, mcp__tools-py__run_pytest_check, mcp__tools-py__run_mypy_check, mcp__workspace__get_reference_projects, mcp__workspace__list_reference_directory, mcp__workspace__read_reference_file, mcp__workspace__list_directory, mcp__workspace__read_file, mcp__workspace__save_file, mcp__workspace__append_file, mcp__workspace__delete_this_file, mcp__workspace__move_file, mcp__workspace__edit_file
 workflow-stage: utility
 suggested-next: (context-dependent)
 ---
@@ -22,6 +22,10 @@ BASE_BRANCH=$(mcp-coder gh-tool get-base-branch)
 echo "Rebasing onto: $BASE_BRANCH"
 ```
 
+## Base Branch Confirmation
+
+If the base branch is not `main` or `master`, ask the user to confirm before proceeding. Display the detected base branch and wait for explicit approval.
+
 ## Pre-flight Checks (Abort if any fail)
 
 1. Working directory is clean (`git status` shows no uncommitted changes)
@@ -40,11 +44,10 @@ echo "Rebasing onto: $BASE_BRANCH"
    - Verify no conflict markers remain
    - `git add <file>`
    - `git rebase --continue`
-4. `./tools/format_all.sh`
-5. Run code checks: `mcp__tools-py__run_pytest_check`, `mcp__tools-py__run_pylint_check`, `mcp__tools-py__run_mypy_check`
-6. Fix any issues from merge
-7. Report summary and ask for user confirmation
-8. `git push --force-with-lease`
+4. Run code checks: `mcp__tools-py__run_pytest_check`, `mcp__tools-py__run_pylint_check`, `mcp__tools-py__run_mypy_check`
+5. Fix any issues from merge
+6. Report summary and ask for user confirmation
+7. `git push --force-with-lease`
 
 ## Conflict Resolution Strategies
 
@@ -63,5 +66,6 @@ echo "Rebasing onto: $BASE_BRANCH"
 3. Conflict markers remain after resolution - abort
 4. Same file conflicts 3+ times - abort
 5. Code quality fails after 2 fix attempts - abort
+6. Any other unexpected situation - abort, suggest manual intervention
 
 On abort: run `git rebase --abort`, report which rule triggered, suggest next steps.

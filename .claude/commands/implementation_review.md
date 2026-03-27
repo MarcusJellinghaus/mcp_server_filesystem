@@ -1,7 +1,10 @@
 ---
-allowed-tools: Bash(git fetch:*), Bash(git status:*), Bash(git diff:*), Bash(mcp-coder check branch-status:*), Bash(mcp-coder git-tool compact-diff:*), mcp__filesystem__read_file, mcp__filesystem__list_directory
+allowed-tools: Bash(git fetch *), Bash(git status *), Bash(git diff *), Bash(mcp-coder git-tool compact-diff *), Bash(mcp-coder check branch-status *), Read, Glob, Grep
 workflow-stage: code-review
-suggested-next: commit_push
+suggested-next:
+  - if incomplete tasks found _> implementation_finalise
+  - discuss -> commit_push -> implementation_approve
+  - discuss -> implementation_new_tasks -> commit_push -> implementation_needs_rework  
 ---
 
 # Implementation Review (Code Review)
@@ -21,20 +24,19 @@ Confirm and display the current feature branch name.
 
 ## Code Review Request
 
-Get the changes to review:
+Run this command to get the changes to review:
 ```bash
 mcp-coder git-tool compact-diff
 ```
 
-No need to run all checks manually - the CLAUDE.md file requires all quality checks to pass after every change.
+No need to run all checks; do not use pylint warnings. Feel free to further analyse any mentioned files and/or the file structure.
 
 ### Focus Areas:
 - Logic errors or bugs
-- MCP protocol compliance and best practices
+- Tests for `__main__` functions should be removed (not needed)
 - Unnecessary debug code or print statements
 - Code that could break existing functionality
-- Type safety (mypy strict compliance)
-- Test coverage for new functionality
+- Compliance with existing architecture principles, see `docs/architecture/architecture.md`
 
 ### Output Format:
 1. **Summary** - What changed (1-2 sentences)
