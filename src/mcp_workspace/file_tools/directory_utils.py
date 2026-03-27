@@ -16,14 +16,18 @@ from mcp_workspace.file_tools.path_utils import normalize_path
 logger = logging.getLogger(__name__)
 
 
+def is_path_in_git_dir(path: str) -> bool:
+    """Check if a path is inside a .git directory."""
+    return ".git" in Path(path).parts
+
+
 def _discover_files(directory: Path, project_dir: Path) -> List[str]:
     """Discover all files recursively, excluding the .git directory."""
     discovered_files = []
 
     for root, dirs, files in os.walk(directory):
         # Skip .git directories
-        if ".git" in dirs:
-            dirs.remove(".git")
+        dirs[:] = [d for d in dirs if not is_path_in_git_dir(d)]
 
         root_path = Path(root)
         try:

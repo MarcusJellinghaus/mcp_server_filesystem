@@ -12,6 +12,7 @@ from mcp_workspace.file_tools.directory_utils import (
     _discover_files,
     apply_gitignore_filter,
     filter_with_gitignore,
+    is_path_in_git_dir,
     list_files,
     read_gitignore_rules,
 )
@@ -80,6 +81,21 @@ def test_git_directory_exclusion(project_dir: Path) -> None:
 
     # Assert that the git file is excluded
     assert git_path not in discovered_paths
+
+
+@pytest.mark.parametrize(
+    "path, expected",
+    [
+        (".git/config", True),
+        (".git/hooks/pre-commit", True),
+        ("src/main.py", False),
+        (".gitignore", False),
+        (".git", True),
+    ],
+)
+def test_is_path_in_git_dir(path: str, expected: bool) -> None:
+    """Check if path is correctly identified as inside .git directory."""
+    assert is_path_in_git_dir(path) == expected
 
 
 def test_read_gitignore_rules_no_file() -> None:

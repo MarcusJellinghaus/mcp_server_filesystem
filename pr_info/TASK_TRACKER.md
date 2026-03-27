@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Add `is_path_in_git_dir()` Helper and DRY-Refactor `_discover_files()`
-- [ ] Implementation: tests for `is_path_in_git_dir()` + function + refactor `_discover_files()` to use it
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: tests for `is_path_in_git_dir()` + function + refactor `_discover_files()` to use it
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 2: Add `is_path_gitignored()` Utility Function
 - [ ] Implementation: tests for `is_path_gitignored()` + function in `directory_utils.py`
