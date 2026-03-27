@@ -26,6 +26,9 @@ dist/
 # Default log folder used by mcp servers
 /logs/
 
+# Rope refactoring project
+.ropeproject/
+
 # Cache files
 .pytest_cache/
 .mypy_cache/

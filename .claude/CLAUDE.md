@@ -14,13 +14,14 @@
 
 | Task | ❌ NEVER USE | ✅ USE MCP TOOL |
 |------|--------------|------------------|
-| Read file | `Read()` | `mcp__filesystem__read_file()` |
-| Edit file | `Edit()` | `mcp__filesystem__edit_file()` |
-| Write file | `Write()` | `mcp__filesystem__save_file()` |
+| Read file | `Read()` | `mcp__workspace__read_file()` |
+| Edit file | `Edit()` | `mcp__workspace__edit_file()` |
+| Write file | `Write()` | `mcp__workspace__save_file()` |
 | Run pytest | `Bash("pytest ...")` | `mcp__tools-py__run_pytest_check()` |
 | Run pylint | `Bash("pylint ...")` | `mcp__tools-py__run_pylint_check()` |
 | Run mypy | `Bash("mypy ...")` | `mcp__tools-py__run_mypy_check()` |
 | Git operations | ✅ `Bash("git ...")` | ✅ `Bash("git ...")` (allowed) |
+| Refactoring | Manual copy-paste | `mcp__tools-py__move_symbol()`, `list_symbols()`, `find_references()` |
 
 ## 🔴 CRITICAL: Code Quality Requirements
 
@@ -58,19 +59,19 @@ mcp__tools-py__run_pytest_check(extra_args=["-n", "auto", "-v", "-s", "--tb=shor
 **YOU MUST USE THESE MCP TOOLS** for all file operations:
 
 ```
-mcp__filesystem__get_reference_projects
-mcp__filesystem__list_reference_directory
-mcp__filesystem__read_reference_file
-mcp__filesystem__list_directory
-mcp__filesystem__read_file
-mcp__filesystem__save_file
-mcp__filesystem__append_file
-mcp__filesystem__delete_this_file
-mcp__filesystem__move_file
-mcp__filesystem__edit_file
+mcp__workspace__get_reference_projects
+mcp__workspace__list_reference_directory
+mcp__workspace__read_reference_file
+mcp__workspace__list_directory
+mcp__workspace__read_file
+mcp__workspace__save_file
+mcp__workspace__append_file
+mcp__workspace__delete_this_file
+mcp__workspace__move_file
+mcp__workspace__edit_file
 ```
 
-**⚠️ ABSOLUTELY FORBIDDEN:** Using `Read`, `Write`, `Edit`, `MultiEdit` tools when MCP filesystem tools are available.
+**⚠️ ABSOLUTELY FORBIDDEN:** Using `Read`, `Write`, `Edit`, `MultiEdit` tools when MCP workspace tools are available.
 
 ### Quick Examples:
 
@@ -82,9 +83,9 @@ Write(file_path="src/new_module.py", content="...")
 Bash("pytest tests/")
 
 # ✅ CORRECT - MCP tools
-mcp__filesystem__read_file(file_path="src/mcp_workspace/server.py")
-mcp__filesystem__edit_file(file_path="src/mcp_workspace/server.py", edits=[...])
-mcp__filesystem__save_file(file_path="src/new_module.py", content="...")
+mcp__workspace__read_file(file_path="src/mcp_workspace/server.py")
+mcp__workspace__edit_file(file_path="src/mcp_workspace/server.py", edits=[...])
+mcp__workspace__save_file(file_path="src/new_module.py", content="...")
 mcp__tools-py__run_pytest_check(extra_args=["-n", "auto"])
 ```
 
