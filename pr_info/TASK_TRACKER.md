@@ -21,6 +21,21 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Add `is_path_in_git_dir()` Helper and DRY-Refactor `_discover_files()`
+- [ ] Implementation: tests for `is_path_in_git_dir()` + function + refactor `_discover_files()` to use it
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 2: Add `is_path_gitignored()` Utility Function
+- [ ] Implementation: tests for `is_path_gitignored()` + function in `directory_utils.py`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 3: Enforce Gitignore in All Server File Tools
+- [ ] Implementation: tests for gitignore enforcement + `_check_not_gitignored()` guard in `server.py` + enforce in 6 tool handlers
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
 
 ## Pull Request
+- [ ] PR review: verify all steps integrated correctly, no regressions
+- [ ] PR summary prepared
