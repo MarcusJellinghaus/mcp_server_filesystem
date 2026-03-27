@@ -13,6 +13,7 @@ from mcp_workspace.file_tools import move_file as move_file_util
 from mcp_workspace.file_tools import normalize_path
 from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
+from mcp_workspace.file_tools.directory_utils import is_path_gitignored
 from mcp_workspace.log_utils import log_function_call
 
 # Initialize loggers
@@ -26,6 +27,27 @@ _project_dir: Optional[Path] = None
 
 # Store reference projects as a module-level variable
 _reference_projects: Dict[str, Path] = {}
+
+
+def _check_not_gitignored(file_path: str) -> None:
+    """Raise ValueError if path is excluded by .gitignore.
+
+    This is a security boundary — always enforced, no toggle.
+    """
+    if _project_dir is None:
+        return  # Can't check without project_dir; other validation will catch this
+    # Normalize to relative path for gitignore checking
+    path = Path(file_path)
+    if path.is_absolute():
+        try:
+            file_path = str(path.relative_to(_project_dir))
+        except ValueError:
+            return  # Path outside project dir — other validation handles this
+    if is_path_gitignored(file_path, _project_dir):
+        raise ValueError(
+            f"File '{file_path}' is excluded by .gitignore and cannot be accessed. "
+            "Use list_directory() to see available files."
+        )
 
 
 @log_function_call
@@ -202,6 +224,8 @@ def read_file(file_path: str) -> str:
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
 
+    _check_not_gitignored(file_path)
+
     logger.info("Reading file: %s", file_path)
     try:
         content = read_file_util(file_path, project_dir=_project_dir)
@@ -236,6 +260,8 @@ def save_file(file_path: str, content: Any) -> bool:
 
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
+
+    _check_not_gitignored(file_path)
 
     logger.info("Writing to file: %s", file_path)
     try:
@@ -272,6 +298,8 @@ def append_file(file_path: str, content: Any) -> bool:
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
 
+    _check_not_gitignored(file_path)
+
     logger.info("Appending to file: %s", file_path)
     try:
         success = append_file_util(file_path, content, project_dir=_project_dir)
@@ -300,6 +328,8 @@ def delete_this_file(file_path: str) -> bool:
 
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
+
+    _check_not_gitignored(file_path)
 
     logger.info("Deleting file: %s", file_path)
     try:
@@ -338,6 +368,9 @@ def move_file(source_path: str, destination_path: str) -> bool:
 
     if _project_dir is None:
         raise ValueError("Project directory not configured")
+
+    _check_not_gitignored(source_path)
+    _check_not_gitignored(destination_path)
 
     try:
         # Call the underlying function (all logic is handled internally)
@@ -443,6 +476,8 @@ def edit_file(
                     opt_name,
                     supported_options,
                 )
+
+    _check_not_gitignored(file_path)
 
     logger.info("Editing file: %s, dry_run: %s", file_path, dry_run)
 

@@ -32,9 +32,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit message prepared
 
 ### Step 3: Enforce Gitignore in All Server File Tools
-- [ ] Implementation: tests for gitignore enforcement + `_check_not_gitignored()` guard in `server.py` + enforce in 6 tool handlers
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: tests for gitignore enforcement + `_check_not_gitignored()` guard in `server.py` + enforce in 6 tool handlers
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ## Pull Request
 - [ ] PR review: verify all steps integrated correctly, no regressions

@@ -8,7 +8,10 @@ import pytest
 
 from mcp_workspace.server import (
     append_file,
+    delete_this_file,
+    edit_file,
     list_directory,
+    move_file,
     read_file,
     save_file,
     set_project_dir,
@@ -214,9 +217,6 @@ def test_list_directory_error_handling(
 
 def test_move_file(project_dir: Path) -> None:
     """Test the move_file tool."""
-    # Import move_file here to avoid issues if not yet implemented
-    from mcp_workspace.server import move_file
-
     # Create source file
     source_file = TEST_DIR / "source.txt"
     dest_file = TEST_DIR / "dest.txt"
@@ -248,9 +248,6 @@ def test_move_file(project_dir: Path) -> None:
 
 def test_move_file_simplified_errors(project_dir: Path) -> None:
     """Test that server endpoint returns simplified error messages."""
-    # Import move_file here to avoid issues if not yet implemented
-    from mcp_workspace.server import move_file
-
     # Test file not found
     with pytest.raises(FileNotFoundError) as exc_info:
         move_file("nonexistent.txt", "dest.txt")
@@ -283,9 +280,6 @@ def test_move_file_simplified_errors(project_dir: Path) -> None:
 @patch("mcp_workspace.server.move_file_util")
 def test_move_file_permission_error(mock_move: MagicMock, project_dir: Path) -> None:
     """Test permission error handling in move_file."""
-    # Import move_file here to avoid issues if not yet implemented
-    from mcp_workspace.server import move_file
-
     # Mock move_file_util to raise PermissionError
     mock_move.side_effect = PermissionError("Access denied to file: /some/path")
 
@@ -297,9 +291,6 @@ def test_move_file_permission_error(mock_move: MagicMock, project_dir: Path) -> 
 @patch("mcp_workspace.server.move_file_util")
 def test_move_file_security_error(mock_move: MagicMock, project_dir: Path) -> None:
     """Test security error handling in move_file."""
-    # Import move_file here to avoid issues if not yet implemented
-    from mcp_workspace.server import move_file
-
     # Mock move_file_util to raise ValueError with security message
     mock_move.side_effect = ValueError("Security: Path outside project directory")
 
@@ -312,11 +303,112 @@ def test_move_file_security_error(mock_move: MagicMock, project_dir: Path) -> No
 def test_move_file_generic_error(mock_move: MagicMock, project_dir: Path) -> None:
     """Test generic error handling in move_file."""
     # Import move_file here to avoid issues if not yet implemented
-    from mcp_workspace.server import move_file
+    from mcp_workspace.server import move_file as move_file_fn
 
     # Mock move_file_util to raise a generic exception
     mock_move.side_effect = RuntimeError("Some complex internal error")
 
     with pytest.raises(RuntimeError) as exc:
-        move_file("source.txt", "dest.txt")
+        move_file_fn("source.txt", "dest.txt")
     assert str(exc.value) == "Move operation failed"  # Simple message
+
+
+# --- Gitignore enforcement tests ---
+
+
+@pytest.fixture
+def gitignore_project(project_dir: Path) -> Path:
+    """Project dir with a .gitignore that blocks *.log and __pycache__/."""
+    (project_dir / ".gitignore").write_text("*.log\n__pycache__/\n")
+    return project_dir
+
+
+def test_read_file_gitignored(gitignore_project: Path) -> None:
+    """read_file on gitignored file raises ValueError."""
+    (gitignore_project / "debug.log").write_text("log content")
+    with pytest.raises(ValueError, match="excluded by .gitignore"):
+        read_file("debug.log")
+
+
+def test_save_file_gitignored(gitignore_project: Path) -> None:
+    """save_file to gitignored path raises ValueError."""
+    with pytest.raises(ValueError, match="excluded by .gitignore"):
+        save_file("output.log", "content")
+
+
+def test_edit_file_gitignored(gitignore_project: Path) -> None:
+    """edit_file on gitignored file raises ValueError."""
+    with pytest.raises(ValueError, match="excluded by .gitignore"):
+        edit_file("debug.log", [{"old_text": "a", "new_text": "b"}])
+
+
+def test_append_file_gitignored(gitignore_project: Path) -> None:
+    """append_file to gitignored file raises ValueError."""
+    (gitignore_project / "debug.log").write_text("existing")
+    with pytest.raises(ValueError, match="excluded by .gitignore"):
+        append_file("debug.log", "more")
+
+
+def test_delete_file_gitignored(gitignore_project: Path) -> None:
+    """delete_this_file on gitignored file raises ValueError."""
+    (gitignore_project / "debug.log").write_text("to delete")
+    with pytest.raises(ValueError, match="excluded by .gitignore"):
+        delete_this_file("debug.log")
+
+
+def test_move_file_gitignored_source(gitignore_project: Path) -> None:
+    """move_file with gitignored source raises ValueError."""
+    (gitignore_project / "debug.log").write_text("content")
+    with pytest.raises(ValueError, match="excluded by .gitignore"):
+        move_file("debug.log", "renamed.txt")
+
+
+def test_move_file_gitignored_destination(gitignore_project: Path) -> None:
+    """move_file with gitignored destination raises ValueError."""
+    (gitignore_project / "safe.txt").write_text("content")
+    with pytest.raises(ValueError, match="excluded by .gitignore"):
+        move_file("safe.txt", "output.log")
+
+
+def test_read_file_in_gitignored_directory(gitignore_project: Path) -> None:
+    """File inside gitignored directory (__pycache__/) is blocked."""
+    cache_dir = gitignore_project / "__pycache__"
+    cache_dir.mkdir()
+    (cache_dir / "module.pyc").write_text("bytecode")
+    with pytest.raises(ValueError, match="excluded by .gitignore"):
+        read_file("__pycache__/module.pyc")
+
+
+def test_read_file_git_config(gitignore_project: Path) -> None:
+    """read_file on .git/config is blocked."""
+    git_dir = gitignore_project / ".git"
+    git_dir.mkdir()
+    (git_dir / "config").write_text("[core]")
+    with pytest.raises(ValueError, match="excluded by .gitignore"):
+        read_file(".git/config")
+
+
+def test_save_file_git_hooks(gitignore_project: Path) -> None:
+    """save_file to .git/hooks/ is blocked."""
+    with pytest.raises(ValueError, match="excluded by .gitignore"):
+        save_file(".git/hooks/pre-commit", "#!/bin/sh")
+
+
+def test_read_file_not_gitignored(gitignore_project: Path) -> None:
+    """Non-gitignored file works normally."""
+    (gitignore_project / "readme.txt").write_text("hello")
+    content = read_file("readme.txt")
+    assert content == "hello"
+
+
+def test_save_file_not_gitignored(gitignore_project: Path) -> None:
+    """Non-gitignored save works normally."""
+    result = save_file("readme.txt", "hello")
+    assert result is True
+
+
+def test_read_file_no_gitignore(project_dir: Path) -> None:
+    """Without .gitignore, all files are accessible."""
+    (project_dir / "debug.log").write_text("log content")
+    content = read_file("debug.log")
+    assert content == "log content"
