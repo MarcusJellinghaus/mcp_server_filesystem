@@ -23,8 +23,8 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ### Step 1: Add `[tool.mcp-coder.from-github]` config to pyproject.toml
 - [x] Implementation: insert config block into pyproject.toml ([step_1.md](./steps/step_1.md))
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ## Pull Request
 - [ ] PR review
