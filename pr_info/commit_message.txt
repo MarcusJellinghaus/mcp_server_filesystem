@@ -1,0 +1,13 @@
+feat: add search_files glob-only file search mode
+
+Add search_files() business logic function in file_tools/search.py with
+glob-only file search mode using fnmatch for pattern matching. Reuses
+existing list_files() for gitignore-aware file discovery.
+
+Includes support for:
+- File search by glob pattern (fnmatch for Python 3.11 compatibility)
+- Output limiting via max_results with truncated flag
+- ValueError when neither glob nor pattern is provided
+
+Tests cover glob matching, empty results, max_results truncation,
+and gitignore filtering.

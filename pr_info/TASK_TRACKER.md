@@ -24,9 +24,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ### Step 1: File Search (Glob-Only) Mode
 > [Detail](./steps/step_1.md) | Commit: `feat: add search_files glob-only file search mode`
 
-- [ ] Implementation: create `search.py` with glob-only `search_files` + tests in `test_search.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: create `search.py` with glob-only `search_files` + tests in `test_search.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 2: Content Search and Combined Mode
 > [Detail](./steps/step_2.md) | Commit: `feat: add search_files content and combined search modes`
