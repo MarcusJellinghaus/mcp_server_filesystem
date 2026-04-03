@@ -38,9 +38,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ### Step 3: Wire Up MCP Tool
 > [Detail](./steps/step_3.md) | Commit: `feat: wire up search_files as MCP tool`
 
-- [ ] Implementation: export from `file_tools/__init__.py`, add `@mcp.tool()` in `server.py`, update `vulture_whitelist.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: export from `file_tools/__init__.py`, add `@mcp.tool()` in `server.py`, update `vulture_whitelist.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ## Pull Request
 

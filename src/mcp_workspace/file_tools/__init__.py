@@ -16,6 +16,7 @@ from mcp_workspace.file_tools.git_operations import (
     is_git_repository,
 )
 from mcp_workspace.file_tools.path_utils import normalize_path
+from mcp_workspace.file_tools.search import search_files
 
 # Define what functions are exposed when importing from this package
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "is_git_repository",
     "is_file_tracked",
     "git_move",
+    "search_files",
 ]

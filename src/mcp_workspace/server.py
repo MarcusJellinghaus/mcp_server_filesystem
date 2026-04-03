@@ -13,6 +13,7 @@ from mcp_workspace.file_tools import move_file as move_file_util
 from mcp_workspace.file_tools import normalize_path
 from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
+from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
 from mcp_workspace.log_utils import log_function_call
 
@@ -183,6 +184,46 @@ def list_reference_directory(reference_name: str) -> List[str]:
     # Call list_files_util with gitignore filtering enabled
     # The utility function handles all parameter validation
     return list_files_util(".", project_dir=ref_path, use_gitignore=True)
+
+
+@mcp.tool()
+@log_function_call
+def search_files(
+    glob: Optional[str] = None,
+    pattern: Optional[str] = None,
+    context_lines: int = 0,
+    max_results: int = 50,
+    max_result_lines: int = 200,
+) -> Dict[str, Any]:
+    """Search file contents by regex and/or find files by glob pattern.
+
+    Modes:
+        - File search: provide `glob` to find files by path pattern (like find)
+        - Content search: provide `pattern` (regex) to search inside files (like grep)
+        - Combined: both to search content within matching files
+
+    Args:
+        glob: File path pattern (e.g. "**/*.py", "tests/**/test_*.py")
+        pattern: Regex to match file contents (e.g. "def foo", "TODO.*fix")
+        context_lines: Lines of context around each match (0 = match line only)
+        max_results: Maximum number of matches or files returned (default 50)
+        max_result_lines: Hard cap on total output lines (default 200)
+
+    Returns:
+        Dict with matches (content search) or file list (file search),
+        plus truncated flag if results were capped.
+    """
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+
+    return search_files_util(
+        project_dir=_project_dir,
+        glob=glob,
+        pattern=pattern,
+        context_lines=context_lines,
+        max_results=max_results,
+        max_result_lines=max_result_lines,
+    )
 
 
 @mcp.tool()

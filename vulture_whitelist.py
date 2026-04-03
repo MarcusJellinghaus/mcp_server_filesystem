@@ -27,6 +27,8 @@ _.delete_this_file
 _.move_file
 _.edit_file
 
+_.search_files
+
 # Reference project tools
 _.get_reference_projects
 _.list_reference_directory
