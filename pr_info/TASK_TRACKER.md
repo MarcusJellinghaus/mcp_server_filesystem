@@ -31,9 +31,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ### Step 2: Content Search and Combined Mode
 > [Detail](./steps/step_2.md) | Commit: `feat: add search_files content and combined search modes`
 
-- [ ] Implementation: add content search (regex), combined mode, context lines, binary skip + tests
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: add content search (regex), combined mode, context lines, binary skip + tests
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 3: Wire Up MCP Tool
 > [Detail](./steps/step_3.md) | Commit: `feat: wire up search_files as MCP tool`
