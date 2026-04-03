@@ -21,6 +21,28 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: File Search (Glob-Only) Mode
+> [Detail](./steps/step_1.md) | Commit: `feat: add search_files glob-only file search mode`
+
+- [ ] Implementation: create `search.py` with glob-only `search_files` + tests in `test_search.py`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 2: Content Search and Combined Mode
+> [Detail](./steps/step_2.md) | Commit: `feat: add search_files content and combined search modes`
+
+- [ ] Implementation: add content search (regex), combined mode, context lines, binary skip + tests
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 3: Wire Up MCP Tool
+> [Detail](./steps/step_3.md) | Commit: `feat: wire up search_files as MCP tool`
+
+- [ ] Implementation: export from `file_tools/__init__.py`, add `@mcp.tool()` in `server.py`, update `vulture_whitelist.py`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
 
 ## Pull Request
+
+- [ ] PR review: verify all steps complete and checks pass
+- [ ] PR summary prepared
