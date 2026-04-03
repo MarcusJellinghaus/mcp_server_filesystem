@@ -40,7 +40,7 @@ main.py → server.py → file_tools/search.py → directory_utils.py (list_file
 - **Single tool** combining find + grep — fewer tools = simpler for LLMs
 - **Dual output cap**: `max_results` + `max_result_lines`, whichever hits first
 - **Binary files skipped silently** on `UnicodeDecodeError` — no latin-1 fallback
-- **`PurePath.match()`** for glob (stdlib, no dependencies)
+- **`fnmatch.fnmatch()`** for glob (stdlib, no dependencies) — used instead of `PurePath.match()` because `PurePath.match()` does not support recursive `**` patterns on Python 3.11
 - **`re.compile()`** for regex validation upfront
 
 ## Implementation Steps

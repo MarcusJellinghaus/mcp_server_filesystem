@@ -24,7 +24,7 @@ Extend `search_files()` to handle:
 ## HOW
 
 - Read files using `open(abs_path, "r", encoding="utf-8")` directly (not `read_file` util — we need line-by-line access and must skip binary files silently instead of raising)
-- Use `normalize_path` to resolve file paths to absolute
+- Use `normalize_path` to resolve file paths to absolute. Used for its path-traversal security check, not just path resolution — even though paths from `list_files` are already constrained to the project directory, this provides defense-in-depth.
 - Use `re.compile(pattern)` for upfront validation and matching
 - `context_lines` extracts surrounding lines as flat `\n`-joined text
 
@@ -36,7 +36,9 @@ Extend `search_files()` to handle:
 3. For each file: open UTF-8, skip on UnicodeDecodeError
 4.   For each line: if compiled.search(line), extract context window, append match
 5.   Check dual cap: break if max_results or max_result_lines reached
+     `max_result_lines` counts the total number of lines across all match `text` fields. Each match contributes `text.count('\n') + 1` lines. Adjacent/overlapping context windows within the same file are kept as separate matches (no merging).
 6. Return {"mode": "content_search", "matches": [...], "total_matches": N, "truncated": bool}
+   `total_matches` is the count of all matches found before any truncation is applied.
 ```
 
 ## DATA

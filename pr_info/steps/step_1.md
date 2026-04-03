@@ -39,7 +39,8 @@ def search_files(
 - Import `list_files` from `mcp_workspace.file_tools.directory_utils`
 - Import `normalize_path` from `mcp_workspace.file_tools.path_utils`
 - Use `list_files(".", project_dir=project_dir, use_gitignore=True)` to get all files
-- Use `PurePath(file_path).match(glob)` for glob filtering
+- Use `fnmatch.fnmatch(file_path, glob)` for glob filtering (uses `fnmatch` instead of `PurePath.match()` because `PurePath.match()` does not support recursive `**` patterns on Python 3.11)
+- Import `fnmatch` from stdlib for glob matching
 - No `@mcp.tool()` decorator — this is business logic only (wired in step 3)
 
 ## ALGORITHM (file search mode)
@@ -47,9 +48,10 @@ def search_files(
 ```
 1. If neither glob nor pattern: raise ValueError
 2. all_files = list_files(".", project_dir, use_gitignore=True)
-3. If glob provided: matched = [f for f in all_files if PurePath(f).match(glob)]
-4. Truncate matched to max_results; set truncated flag
-5. Return {"mode": "file_search", "files": matched, "total_files": len(matched), "truncated": truncated}
+3. If glob provided: matched = [f for f in all_files if fnmatch.fnmatch(f, glob)]
+4. Uses `fnmatch.fnmatch()` instead of `PurePath.match()` because `PurePath.match()` does not support recursive `**` patterns on Python 3.11.
+5. total = len(matched); truncate matched to max_results; set truncated = total > max_results
+6. Return {"mode": "file_search", "files": matched[:max_results], "total_files": total, "truncated": truncated}
 ```
 
 ## DATA
@@ -72,6 +74,8 @@ ValueError("At least one of 'glob' or 'pattern' must be provided")
 ## TESTS (`tests/file_tools/test_search.py`)
 
 Use the existing `project_dir` fixture from `conftest.py` (provides isolated `tmp_path`).
+
+Tests should create files in a dedicated subdirectory within `project_dir` and use assertions that account for pre-existing testdata files (e.g., check that expected files are a subset of results, or use a unique glob pattern that only matches test-created files).
 
 1. `test_search_files_no_args_raises` — neither glob nor pattern → `ValueError`
 2. `test_search_files_glob_finds_files` — create `.py` and `.txt` files, glob `**/*.py` returns only `.py` files
