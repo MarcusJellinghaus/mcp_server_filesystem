@@ -2,7 +2,7 @@
   "mcpServers": {
     "tools-py": {
       "type": "stdio",
-      "command": "${VIRTUAL_ENV}\\Scripts\\mcp-tools-py.exe",
+      "command": "${MCP_CODER_VENV_PATH}\\mcp-tools-py.exe",
       "args": [
         "--project-dir",
         "${MCP_CODER_PROJECT_DIR}",
@@ -21,7 +21,7 @@
     },
     "workspace": {
       "type": "stdio",
-      "command": "${VIRTUAL_ENV}\\Scripts\\mcp-workspace.exe",
+      "command": "${MCP_CODER_VENV_PATH}\\mcp-workspace.exe",
       "args": [
         "--project-dir",
         "${MCP_CODER_PROJECT_DIR}",
