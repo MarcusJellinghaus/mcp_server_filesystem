@@ -2,18 +2,18 @@
   "mcpServers": {
     "tools-py": {
       "type": "stdio",
-      "command": "${VIRTUAL_ENV}\\Scripts\\mcp-tools-py.exe",
+      "command": "${MCP_CODER_VENV_PATH}\\mcp-tools-py.exe",
       "args": [
         "--project-dir",
         "${MCP_CODER_PROJECT_DIR}",
         "--python-executable",
-        "${VIRTUAL_ENV}\\Scripts\\python.exe",
+        "${MCP_CODER_VENV_PATH}\\python.exe",
         "--venv-path",
-        "${VIRTUAL_ENV}",
+        "${MCP_CODER_VENV_PATH}\\..",
         "--test-folder",
         "tests",
         "--log-level",
-        "INFO"
+        "DEBUG"
       ],
       "env": {
         "PYTHONPATH": "${MCP_CODER_PROJECT_DIR}/src"
@@ -21,12 +21,12 @@
     },
     "workspace": {
       "type": "stdio",
-      "command": "${VIRTUAL_ENV}\\Scripts\\mcp-workspace.exe",
+      "command": "${MCP_CODER_VENV_PATH}\\mcp-workspace.exe",
       "args": [
         "--project-dir",
         "${MCP_CODER_PROJECT_DIR}",
         "--log-level",
-        "INFO",
+        "DEBUG",
         "--reference-project",
         "p_coder=${USERPROFILE}\\Documents\\GitHub\\mcp_coder",
         "--reference-project",

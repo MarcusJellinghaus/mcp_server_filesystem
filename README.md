@@ -227,7 +227,11 @@ The server exposes the following MCP tools:
 - By default, results are filtered based on .gitignore patterns and .git folders are excluded
 
 #### Read File
-- Parameters: `file_path` (string): Path to the file to read (relative to project directory)
+- Parameters:
+  - `file_path` (string): Path to the file to read (relative to project directory)
+  - `start_line` (integer, optional): First line to return (1-based, inclusive). Must be provided together with `end_line`.
+  - `end_line` (integer, optional): Last line to return (1-based, inclusive). Must be provided together with `start_line`.
+  - `with_line_numbers` (boolean, optional): Prefix each line with its line number. Defaults to `True` when a line range is specified, `False` for full reads.
 - Returns the content of the file as a string
 
 #### Save File
@@ -390,6 +394,9 @@ Reads the contents of a file from a reference project.
 **Parameters:**
 - `reference_name` (string): Name of the reference project
 - `file_path` (string): Path to the file within the reference project (relative to reference project root)
+- `start_line` (integer, optional): First line to return (1-based, inclusive). Must be provided together with `end_line`.
+- `end_line` (integer, optional): Last line to return (1-based, inclusive). Must be provided together with `start_line`.
+- `with_line_numbers` (boolean, optional): Prefix each line with its line number. Defaults to `True` when a line range is specified, `False` for full reads.
 
 **Returns:** String containing the file contents
 
@@ -400,6 +407,9 @@ read_reference_file("docs", "README.md")
 
 # Read source file from examples project
 read_reference_file("examples", "src/app.py")
+
+# Read specific lines with line numbers
+read_reference_file("examples", "src/app.py", start_line=10, end_line=20)
 
 # Read config file
 read_reference_file("config", "settings/production.yml")

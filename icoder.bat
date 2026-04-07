@@ -1,7 +1,7 @@
 @echo off
 cls
 setlocal enabledelayedexpansion
-REM Two-env aware launcher for Claude Code with MCP servers
+REM Two-env aware launcher for iCoder with MCP servers
 REM Discovers tool env (mcp-coder) separately from project env (.venv)
 REM Assumes you're running from the project root
 
@@ -83,10 +83,10 @@ set "MCP_CODER_PROJECT_DIR=%CD%"
 set "DISABLE_AUTOUPDATER=1"
 set "PATH=!MCP_CODER_VENV_PATH!;!PATH!"
 
-echo Starting Claude Code with:
+echo Starting iCoder with:
 echo   Tool env:     !MCP_CODER_VENV_PATH!
 echo   Project env:  !VIRTUAL_ENV!
 echo   Project dir:  !MCP_CODER_PROJECT_DIR!
 echo   Venv dir:     !MCP_CODER_VENV_DIR!
 
-C:\Users\%USERNAME%\.local\bin\claude.exe %*
+mcp-coder icoder %*

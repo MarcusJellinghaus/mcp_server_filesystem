@@ -124,12 +124,22 @@ def get_reference_projects() -> Dict[str, Any]:
 
 @mcp.tool()
 @log_function_call
-def read_reference_file(reference_name: str, file_path: str) -> str:
+def read_reference_file(
+    reference_name: str,
+    file_path: str,
+    start_line: Optional[int] = None,
+    end_line: Optional[int] = None,
+    with_line_numbers: Optional[bool] = None,
+) -> str:
     """Read the contents of a file from a reference project.
 
     Args:
         reference_name: Name of the reference project
         file_path: Path to the file to read (relative to reference project directory)
+        start_line: First line to return (1-based, inclusive). Requires end_line.
+        end_line: Last line to return (1-based, inclusive). Requires start_line.
+        with_line_numbers: Prefix lines with line numbers. Defaults to True for
+            sliced reads, False for full reads.
 
     Returns:
         The contents of the file as a string
@@ -152,7 +162,13 @@ def read_reference_file(reference_name: str, file_path: str) -> str:
 
     # Call read_file_util with the reference project directory
     # The utility function handles all parameter validation and security checks
-    return read_file_util(file_path, project_dir=ref_path)
+    return read_file_util(
+        file_path,
+        project_dir=ref_path,
+        start_line=start_line,
+        end_line=end_line,
+        with_line_numbers=with_line_numbers,
+    )
 
 
 @mcp.tool()
@@ -249,11 +265,20 @@ def list_directory() -> List[str]:
 
 @mcp.tool()
 @log_function_call
-def read_file(file_path: str) -> str:
+def read_file(
+    file_path: str,
+    start_line: Optional[int] = None,
+    end_line: Optional[int] = None,
+    with_line_numbers: Optional[bool] = None,
+) -> str:
     """Read the contents of a file.
 
     Args:
         file_path: Path to the file to read (relative to project directory)
+        start_line: First line to return (1-based, inclusive). Requires end_line.
+        end_line: Last line to return (1-based, inclusive). Requires start_line.
+        with_line_numbers: Prefix lines with line numbers. Defaults to True for
+            sliced reads, False for full reads.
 
     Returns:
         The contents of the file as a string
@@ -269,7 +294,13 @@ def read_file(file_path: str) -> str:
 
     logger.info("Reading file: %s", file_path)
     try:
-        content = read_file_util(file_path, project_dir=_project_dir)
+        content = read_file_util(
+            file_path,
+            project_dir=_project_dir,
+            start_line=start_line,
+            end_line=end_line,
+            with_line_numbers=with_line_numbers,
+        )
         return content
     except Exception as e:
         logger.error("Error reading file: %s", str(e))
