@@ -407,35 +407,49 @@ def _write_multiline_file(project_dir: Path, lines: int = 10) -> Path:
 def test_read_file_slicing_basic(project_dir: Path) -> None:
     """Slice lines 3-5 from a 10-line file."""
     _write_multiline_file(project_dir)
-    content = read_file(str(TEST_FILE), project_dir, start_line=3, end_line=5)
+    content = read_file(
+        str(TEST_FILE), project_dir, start_line=3, end_line=5, with_line_numbers=False
+    )
     assert content == "line 3\nline 4\nline 5\n"
 
 
 def test_read_file_slicing_single_line(project_dir: Path) -> None:
     """Slice a single line."""
     _write_multiline_file(project_dir)
-    content = read_file(str(TEST_FILE), project_dir, start_line=1, end_line=1)
+    content = read_file(
+        str(TEST_FILE), project_dir, start_line=1, end_line=1, with_line_numbers=False
+    )
     assert content == "line 1\n"
 
 
 def test_read_file_slicing_clamp_past_eof(project_dir: Path) -> None:
     """end_line beyond file length returns available lines."""
     _write_multiline_file(project_dir)
-    content = read_file(str(TEST_FILE), project_dir, start_line=8, end_line=20)
+    content = read_file(
+        str(TEST_FILE), project_dir, start_line=8, end_line=20, with_line_numbers=False
+    )
     assert content == "line 8\nline 9\nline 10\n"
 
 
 def test_read_file_slicing_start_past_eof(project_dir: Path) -> None:
     """start_line beyond file length returns empty string."""
     _write_multiline_file(project_dir)
-    content = read_file(str(TEST_FILE), project_dir, start_line=100, end_line=200)
+    content = read_file(
+        str(TEST_FILE),
+        project_dir,
+        start_line=100,
+        end_line=200,
+        with_line_numbers=False,
+    )
     assert content == ""
 
 
 def test_read_file_slicing_exact_eof(project_dir: Path) -> None:
     """Slice the very last line of a 10-line file."""
     _write_multiline_file(project_dir)
-    content = read_file(str(TEST_FILE), project_dir, start_line=10, end_line=10)
+    content = read_file(
+        str(TEST_FILE), project_dir, start_line=10, end_line=10, with_line_numbers=False
+    )
     assert content == "line 10\n"
 
 
@@ -451,14 +465,22 @@ def test_read_file_no_trailing_newline(project_dir: Path) -> None:
     """File without trailing newline: slicing last line preserves that."""
     abs_path = project_dir / TEST_FILE
     abs_path.write_text("line 1\nline 2\nline 3", encoding="utf-8")
-    content = read_file(str(TEST_FILE), project_dir, start_line=3, end_line=3)
+    content = read_file(
+        str(TEST_FILE), project_dir, start_line=3, end_line=3, with_line_numbers=False
+    )
     assert content == "line 3"
 
 
 def test_read_file_slicing_large_file(project_dir: Path) -> None:
     """Slicing a large file returns only the requested lines."""
     _write_multiline_file(project_dir, lines=10000)
-    content = read_file(str(TEST_FILE), project_dir, start_line=5000, end_line=5002)
+    content = read_file(
+        str(TEST_FILE),
+        project_dir,
+        start_line=5000,
+        end_line=5002,
+        with_line_numbers=False,
+    )
     assert content == "line 5000\nline 5001\nline 5002\n"
 
 
@@ -490,3 +512,74 @@ def test_append_file_large_content(project_dir: Path) -> None:
     with open(abs_file_path, "r", encoding="utf-8") as f:
         content = f.read()
     assert content == expected_content
+
+
+# --- Step 3: with_line_numbers formatting tests ---
+
+
+def test_read_file_line_numbers_default_on_for_range(project_dir: Path) -> None:
+    """Default with_line_numbers is True when a range is given."""
+    abs_path = project_dir / TEST_FILE
+    abs_path.write_text("line 1\nline 2\nline 3\n", encoding="utf-8")
+    content = read_file(str(TEST_FILE), project_dir, start_line=2, end_line=3)
+    assert content == "2→line 2\n3→line 3\n"
+
+
+def test_read_file_line_numbers_default_off_for_full_read(project_dir: Path) -> None:
+    """Default with_line_numbers is False for full reads (no range)."""
+    abs_path = project_dir / TEST_FILE
+    abs_path.write_text("line 1\nline 2\n", encoding="utf-8")
+    content = read_file(str(TEST_FILE), project_dir)
+    assert content == "line 1\nline 2\n"
+
+
+def test_read_file_line_numbers_explicit_false_on_range(project_dir: Path) -> None:
+    """Explicit with_line_numbers=False suppresses prefixes on range."""
+    abs_path = project_dir / TEST_FILE
+    abs_path.write_text("line 1\nline 2\nline 3\n", encoding="utf-8")
+    content = read_file(
+        str(TEST_FILE), project_dir, start_line=2, end_line=3, with_line_numbers=False
+    )
+    assert content == "line 2\nline 3\n"
+
+
+def test_read_file_line_numbers_explicit_true_on_full_read(project_dir: Path) -> None:
+    """Explicit with_line_numbers=True adds prefixes on full read."""
+    abs_path = project_dir / TEST_FILE
+    abs_path.write_text("line 1\nline 2\nline 3\n", encoding="utf-8")
+    content = read_file(str(TEST_FILE), project_dir, with_line_numbers=True)
+    assert content == "1→line 1\n2→line 2\n3→line 3\n"
+
+
+def test_read_file_line_numbers_dynamic_width_narrow(project_dir: Path) -> None:
+    """Lines 1-9 use width 1."""
+    abs_path = project_dir / TEST_FILE
+    content_lines = "".join(f"L{i}\n" for i in range(1, 10))
+    abs_path.write_text(content_lines, encoding="utf-8")
+    content = read_file(str(TEST_FILE), project_dir, start_line=1, end_line=9)
+    assert content.startswith("1→L1\n")
+    assert "9→L9\n" in content
+
+
+def test_read_file_line_numbers_dynamic_width_wide(project_dir: Path) -> None:
+    """Lines 99-101 use width 3 (right-aligned)."""
+    abs_path = project_dir / TEST_FILE
+    content_lines = "".join(f"L{i}\n" for i in range(1, 102))
+    abs_path.write_text(content_lines, encoding="utf-8")
+    content = read_file(str(TEST_FILE), project_dir, start_line=99, end_line=101)
+    assert content == " 99→L99\n100→L100\n101→L101\n"
+
+
+def test_read_file_slicing_start_past_eof_with_line_numbers(
+    project_dir: Path,
+) -> None:
+    """start_line past EOF with line numbers still returns empty string."""
+    _write_multiline_file(project_dir)
+    content = read_file(
+        str(TEST_FILE),
+        project_dir,
+        start_line=100,
+        end_line=200,
+        with_line_numbers=True,
+    )
+    assert content == ""

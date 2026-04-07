@@ -97,7 +97,15 @@ def read_file(
             if end_line is not None and line_num >= end_line:
                 break
 
-        content = "".join(line for _, line in collected)
+        # Resolve with_line_numbers default
+        if with_line_numbers is None:
+            with_line_numbers = start_line is not None
+
+        if not with_line_numbers or not collected:
+            content = "".join(line for _, line in collected)
+        else:
+            width = len(str(collected[-1][0]))
+            content = "".join(f"{num:>{width}}→{line}" for num, line in collected)
 
         if start_line is not None:
             logger.debug("Read lines %d-%d from %s", start_line, end_line, rel_path)

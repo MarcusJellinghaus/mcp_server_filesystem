@@ -38,9 +38,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ### Step 3: `with_line_numbers` formatting
 > [Detail](./steps/step_3.md) — Implement smart-default `with_line_numbers` and dynamic-width `N→content` prefixes
 
-- [ ] Implementation: tests + production code
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: tests + production code
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 4: Server wrapper updates + forwarding test
 > [Detail](./steps/step_4.md) — Expose new params in MCP tools (`read_file`, `read_reference_file`), update tests, update README

@@ -1,12 +1,13 @@
-feat(read_file): replace f.read() with line-by-line streaming for range slicing
+feat(read_file): add with_line_numbers formatting with smart defaults
 
-Replace the bulk f.read() call with enumerate(file, start=1) streaming.
-When start_line/end_line are provided, only the requested line range is
-collected and returned. Breaks early after end_line for efficiency.
+Implement the with_line_numbers parameter for read_file:
+- Smart default: True when a line range is given, False for full reads
+- Dynamic-width right-aligned line numbers with arrow separator (N→content)
+- Width computed from the largest line number in the returned slice
 
-- Full reads (no range params) return identical content to before
-- Sliced reads clamp end_line to file length, return "" if start > EOF
-- Files without trailing newlines are preserved correctly
-- Updated logging: sliced reads log the line range instead of byte count
-
-Add 8 unit tests for slicing behavior and edge cases.
+Update existing slicing tests to explicitly pass with_line_numbers=False
+to preserve their raw-content assertions. Add 7 new tests covering:
+- Default on/off behavior for range vs full reads
+- Explicit True/False overrides
+- Dynamic width for narrow (1-digit) and wide (3-digit) line numbers
+- Empty result when start_line is past EOF with line numbers enabled
