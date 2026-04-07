@@ -18,13 +18,26 @@ from mcp_workspace.log_utils import log_function_call
 logger = logging.getLogger(__name__)
 
 
-def read_file(file_path: str, project_dir: Path) -> str:
+def read_file(
+    file_path: str,
+    project_dir: Path,
+    start_line: Optional[int] = None,
+    end_line: Optional[int] = None,
+    with_line_numbers: Optional[bool] = None,
+) -> str:
     """
     Read the contents of a file.
 
     Args:
         file_path: Path to the file to read (relative to project directory)
         project_dir: Project directory path
+        start_line: First line to return (1-based, inclusive). Must be
+            provided together with *end_line*.
+        end_line: Last line to return (1-based, inclusive). Must be
+            provided together with *start_line*.
+        with_line_numbers: If ``True``, prefix each returned line with its
+            line number.  Defaults to ``False`` for full reads and ``True``
+            for sliced reads.
 
     Returns:
         The contents of the file as a string
@@ -32,7 +45,8 @@ def read_file(file_path: str, project_dir: Path) -> str:
     Raises:
         FileNotFoundError: If the file does not exist
         PermissionError: If access to the file is denied
-        ValueError: If the file is outside the project directory
+        ValueError: If the file is outside the project directory, or if
+            *start_line* / *end_line* are invalid
     """
     # Validate file_path parameter
     if not file_path or not isinstance(file_path, str):
@@ -42,6 +56,23 @@ def read_file(file_path: str, project_dir: Path) -> str:
     # Validate project_dir parameter
     if project_dir is None:
         raise ValueError("Project directory cannot be None")
+
+    # --- Validate line-range parameters ---
+    _has_start = start_line is not None
+    _has_end = end_line is not None
+    if _has_start != _has_end:
+        raise ValueError(
+            "start_line and end_line must both be provided or both omitted"
+        )
+    if _has_start:  # both are not None
+        if not isinstance(start_line, int) or not isinstance(end_line, int):
+            raise ValueError("start_line and end_line must be integers")
+        if start_line < 1 or end_line < 1:
+            raise ValueError("start_line and end_line must be >= 1")
+        if end_line < start_line:
+            raise ValueError(
+                f"end_line ({end_line}) must be >= start_line ({start_line})"
+            )
 
     # Normalize the path to be relative to the project directory
     abs_path, rel_path = normalize_path(file_path, project_dir)

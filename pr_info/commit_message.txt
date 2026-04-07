@@ -1,0 +1,16 @@
+feat(read_file): add start_line/end_line/with_line_numbers params with input validation
+
+Add three new optional parameters to read_file():
+- start_line: first line to return (1-based, inclusive)
+- end_line: last line to return (1-based, inclusive)
+- with_line_numbers: prefix lines with line numbers (default varies)
+
+Implement strict validation rules:
+- Both start_line and end_line must be provided together or both omitted
+- Values must be integers >= 1
+- end_line must be >= start_line
+
+No behavioral changes when called without new params (backward compatible).
+Slicing and line-number formatting will follow in subsequent steps.
+
+Add 12 unit tests covering all validation edge cases.

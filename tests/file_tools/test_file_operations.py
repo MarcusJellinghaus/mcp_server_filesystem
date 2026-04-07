@@ -293,6 +293,106 @@ def test_append_file_security(project_dir: Path) -> None:
     assert "outside the project directory" in str(excinfo.value)
 
 
+# --- Step 1: read_file parameter validation tests ---
+
+
+def test_read_file_rejects_one_sided_range_start_only(project_dir: Path) -> None:
+    """start_line without end_line must raise ValueError."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("line1\nline2\nline3\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="both be provided or both omitted"):
+        read_file(str(TEST_FILE), project_dir, start_line=1, end_line=None)
+
+
+def test_read_file_rejects_one_sided_range_end_only(project_dir: Path) -> None:
+    """end_line without start_line must raise ValueError."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("line1\nline2\nline3\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="both be provided or both omitted"):
+        read_file(str(TEST_FILE), project_dir, start_line=None, end_line=5)
+
+
+def test_read_file_rejects_zero_start_line(project_dir: Path) -> None:
+    """start_line=0 must raise ValueError (lines are 1-based)."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("line1\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must be >= 1"):
+        read_file(str(TEST_FILE), project_dir, start_line=0, end_line=5)
+
+
+def test_read_file_rejects_zero_end_line(project_dir: Path) -> None:
+    """end_line=0 must raise ValueError (lines are 1-based)."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("line1\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must be >= 1"):
+        read_file(str(TEST_FILE), project_dir, start_line=1, end_line=0)
+
+
+def test_read_file_rejects_negative_start_line(project_dir: Path) -> None:
+    """Negative start_line must raise ValueError."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("line1\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must be >= 1"):
+        read_file(str(TEST_FILE), project_dir, start_line=-1, end_line=5)
+
+
+def test_read_file_rejects_negative_end_line(project_dir: Path) -> None:
+    """Negative end_line must raise ValueError."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("line1\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must be >= 1"):
+        read_file(str(TEST_FILE), project_dir, start_line=1, end_line=-1)
+
+
+def test_read_file_rejects_end_before_start(project_dir: Path) -> None:
+    """end_line < start_line must raise ValueError."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("line1\nline2\nline3\nline4\nline5\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="end_line .* must be >= start_line"):
+        read_file(str(TEST_FILE), project_dir, start_line=5, end_line=3)
+
+
+def test_read_file_rejects_non_int_start_line(project_dir: Path) -> None:
+    """String start_line must raise ValueError."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("line1\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must be integers"):
+        read_file(str(TEST_FILE), project_dir, start_line="1", end_line=5)  # type: ignore[arg-type]
+
+
+def test_read_file_rejects_non_int_end_line(project_dir: Path) -> None:
+    """Float end_line must raise ValueError."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("line1\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must be integers"):
+        read_file(str(TEST_FILE), project_dir, start_line=1, end_line=2.5)  # type: ignore[arg-type]
+
+
+def test_read_file_accepts_bool_true_as_line_1(project_dir: Path) -> None:
+    """bool True (== 1) is a valid int, reads line 1."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("line1\nline2\n", encoding="utf-8")
+    # Should NOT raise — True is int subclass with value 1
+    content = read_file(str(TEST_FILE), project_dir, start_line=True, end_line=True)
+    assert isinstance(content, str)
+
+
+def test_read_file_rejects_bool_false_as_zero(project_dir: Path) -> None:
+    """bool False (== 0) fails the >= 1 check."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("line1\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must be >= 1"):
+        read_file(str(TEST_FILE), project_dir, start_line=False, end_line=5)
+
+
+def test_read_file_unchanged_without_new_params(project_dir: Path) -> None:
+    """Calling without new params returns full content unchanged."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text(TEST_CONTENT, encoding="utf-8")
+    content = read_file(str(TEST_FILE), project_dir)
+    assert content == TEST_CONTENT
+
+
 def test_append_file_large_content(project_dir: Path) -> None:
     """Test appending large content to a file."""
     # Create absolute path for test file

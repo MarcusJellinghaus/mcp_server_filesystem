@@ -24,9 +24,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ### Step 1: Parameter validation in `read_file`
 > [Detail](./steps/step_1.md) — Add `start_line`, `end_line`, `with_line_numbers` params and strict input validation
 
-- [ ] Implementation: tests + production code
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: tests + production code
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 2: Line-range slicing with streaming
 > [Detail](./steps/step_2.md) — Replace `f.read()` with `enumerate(file)` streaming, return only requested lines
