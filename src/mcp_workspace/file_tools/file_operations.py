@@ -89,8 +89,21 @@ def read_file(
     try:
         logger.debug("Reading file: %s", rel_path)
         file_handle = open(abs_path, "r", encoding="utf-8")
-        content = file_handle.read()
-        logger.debug("Successfully read %s bytes from %s", len(content), rel_path)
+
+        collected: list[tuple[int, str]] = []
+        for line_num, line in enumerate(file_handle, start=1):
+            if start_line is None or (start_line <= line_num <= end_line):  # type: ignore[operator]
+                collected.append((line_num, line))
+            if end_line is not None and line_num >= end_line:
+                break
+
+        content = "".join(line for _, line in collected)
+
+        if start_line is not None:
+            logger.debug("Read lines %d-%d from %s", start_line, end_line, rel_path)
+        else:
+            logger.debug("Successfully read %s from %s", rel_path, rel_path)
+
         return content
     except UnicodeDecodeError as e:
         logger.error("Unicode decode error while reading %s: %s", rel_path, str(e))

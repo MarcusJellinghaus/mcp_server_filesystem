@@ -393,6 +393,75 @@ def test_read_file_unchanged_without_new_params(project_dir: Path) -> None:
     assert content == TEST_CONTENT
 
 
+# --- Step 2: Line-range slicing tests ---
+
+
+def _write_multiline_file(project_dir: Path, lines: int = 10) -> Path:
+    """Helper: create a file with numbered lines."""
+    abs_path = project_dir / TEST_FILE
+    content = "".join(f"line {i}\n" for i in range(1, lines + 1))
+    abs_path.write_text(content, encoding="utf-8")
+    return abs_path
+
+
+def test_read_file_slicing_basic(project_dir: Path) -> None:
+    """Slice lines 3-5 from a 10-line file."""
+    _write_multiline_file(project_dir)
+    content = read_file(str(TEST_FILE), project_dir, start_line=3, end_line=5)
+    assert content == "line 3\nline 4\nline 5\n"
+
+
+def test_read_file_slicing_single_line(project_dir: Path) -> None:
+    """Slice a single line."""
+    _write_multiline_file(project_dir)
+    content = read_file(str(TEST_FILE), project_dir, start_line=1, end_line=1)
+    assert content == "line 1\n"
+
+
+def test_read_file_slicing_clamp_past_eof(project_dir: Path) -> None:
+    """end_line beyond file length returns available lines."""
+    _write_multiline_file(project_dir)
+    content = read_file(str(TEST_FILE), project_dir, start_line=8, end_line=20)
+    assert content == "line 8\nline 9\nline 10\n"
+
+
+def test_read_file_slicing_start_past_eof(project_dir: Path) -> None:
+    """start_line beyond file length returns empty string."""
+    _write_multiline_file(project_dir)
+    content = read_file(str(TEST_FILE), project_dir, start_line=100, end_line=200)
+    assert content == ""
+
+
+def test_read_file_slicing_exact_eof(project_dir: Path) -> None:
+    """Slice the very last line of a 10-line file."""
+    _write_multiline_file(project_dir)
+    content = read_file(str(TEST_FILE), project_dir, start_line=10, end_line=10)
+    assert content == "line 10\n"
+
+
+def test_read_file_full_read_unchanged(project_dir: Path) -> None:
+    """Full read (no range) returns identical content to direct file read."""
+    abs_path = _write_multiline_file(project_dir)
+    expected = abs_path.read_text(encoding="utf-8")
+    content = read_file(str(TEST_FILE), project_dir)
+    assert content == expected
+
+
+def test_read_file_no_trailing_newline(project_dir: Path) -> None:
+    """File without trailing newline: slicing last line preserves that."""
+    abs_path = project_dir / TEST_FILE
+    abs_path.write_text("line 1\nline 2\nline 3", encoding="utf-8")
+    content = read_file(str(TEST_FILE), project_dir, start_line=3, end_line=3)
+    assert content == "line 3"
+
+
+def test_read_file_slicing_large_file(project_dir: Path) -> None:
+    """Slicing a large file returns only the requested lines."""
+    _write_multiline_file(project_dir, lines=10000)
+    content = read_file(str(TEST_FILE), project_dir, start_line=5000, end_line=5002)
+    assert content == "line 5000\nline 5001\nline 5002\n"
+
+
 def test_append_file_large_content(project_dir: Path) -> None:
     """Test appending large content to a file."""
     # Create absolute path for test file
