@@ -110,7 +110,7 @@ def read_file(
         if start_line is not None:
             logger.debug("Read lines %d-%d from %s", start_line, end_line, rel_path)
         else:
-            logger.debug("Successfully read %s from %s", rel_path, rel_path)
+            logger.debug("Successfully read %s", rel_path)
 
         return content
     except UnicodeDecodeError as e:
