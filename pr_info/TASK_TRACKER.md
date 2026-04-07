@@ -21,6 +21,34 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Parameter validation in `read_file`
+> [Detail](./steps/step_1.md) — Add `start_line`, `end_line`, `with_line_numbers` params and strict input validation
+
+- [ ] Implementation: tests + production code
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 2: Line-range slicing with streaming
+> [Detail](./steps/step_2.md) — Replace `f.read()` with `enumerate(file)` streaming, return only requested lines
+
+- [ ] Implementation: tests + production code
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 3: `with_line_numbers` formatting
+> [Detail](./steps/step_3.md) — Implement smart-default `with_line_numbers` and dynamic-width `N→content` prefixes
+
+- [ ] Implementation: tests + production code
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 4: Server wrapper updates + forwarding test
+> [Detail](./steps/step_4.md) — Expose new params in MCP tools (`read_file`, `read_reference_file`), update tests, update README
+
+- [ ] Implementation: tests + production code
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
 
 ## Pull Request
+- [ ] PR review: all steps complete and checks green
+- [ ] PR summary prepared
