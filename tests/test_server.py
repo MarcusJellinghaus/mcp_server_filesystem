@@ -412,3 +412,27 @@ def test_read_file_no_gitignore(project_dir: Path) -> None:
     (project_dir / "debug.log").write_text("log content")
     content = read_file("debug.log")
     assert content == "log content"
+
+
+@patch("mcp_workspace.server.read_file_util")
+def test_read_file_forwards_line_range_params(
+    mock_read_file_util: MagicMock, project_dir: Path
+) -> None:
+    """Test that read_file forwards line-range params to read_file_util."""
+    mock_read_file_util.return_value = "5\u2192line five\n6\u2192line six\n"
+
+    result = read_file(
+        "some_file.py",
+        start_line=5,
+        end_line=10,
+        with_line_numbers=True,
+    )
+
+    assert result == "5\u2192line five\n6\u2192line six\n"
+    mock_read_file_util.assert_called_once_with(
+        "some_file.py",
+        project_dir=project_dir,
+        start_line=5,
+        end_line=10,
+        with_line_numbers=True,
+    )

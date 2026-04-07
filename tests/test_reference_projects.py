@@ -358,7 +358,39 @@ class TestReferenceProjectMCPTools:
 
             # Verify read_file_util was called with correct parameters
             mock_read_file.assert_called_once_with(
-                "test_file.txt", project_dir=test_projects["test_proj"]
+                "test_file.txt",
+                project_dir=test_projects["test_proj"],
+                start_line=None,
+                end_line=None,
+                with_line_numbers=None,
+            )
+
+    def test_read_reference_file_forwards_line_range_params(self) -> None:
+        """Test that line-range params are forwarded to read_file_util."""
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import read_reference_file
+
+        test_projects = {"test_proj": Path("/tmp/test_project").resolve()}
+        server_module._reference_projects = test_projects
+
+        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
+            mock_read_file.return_value = "5→line five\n6→line six\n"
+
+            result = read_reference_file(
+                "test_proj",
+                "test_file.txt",
+                start_line=5,
+                end_line=10,
+                with_line_numbers=True,
+            )
+
+            assert result == "5→line five\n6→line six\n"
+            mock_read_file.assert_called_once_with(
+                "test_file.txt",
+                project_dir=test_projects["test_proj"],
+                start_line=5,
+                end_line=10,
+                with_line_numbers=True,
             )
 
     def test_read_reference_file_project_not_found(self) -> None:

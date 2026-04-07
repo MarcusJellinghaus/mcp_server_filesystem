@@ -1,13 +1,12 @@
-feat(read_file): add with_line_numbers formatting with smart defaults
+feat: expose line-range params in MCP read_file and read_reference_file tools
 
-Implement the with_line_numbers parameter for read_file:
-- Smart default: True when a line range is given, False for full reads
-- Dynamic-width right-aligned line numbers with arrow separator (N→content)
-- Width computed from the largest line number in the returned slice
+Forward start_line, end_line, and with_line_numbers parameters through
+the MCP server wrappers to read_file_util. All validation is handled
+by the utility layer (Steps 1-3).
 
-Update existing slicing tests to explicitly pass with_line_numbers=False
-to preserve their raw-content assertions. Add 7 new tests covering:
-- Default on/off behavior for range vs full reads
-- Explicit True/False overrides
-- Dynamic width for narrow (1-digit) and wide (3-digit) line numbers
-- Empty result when start_line is past EOF with line numbers enabled
+Changes:
+- server.py: Add optional params to read_file and read_reference_file
+- tests/test_reference_projects.py: Update existing assert_called_once_with,
+  add test_read_reference_file_forwards_line_range_params
+- tests/test_server.py: Add test_read_file_forwards_line_range_params
+- README.md: Document new optional parameters on both tools
