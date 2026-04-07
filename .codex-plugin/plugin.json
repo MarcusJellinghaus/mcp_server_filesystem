@@ -1,0 +1,16 @@
+{
+  "name": "mcp-workspace",
+  "version": "0.1.0",
+  "description": "MCP Workspace Server: A secure Model Context Protocol server providing file, git, and GitHub tools for AI assistants within a sandboxed project directory.",
+  "author": {
+    "name": "MarcusJellinghaus",
+    "url": "https://github.com/MarcusJellinghaus"
+  },
+  "homepage": "https://github.com/MarcusJellinghaus/mcp-workspace",
+  "repository": "https://github.com/MarcusJellinghaus/mcp-workspace",
+  "keywords": [
+    "mcp",
+    "codex"
+  ],
+  "mcpServers": "./.mcp.json"
+}
