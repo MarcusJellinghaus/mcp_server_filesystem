@@ -24,21 +24,23 @@ Replace the file-reading block inside `read_file`:
 ## HOW
 
 - Use `enumerate(file_handle, start=1)` to iterate with 1-based line numbers.
-- When no range is given (`start_line is None`): collect all lines, join, return (functionally identical to `f.read()`).
-- When a range is given: collect lines where `start_line <= line_num <= end_line`, break after `end_line`.
+- Collect `(line_num, line)` tuples directly (not just lines). This avoids a refactor in Step 3, which needs the line numbers anyway.
+- When no range is given (`start_line is None`): collect all `(line_num, line)` tuples, join, return (functionally identical to `f.read()`).
+- When a range is given: collect tuples where `start_line <= line_num <= end_line`, break after `end_line`.
 - Clamping: if `end_line` exceeds file length, just return what's available.
 - Past-EOF: if `start_line` > total lines, return `""`.
+- **Logging**: replace the existing `"Successfully read %s bytes"` log line. When slicing is active, log the `start_line`/`end_line` range instead. No byte count is included in the slicing path going forward (use your judgment whether to keep a simpler log for the non-slicing path or unify — but no byte counts).
 
 ## ALGORITHM
 
 ```
-lines = []
+collected: list[tuple[int, str]] = []
 for line_num, line in enumerate(file_handle, start=1):
     if start_line is None or (start_line <= line_num <= end_line):
-        lines.append(line)
+        collected.append((line_num, line))
     if end_line is not None and line_num >= end_line:
         break
-return "".join(lines)
+return "".join(line for _, line in collected)
 ```
 
 ## DATA
@@ -57,10 +59,10 @@ Create a multiline test file (e.g., 10 lines: `"line 1\nline 2\n...\nline 10\n"`
 | `test_read_file_slicing_single_line` | `start_line=1, end_line=1` | `"line 1\n"` |
 | `test_read_file_slicing_clamp_past_eof` | `start_line=8, end_line=20` | `"line 8\nline 9\nline 10\n"` |
 | `test_read_file_slicing_start_past_eof` | `start_line=100, end_line=200` | `""` |
-| `test_read_file_slicing_start_past_eof_with_line_numbers` | `start_line=100, end_line=200, with_line_numbers=True` | `""` |
+| `test_read_file_slicing_exact_eof` | 10-line file, `start_line=10, end_line=10` | `"line 10\n"` (most common off-by-one location) |
 | `test_read_file_full_read_unchanged` | No new params | Full content identical to direct file read |
 | `test_read_file_no_trailing_newline` | File ends without `\n`, slice last line | Last line has no `\n` |
-| `test_read_file_slicing_large_file` | 10000-line file, `start_line=5000, end_line=5002` | 3 lines returned |
+| `test_read_file_slicing_large_file` | 10000-line file, `start_line=5000, end_line=5002` | (a) returned content equals exactly the 3 expected lines and (b) the function returns promptly without loading the entire file via `f.read()` (verified by streaming behavior — do not assert "only N lines read") |
 
 ## LLM Prompt
 

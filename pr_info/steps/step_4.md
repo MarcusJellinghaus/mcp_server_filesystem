@@ -11,6 +11,8 @@ Expose the new parameters through the MCP tool layer in `server.py` for both `re
 
 - **Modify**: `src/mcp_workspace/server.py` — `read_file` and `read_reference_file` tool functions
 - **Modify**: `tests/test_reference_projects.py` — update `test_read_reference_file_success`
+- **Modify**: `tests/` — add a new `read_file` MCP wrapper forwarding test (mirror the `read_reference_file` forwarding test) in the appropriate server-test module
+- **Modify**: `README.md` — document the new optional parameters on both MCP tools
 
 ## WHAT
 
@@ -50,6 +52,7 @@ Forward `start_line`, `end_line`, `with_line_numbers` to `read_file_util(...)`.
 - Both wrappers pass the new params as keyword arguments to `read_file_util`.
 - No validation in the wrappers — `read_file_util` handles all validation (Step 1).
 - The `_check_not_gitignored` call in `read_file` stays unchanged.
+- **Note**: the existing gitignore-check asymmetry between `read_file` (which checks gitignore) and `read_reference_file` (which does not) is intentionally preserved. No new tests are required for this — it is documented here for reviewer awareness.
 
 ## ALGORITHM
 
@@ -95,6 +98,18 @@ Add one additional test to verify params are forwarded with values:
 | Test | Input | Expected |
 |------|-------|----------|
 | `test_read_reference_file_forwards_line_range_params` | `start_line=5, end_line=10, with_line_numbers=True` | `read_file_util` called with those kwargs |
+
+### `read_file` MCP wrapper forwarding test (new)
+
+Add a test that verifies the `read_file` MCP server tool (not just `read_reference_file`) forwards the new kwargs through to `read_file_util`. Mirror the existing `read_reference_file` forwarding test.
+
+| Test | Input | Expected |
+|------|-------|----------|
+| `test_read_file_forwards_line_range_params` | `start_line=5, end_line=10, with_line_numbers=True` | `read_file_util` called with those kwargs (project_dir set to the active project) |
+
+## Documentation update
+
+- Update `README.md` to document the new optional parameters (`start_line`, `end_line`, `with_line_numbers`) on both the `read_file` and `read_reference_file` MCP tools. Mention defaults and the smart `with_line_numbers` behavior.
 
 ## LLM Prompt
 

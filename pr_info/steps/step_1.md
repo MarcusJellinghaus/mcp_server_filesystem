@@ -13,6 +13,10 @@ Add the three new optional parameters to `read_file` and implement strict input 
 
 ## WHAT
 
+- Add the three new optional parameters to the `read_file` signature.
+- Implement strict input validation that raises `ValueError` for invalid combinations.
+- Update the `read_file` docstring to document the new params (`start_line`, `end_line`, `with_line_numbers`) and the `Raises ValueError` cases.
+
 ### Modified function signature
 
 ```python

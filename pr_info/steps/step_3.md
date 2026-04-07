@@ -20,7 +20,7 @@ After collecting the lines (from Step 2), resolve the `with_line_numbers` defaul
 
 - **Default resolution**: if `with_line_numbers is None`, set it to `True` when a range is given, `False` otherwise.
 - **Formatting**: when `True`, compute column width from the largest line number in the slice, then prefix each line as `f"{line_num:>{width}}→{line_content}"`.
-- The line numbers and content collected during streaming in Step 2 need to be kept together — change from collecting just lines to collecting `(line_num, line)` tuples when formatting may be needed.
+- The streaming loop from Step 2 already collects `list[tuple[int, str]]`, so the line numbers are already available — no data-shape refactor required here, just consume the existing tuples.
 
 ## ALGORITHM
 
@@ -50,6 +50,7 @@ return "".join(f"{num:>{width}}→{line}" for num, line in collected_lines)
 | `test_read_file_line_numbers_explicit_true_on_full_read` | `with_line_numbers=True` | All lines prefixed |
 | `test_read_file_line_numbers_dynamic_width_narrow` | Lines 1–9 | Width 1: `"1→..."` |
 | `test_read_file_line_numbers_dynamic_width_wide` | Lines 99–101 of a 101+ line file | Width 3: `" 99→...\n100→...\n101→...\n"` |
+| `test_read_file_slicing_start_past_eof_with_line_numbers` | `start_line=100, end_line=200, with_line_numbers=True` | `""` (moved from Step 2 because it depends on `with_line_numbers`) |
 
 ## LLM Prompt
 

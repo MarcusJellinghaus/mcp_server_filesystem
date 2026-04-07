@@ -47,3 +47,5 @@ Extend `read_file` (and `read_reference_file`) with optional `start_line` / `end
 2. **Step 2** — Line-range slicing with streaming + tests
 3. **Step 3** — `with_line_numbers` formatting + tests
 4. **Step 4** — Server wrapper updates + forwarding test
+
+> **Note**: The new parameters added to the `read_file` util in Steps 1–3 are not surfaced via the MCP tool wrappers (`read_file`, `read_reference_file`) until Step 4.
