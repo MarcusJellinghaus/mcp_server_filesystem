@@ -71,4 +71,3 @@ mcp_workspace/
 
 1. [Swap imports and delete local log_utils](step_1.md)
 2. [Remove direct deps and update architecture configs](step_2.md)
-3. [Final verification and stale reference cleanup](step_3.md)

@@ -13,6 +13,7 @@ Files to edit:
 - `.importlinter`
 - `tach.toml`
 - `docs/ARCHITECTURE.md`
+- `tools/tach_docs.py`
 
 ## WHAT
 
@@ -26,11 +27,11 @@ Remove these two lines from `[project] dependencies`:
 
 ### .importlinter
 
-**Layered architecture contract** — replace `mcp_workspace.log_utils` with `mcp_coder_utils.log_utils` in the `layers` list.
+**Layered architecture contract** — remove `mcp_workspace.log_utils` from the `layers` list entirely (`mcp_coder_utils` is an external package and cannot be a layer).
 
-**Structlog isolation contract** — change `ignore_imports` from `mcp_workspace.log_utils -> structlog` to `mcp_coder_utils.log_utils -> structlog`.
+**Structlog isolation contract** — remove the `ignore_imports` line (`mcp_workspace.log_utils -> structlog`) entirely. Since the import now comes from `mcp_coder_utils` which is outside the `source_modules = mcp_workspace` scope, no ignore rule is needed.
 
-**New contract** — add `python-json-logger` isolation:
+**New contract** — add `python-json-logger` isolation (no `ignore_imports` needed for the same reason):
 ```ini
 [importlinter:contract:pythonjsonlogger_isolation]
 name = Python JSON Logger Isolation
@@ -39,8 +40,6 @@ source_modules =
     mcp_workspace
 forbidden_modules =
     pythonjsonlogger
-ignore_imports =
-    mcp_coder_utils.log_utils -> pythonjsonlogger
 ```
 
 ### tach.toml
@@ -49,6 +48,10 @@ Replace all `mcp_workspace.log_utils` → `mcp_coder_utils.log_utils`:
 - Module path declaration
 - Layer assignment
 - All `depends_on` entries referencing it (in main, server, file_tools, tests modules)
+
+### tools/tach_docs.py
+
+Remove or update the hardcoded reference to `"src/mcp_workspace/log_utils.py"` (around line 271). The local module no longer exists after step 1.
 
 ### docs/ARCHITECTURE.md
 
@@ -62,8 +65,9 @@ Update the utilities layer description:
 1. Edit `pyproject.toml` — remove two dependency lines
 2. Edit `.importlinter` — update three contracts
 3. Edit `tach.toml` — replace module references
-4. Edit `docs/ARCHITECTURE.md` — update layer descriptions
-5. Run pylint, pytest, mypy
+4. Edit `tools/tach_docs.py` — remove stale `log_utils.py` reference
+5. Edit `docs/ARCHITECTURE.md` — update layer descriptions
+6. Run pylint, pytest, mypy
 
 ## LLM Prompt
 
@@ -71,8 +75,10 @@ Update the utilities layer description:
 Read pr_info/steps/summary.md and pr_info/steps/step_2.md.
 
 Implement step 2: remove structlog and python-json-logger from pyproject.toml
-direct deps. Update .importlinter (layered arch, structlog isolation, new
-python-json-logger isolation contract). Update tach.toml to reference
-mcp_coder_utils.log_utils. Update docs/ARCHITECTURE.md layer descriptions.
-Run pylint, pytest (excluding integration markers), and mypy to verify.
+direct deps. Update .importlinter (remove log_utils from layers, remove
+structlog ignore_imports, add python-json-logger isolation contract without
+ignore_imports). Update tach.toml to reference mcp_coder_utils.log_utils.
+Update tools/tach_docs.py to remove stale log_utils.py reference. Update
+docs/ARCHITECTURE.md layer descriptions. Run pylint, pytest (excluding
+integration markers), and mypy to verify.
 ```
