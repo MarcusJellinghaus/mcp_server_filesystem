@@ -134,7 +134,7 @@ def generate_graph_html(mermaid_content: str) -> str:
         </div>
         <div class="legend-item">
             <div class="legend-color" style="background: #96ceb4;"></div>
-            <span>Utilities (log_utils)</span>
+            <span>Shared Libs (mcp_coder_utils)</span>
         </div>
     </div>
 
@@ -148,7 +148,7 @@ def generate_graph_html(mermaid_content: str) -> str:
             <li><strong>Entry</strong> - Application entry point (<code>main.py</code>)</li>
             <li><strong>Protocol</strong> - MCP server implementation (<code>server.py</code>)</li>
             <li><strong>Tools</strong> - File operation tool implementations (<code>file_tools/</code>)</li>
-            <li><strong>Utilities</strong> - Shared utilities (<code>log_utils.py</code>)</li>
+            <li><strong>Shared Libs</strong> - External shared libraries (<code>mcp_coder_utils</code>)</li>
         </ul>
 
         <h2>Commands</h2>
@@ -268,7 +268,6 @@ def main() -> int:
         "src/mcp_workspace/main.py",
         "src/mcp_workspace/server.py",
         "src/mcp_workspace/file_tools",
-        "src/mcp_workspace/log_utils.py",
     ]
 
     reports = {}

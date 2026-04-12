@@ -1,8 +1,10 @@
-refactor: replace local log_utils with mcp-coder-utils shared library
+Remove direct structlog/python-json-logger deps, update architecture configs
 
-Swap all mcp_workspace.log_utils imports to mcp_coder_utils.log_utils
-in main.py, server.py, and file_operations.py. Delete the local
-log_utils module and its tests, as logging is now provided by the
-shared mcp-coder-utils package.
-
-Resolves part of #93
+- Remove structlog and python-json-logger from pyproject.toml direct
+  dependencies (now transitive via mcp-coder-utils)
+- Update .importlinter: remove log_utils from layers, remove structlog
+  ignore_imports, add python-json-logger isolation contract
+- Update tach.toml: replace mcp_workspace.log_utils references with
+  mcp_coder_utils.log_utils throughout
+- Update tools/tach_docs.py: remove stale log_utils.py module reference
+- Update docs/ARCHITECTURE.md: reflect external shared libs layer
