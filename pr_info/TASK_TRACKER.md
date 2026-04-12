@@ -21,7 +21,7 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-- [ ] [Step 1: Swap imports and delete local log_utils](./steps/step_1.md)
+- [x] [Step 1: Swap imports and delete local log_utils](./steps/step_1.md)
 - [ ] [Step 2: Remove direct deps and update architecture configs](./steps/step_2.md)
 
 ## Pull Request

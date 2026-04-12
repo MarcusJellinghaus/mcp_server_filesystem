@@ -1,0 +1,8 @@
+refactor: replace local log_utils with mcp-coder-utils shared library
+
+Swap all mcp_workspace.log_utils imports to mcp_coder_utils.log_utils
+in main.py, server.py, and file_operations.py. Delete the local
+log_utils module and its tests, as logging is now provided by the
+shared mcp-coder-utils package.
+
+Resolves part of #93
