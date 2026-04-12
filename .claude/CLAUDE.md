@@ -177,6 +177,18 @@ mcp_workspace/
 - Python 3.11+ required
 - Uses MCP protocol for server implementation
 
+## 📦 Shared Libraries
+
+This project uses **mcp-coder-utils** (`p_mcp_utils` reference project) for shared utilities:
+
+| Module | Import |
+|--------|--------|
+| Logging | `from mcp_coder_utils.log_utils import setup_logging, log_function_call` |
+
+**Rules:**
+- Browse the source via `p_mcp_utils` reference project before reimplementing anything
+- Never create local workarounds — file issues/feature requests at [mcp-coder-utils](https://github.com/MarcusJellinghaus/mcp-coder-utils) instead
+
 ## 📏 File Size Check
 
 Check for large files (>750 lines) that may impact LLM context:

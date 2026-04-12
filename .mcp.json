@@ -30,7 +30,9 @@
         "--reference-project",
         "p_coder=${USERPROFILE}\\Documents\\GitHub\\mcp_coder",
         "--reference-project",
-        "p_checker=${USERPROFILE}\\Documents\\VSCC\\mcp-tools-py"
+        "p_checker=${USERPROFILE}\\Documents\\VSCC\\mcp-tools-py",
+        "--reference-project",
+        "p_mcp_utils=${USERPROFILE}\\Documents\\GitHub\\mcp-coder-utils"
       ],
       "env": {
         "PYTHONPATH": "${MCP_CODER_VENV_DIR}\\Lib\\"
