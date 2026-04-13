@@ -259,7 +259,7 @@ def test_list_files_basic(project_dir: Path) -> None:
         # When gitignore filtering is active, avoid calling the real filter
         with patch(
             "mcp_workspace.file_tools.directory_utils.filter_with_gitignore",
-            side_effect=lambda files, *args, **kwargs: files,
+            side_effect=lambda files, *args, **_kwargs: files,
         ):
             # Test listing files
             files = list_files(str(TEST_DIR), project_dir=project_dir)
