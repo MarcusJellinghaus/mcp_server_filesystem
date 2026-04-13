@@ -14,7 +14,7 @@ The project follows a layered architecture pattern:
 ├─────────────────────────────────┤
 │  File Tools (file_tools/)       │  ← Business logic
 ├─────────────────────────────────┤
-│  Utilities (log_utils.py)       │  ← Shared utilities
+│  Shared Libs (mcp_coder_utils)  │  ← External shared libraries
 └─────────────────────────────────┘
 ```
 
@@ -25,7 +25,7 @@ The project follows a layered architecture pattern:
 | **Entry** | Application startup and initialization | All layers below |
 | **Protocol** | MCP server implementation and tool registration | File Tools, Utilities |
 | **Tools** | File operation implementations | Utilities only |
-| **Utilities** | Logging, configuration, shared functions | Standard library only |
+| **Shared Libs** | Logging via `mcp_coder_utils` (external package) | N/A (external) |
 
 ## Architectural Principles
 
@@ -56,7 +56,7 @@ External libraries are isolated to specific modules:
 |---------|---------|-----------|
 | `mcp` | main.py, server.py | Protocol implementation only |
 | `git` (GitPython) | file_tools/git_operations.py | Git functionality isolated |
-| `structlog` | log_utils.py, main.py | Logging setup centralized |
+| `structlog` | mcp_coder_utils.log_utils (external) | Logging setup centralized in external package |
 
 ## Architecture Enforcement Tools
 

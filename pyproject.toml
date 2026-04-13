@@ -25,9 +25,8 @@ dependencies = [
     "pathspec>=0.12.1",
     "igittigitt>=2.1.5",
     "mcp>=1.3.0",
-    "structlog>=25.2.0",
-    "python-json-logger>=3.3.0",
     "GitPython>=3.1.0",
+    "mcp-coder-utils",
 ]
 
 [project.optional-dependencies]
@@ -91,6 +90,7 @@ float_to_top = true
 # Installed WITH deps (leaves — picks up new external deps)
 packages = [
     "mcp-config-tool @ git+https://github.com/MarcusJellinghaus/mcp-config.git",
+    "mcp-coder-utils @ git+https://github.com/MarcusJellinghaus/mcp-coder-utils.git",
 ]
 # Installed WITHOUT deps (depend on siblings — avoid downgrading)
 packages-no-deps = [

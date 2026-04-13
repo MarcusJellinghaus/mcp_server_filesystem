@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from mcp.server.fastmcp import FastMCP
+from mcp_coder_utils.log_utils import log_function_call
 
 # Import utility functions from the main package
 from mcp_workspace.file_tools import append_file as append_file_util
@@ -15,7 +16,6 @@ from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
-from mcp_workspace.log_utils import log_function_call
 
 # Initialize loggers
 logger = logging.getLogger(__name__)

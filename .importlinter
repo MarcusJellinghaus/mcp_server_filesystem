@@ -33,7 +33,6 @@ layers =
     mcp_workspace.main
     mcp_workspace.server
     mcp_workspace.file_tools
-    mcp_workspace.log_utils
 
 # -----------------------------------------------------------------------------
 # Contract: MCP Library Isolation
@@ -79,8 +78,20 @@ source_modules =
     mcp_workspace
 forbidden_modules =
     structlog
-ignore_imports =
-    mcp_workspace.log_utils -> structlog
+
+# -----------------------------------------------------------------------------
+# Contract: Python JSON Logger Isolation
+# -----------------------------------------------------------------------------
+# python-json-logger should only be used via mcp_coder_utils (external).
+# No direct imports allowed from mcp_workspace.
+# -----------------------------------------------------------------------------
+[importlinter:contract:pythonjsonlogger_isolation]
+name = Python JSON Logger Isolation
+type = forbidden
+source_modules =
+    mcp_workspace
+forbidden_modules =
+    pythonjsonlogger
 
 # -----------------------------------------------------------------------------
 # Contract: Source Code Independence from Tests

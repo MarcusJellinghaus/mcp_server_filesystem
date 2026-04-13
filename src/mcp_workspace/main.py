@@ -7,10 +7,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
-from mcp_workspace import __version__
-
 # Import logging utilities
-from mcp_workspace.log_utils import setup_logging
+from mcp_coder_utils.log_utils import setup_logging
+
+from mcp_workspace import __version__
 
 # Create loggers
 stdlogger = logging.getLogger(__name__)

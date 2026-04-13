@@ -61,7 +61,8 @@
       "Skill(plan_review)",
       "Skill(plan_review_supervisor)",
       "Skill(plan_update)",
-      "Skill(rebase)"
+      "Skill(rebase)",
+      "mcp__workspace__search_files"
     ]
   },
   "enableAllProjectMcpServers": true,
