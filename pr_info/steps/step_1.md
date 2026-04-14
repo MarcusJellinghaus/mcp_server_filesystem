@@ -8,12 +8,12 @@ feat: add read_github_deps.py with tests
 ```
 
 ## Overview
-Create the `tools/read_github_deps.py` helper (verbatim copy from `p_mcp_utils` reference) and its test file. This script reads `[tool.mcp-coder.install-from-github]` from `pyproject.toml` and prints `uv pip install` commands — used by `reinstall_local.bat` in Step 2.
+Create the `tools/read_github_deps.py` helper (verbatim copy from `p_coder-utils` reference, formerly `p_mcp_utils`) and its test file. This script reads `[tool.mcp-coder.install-from-github]` from `pyproject.toml` and prints `uv pip install` commands — used by `reinstall_local.bat` in Step 2.
 
 ## Files
 
 ### CREATE: `tools/read_github_deps.py`
-- **Copy verbatim** from reference project `p_mcp_utils` at `tools/read_github_deps.py`
+- **Copy verbatim** from reference project `p_coder-utils` at `tools/read_github_deps.py`
 - Self-contained: only uses `tomllib` and `pathlib` (stdlib)
 - No modifications needed
 
@@ -70,7 +70,7 @@ Read pr_info/steps/summary.md and pr_info/steps/step_1.md for full context.
 
 Implement Step 1 of Issue #94: Add tools/read_github_deps.py and tests/test_read_github_deps.py.
 
-1. Copy tools/read_github_deps.py verbatim from reference project p_mcp_utils (use read_reference_file)
+1. Copy tools/read_github_deps.py verbatim from reference project p_coder-utils (use read_reference_file)
 2. Write tests/test_read_github_deps.py from scratch based on the test cases listed above
 3. Run all three quality checks (pylint, pytest, mypy)
 4. Fix any issues until all checks pass

@@ -8,13 +8,13 @@ feat: rewrite reinstall_local.bat to match modern pattern
 ```
 
 ## Overview
-Full rewrite of `tools/reinstall_local.bat` following the established 0-6 step template from `p_mcp_utils`, adapted for mcp-workspace's package list and CLI entry point.
+Full rewrite of `tools/reinstall_local.bat` following the established 0-6 step template from `p_coder-utils` (formerly `p_mcp_utils`), adapted for mcp-workspace's package list and CLI entry point.
 
 ## Files
 
 ### MODIFY: `tools/reinstall_local.bat`
 
-**Reference**: `p_mcp_utils` project `tools/reinstall_local.bat` — adapt by:
+**Reference**: `p_coder-utils` project `tools/reinstall_local.bat` — adapt by:
 - Adjusting uninstall list to 5 packages (adds `mcp-config-tool` vs reference's 4)
 - Adding CLI entry point check (`mcp-workspace.exe --help`) alongside import check in step 5
 - Updating import check to `mcp_workspace`
@@ -82,7 +82,7 @@ Read pr_info/steps/summary.md and pr_info/steps/step_2.md for full context.
 Implement Step 2 of Issue #94: Rewrite tools/reinstall_local.bat.
 
 1. Read the current tools/reinstall_local.bat
-2. Read the reference from p_mcp_utils: tools/reinstall_local.bat (use read_reference_file)
+2. Read the reference from p_coder-utils: tools/reinstall_local.bat (use read_reference_file)
 3. Write the new tools/reinstall_local.bat following the 6-step structure in step_2.md:
    - Adapt the reference: adjust uninstall list to 5 packages, update import check to mcp_workspace, add mcp-workspace.exe CLI check
 4. Run all three quality checks (pylint, pytest excluding integration markers, mypy)
