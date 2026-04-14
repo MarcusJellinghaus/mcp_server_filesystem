@@ -583,3 +583,39 @@ def test_read_file_slicing_start_past_eof_with_line_numbers(
         with_line_numbers=True,
     )
     assert content == ""
+
+
+# --- CRLF normalization tests ---
+
+
+def test_save_file_normalizes_crlf(project_dir: Path) -> None:
+    """save_file normalizes CRLF to LF, avoiding double carriage returns."""
+    result = save_file(str(TEST_FILE), "line1\r\nline2\r\n", project_dir=project_dir)
+    assert result is True
+
+    abs_file_path = project_dir / TEST_FILE
+    raw = abs_file_path.read_bytes()
+    assert b"\r\r\n" not in raw, "Double carriage return found — normalization failed"
+
+
+def test_append_file_normalizes_crlf(project_dir: Path) -> None:
+    """append_file normalizes CRLF to LF, avoiding double carriage returns."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("existing\n", encoding="utf-8")
+
+    result = append_file(str(TEST_FILE), "new\r\nline\r\n", project_dir=project_dir)
+    assert result is True
+
+    raw = abs_file_path.read_bytes()
+    assert b"\r\r\n" not in raw, "Double carriage return found — normalization failed"
+
+
+def test_append_file_validation_via_validate_save_parameters(
+    project_dir: Path,
+) -> None:
+    """append_file still raises ValueError for invalid content after refactor."""
+    abs_file_path = project_dir / TEST_FILE
+    abs_file_path.write_text("existing\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Content must be a string"):
+        append_file(str(TEST_FILE), 12345, project_dir=project_dir)

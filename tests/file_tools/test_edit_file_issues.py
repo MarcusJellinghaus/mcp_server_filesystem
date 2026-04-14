@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, patch
 from mcp_workspace.file_tools.edit_file import (
     create_unified_diff,
     edit_file,
-    normalize_line_endings,
 )
+from mcp_workspace.file_tools.path_utils import normalize_line_endings
 
 
 class TestEditFileIndentationIssues(unittest.TestCase):

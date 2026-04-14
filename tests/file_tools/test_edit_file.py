@@ -7,16 +7,10 @@ from unittest.mock import MagicMock, patch
 from mcp_workspace.file_tools.edit_file import (
     create_unified_diff,
     edit_file,
-    normalize_line_endings,
 )
 
 
 class TestEditFileUtils(unittest.TestCase):
-    def test_normalize_line_endings(self) -> None:
-        text_with_crlf = "line1\r\nline2\r\nline3"
-        normalized = normalize_line_endings(text_with_crlf)
-        self.assertEqual(normalized, "line1\nline2\nline3")
-
     def test_create_unified_diff(self) -> None:
         original = "line1\nline2\nline3"
         modified = "line1\nmodified\nline3"
@@ -425,3 +419,54 @@ class TestEditFileChallenges(unittest.TestCase):
         # Step 5: Clean up after test
         os.remove(markdown_file)
         self.assertFalse(os.path.exists(markdown_file))
+
+
+class TestEditFileCRLF(unittest.TestCase):
+    """Tests for CRLF normalization in edit_file."""
+
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.project_dir = Path(self.temp_dir.name)
+        self.test_file = self.project_dir / "test_file.py"
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
+
+    def test_edit_file_crlf_old_text_matches(self) -> None:
+        """CRLF in old_text should match LF content in file."""
+        with open(self.test_file, "w", encoding="utf-8") as f:
+            f.write("hello\nworld\n")
+
+        edits = [{"old_text": "hello\r\nworld\r\n", "new_text": "hi\nworld\n"}]
+        result = edit_file(str(self.test_file), edits)
+
+        self.assertTrue(result["success"])
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertEqual(content, "hi\nworld\n")
+
+    def test_edit_file_crlf_new_text_no_contamination(self) -> None:
+        """CRLF in new_text should be normalized — no extra \\r in text-mode content."""
+        with open(self.test_file, "w", encoding="utf-8") as f:
+            f.write("aaa\nbbb\n")
+
+        edits = [{"old_text": "aaa", "new_text": "ccc\r\n"}]
+        result = edit_file(str(self.test_file), edits)
+
+        self.assertTrue(result["success"])
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertNotIn("\r", content)
+
+    def test_edit_file_crlf_file_content_normalized(self) -> None:
+        """CRLF file content should be normalized so LF old_text matches."""
+        # Write file with raw CRLF bytes
+        self.test_file.write_bytes(b"hello\r\nworld\r\n")
+
+        edits = [{"old_text": "hello\nworld\n", "new_text": "hi\nworld\n"}]
+        result = edit_file(str(self.test_file), edits)
+
+        self.assertTrue(result["success"])
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("hi", content)

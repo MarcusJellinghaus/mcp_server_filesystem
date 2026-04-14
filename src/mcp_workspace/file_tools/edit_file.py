@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from mcp_workspace.file_tools.path_utils import normalize_path
+from mcp_workspace.file_tools.path_utils import normalize_line_endings, normalize_path
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ def edit_file(
     # Read file content
     try:
         with open(abs_path, "r", encoding="utf-8") as f:
-            original_content = f.read()
+            original_content = normalize_line_endings(f.read())
     except UnicodeDecodeError:
         return _error_result(f"File contains invalid UTF-8: {abs_path}", file_path)
     except Exception as e:
@@ -100,8 +100,8 @@ def edit_file(
     edits_failed = 0
 
     for i, edit in enumerate(edits):
-        old_text = edit["old_text"]
-        new_text = edit["new_text"]
+        old_text = normalize_line_endings(edit["old_text"])
+        new_text = normalize_line_endings(edit["new_text"])
 
         # Skip if no change needed
         if old_text == new_text:
@@ -340,12 +340,6 @@ def _preserve_basic_indentation(old_text: str, new_text: str) -> tuple[str, str]
 
     # Neither has indentation
     return new_text, "No indentation processing needed (neither text is indented)"
-
-
-# Legacy compatibility functions (simplified versions)
-def normalize_line_endings(text: str) -> str:
-    """Convert all line endings to Unix style (\n)."""
-    return text.replace("\r\n", "\n")
 
 
 def create_unified_diff(original: str, modified: str, file_path: str) -> str:

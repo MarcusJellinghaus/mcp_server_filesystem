@@ -14,7 +14,7 @@ from mcp_workspace.file_tools.git_operations import (
     is_file_tracked,
     is_git_repository,
 )
-from mcp_workspace.file_tools.path_utils import normalize_path
+from mcp_workspace.file_tools.path_utils import normalize_line_endings, normalize_path
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +163,7 @@ def _validate_save_parameters(
     # Normalize the path to be relative to the project directory
     abs_path, rel_path = normalize_path(file_path, project_dir)
 
+    content = normalize_line_endings(content)
     return abs_path, rel_path, content
 
 
@@ -301,25 +302,9 @@ def append_file(file_path: str, content: Any, project_dir: Path) -> bool:
         PermissionError: If access to the file is denied
         ValueError: If the file is outside the project directory
     """
-    # Validate file_path parameter
-    if not file_path or not isinstance(file_path, str):
-        logger.error("Invalid file path: %s", file_path)
-        raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
-
-    # Validate content parameter
-    if content is None:
-        logger.warning("Content is None, treating as empty string")
-        content = ""
-    elif not isinstance(content, str):
-        logger.error("Invalid content type: %s", type(content))
-        raise ValueError(f"Content must be a string, got {type(content)}")
-
-    # Validate project_dir parameter
-    if project_dir is None:
-        raise ValueError("Project directory cannot be None")
-
-    # Normalize the path to be relative to the project directory
-    abs_path, rel_path = normalize_path(file_path, project_dir)
+    abs_path, rel_path, validated_content = _validate_save_parameters(
+        file_path, content, project_dir
+    )
 
     # Check if the file exists
     if not abs_path.exists():
@@ -334,10 +319,10 @@ def append_file(file_path: str, content: Any, project_dir: Path) -> bool:
     existing_content = read_file(file_path, project_dir)
 
     # Append new content
-    combined_content = existing_content + content
+    combined_content = existing_content + validated_content
 
     # Use save_file to write the combined content
-    logger.debug("Appending %s bytes to %s", len(content), rel_path)
+    logger.debug("Appending %s bytes to %s", len(validated_content), rel_path)
     return save_file(file_path, combined_content, project_dir)
 
 

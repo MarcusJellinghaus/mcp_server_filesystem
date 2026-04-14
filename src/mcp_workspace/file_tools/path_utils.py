@@ -8,6 +8,13 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
+def normalize_line_endings(text: str) -> str:
+    """Convert all line endings to Unix style (\n)."""
+    text = text.replace("\r\n", "\n")
+    text = text.replace("\r", "\n")
+    return text
+
+
 def normalize_path(path: str, project_dir: Path) -> tuple[Path, str]:
     """
     Normalize a path to be relative to the project directory.
