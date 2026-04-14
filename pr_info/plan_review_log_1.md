@@ -46,4 +46,21 @@ Modernize reinstall_local.bat to match mcp-coder pattern.
 - Rewrote "adapt by" bullets in step_2.md to reflect actual differences from p_mcp_utils (not p_coder)
 - Fixed overview line in step_2.md
 
+**Status**: committed (0f53aca)
+
+## Round 3 — 2026-04-14
+**Findings**:
+- Minor: summary.md table still had "no LangChain/MLflow" qualifier in target column
+- Minor: step_2.md LLM prompt still referenced removing LangChain/MLflow and multi-CLI checks
+- All other checks passed
+
+**Decisions**:
+- Accept both (last remnants of p_coder framing)
+
+**User decisions**: none needed
+
+**Changes**:
+- Removed "no LangChain/MLflow" from summary.md table
+- Simplified LLM prompt adapt-by instruction in step_2.md
+
 **Status**: pending commit

@@ -84,10 +84,7 @@ Implement Step 2 of Issue #94: Rewrite tools/reinstall_local.bat.
 1. Read the current tools/reinstall_local.bat
 2. Read the reference from p_mcp_utils: tools/reinstall_local.bat (use read_reference_file)
 3. Write the new tools/reinstall_local.bat following the 6-step structure in step_2.md:
-   - Adapt the reference by removing LangChain/MLflow step and multi-CLI checks
-   - Use the 5-package uninstall list: mcp-workspace mcp-coder-utils mcp-config-tool mcp-tools-py mcp-coder
-   - Check only mcp_workspace import and mcp-workspace CLI
-   - Renumber steps 0-6
+   - Adapt the reference: adjust uninstall list to 5 packages, update import check to mcp_workspace, add mcp-workspace.exe CLI check
 4. Run all three quality checks (pylint, pytest excluding integration markers, mypy)
 5. Fix any issues until all checks pass
 6. Commit with message: "feat: rewrite reinstall_local.bat to match modern pattern"

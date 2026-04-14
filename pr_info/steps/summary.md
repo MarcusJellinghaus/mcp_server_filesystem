@@ -47,7 +47,7 @@ Rewrite `tools/reinstall_local.bat` to follow the established 6-step pattern use
 
 | Aspect | p_mcp_utils (reference) | mcp-workspace (target) |
 |--------|---------------------|------------------------|
-| Steps | 0-6 (7 steps) | 0-6 (7 steps, no LangChain/MLflow) |
+| Steps | 0-6 (7 steps) | 0-6 (7 steps) |
 | Uninstall list | `mcp-coder-utils mcp-coder mcp-tools-py mcp-workspace` | `mcp-workspace mcp-coder-utils mcp-config-tool mcp-tools-py mcp-coder` |
 | Import check | `mcp_coder_utils` | `mcp_workspace` |
 | CLI check | none (no CLI entry point) | `mcp-workspace.exe` |
