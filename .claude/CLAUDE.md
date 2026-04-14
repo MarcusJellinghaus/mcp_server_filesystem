@@ -74,14 +74,14 @@ mcp-coder gh-tool set-status <label>
 
 ## Shared Libraries
 
-This project uses **mcp-coder-utils** (`p_mcp_utils` reference project) for shared utilities:
+This project uses **mcp-coder-utils** (`p_coder-utils` reference project) for shared utilities:
 
 | Module | Import |
 |--------|--------|
 | Logging | `from mcp_coder_utils.log_utils import setup_logging, log_function_call` |
 
 **Rules:**
-- Browse the source via `p_mcp_utils` reference project before reimplementing anything
+- Browse the source via `p_coder-utils` reference project before reimplementing anything
 - Never create local workarounds — file issues/feature requests at [mcp-coder-utils](https://github.com/MarcusJellinghaus/mcp-coder-utils) instead
 
 ## Writing style

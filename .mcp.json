@@ -30,9 +30,9 @@
         "--reference-project",
         "p_coder=${USERPROFILE}\\Documents\\GitHub\\mcp_coder",
         "--reference-project",
-        "p_checker=${USERPROFILE}\\Documents\\GitHub\\mcp-tools-py",
+        "p_tools=${USERPROFILE}\\Documents\\GitHub\\mcp-tools-py",
         "--reference-project",
-        "p_mcp_utils=${USERPROFILE}\\Documents\\GitHub\\mcp-coder-utils",
+        "p_coder-utils=${USERPROFILE}\\Documents\\GitHub\\mcp-coder-utils",
         "--reference-project",
         "p_config=${USERPROFILE}\\Documents\\GitHub\\mcp-config"
       ],
