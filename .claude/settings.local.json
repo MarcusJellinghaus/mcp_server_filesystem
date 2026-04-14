@@ -19,6 +19,10 @@
       "mcp__tools-py__move_symbol",
       "mcp__tools-py__rename_symbol",
       "mcp__tools-py__move_module",
+      "mcp__tools-py__run_format_code",
+      "mcp__tools-py__run_lint_imports_check",
+      "mcp__tools-py__run_vulture_check",
+      "mcp__tools-py__get_library_source",
       "Bash(git log *)",
       "Bash(git diff *)",
       "Bash(git fetch *)",
@@ -61,6 +65,8 @@
       "Skill(plan_review)",
       "Skill(plan_review_supervisor)",
       "Skill(plan_update)",
+      "Skill(implement_direct)",
+      "Skill(issue_requirements)",
       "Skill(rebase)",
       "mcp__workspace__search_files"
     ]
