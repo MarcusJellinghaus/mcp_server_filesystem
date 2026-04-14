@@ -8,18 +8,16 @@ feat: rewrite reinstall_local.bat to match modern pattern
 ```
 
 ## Overview
-Full rewrite of `tools/reinstall_local.bat` following the established 6-step template from `p_mcp_utils`, adapted for mcp-workspace (a leaf package — no LangChain/MLflow step needed).
+Full rewrite of `tools/reinstall_local.bat` following the established 0-6 step template from `p_mcp_utils`, adapted for mcp-workspace's package list and CLI entry point.
 
 ## Files
 
 ### MODIFY: `tools/reinstall_local.bat`
 
 **Reference**: `p_mcp_utils` project `tools/reinstall_local.bat` — adapt by:
-- Removing step 5/7 (LangChain/MLflow — not applicable)
-- Removing step 6/7 (multi-CLI exe checks — workspace only has one CLI)
-- Adjusting uninstall list to 5 packages per issue
-- Checking only `mcp-workspace` import and CLI
-- Renumbering to 0-6
+- Adjusting uninstall list to 5 packages (adds `mcp-config-tool` vs reference's 4)
+- Adding CLI entry point check (`mcp-workspace.exe --help`) alongside import check in step 5
+- Updating import check to `mcp_workspace`
 
 **Structure — 7 sections (steps 0–6):**
 

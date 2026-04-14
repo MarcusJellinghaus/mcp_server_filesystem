@@ -28,4 +28,22 @@ Modernize reinstall_local.bat to match mcp-coder pattern.
 - Removed pytest `-m` marker filters from verification commands in step_1.md and step_2.md
 - Fixed Key Adaptation Points table in summary.md (steps, uninstall list, import/CLI checks)
 
+**Status**: committed (0a7989a)
+
+## Round 2 — 2026-04-14
+**Findings**:
+- Minor: step_2.md "adapt by removing" bullets referenced p_coder steps that don't exist in p_mcp_utils
+- Minor: overview mentioned "no LangChain/MLflow" which is p_coder framing, not relevant to p_mcp_utils
+- All round 1 fixes verified correct
+- Planning principles check: all pass
+
+**Decisions**:
+- Accept both minor fixes (straightforward corrections to match p_mcp_utils reference)
+
+**User decisions**: none needed
+
+**Changes**:
+- Rewrote "adapt by" bullets in step_2.md to reflect actual differences from p_mcp_utils (not p_coder)
+- Fixed overview line in step_2.md
+
 **Status**: pending commit
