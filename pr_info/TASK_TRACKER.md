@@ -27,9 +27,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `feat: add normalize_line_endings to path_utils`
 
 ### Step 2: Normalize CRLF in `save_file` / `append_file`
-- [ ] Implementation: normalize in `_validate_save_parameters`, refactor `append_file` to use it, add CRLF tests
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `fix: normalize CRLF in save_file/append_file`
+- [x] Implementation: normalize in `_validate_save_parameters`, refactor `append_file` to use it, add CRLF tests
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `fix: normalize CRLF in save_file/append_file`
 
 ### Step 3: Normalize CRLF in `edit_file`
 - [ ] Implementation: normalize `original_content`, `old_text`, `new_text` in `edit_file`, add CRLF tests

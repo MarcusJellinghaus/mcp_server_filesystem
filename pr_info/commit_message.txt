@@ -1,7 +1,8 @@
-feat: add normalize_line_endings to path_utils
+fix: normalize CRLF in save_file/append_file
 
-- Add normalize_line_endings() to path_utils.py as shared utility
-- Handle both CRLF (\r\n) and standalone CR (\r) line endings
-- Remove legacy copy from edit_file.py, import from path_utils
-- Move tests to test_path_utils.py with new cases for CR and mixed endings
-- Update test_edit_file_issues.py import to point to path_utils
+- Import normalize_line_endings in file_operations.py
+- Add CRLF normalization in _validate_save_parameters before return
+- Refactor append_file to use _validate_save_parameters instead of
+  duplicating validation logic
+- Add tests: save_file CRLF normalization, append_file CRLF
+  normalization, append_file validation after refactor
