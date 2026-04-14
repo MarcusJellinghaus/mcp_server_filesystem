@@ -69,9 +69,17 @@ Modernize reinstall_local.bat to match mcp-coder pattern.
 **Findings**: none
 **Status**: plan is ready for implementation
 
+## Round 4 — 2026-04-14
+**Findings**: none
+**Status**: plan clean — then reference projects renamed (`p_checker` → `p_tools`, `p_mcp_utils` → `p_coder-utils`)
+
+## Round 5 — 2026-04-14
+**Findings**: none — rename applied correctly, no stale references
+**Status**: plan is ready for implementation
+
 ## Final Status
 
-- **Rounds**: 4 (3 with changes, 1 clean verification)
-- **Commits**: 3 (`0a7989a`, `0f53aca`, `18f9570`)
+- **Rounds**: 5 (3 with fixes, 1 rename, 1 clean verification)
+- **Commits**: 4 (`0a7989a`, `0f53aca`, `18f9570`, `2e7685c`)
 - **Plan status**: ready for implementation approval
 - **No design questions** were escalated — all findings were straightforward corrections
