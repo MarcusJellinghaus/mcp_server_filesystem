@@ -21,6 +21,16 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Add read_github_deps.py with tests
+- [ ] Implementation: create `tools/read_github_deps.py` (verbatim from reference) and `tests/test_read_github_deps.py` (from scratch)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `feat: add read_github_deps.py with tests`
+
+### Step 2: Rewrite reinstall_local.bat to match modern pattern
+- [ ] Implementation: rewrite `tools/reinstall_local.bat` following 0-6 step template from reference
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `feat: rewrite reinstall_local.bat to match modern pattern`
 
 ## Pull Request
+- [ ] PR review: verify all steps complete and checks pass
+- [ ] PR summary prepared
