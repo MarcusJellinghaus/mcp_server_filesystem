@@ -1,8 +1,0 @@
-fix: normalize CRLF in edit_file
-
-Normalize line endings in edit_file for both file content and
-LLM-provided old_text/new_text inputs:
-
-- Normalize original_content after reading from disk
-- Normalize old_text and new_text per edit operation
-- Add CRLF tests: old_text matching, new_text contamination, file content
