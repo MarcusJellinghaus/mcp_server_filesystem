@@ -1,31 +1,41 @@
---- This file is used by Claude Code - similar to a system prompt. ---
+## About this repo
 
-# ⚠️ MANDATORY INSTRUCTIONS - MUST BE FOLLOWED ⚠️
+`mcp-workspace` is an MCP server providing workspace file operations (read, write, edit, list, search) and read-only access to reference projects. Source code is in `src/mcp_workspace/`, tests in `tests/`. Python 3.11+ required.
 
-**THESE INSTRUCTIONS OVERRIDE ALL DEFAULT BEHAVIORS - NO EXCEPTIONS**
+## MCP Tools — mandatory
 
-## 🔴 CRITICAL: ALWAYS Use MCP Tools
+Use MCP tools for **all** operations. Never use `Read`, `Write`, `Edit`, or `Bash` for tasks that have an MCP equivalent.
 
-**MANDATORY**: You MUST use MCP tools for ALL operations when available. DO NOT use standard Claude tools.
+### Tool mapping
 
-**BEFORE EVERY TOOL USE, ASK: "Does an MCP version exist?"**
+| Task | MCP tool |
+|------|----------|
+| Read file | `mcp__workspace__read_file` |
+| Edit file | `mcp__workspace__edit_file` |
+| Write file | `mcp__workspace__save_file` |
+| Append to file | `mcp__workspace__append_file` |
+| Delete file | `mcp__workspace__delete_this_file` |
+| Move file | `mcp__workspace__move_file` |
+| List directory | `mcp__workspace__list_directory` |
+| Search files | `mcp__workspace__search_files` |
+| Read reference project | `mcp__workspace__read_reference_file` |
+| List reference dir | `mcp__workspace__list_reference_directory` |
+| Get reference projects | `mcp__workspace__get_reference_projects` |
+| Run pytest | `mcp__tools-py__run_pytest_check` |
+| Run pylint | `mcp__tools-py__run_pylint_check` |
+| Run mypy | `mcp__tools-py__run_mypy_check` |
+| Run vulture | `mcp__tools-py__run_vulture_check` |
+| Run lint-imports | `mcp__tools-py__run_lint_imports_check` |
+| Run ruff check | `mcp__tools-py__run_ruff_check` |
+| Run ruff fix | `mcp__tools-py__run_ruff_fix` |
+| Run bandit | `mcp__tools-py__run_bandit_check` |
+| Format code (black+isort) | `mcp__tools-py__run_format_code` |
+| Get library source | `mcp__tools-py__get_library_source` |
+| Refactoring | `mcp__tools-py__move_symbol`, `move_module`, `rename_symbol`, `list_symbols`, `find_references` |
 
-### Tool Mapping Reference:
+## Code quality checks
 
-| Task | ❌ NEVER USE | ✅ USE MCP TOOL |
-|------|--------------|------------------|
-| Read file | `Read()` | `mcp__workspace__read_file()` |
-| Edit file | `Edit()` | `mcp__workspace__edit_file()` |
-| Write file | `Write()` | `mcp__workspace__save_file()` |
-| Run pytest | `Bash("pytest ...")` | `mcp__tools-py__run_pytest_check()` |
-| Run pylint | `Bash("pylint ...")` | `mcp__tools-py__run_pylint_check()` |
-| Run mypy | `Bash("mypy ...")` | `mcp__tools-py__run_mypy_check()` |
-| Git operations | ✅ `Bash("git ...")` | ✅ `Bash("git ...")` (allowed) |
-| Refactoring | Manual copy-paste | `mcp__tools-py__move_symbol()`, `list_symbols()`, `find_references()` |
-
-## 🔴 CRITICAL: Code Quality Requirements
-
-**MANDATORY**: After making ANY code changes (after EACH edit), you MUST run ALL THREE code quality checks using the EXACT MCP tool names below:
+After making code changes, run:
 
 ```
 mcp__tools-py__run_pylint_check
@@ -33,151 +43,36 @@ mcp__tools-py__run_pytest_check
 mcp__tools-py__run_mypy_check
 ```
 
-This runs:
-- **Pylint** - Code quality and style analysis
-- **Pytest** - All unit and integration tests
-- **Mypy** - Static type checking
+All checks must pass before proceeding.
 
-**⚠️ ALL CHECKS MUST PASS** - If ANY issues are found, you MUST fix them immediately before proceeding.
+**Pytest:** always use `extra_args: ["-n", "auto"]` for parallel execution.
 
-### 📋 Pytest Execution Requirements
+When debugging test failures, add `"-v", "-s", "--tb=short"` to extra_args.
 
-**MANDATORY pytest parameters:**
-- ALWAYS use `extra_args: ["-n", "auto"]` for parallel execution
+## Git operations
 
-**Examples:**
-```python
-# Standard test run with parallel execution
-mcp__tools-py__run_pytest_check(extra_args=["-n", "auto"])
-
-# Verbose test run for debugging
-mcp__tools-py__run_pytest_check(extra_args=["-n", "auto", "-v", "-s", "--tb=short"])
-```
-
-## 📁 MANDATORY: File Access Tools
-
-**YOU MUST USE THESE MCP TOOLS** for all file operations:
+**Allowed commands via Bash tool.** These have no MCP equivalent — use Bash directly. Skills that instruct bash commands (e.g. `gh issue view`) must also use Bash.
 
 ```
-mcp__workspace__get_reference_projects
-mcp__workspace__list_reference_directory
-mcp__workspace__read_reference_file
-mcp__workspace__list_directory
-mcp__workspace__read_file
-mcp__workspace__save_file
-mcp__workspace__append_file
-mcp__workspace__delete_this_file
-mcp__workspace__move_file
-mcp__workspace__edit_file
+git status / diff / commit / log / fetch / ls-tree / show
+gh issue view / gh pr view / gh run view
+mcp-coder git-tool compact-diff
+mcp-coder check branch-status
+mcp-coder check file-size --max-lines 750
+mcp-coder gh-tool set-status <label>
 ```
 
-**⚠️ ABSOLUTELY FORBIDDEN:** Using `Read`, `Write`, `Edit`, `MultiEdit` tools when MCP workspace tools are available.
+**Status labels:** use `mcp-coder gh-tool set-status` to change issue workflow status — never use raw `gh issue edit` with label flags.
 
-### Quick Examples:
+**Compact diff:** use `mcp-coder git-tool compact-diff` instead of `git diff` for code review. Detects moved code, collapses unchanged blocks. Supports `--exclude PATTERN`.
 
-```python
-# ❌ WRONG - Standard tools
-Read(file_path="src/mcp_workspace/server.py")
-Edit(file_path="src/mcp_workspace/server.py", old_string="...", new_string="...")
-Write(file_path="src/new_module.py", content="...")
-Bash("pytest tests/")
+**Before every commit:** run `mcp__tools-py__run_format_code`, then stage and commit.
 
-# ✅ CORRECT - MCP tools
-mcp__workspace__read_file(file_path="src/mcp_workspace/server.py")
-mcp__workspace__edit_file(file_path="src/mcp_workspace/server.py", edits=[...])
-mcp__workspace__save_file(file_path="src/new_module.py", content="...")
-mcp__tools-py__run_pytest_check(extra_args=["-n", "auto"])
-```
+**Bash discipline:** no `cd` prefix. Don't chain approved with unapproved commands. Run them separately.
 
-**WHY MCP TOOLS ARE MANDATORY:**
-- Proper security and access control
-- Consistent error handling
-- Better integration with the development environment
-- Required for this project's architecture
+**Commit messages:** standard format, clear and descriptive. No attribution footers.
 
-## 🚨 COMPLIANCE VERIFICATION
-
-**Before completing ANY task, you MUST:**
-
-1. ✅ Confirm all code quality checks passed using MCP tools
-2. ✅ Verify you used MCP tools exclusively (NO `Bash` for code checks, NO `Read`/`Write`/`Edit` for files)
-3. ✅ Ensure no issues remain unresolved
-4. ✅ State explicitly: "All CLAUDE.md requirements followed"
-
-## 🔧 DEBUGGING AND TROUBLESHOOTING
-
-**When tests fail or skip:**
-- Use MCP pytest tool with verbose flags: `extra_args: ["-v", "-s", "--tb=short"]`
-- Never fall back to `Bash` commands - always investigate within MCP tools
-- If MCP tools don't provide enough detail, ask user for guidance rather than using alternative tools
-
-## 🔧 MCP Server Issues
-
-**IMMEDIATELY ALERT** if MCP tools are not accessible - this blocks all work until resolved.
-
-## 🔄 Git Operations
-
-**MANDATORY: Before ANY commit:**
-
-```bash
-# ALWAYS run format_all before committing
-./tools/format_all.sh
-
-# Then verify formatting worked
-git diff  # Should show formatting changes if any
-```
-
-**Format all code before committing:**
-- Run `./tools/format_all.sh` to format with black and isort
-- Review the changes to ensure they're formatting-only
-- Stage the formatted files
-- Then commit
-
-**ALLOWED git operations via Bash tool:**
-
-```
-git status
-git diff
-git log
-git fetch
-git ls-tree
-git show
-```
-
-**⚠️ Bash discipline (applies to subagents too):**
-
-- No `cd` prefix — the working directory is already correct.
-- Stick to approved commands above. Avoid unapproved bash commands — they trigger user authorization prompts and interrupt the workflow.
-- Do not chain approved commands with unapproved ones (e.g. `git status && echo "---" && git diff`). The `echo` makes the whole command unapproved. Run approved commands separately instead.
-
-**Git commit message format:**
-- Use standard commit message format
-- Focus on clear, descriptive commit messages
-- Follow conventional commits when appropriate (feat:, fix:, docs:, etc.)
-
-## 📂 Project Structure
-
-This project is an MCP server implementation with the following structure:
-
-```
-mcp_workspace/
-├── src/
-│   └── mcp_workspace/  # Main source code
-│       ├── main.py             # Entry point
-│       ├── server.py           # MCP server implementation
-│       └── tools/              # MCP tool implementations
-├── tests/                      # Test suite
-├── pyproject.toml              # Project configuration
-└── README.md                   # Documentation
-```
-
-**Key Points:**
-- Source code is in `src/mcp_workspace/`
-- Tests are in `tests/`
-- Python 3.11+ required
-- Uses MCP protocol for server implementation
-
-## 📦 Shared Libraries
+## Shared Libraries
 
 This project uses **mcp-coder-utils** (`p_mcp_utils` reference project) for shared utilities:
 
@@ -189,18 +84,10 @@ This project uses **mcp-coder-utils** (`p_mcp_utils` reference project) for shar
 - Browse the source via `p_mcp_utils` reference project before reimplementing anything
 - Never create local workarounds — file issues/feature requests at [mcp-coder-utils](https://github.com/MarcusJellinghaus/mcp-coder-utils) instead
 
-## 📏 File Size Check
+## Writing style
 
-Check for large files (>750 lines) that may impact LLM context:
-```bash
-mcp-coder check file-size --max-lines 750
-mcp-coder check branch-status --llm-truncate
-```
+Be concise. If one line works, don't use three.
 
-## 🎯 Development Guidelines
+## MCP server issues
 
-1. **Type Safety**: All code must pass strict mypy checking
-2. **Test Coverage**: All new functionality must have corresponding tests
-3. **Code Style**: Follow Black and isort formatting (enforced)
-4. **MCP Protocol**: Follow MCP best practices for server implementation
-5. **Documentation**: Update README.md when adding new features or tools
+Alert immediately if MCP tools are not accessible — this blocks all work.
