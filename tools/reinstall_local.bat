@@ -106,7 +106,7 @@ echo [OK] mcp-workspace CLI works
 
 echo.
 echo =============================================
-echo Reinstallation completed successfully!
+echo [6/6] Reinstallation completed successfully!
 echo.
 echo Entry point installed in: !VENV_SCRIPTS!
 echo   - mcp-workspace.exe
