@@ -1,6 +1,6 @@
 ---
-workflow-stage: utility
-suggested-next: implementation_review or implementation_review_supervised
+description: Complete remaining unchecked tasks in the task tracker
+disable-model-invocation: true
 ---
 
 # Implementation Finalise

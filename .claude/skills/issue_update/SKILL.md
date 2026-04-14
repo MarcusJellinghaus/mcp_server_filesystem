@@ -1,7 +1,15 @@
 ---
-allowed-tools: Bash(gh issue edit *), Bash(gh issue view *), Read, Glob, Grep, mcp__workspace__save_file, mcp__workspace__delete_this_file
-workflow-stage: issue-discussion
-suggested-next: issue_approve
+description: Update GitHub issue with refined content from analysis discussion
+disable-model-invocation: true
+argument-hint: "<issue-number>"
+allowed-tools:
+  - "Bash(gh issue edit *)"
+  - "Bash(gh issue view *)"
+  - mcp__workspace__save_file
+  - mcp__workspace__delete_this_file
+  - Read
+  - Glob
+  - Grep
 ---
 
 # Update GitHub Issue
@@ -45,4 +53,5 @@ The base branch must be a single line. Multiple lines will cause an error during
 **The updated issue should include:**
 - Summary of the requirement
 - Discussed implementation approach (concise)
-- Any constraints or considerations identified
+- `## Constraints & Rationale` — non-obvious gotchas and the "why" behind decisions. Skip if none identified.
+- `## Decisions` table — decided topics so `/issue_analyse` won't re-ask. Skip if none yet.

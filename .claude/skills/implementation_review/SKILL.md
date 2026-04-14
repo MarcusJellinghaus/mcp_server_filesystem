@@ -1,10 +1,16 @@
 ---
-allowed-tools: Bash(git fetch *), Bash(git status *), Bash(git diff *), Bash(mcp-coder git-tool compact-diff *), Bash(mcp-coder check branch-status *), Read, Glob, Grep
-workflow-stage: code-review
-suggested-next:
-  - if incomplete tasks found _> implementation_finalise
-  - discuss -> commit_push -> implementation_approve
-  - discuss -> implementation_new_tasks -> commit_push -> implementation_needs_rework  
+description: Code review of implementation with compact diff analysis
+disable-model-invocation: true
+allowed-tools:
+  - "Bash(git fetch *)"
+  - "Bash(git status *)"
+  - "Bash(git diff *)"
+  - "Bash(mcp-coder git-tool *)"
+  - "Bash(mcp-coder check branch-status *)"
+  - mcp__workspace__read_file
+  - mcp__workspace__list_directory
+  - Glob
+  - Grep
 ---
 
 # Implementation Review (Code Review)

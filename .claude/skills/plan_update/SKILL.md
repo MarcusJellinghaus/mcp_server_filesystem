@@ -1,8 +1,11 @@
 ---
-workflow-stage: plan-review
-suggested-next:
-  - commit_push -> plan_approve
-  - commit_push -> /clear -> plan_review
+description: Update implementation plan files based on discussion
+disable-model-invocation: true
+allowed-tools:
+  - mcp__workspace__read_file
+  - mcp__workspace__save_file
+  - mcp__workspace__edit_file
+  - mcp__workspace__list_directory
 ---
 
 # Update Plan Files

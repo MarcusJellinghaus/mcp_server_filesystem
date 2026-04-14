@@ -1,7 +1,13 @@
 ---
-allowed-tools: Bash(git fetch *), Bash(git status *), Read, Glob, Grep
-workflow-stage: plan-review
-suggested-next: discuss -> plan_update -> commit_push -> plan_approve
+description: Review implementation plan for completeness, simplicity, and risks
+disable-model-invocation: true
+allowed-tools:
+  - "Bash(git fetch *)"
+  - "Bash(git status *)"
+  - mcp__workspace__read_file
+  - mcp__workspace__list_directory
+  - Glob
+  - Grep
 ---
 
 # Review Implementation Plan
@@ -33,5 +39,6 @@ We do not need to challenge them again unless absolutely necessary.
 - Test coverage strategy
 - Step granularity — each step should produce exactly one commit. Flag steps with multiple independent parts (A, B, C) that should be split.
 - Potential risks or blockers
+- **Requirement changes** — flag new dependencies (`pyproject.toml`) that should be applied during planning, not deferred to implementation
 
 For planning standards, see `.claude/knowledge_base/planning_principles.md`.

@@ -1,6 +1,6 @@
 ---
-workflow-stage: utility
-suggested-next: (context-dependent)
+description: Step-by-step discussion of open questions and suggestions
+disable-model-invocation: true
 ---
 
 # Step-by-step Discussion
