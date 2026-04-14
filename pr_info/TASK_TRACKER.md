@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Add `normalize_line_endings` to `path_utils.py`
-- [ ] Implementation: add function to `path_utils.py`, remove legacy copy from `edit_file.py`, move tests to `test_path_utils.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `feat: add normalize_line_endings to path_utils`
+- [x] Implementation: add function to `path_utils.py`, remove legacy copy from `edit_file.py`, move tests to `test_path_utils.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `feat: add normalize_line_endings to path_utils`
 
 ### Step 2: Normalize CRLF in `save_file` / `append_file`
 - [ ] Implementation: normalize in `_validate_save_parameters`, refactor `append_file` to use it, add CRLF tests

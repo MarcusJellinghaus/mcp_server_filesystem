@@ -7,16 +7,10 @@ from unittest.mock import MagicMock, patch
 from mcp_workspace.file_tools.edit_file import (
     create_unified_diff,
     edit_file,
-    normalize_line_endings,
 )
 
 
 class TestEditFileUtils(unittest.TestCase):
-    def test_normalize_line_endings(self) -> None:
-        text_with_crlf = "line1\r\nline2\r\nline3"
-        normalized = normalize_line_endings(text_with_crlf)
-        self.assertEqual(normalized, "line1\nline2\nline3")
-
     def test_create_unified_diff(self) -> None:
         original = "line1\nline2\nline3"
         modified = "line1\nmodified\nline3"

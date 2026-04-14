@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from mcp_workspace.file_tools.path_utils import normalize_path
+from mcp_workspace.file_tools.path_utils import normalize_line_endings, normalize_path
 
 logger = logging.getLogger(__name__)
 
@@ -340,12 +340,6 @@ def _preserve_basic_indentation(old_text: str, new_text: str) -> tuple[str, str]
 
     # Neither has indentation
     return new_text, "No indentation processing needed (neither text is indented)"
-
-
-# Legacy compatibility functions (simplified versions)
-def normalize_line_endings(text: str) -> str:
-    """Convert all line endings to Unix style (\n)."""
-    return text.replace("\r\n", "\n")
 
 
 def create_unified_diff(original: str, modified: str, file_path: str) -> str:
