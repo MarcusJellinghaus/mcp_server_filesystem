@@ -27,9 +27,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `feat: add read_github_deps.py with tests`
 
 ### Step 2: Rewrite reinstall_local.bat to match modern pattern
-- [ ] Implementation: rewrite `tools/reinstall_local.bat` following 0-6 step template from reference
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `feat: rewrite reinstall_local.bat to match modern pattern`
+- [x] Implementation: rewrite `tools/reinstall_local.bat` following 0-6 step template from reference
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `feat: rewrite reinstall_local.bat to match modern pattern`
 
 ## Pull Request
 - [ ] PR review: verify all steps complete and checks pass
