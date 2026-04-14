@@ -62,8 +62,8 @@ Note: `save_file` calls `_validate_save_parameters` again on `combined_content`,
 
 In `tests/file_tools/test_file_operations.py`:
 
-1. **`test_save_file_normalizes_crlf`**: Call `save_file` with `"line1\r\nline2\r\n"`, read back with `open(path, "rb")`, verify no `\r\n` or `\r\r\n` in raw bytes (only `\r\n` on Windows from text-mode, or `\n` on Linux — but no doubled endings).
-2. **`test_append_file_normalizes_crlf`**: Create file with `"existing\n"`, append `"new\r\nline\r\n"`, read back and verify clean content.
+1. **`test_save_file_normalizes_crlf`**: Call `save_file` with `"line1\r\nline2\r\n"`. Read back with `open(path, 'rb')` and verify no `\r\r\n` (double carriage return) exists in the raw bytes. This is the key assertion — on any platform, `\r\r\n` means the normalization failed.
+2. **`test_append_file_normalizes_crlf`**: Create file with `"existing\n"`, append `"new\r\nline\r\n"`. Read back with `open(path, 'rb')` and verify no `\r\r\n` (double carriage return) exists in the raw bytes. This is the key assertion — on any platform, `\r\r\n` means the normalization failed.
 3. **`test_append_file_validation_via_validate_save_parameters`**: Verify `append_file` still raises `ValueError` for invalid content type (confirms refactor didn't break validation).
 
 ## Commit
