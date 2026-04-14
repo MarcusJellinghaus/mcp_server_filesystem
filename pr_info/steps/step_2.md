@@ -8,13 +8,13 @@ feat: rewrite reinstall_local.bat to match modern pattern
 ```
 
 ## Overview
-Full rewrite of `tools/reinstall_local.bat` following the established 6-step template from `p_tools`, adapted for mcp-workspace (a leaf package — no LangChain/MLflow step needed).
+Full rewrite of `tools/reinstall_local.bat` following the established 6-step template from `p_mcp_utils`, adapted for mcp-workspace (a leaf package — no LangChain/MLflow step needed).
 
 ## Files
 
 ### MODIFY: `tools/reinstall_local.bat`
 
-**Reference**: `p_tools` project `tools/reinstall_local.bat` — adapt by:
+**Reference**: `p_mcp_utils` project `tools/reinstall_local.bat` — adapt by:
 - Removing step 5/7 (LangChain/MLflow — not applicable)
 - Removing step 6/7 (multi-CLI exe checks — workspace only has one CLI)
 - Adjusting uninstall list to 5 packages per issue
@@ -71,7 +71,7 @@ setlocal enabledelayedexpansion
 This is a batch file rewrite. No Python return values or data structures.
 
 ## Verification
-1. Run tests: `mcp__tools-py__run_pytest_check(extra_args=["-n", "auto", "-m", "not git_integration and not claude_cli_integration and not claude_api_integration and not formatter_integration and not github_integration and not langchain_integration"])`
+1. Run tests: `mcp__tools-py__run_pytest_check(extra_args=["-n", "auto"])`
 2. Run pylint: `mcp__tools-py__run_pylint_check()`
 3. Run mypy: `mcp__tools-py__run_mypy_check()`
 
@@ -84,7 +84,7 @@ Read pr_info/steps/summary.md and pr_info/steps/step_2.md for full context.
 Implement Step 2 of Issue #94: Rewrite tools/reinstall_local.bat.
 
 1. Read the current tools/reinstall_local.bat
-2. Read the reference from p_tools: tools/reinstall_local.bat (use read_reference_file)
+2. Read the reference from p_mcp_utils: tools/reinstall_local.bat (use read_reference_file)
 3. Write the new tools/reinstall_local.bat following the 6-step structure in step_2.md:
    - Adapt the reference by removing LangChain/MLflow step and multi-CLI checks
    - Use the 5-package uninstall list: mcp-workspace mcp-coder-utils mcp-config-tool mcp-tools-py mcp-coder

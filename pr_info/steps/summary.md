@@ -32,24 +32,24 @@ Rewrite `tools/reinstall_local.bat` to follow the established 6-step pattern use
 
 | File | Action | Description |
 |------|--------|-------------|
-| `tools/read_github_deps.py` | **CREATE** | Copy verbatim from reference (`p_tools`). Self-contained script that reads GitHub deps from `pyproject.toml` and prints `uv pip install` commands |
-| `tests/test_read_github_deps.py` | **CREATE** | Tests for `read_github_deps.py`, adapted from reference (`p_tools`) |
+| `tools/read_github_deps.py` | **CREATE** | Copy verbatim from reference (`p_mcp_utils`). Self-contained script that reads GitHub deps from `pyproject.toml` and prints `uv pip install` commands |
+| `tests/test_read_github_deps.py` | **CREATE** | Tests for `read_github_deps.py`, written from scratch (no reference test exists) |
 | `tools/reinstall_local.bat` | **MODIFY** | Full rewrite following the 6-step template pattern |
 
 ## Implementation Steps
 
 | Step | Commit | Description |
 |------|--------|-------------|
-| 1 | `feat: add read_github_deps.py with tests` | Create `tools/read_github_deps.py` (verbatim copy) + `tests/test_read_github_deps.py` (adapted from reference) |
-| 2 | `feat: rewrite reinstall_local.bat to match modern pattern` | Rewrite `tools/reinstall_local.bat` following the 6-step template from `p_tools`, adapted for mcp-workspace |
+| 1 | `feat: add read_github_deps.py with tests` | Create `tools/read_github_deps.py` (verbatim copy) + `tests/test_read_github_deps.py` (written from scratch) |
+| 2 | `feat: rewrite reinstall_local.bat to match modern pattern` | Rewrite `tools/reinstall_local.bat` following the 6-step template from `p_mcp_utils`, adapted for mcp-workspace |
 
-## Key Adaptation Points (mcp-workspace vs p_tools reference)
+## Key Adaptation Points (mcp-workspace vs p_mcp_utils reference)
 
-| Aspect | p_tools (reference) | mcp-workspace (target) |
+| Aspect | p_mcp_utils (reference) | mcp-workspace (target) |
 |--------|---------------------|------------------------|
-| Steps | 0-7 (8 steps, includes LangChain/MLflow) | 0-6 (7 steps, no LangChain/MLflow) |
-| Uninstall list | `mcp-coder mcp-tools-py mcp-config mcp-workspace` | `mcp-workspace mcp-coder-utils mcp-config-tool mcp-tools-py mcp-coder` |
-| Import check | `mcp_tools_py` | `mcp_workspace` |
-| CLI check | `mcp-tools-py.exe` | `mcp-workspace.exe` |
+| Steps | 0-6 (7 steps) | 0-6 (7 steps, no LangChain/MLflow) |
+| Uninstall list | `mcp-coder-utils mcp-coder mcp-tools-py mcp-workspace` | `mcp-workspace mcp-coder-utils mcp-config-tool mcp-tools-py mcp-coder` |
+| Import check | `mcp_coder_utils` | `mcp_workspace` |
+| CLI check | none (no CLI entry point) | `mcp-workspace.exe` |
 | Dev extras | `.[dev]` | `.[dev]` (same) |
 | `read_github_deps.py` | Exists | Copy verbatim (self-contained) |

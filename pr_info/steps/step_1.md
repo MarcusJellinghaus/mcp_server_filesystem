@@ -8,19 +8,21 @@ feat: add read_github_deps.py with tests
 ```
 
 ## Overview
-Create the `tools/read_github_deps.py` helper (verbatim copy from `p_tools` reference) and its test file. This script reads `[tool.mcp-coder.install-from-github]` from `pyproject.toml` and prints `uv pip install` commands — used by `reinstall_local.bat` in Step 2.
+Create the `tools/read_github_deps.py` helper (verbatim copy from `p_mcp_utils` reference) and its test file. This script reads `[tool.mcp-coder.install-from-github]` from `pyproject.toml` and prints `uv pip install` commands — used by `reinstall_local.bat` in Step 2.
 
 ## Files
 
 ### CREATE: `tools/read_github_deps.py`
-- **Copy verbatim** from reference project `p_tools` at `tools/read_github_deps.py`
+- **Copy verbatim** from reference project `p_mcp_utils` at `tools/read_github_deps.py`
 - Self-contained: only uses `tomllib` and `pathlib` (stdlib)
 - No modifications needed
 
 **Function signature:**
 ```python
-def main(project_dir: Path | None = None) -> None:
+def main() -> None:
 ```
+
+> **Note:** `main()` resolves the project directory from `__file__` (parent of the script's directory). Tests need to handle this — e.g., run as subprocess in a temp dir, or monkeypatch path resolution.
 
 **Algorithm:**
 ```
@@ -38,7 +40,7 @@ uv pip install --no-deps "pkg-c @ git+https://..."
 ```
 
 ### CREATE: `tests/test_read_github_deps.py`
-- **Adapted from** reference project `p_tools` at `tests/test_read_github_deps.py`
+- **Written from scratch** (no reference test file exists to copy from)
 - Uses `tmp_path` fixture to create temporary `pyproject.toml` files
 - Imports: `from tools.read_github_deps import main`
 
@@ -58,7 +60,7 @@ uv pip install --no-deps "pkg-c @ git+https://..."
 - `pyproject.toml` already has `[tool.mcp-coder.install-from-github]` config
 
 ## Verification
-1. Run tests: `mcp__tools-py__run_pytest_check(extra_args=["-n", "auto", "-m", "not git_integration and not claude_cli_integration and not claude_api_integration and not formatter_integration and not github_integration and not langchain_integration"])`
+1. Run tests: `mcp__tools-py__run_pytest_check(extra_args=["-n", "auto"])`
 2. Run pylint: `mcp__tools-py__run_pylint_check()`
 3. Run mypy: `mcp__tools-py__run_mypy_check()`
 
@@ -68,9 +70,9 @@ Read pr_info/steps/summary.md and pr_info/steps/step_1.md for full context.
 
 Implement Step 1 of Issue #94: Add tools/read_github_deps.py and tests/test_read_github_deps.py.
 
-1. Copy tools/read_github_deps.py verbatim from reference project p_tools (use read_reference_file)
-2. Copy tests/test_read_github_deps.py from reference project p_tools (use read_reference_file)
-3. Run all three quality checks (pylint, pytest excluding integration markers, mypy)
+1. Copy tools/read_github_deps.py verbatim from reference project p_mcp_utils (use read_reference_file)
+2. Write tests/test_read_github_deps.py from scratch based on the test cases listed above
+3. Run all three quality checks (pylint, pytest, mypy)
 4. Fix any issues until all checks pass
 5. Commit with message: "feat: add read_github_deps.py with tests"
 ```
