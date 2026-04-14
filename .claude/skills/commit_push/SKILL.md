@@ -1,7 +1,17 @@
 ---
-allowed-tools: Bash(git status *), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git log *), Bash(./tools/format_all.sh), Bash(tools/format_all.bat), Read, Glob, Grep
-workflow-stage: utility
-suggested-next: (context-dependent)
+description: Format code, review changes, commit, and push to remote
+disable-model-invocation: true
+allowed-tools:
+  - "Bash(git status *)"
+  - "Bash(git diff *)"
+  - "Bash(git add *)"
+  - "Bash(git commit *)"
+  - "Bash(git push *)"
+  - "Bash(git log *)"
+  - mcp__tools-py__run_format_code
+  - Read
+  - Glob
+  - Grep
 ---
 
 # Commit and Push Changes
@@ -9,9 +19,7 @@ suggested-next: (context-dependent)
 Follow this process to commit and push your changes:
 
 ## 1. Format Code
-```bash
-./tools/format_all.sh
-```
+Use `mcp__tools-py__run_format_code` to format all code (black + isort).
 
 ## 2. Review Changes
 ```bash

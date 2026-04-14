@@ -1,6 +1,17 @@
 ---
-workflow-stage: code-review
-suggested-next: implementation_approve or implementation_needs_rework
+description: Autonomous code review — supervisor delegates to engineer subagents with knowledge base
+disable-model-invocation: true
+allowed-tools:
+  - "Bash(gh issue view *)"
+  - "Bash(mcp-coder git-tool *)"
+  - "Bash(mcp-coder check branch-status *)"
+  - mcp__workspace__read_file
+  - mcp__workspace__save_file
+  - mcp__workspace__edit_file
+  - mcp__workspace__list_directory
+  - mcp__tools-py__run_pylint_check
+  - mcp__tools-py__run_pytest_check
+  - mcp__tools-py__run_mypy_check
 ---
 
 # Automated Implementation Review (Code Review) / using a supervisor agent
@@ -25,14 +36,15 @@ You are a technical lead supervising a software engineer (subagent). You do not 
 
 **Pre-flight: Task Tracker Check**
 
-- Read `pr_info/TASK_TRACKER.md` (if it exists) and look for unchecked tasks (`- [ ]`).
-- If unchecked tasks exist, **stop immediately**. Report the open tasks and tell the user:
-  > There are still open tasks in the task tracker. Please run `/implementation_finalise` to complete them before starting a code review.
-- Only proceed to the review workflow if all tasks are checked (`- [x]`) or no task tracker exists.
+- Check `pr_info/TASK_TRACKER.md` for unchecked items under `## Tasks` only. Ignore other sections (`## Pull Request` or `## Code Review`, etc.) — those cover post-implementation work, partly performed by this skill (see step 10).
+- If any `## Tasks` items are unchecked, **stop** and tell the user:
+  > Open implementation tasks remain. Run `/implementation_finalise` first.
 
 **Prerequisites:**
 
 - **Code must exist.** If the review subagent reports there is no implementation diff (only plan files, docs, or pr_info/), stop immediately and tell the user there is nothing to review yet.
+
+**Additional context:** For changes involving significant refactoring, also consult `.claude/knowledge_base/refactoring_principles.md`.
 
 **Workflow:**
 
@@ -42,10 +54,11 @@ You are a technical lead supervising a software engineer (subagent). You do not 
 4. Update `pr_info/implementation_review_log_{n}.md` with this round's findings, decisions, and changes.
 5. Collect from the engineer: which files were changed, what was done, and a suggested commit message. Then launch the **commit agent** with this context. The commit agent should verify only the expected files are modified before committing.
 6. Launch the engineer → `/check_branch_status`
-7. **If no code was changed this round, go to step 8.** Otherwise, launch a fresh engineer subagent (new context) and repeat from step 1.
+7. **LOOP: If any code was changed this round, you MUST launch a fresh engineer subagent and repeat from step 1.** Only proceed to step 8 when a round produces zero code changes. Do NOT stop or wait for user input between rounds — the loop is automatic.
 8. Add a `## Final Status` section to the log. Commit and push the log via the **commit agent**.
 9. Launch the engineer → `/check_branch_status` to verify CI, rebase need, and overall readiness. Include the result in the completion message.
-10. Notify the user with a short completion message: rounds run, commits produced, whether any issues remain, and branch status (CI, rebase needed).
+10. Perform any PR-section tasks this skill covers — typically `PR review` or `Code review`. Once done, tick them in `pr_info/TASK_TRACKER.md` and commit via the **commit agent** (separate commit from the log). Leave unrelated tasks like `PR summary` alone.
+11. Notify the user with a short completion message: rounds run, commits produced, whether any issues remain, and branch status (CI, rebase needed).
 
 **Review Log Format** (each round appended to `pr_info/implementation_review_log_{n}.md`):
 
@@ -58,7 +71,5 @@ You are a technical lead supervising a software engineer (subagent). You do not 
 ```
 
 **Subagent instructions:** Remind subagents to follow CLAUDE.md (MCP tools, no `cd` prefix, approved commands only).
-
-**Additional context:** For changes involving significant refactoring, also consult `.claude/knowledge_base/refactoring_principles.md`.
 
 **Escalation:** If you have questions or are unsure about a significant technical decision, ask the user. For borderline Accept/Skip findings, default to better code quality rather than asking — only escalate when the fix has meaningful scope or risk, not for trivial changes in either direction.

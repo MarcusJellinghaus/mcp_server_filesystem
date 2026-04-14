@@ -1,7 +1,10 @@
 ---
-allowed-tools: Bash(gh issue create *)
-workflow-stage: issue-discussion
-suggested-next: discuss -> issue_update -> issue_approve
+description: Create a new GitHub issue from discussion context
+disable-model-invocation: true
+argument-hint: "<title>"
+allowed-tools:
+  - "Bash(gh issue create *)"
+  - "Bash(git ls-remote *)"
 ---
 
 # Create GitHub Issue

@@ -1,8 +1,44 @@
 ---
-allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git ls-files *), Bash(git fetch *), Bash(git rebase *), Bash(git add *), Bash(git rm *), Bash(git commit *), Bash(git checkout --ours *), Bash(git remote get-url *), Bash(git checkout --theirs *), Bash(git restore *), Bash(git stash *), Bash(git push --force-with-lease *), Bash(git diff *), Bash(git rev-parse *), Bash(gh run view *), Bash(./tools/format_all.sh), Bash(tools/format_all.bat), Bash(gh issue view *), mcp__tools-py__run_pylint_check, mcp__tools-py__run_pytest_check, mcp__tools-py__run_mypy_check, mcp__workspace__get_reference_projects, mcp__workspace__list_reference_directory, mcp__workspace__read_reference_file, mcp__workspace__list_directory, mcp__workspace__read_file, mcp__workspace__save_file, mcp__workspace__append_file, mcp__workspace__delete_this_file, mcp__workspace__move_file, mcp__workspace__edit_file
-workflow-stage: utility
-suggested-next: (context-dependent)
+description: Rebase feature branch onto base branch with conflict resolution
+disable-model-invocation: true
+allowed-tools:
+  - "Bash(git status *)"
+  - "Bash(git log *)"
+  - "Bash(git branch *)"
+  - "Bash(git ls-files *)"
+  - "Bash(git fetch *)"
+  - "Bash(git rebase *)"
+  - "Bash(git add *)"
+  - "Bash(git rm *)"
+  - "Bash(git commit *)"
+  - "Bash(git checkout --ours *)"
+  - "Bash(git checkout --theirs *)"
+  - "Bash(git remote get-url *)"
+  - "Bash(git restore *)"
+  - "Bash(git stash *)"
+  - "Bash(git push --force-with-lease *)"
+  - "Bash(git diff *)"
+  - "Bash(git rev-parse *)"
+  - "Bash(gh run view *)"
+  - "Bash(gh issue view *)"
+  - mcp__tools-py__run_format_code
+  - "Bash(mcp-coder gh-tool get-base-branch *)"
+  - mcp__tools-py__run_pylint_check
+  - mcp__tools-py__run_pytest_check
+  - mcp__tools-py__run_mypy_check
+  - mcp__workspace__read_file
+  - mcp__workspace__save_file
+  - mcp__workspace__edit_file
+  - mcp__workspace__list_directory
+  - mcp__workspace__get_reference_projects
+  - mcp__workspace__list_reference_directory
+  - mcp__workspace__read_reference_file
+  - mcp__workspace__append_file
+  - mcp__workspace__delete_this_file
+  - mcp__workspace__move_file
 ---
+
+!`git status`
 
 # Rebase Branch onto Base Branch
 
@@ -28,7 +64,7 @@ If the base branch is not `main` or `master`, ask the user to confirm before pro
 
 ## Pre-flight Checks (Abort if any fail)
 
-1. Working directory is clean (`git status` shows no uncommitted changes)
+1. Working directory is clean (no uncommitted changes)
 2. Not already in rebase/merge state
 3. Not on main/master branch
 4. Remote origin exists

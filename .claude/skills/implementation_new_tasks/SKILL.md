@@ -1,6 +1,11 @@
 ---
-workflow-stage: code-review
-suggested-next: commit_push -> implementation_needs_rework
+description: Create additional implementation steps after code review findings
+disable-model-invocation: true
+allowed-tools:
+  - mcp__workspace__read_file
+  - mcp__workspace__save_file
+  - mcp__workspace__edit_file
+  - mcp__workspace__list_directory
 ---
 
 # Create Further Implementation Tasks
