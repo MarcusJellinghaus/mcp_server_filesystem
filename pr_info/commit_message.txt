@@ -1,8 +1,8 @@
-fix: normalize CRLF in save_file/append_file
+fix: normalize CRLF in edit_file
 
-- Import normalize_line_endings in file_operations.py
-- Add CRLF normalization in _validate_save_parameters before return
-- Refactor append_file to use _validate_save_parameters instead of
-  duplicating validation logic
-- Add tests: save_file CRLF normalization, append_file CRLF
-  normalization, append_file validation after refactor
+Normalize line endings in edit_file for both file content and
+LLM-provided old_text/new_text inputs:
+
+- Normalize original_content after reading from disk
+- Normalize old_text and new_text per edit operation
+- Add CRLF tests: old_text matching, new_text contamination, file content

@@ -66,7 +66,7 @@ def edit_file(
     # Read file content
     try:
         with open(abs_path, "r", encoding="utf-8") as f:
-            original_content = f.read()
+            original_content = normalize_line_endings(f.read())
     except UnicodeDecodeError:
         return _error_result(f"File contains invalid UTF-8: {abs_path}", file_path)
     except Exception as e:
@@ -100,8 +100,8 @@ def edit_file(
     edits_failed = 0
 
     for i, edit in enumerate(edits):
-        old_text = edit["old_text"]
-        new_text = edit["new_text"]
+        old_text = normalize_line_endings(edit["old_text"])
+        new_text = normalize_line_endings(edit["new_text"])
 
         # Skip if no change needed
         if old_text == new_text:
