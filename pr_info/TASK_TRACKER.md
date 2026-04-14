@@ -32,5 +32,5 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `feat: rewrite reinstall_local.bat to match modern pattern`
 
 ## Pull Request
-- [ ] PR review: verify all steps complete and checks pass
+- [x] PR review: verify all steps complete and checks pass
 - [ ] PR summary prepared
