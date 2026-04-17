@@ -55,6 +55,27 @@ _.setup_test_file
 _.setup_server
 
 # =============================================================================
+# Git Operations Public API
+# =============================================================================
+# Exported for downstream consumers (mcp_coder issue ③).
+# These functions/classes are not called within mcp_workspace itself.
+
+_.has_remote_tracking_branch
+_.delete_branch
+_.PushResult
+_.push_branch
+
+# =============================================================================
+# Test Mock Attributes
+# =============================================================================
+# Mock protocol methods used in test_parent_branch_detection.py
+
+_.__iter__
+_.__enter__
+_.__exit__
+_.__getitem__
+
+# =============================================================================
 # Protocol-Required Attributes
 # =============================================================================
 # Attributes required by MCP protocol but may not be referenced in our code

@@ -76,6 +76,9 @@ testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
 pythonpath = ["src"]
 addopts = ["--strict-markers", "--tb=short", "-n", "auto", "-p", "no:tach"]
+markers = [
+    "git_integration: File system git operations (repos, commits)",
+]
 
 [tool.black]
 line-length = 88
