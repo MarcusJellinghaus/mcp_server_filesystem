@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from git import Repo
 
-from mcp_workspace.file_tools.git_operations import (
+from mcp_workspace.file_tools.git_operations.staging import (
     stage_all_changes,
     stage_specific_files,
 )

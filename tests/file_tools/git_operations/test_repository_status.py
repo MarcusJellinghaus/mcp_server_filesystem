@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from git import Repo
 
-from mcp_workspace.file_tools.git_operations import (
+from mcp_workspace.file_tools.git_operations.repository_status import (
     get_full_status,
     get_staged_changes,
     get_unstaged_changes,
