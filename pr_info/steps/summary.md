@@ -22,17 +22,17 @@ src/mcp_workspace/file_tools/
 src/mcp_workspace/file_tools/
 ├── git_operations/            ← package (13 files from mcp_coder)
 │   ├── __init__.py            ← trimmed re-export: is_git_repository, is_file_tracked, git_move
-│   ├── core.py                ← _safe_repo_context (Windows handle safety), is_git_repository
+│   ├── core.py                ← _safe_repo_context (Windows handle safety)
 │   ├── branches.py
 │   ├── branch_queries.py
 │   ├── commits.py             ← import fix: mcp_coder_utils.subprocess_runner
 │   ├── compact_diffs.py
 │   ├── diffs.py
-│   ├── file_tracking.py       ← is_file_tracked
+│   ├── file_tracking.py       ← is_file_tracked, git_move
 │   ├── parent_branch_detection.py
 │   ├── remotes.py
-│   ├── repository_status.py
-│   ├── staging.py             ← git_move lives here (or core — verify at move time)
+│   ├── repository_status.py   ← is_git_repository
+│   ├── staging.py             ← staging operations
 │   └── workflows.py
 ├── file_operations.py         ← NO CHANGES (imports resolve via __init__.py)
 ├── __init__.py                ← NO CHANGES (imports resolve via package __init__.py)
@@ -61,21 +61,21 @@ src/mcp_workspace/file_tools/
 | File | Description |
 |------|-------------|
 | `src/mcp_workspace/file_tools/git_operations/__init__.py` | Trimmed re-export (3 names) |
-| `src/mcp_workspace/file_tools/git_operations/core.py` | `_safe_repo_context`, `is_git_repository` |
+| `src/mcp_workspace/file_tools/git_operations/core.py` | `_safe_repo_context` |
 | `src/mcp_workspace/file_tools/git_operations/branches.py` | Branch operations |
 | `src/mcp_workspace/file_tools/git_operations/branch_queries.py` | Branch query operations |
 | `src/mcp_workspace/file_tools/git_operations/commits.py` | Commit operations |
 | `src/mcp_workspace/file_tools/git_operations/compact_diffs.py` | Compact diff formatting |
 | `src/mcp_workspace/file_tools/git_operations/diffs.py` | Diff operations |
-| `src/mcp_workspace/file_tools/git_operations/file_tracking.py` | `is_file_tracked` |
+| `src/mcp_workspace/file_tools/git_operations/file_tracking.py` | `is_file_tracked`, `git_move` |
 | `src/mcp_workspace/file_tools/git_operations/parent_branch_detection.py` | Parent branch detection |
 | `src/mcp_workspace/file_tools/git_operations/remotes.py` | Remote operations |
 | `src/mcp_workspace/file_tools/git_operations/repository_status.py` | Repository status queries |
-| `src/mcp_workspace/file_tools/git_operations/staging.py` | Staging / `git_move` |
+| `src/mcp_workspace/file_tools/git_operations/staging.py` | Staging operations |
 | `src/mcp_workspace/file_tools/git_operations/workflows.py` | Workflow operations |
 | `tests/file_tools/git_operations/__init__.py` | Test package init |
 | `tests/file_tools/git_operations/conftest.py` | Git test fixtures |
-| `tests/file_tools/git_operations/test_*.py` | 12 test files from mcp_coder |
+| `tests/file_tools/git_operations/test_*.py` | 12 `test_*.py` files from mcp_coder |
 | `tests/file_tools/git_operations/test_edge_cases.py` | 5 consolidated edge-case tests |
 
 ## Files Modified

@@ -67,9 +67,8 @@ This is Decision 13 from the issue — required to avoid forbidden `mcp_coder` r
 The new `__init__.py` must re-export exactly 3 names (Decision 10):
 
 ```python
-from mcp_workspace.file_tools.git_operations.core import is_git_repository
-from mcp_workspace.file_tools.git_operations.file_tracking import is_file_tracked
-from mcp_workspace.file_tools.git_operations.staging import git_move
+from mcp_workspace.file_tools.git_operations.repository_status import is_git_repository
+from mcp_workspace.file_tools.git_operations.file_tracking import is_file_tracked, git_move
 
 __all__ = ["is_git_repository", "is_file_tracked", "git_move"]
 ```
@@ -85,6 +84,8 @@ Integration points that must keep working after the move:
 1. `file_tools/__init__.py` line: `from mcp_workspace.file_tools.git_operations import (git_move, is_file_tracked, is_git_repository)` — resolved via package `__init__.py`
 2. `file_operations.py` lines: `from mcp_workspace.file_tools.git_operations import git_move as git_move_impl` and `import is_file_tracked, is_git_repository` — same resolution
 3. `test_move_git_integration.py` patch: `mcp_workspace.file_tools.file_operations.git_move_impl` — unchanged (patches the import in file_operations, not git_operations)
+
+**Note:** The issue's acceptance criterion "file_tools/file_operations.py and file_tools/__init__.py imports updated" is satisfied by the package `__init__.py` re-export — no edits needed to those files.
 
 ## ALGORITHM
 
@@ -106,7 +107,7 @@ No new data structures. Same function signatures, same return types.
 After this step:
 - `from mcp_workspace.file_tools.git_operations import is_git_repository` works
 - `from mcp_workspace.file_tools.git_operations.core import _safe_repo_context` works
-- `from mcp_workspace.file_tools import git_move` works (via chain: `file_tools/__init__.py` → `git_operations/__init__.py` → `staging.py`)
+- `from mcp_workspace.file_tools import git_move` works (via chain: `file_tools/__init__.py` → `git_operations/__init__.py` → `file_tracking.py`)
 - Existing tests in `test_move_git_integration.py` pass unchanged
 - No `mcp_coder` imports in `src/` (grep with pattern excluding `mcp_coder_utils`)
 

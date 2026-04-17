@@ -19,12 +19,13 @@
 |------|--------|
 | `tests/file_tools/git_operations/__init__.py` | Create |
 | `tests/file_tools/git_operations/conftest.py` | Create |
-| `tests/file_tools/git_operations/test_core.py` | Create |
 | `tests/file_tools/git_operations/test_branches.py` | Create |
 | `tests/file_tools/git_operations/test_branch_queries.py` | Create |
 | `tests/file_tools/git_operations/test_commits.py` | Create |
 | `tests/file_tools/git_operations/test_compact_diffs.py` | Create |
 | `tests/file_tools/git_operations/test_compact_diffs_header_only.py` | Create |
+| `tests/file_tools/git_operations/test_compact_diffs_integration.py` | Create |
+| `tests/file_tools/git_operations/test_parent_branch_detection.py` | Create |
 | `tests/file_tools/git_operations/test_diffs.py` | Create |
 | `tests/file_tools/git_operations/test_file_tracking.py` | Create |
 | `tests/file_tools/git_operations/test_remotes.py` | Create |
@@ -37,7 +38,7 @@
 
 ### Part A: Move 14 test files from mcp_coder
 
-Copy `conftest.py` + 12 `test_*.py` files + `__init__.py` from mcp_coder's `tests/utils/git_operations/` into `tests/file_tools/git_operations/`.
+Copy `conftest.py` + 12 `test_*.py` files + `__init__.py` from mcp_coder's `tests/utils/git_operations/` into `tests/file_tools/git_operations/`. Together with `test_edge_cases.py` (Part B), this creates 15 files total in `tests/file_tools/git_operations/`.
 
 **Import rewrites in every test file:**
 

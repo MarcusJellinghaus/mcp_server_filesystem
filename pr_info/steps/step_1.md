@@ -46,10 +46,6 @@ ignore_imports =
     mcp_workspace.file_tools.git_operations.* -> git
 ```
 
-**Verify**: Check import-linter docs — if wildcards aren't supported, list each submodule that imports `git` explicitly. At minimum: `core`, `file_tracking`, `staging`, `branches`, `commits`, `diffs`, `remotes`, `repository_status`. Read each source file at copy time (step 2) to determine the exact set.
-
-**Alternative** (simpler, if wildcard works): A single wildcard line covers all submodules.
-
 ### 3. `tach.toml` — add subprocess_runner dependency
 
 The incoming `commits.py` imports `mcp_coder_utils.subprocess_runner`. Add this to the `file_tools` module dependencies:
