@@ -89,7 +89,7 @@ class TestGitDetection:
         # Staged files should be considered tracked
         assert is_file_tracked(staged_file, tmp_path) is True
 
-    @patch("mcp_workspace.file_tools.git_operations.Repo")
+    @patch("mcp_workspace.file_tools.git_operations.core.Repo")
     def test_is_git_repository_with_exception(
         self, mock_repo: Mock, tmp_path: Path
     ) -> None:
@@ -99,7 +99,7 @@ class TestGitDetection:
         # Should return False and log warning
         assert is_git_repository(tmp_path) is False
 
-    @patch("mcp_workspace.file_tools.git_operations.Repo")
+    @patch("mcp_workspace.file_tools.git_operations.core.Repo")
     def test_is_file_tracked_with_git_error(
         self, mock_repo: Mock, tmp_path: Path
     ) -> None:
