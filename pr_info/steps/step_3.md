@@ -125,7 +125,7 @@ No new data structures. Existing classes and their public APIs are preserved as-
 ## Verification
 
 ```
-pylint, mypy (expect some issues with missing test coverage — tests come in step 4)
+pylint, mypy, pytest (unit tests only — exclude integration markers)
 Verify: no imports of mcp_coder.* in src/mcp_workspace/ (grep)
 Verify: label_config.py, labels.json NOT present
 Verify: update_workflow_label not present in manager.py

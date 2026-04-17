@@ -24,6 +24,8 @@ docs/ARCHITECTURE.md             ← update diagram, layer table
 
 ### `.importlinter` changes
 
+Note: Layered architecture and gitpython isolation updates for `git_operations` were applied in Step 1. This step adds `github_operations`-related changes.
+
 **1. Update layered architecture contract:**
 
 ```ini
@@ -80,6 +82,8 @@ ignore_imports =
 ```
 
 ### `tach.toml` changes
+
+Note: `git_operations` module registration and `file_tools` depends_on update were applied in Step 1. This step adds `github_operations`, `config`, `constants`, and `utils` registrations.
 
 Register new modules as tools-layer peers:
 

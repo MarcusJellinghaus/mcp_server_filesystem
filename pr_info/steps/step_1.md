@@ -10,7 +10,7 @@
 
 ## WHERE
 
-### Source files to move (12 files)
+### Source files to move
 
 ```
 src/mcp_workspace/file_tools/git_operations/  →  src/mcp_workspace/git_operations/
@@ -29,7 +29,7 @@ src/mcp_workspace/file_tools/git_operations/  →  src/mcp_workspace/git_operati
   workflows.py
 ```
 
-### Test files to move (13 files)
+### Test files to move
 
 ```
 tests/file_tools/git_operations/  →  tests/git_operations/
@@ -55,6 +55,8 @@ tests/file_tools/git_operations/  →  tests/git_operations/
 - `src/mcp_workspace/file_tools/__init__.py` — remove git re-exports and `__all__` entries
 - `src/mcp_workspace/file_tools/file_operations.py` — update import path (line 12-16)
 - `vulture_whitelist.py` — update comment referencing `git_operations` path if needed
+- `.importlinter` — update gitpython_isolation path (`file_tools.git_operations` → `git_operations`), add `git_operations` to layered architecture tools layer
+- `tach.toml` — register `mcp_workspace.git_operations` as tools-layer module, update `file_tools` depends_on
 
 ## WHAT
 
@@ -89,6 +91,16 @@ Affected test files (each has 1-3 import lines to update):
 - `test_repository_status.py` — `repository_status`
 - `test_staging.py` — `staging`
 
+### Architecture enforcement updates
+
+**`.importlinter`:**
+- Layered architecture: add `mcp_workspace.git_operations` as tools-layer peer: `mcp_workspace.file_tools | mcp_workspace.git_operations`
+- GitPython isolation: change `ignore_imports` from `mcp_workspace.file_tools.git_operations.* -> git` to `mcp_workspace.git_operations.* -> git`
+
+**`tach.toml`:**
+- Register `mcp_workspace.git_operations` as a tools-layer module with depends_on for `mcp_coder_utils.log_utils` and `mcp_coder_utils.subprocess_runner`
+- Update `mcp_workspace.file_tools` depends_on to include `mcp_workspace.git_operations`
+
 ### Internal imports (inside git_operations modules)
 
 These use relative imports (`.core`, `.repository_status`, etc.) — **no changes needed**. Relative imports survive the move.
@@ -103,8 +115,13 @@ These use relative imports (`.core`, `.repository_status`, etc.) — **no change
 4. Update `file_tools/__init__.py` — remove the 3 git import lines and the 3 `__all__` entries (`is_git_repository`, `is_file_tracked`, `git_move`)
 5. Update `file_operations.py` — change 2 import lines
 6. Update all 13 test files — find/replace `mcp_workspace.file_tools.git_operations` → `mcp_workspace.git_operations`
-7. Delete the now-empty `src/mcp_workspace/file_tools/git_operations/` directory
-8. Delete the now-empty `tests/file_tools/git_operations/` directory
+7. Update `.importlinter` — fix gitpython_isolation path, add git_operations to layered architecture
+8. Update `tach.toml` — register git_operations module, update file_tools depends_on
+
+Grep entire `src/` and `tests/` for `file_tools.git_operations` to catch any unlisted references.
+
+9. Delete the now-empty `src/mcp_workspace/file_tools/git_operations/` directory
+10. Delete the now-empty `tests/file_tools/git_operations/` directory
 
 ### Pseudocode
 
@@ -124,6 +141,6 @@ No new data structures. Existing `__all__` in `file_tools/__init__.py` shrinks f
 ## Verification
 
 ```
-pylint, mypy, pytest (unit tests only — exclude integration markers)
+pylint, mypy, pytest (unit tests only — exclude integration markers), lint-imports
 grep for "file_tools.git_operations" in src/ and tests/ — must return nothing
 ```
