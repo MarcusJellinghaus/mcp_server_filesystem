@@ -60,6 +60,7 @@ path = "mcp_workspace.file_tools"
 layer = "tools"
 depends_on = [
     { path = "mcp_coder_utils.log_utils" },
+    { path = "mcp_coder_utils.subprocess_runner" },
 ]
 
 # =============================================================================
@@ -68,6 +69,11 @@ depends_on = [
 
 [[modules]]
 path = "mcp_coder_utils.log_utils"
+layer = "utilities"
+depends_on = []
+
+[[modules]]
+path = "mcp_coder_utils.subprocess_runner"
 layer = "utilities"
 depends_on = []
 
