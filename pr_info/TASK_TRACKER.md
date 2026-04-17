@@ -22,7 +22,7 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 - [x] [Step 1: Config updates, architecture configs, and orphan cleanup](./steps/step_1.md)
-- [ ] [Step 2: Move 13 source files — replace flat module with package](./steps/step_2.md)
-- [ ] [Step 3: Move tests, consolidate edge cases, delete old test file](./steps/step_3.md)
+- [x] [Step 2: Move 13 source files — replace flat module with package](./steps/step_2.md)
+- [x] [Step 3: Move tests, consolidate edge cases, delete old test file](./steps/step_3.md)
 
 ## Pull Request

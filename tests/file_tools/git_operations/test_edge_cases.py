@@ -1,32 +1,17 @@
-"""Tests for git operations functionality."""
+"""Edge-case tests for git operations (consolidated from test_git_operations.py)."""
 
-import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 from git import Repo
-from git.exc import GitCommandError, InvalidGitRepositoryError
+from git.exc import GitCommandError
 
-from mcp_workspace.file_tools.git_operations import (
-    is_file_tracked,
-    is_git_repository,
-)
+from mcp_workspace.file_tools.git_operations import is_file_tracked, is_git_repository
 
 
-class TestGitDetection:
-    """Test git repository and file tracking detection."""
-
-    def test_is_git_repository_with_actual_repo(self, tmp_path: Path) -> None:
-        """Test git repository detection using GitPython."""
-        # Create actual git repo
-        Repo.init(tmp_path)
-        assert is_git_repository(tmp_path) is True
-
-        # Non-git directory
-        non_git = tmp_path / "subdir"
-        non_git.mkdir()
-        assert is_git_repository(non_git) is False
+class TestGitEdgeCases:
+    """Edge-case tests for git repository and file tracking detection."""
 
     def test_is_git_repository_with_invalid_repo(self, tmp_path: Path) -> None:
         """Test detection when .git exists but is invalid."""
@@ -36,31 +21,6 @@ class TestGitDetection:
 
         # Should return False for invalid git repository
         assert is_git_repository(tmp_path) is False
-
-    def test_is_file_tracked_without_git(self, tmp_path: Path) -> None:
-        """Test file tracking when not in a git repository."""
-        test_file = tmp_path / "test.txt"
-        test_file.write_text("content")
-
-        assert is_file_tracked(test_file, tmp_path) is False
-
-    def test_is_file_tracked_with_git(self, tmp_path: Path) -> None:
-        """Test file tracking detection in git repository."""
-        # Create git repo
-        repo = Repo.init(tmp_path)
-
-        # Create and add a file
-        tracked_file = tmp_path / "tracked.txt"
-        tracked_file.write_text("tracked content")
-        repo.index.add([str(tracked_file)])
-        repo.index.commit("Initial commit")
-
-        # Create untracked file
-        untracked_file = tmp_path / "untracked.txt"
-        untracked_file.write_text("untracked content")
-
-        assert is_file_tracked(tracked_file, tmp_path) is True
-        assert is_file_tracked(untracked_file, tmp_path) is False
 
     def test_is_file_tracked_outside_repo(self, tmp_path: Path) -> None:
         """Test file tracking for file outside repository."""
