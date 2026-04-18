@@ -25,8 +25,7 @@ class LabelsMixin:
     """Mixin providing issue label operations.
 
     This mixin is designed to be used with BaseGitHubManager.
-    Contains pure label operations only. Workflow orchestration
-    (update_workflow_label) remains in IssueManager.
+    Contains pure label operations (get, add, remove, transition).
     """
 
     @log_function_call
