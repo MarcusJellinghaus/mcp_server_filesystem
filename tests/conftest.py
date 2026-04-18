@@ -1,11 +1,15 @@
-"""Test configuration and shared fixtures for file_tools tests."""
+"""Test configuration and shared fixtures."""
 
 import os
 import shutil
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any, Type, TypeVar, cast
 
+import git
 import pytest
+
+from mcp_workspace.config import get_github_token, get_test_repo_url
 
 # Python path is now configured via pytest configuration in pyproject.toml
 
@@ -45,3 +49,65 @@ def setup_and_cleanup() -> Generator[None, None, None]:
     so no shared-state cleanup is needed here.
     """
     yield
+
+
+try:
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
+
+
+class GitHubTestSetup(TypedDict):
+    """Configuration data for GitHub integration tests."""
+
+    github_token: str
+    test_repo_url: str
+    project_dir: Path
+
+
+@pytest.fixture
+def github_test_setup(tmp_path: Path) -> Generator[GitHubTestSetup, None, None]:
+    """Provide shared GitHub test configuration and repository setup.
+
+    Validates GitHub configuration and gracefully skips when missing.
+    """
+    github_token = get_github_token()
+    test_repo_url = get_test_repo_url()
+
+    if not github_token:
+        pytest.skip("GitHub token not configured (set GITHUB_TOKEN or config file)")
+
+    if not test_repo_url:
+        pytest.skip(
+            "Test repo URL not configured " "(set GITHUB_TEST_REPO_URL or config file)"
+        )
+
+    # Clone the actual test repository
+    git_dir = tmp_path / "test_repo"
+    try:
+        repo = git.Repo.clone_from(test_repo_url, git_dir)
+        repo.git.fetch("origin")
+        try:
+            repo.git.checkout("main")
+        except Exception:  # pylint: disable=broad-exception-caught
+            try:
+                repo.git.checkout("master")
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        pytest.skip(f"Could not clone test repository {test_repo_url}: {e}")
+
+    setup: GitHubTestSetup = {
+        "github_token": github_token,
+        "test_repo_url": test_repo_url,
+        "project_dir": git_dir,
+    }
+    yield setup
+
+
+T = TypeVar("T")
+
+
+def create_github_manager(manager_class: Type[T], github_setup: GitHubTestSetup) -> T:
+    """Create a GitHub manager instance using real configuration."""
+    return manager_class(github_setup["project_dir"])  # type: ignore[call-arg]

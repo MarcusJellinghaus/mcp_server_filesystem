@@ -1,0 +1,373 @@
+"""Issue Manager for GitHub API operations.
+
+This module provides the IssueManager class that composes all mixin classes
+for managing GitHub issues through the PyGithub library.
+"""
+
+import logging
+from datetime import datetime
+from pathlib import Path
+from typing import List, Optional
+
+from mcp_coder_utils.log_utils import log_function_call
+
+from ..base_manager import BaseGitHubManager, _handle_github_errors
+from .base import parse_base_branch, validate_issue_number
+from .comments_mixin import CommentsMixin
+from .events_mixin import EventsMixin
+from .labels_mixin import LabelsMixin
+from .types import IssueData, create_empty_issue_data
+
+logger = logging.getLogger(__name__)
+
+__all__ = ["IssueManager"]
+
+
+class IssueManager(CommentsMixin, LabelsMixin, EventsMixin, BaseGitHubManager):
+    """Manages GitHub issue operations using the GitHub API.
+
+    This class provides methods for creating, retrieving, listing, and managing
+    GitHub issues and their comments in a repository.
+
+    Configuration:
+        Requires GitHub token in config file (~/.mcp_coder/config.toml):
+
+        [github]
+        token = "ghp_your_personal_access_token_here"
+
+        Token needs 'repo' scope for private repositories, 'public_repo' for public.
+    """
+
+    def __init__(
+        self,
+        project_dir: Optional[Path] = None,
+        repo_url: Optional[str] = None,
+        github_token: Optional[str] = None,
+    ) -> None:
+        """Initialize the IssueManager.
+
+        Args:
+            project_dir: Path to the project directory containing git repository
+            repo_url: GitHub repository URL (e.g., "https://github.com/user/repo.git")
+            github_token: Optional explicit token — overrides config lookup when provided.
+
+        """
+        super().__init__(
+            project_dir=project_dir,
+            repo_url=repo_url,
+            github_token=github_token,
+        )
+
+    @log_function_call
+    @_handle_github_errors(default_return=create_empty_issue_data())
+    def create_issue(
+        self, title: str, body: str = "", labels: Optional[List[str]] = None
+    ) -> IssueData:
+        """Create a new issue in the repository.
+
+        Args:
+            title: Issue title (required, cannot be empty)
+            body: Issue description (optional)
+            labels: List of label names to apply (optional)
+
+        Returns:
+            IssueData with created issue information, or empty IssueData on error
+
+        Raises:
+            ValueError: If title is empty
+
+        Example:
+            >>> issue = manager.create_issue(
+            ...     title="Bug: Login fails",
+            ...     body="Description of the bug",
+            ...     labels=["bug", "high-priority"]
+            ... )
+            >>> print(f"Created issue #{issue['number']}")
+        """
+        # Validate title
+        if not title or not title.strip():
+            raise ValueError("Issue title cannot be empty")
+
+        # Get repository
+        repo = self._get_repository()
+        if repo is None:
+            logger.error("Failed to get repository")
+            return create_empty_issue_data()
+
+        # Create issue
+        if labels:
+            github_issue = repo.create_issue(
+                title=title.strip(), body=body, labels=labels
+            )
+        else:
+            github_issue = repo.create_issue(title=title.strip(), body=body)
+
+        # Convert to IssueData
+        return IssueData(
+            number=github_issue.number,
+            title=github_issue.title,
+            body=github_issue.body or "",
+            state=github_issue.state,
+            labels=[label.name for label in github_issue.labels],
+            assignees=[assignee.login for assignee in github_issue.assignees],
+            user=github_issue.user.login if github_issue.user else None,
+            created_at=(
+                github_issue.created_at.isoformat() if github_issue.created_at else None
+            ),
+            updated_at=(
+                github_issue.updated_at.isoformat() if github_issue.updated_at else None
+            ),
+            url=github_issue.html_url,
+            locked=github_issue.locked,
+        )
+
+    @log_function_call
+    @_handle_github_errors(default_return=create_empty_issue_data())
+    def get_issue(self, issue_number: int) -> IssueData:
+        """Retrieve issue details by number.
+
+        Args:
+            issue_number: Issue number to retrieve
+
+        Returns:
+            IssueData with issue information, or empty IssueData on error
+
+        Example:
+            >>> issue = manager.get_issue(123)
+            >>> print(f"Issue: {issue['title']}")
+            >>> print(f"Assignees: {issue['assignees']}")
+        """
+        # Validate issue number
+        validate_issue_number(issue_number)
+
+        # Get repository
+        repo = self._get_repository()
+        if repo is None:
+            logger.error("Failed to get repository")
+            return create_empty_issue_data()
+
+        # Get issue
+        github_issue = repo.get_issue(issue_number)
+
+        # Parse base_branch from body
+        body = github_issue.body or ""
+        try:
+            base_branch = parse_base_branch(body)
+        except ValueError as e:
+            logger.warning(f"Issue #{issue_number} has malformed base branch: {e}")
+            base_branch = None
+
+        # Convert to IssueData
+        return IssueData(
+            number=github_issue.number,
+            title=github_issue.title,
+            body=body,
+            state=github_issue.state,
+            labels=[label.name for label in github_issue.labels],
+            assignees=[assignee.login for assignee in github_issue.assignees],
+            user=github_issue.user.login if github_issue.user else None,
+            created_at=(
+                github_issue.created_at.isoformat() if github_issue.created_at else None
+            ),
+            updated_at=(
+                github_issue.updated_at.isoformat() if github_issue.updated_at else None
+            ),
+            url=github_issue.html_url,
+            locked=github_issue.locked,
+            base_branch=base_branch,
+        )
+
+    def _list_issues_no_error_handling(
+        self,
+        state: str = "open",
+        include_pull_requests: bool = False,
+        since: Optional[datetime] = None,
+    ) -> List[IssueData]:
+        """List issues without error handling. Raises on API failure.
+
+        Private method for callers that need to detect failures (e.g., cache).
+
+        Returns:
+            List of IssueData dictionaries with issue information.
+
+        Raises:
+            RuntimeError: If the repository cannot be resolved. Propagating the
+                failure lets callers (e.g. the cache snapshot/restore path)
+                detect it instead of silently treating it as an empty repo.
+        """
+        # Get repository
+        repo = self._get_repository()
+        if repo is None:
+            raise RuntimeError("Failed to get repository")
+
+        # Get issues with pagination support (PyGithub handles this automatically)
+        # Pass since parameter to PyGithub's get_issues() when provided
+        issues_list: List[IssueData] = []
+        if since is not None:
+            issues_iterator = repo.get_issues(state=state, since=since)
+        else:
+            issues_iterator = repo.get_issues(state=state)
+
+        for issue in issues_iterator:
+            # Filter out pull requests if not requested
+            if not include_pull_requests and issue.pull_request is not None:
+                continue
+
+            # Parse base_branch from body
+            body = issue.body or ""
+            try:
+                base_branch = parse_base_branch(body)
+            except ValueError as e:
+                logger.warning(f"Issue #{issue.number} has malformed base branch: {e}")
+                base_branch = None
+
+            # Convert to IssueData
+            issue_data = IssueData(
+                number=issue.number,
+                title=issue.title,
+                body=body,
+                state=issue.state,
+                labels=[label.name for label in issue.labels],
+                assignees=[assignee.login for assignee in issue.assignees],
+                user=issue.user.login if issue.user else None,
+                created_at=(issue.created_at.isoformat() if issue.created_at else None),
+                updated_at=(issue.updated_at.isoformat() if issue.updated_at else None),
+                url=issue.html_url,
+                locked=issue.locked,
+                base_branch=base_branch,
+            )
+            issues_list.append(issue_data)
+
+        return issues_list
+
+    @log_function_call
+    @_handle_github_errors(default_return=[])
+    def list_issues(
+        self,
+        state: str = "open",
+        include_pull_requests: bool = False,
+        since: Optional[datetime] = None,
+    ) -> List[IssueData]:
+        """List all issues in the repository with pagination support.
+
+        Args:
+            state: Issue state filter - 'open', 'closed', or 'all' (default: 'open')
+            include_pull_requests: Whether to include PRs in results (default: False)
+            since: Only fetch issues updated after this time (optional)
+
+        Returns:
+            List of IssueData dictionaries with issue information, or empty list on error
+
+        Example:
+            >>> issues = manager.list_issues(state='open', include_pull_requests=False)
+            >>> print(f"Found {len(issues)} open issues")
+            >>> for issue in issues:
+            ...     print(f"#{issue['number']}: {issue['title']}")
+            >>> # Get issues updated since a specific time
+            >>> from datetime import datetime
+            >>> cutoff_time = datetime(2023, 1, 1)
+            >>> recent_issues = manager.list_issues(since=cutoff_time)
+        """
+        return self._list_issues_no_error_handling(
+            state=state, include_pull_requests=include_pull_requests, since=since
+        )
+
+    @log_function_call
+    @_handle_github_errors(default_return=create_empty_issue_data())
+    def close_issue(self, issue_number: int) -> IssueData:
+        """Close an issue.
+
+        Args:
+            issue_number: Issue number to close
+
+        Returns:
+            IssueData with updated issue information, or empty IssueData on error
+
+        Example:
+            >>> closed_issue = manager.close_issue(123)
+            >>> print(f"Issue state: {closed_issue['state']}")
+        """
+        # Validate issue number
+        validate_issue_number(issue_number)
+
+        # Get repository
+        repo = self._get_repository()
+        if repo is None:
+            logger.error("Failed to get repository")
+            return create_empty_issue_data()
+
+        # Get and close issue
+        github_issue = repo.get_issue(issue_number)
+        github_issue.edit(state="closed")
+
+        # Get fresh issue data after closing
+        github_issue = repo.get_issue(issue_number)
+
+        # Convert to IssueData
+        return IssueData(
+            number=github_issue.number,
+            title=github_issue.title,
+            body=github_issue.body or "",
+            state=github_issue.state,
+            labels=[label.name for label in github_issue.labels],
+            assignees=[assignee.login for assignee in github_issue.assignees],
+            user=github_issue.user.login if github_issue.user else None,
+            created_at=(
+                github_issue.created_at.isoformat() if github_issue.created_at else None
+            ),
+            updated_at=(
+                github_issue.updated_at.isoformat() if github_issue.updated_at else None
+            ),
+            url=github_issue.html_url,
+            locked=github_issue.locked,
+        )
+
+    @log_function_call
+    @_handle_github_errors(default_return=create_empty_issue_data())
+    def reopen_issue(self, issue_number: int) -> IssueData:
+        """Reopen a closed issue.
+
+        Args:
+            issue_number: Issue number to reopen
+
+        Returns:
+            IssueData with updated issue information, or empty IssueData on error
+
+        Example:
+            >>> reopened_issue = manager.reopen_issue(123)
+            >>> print(f"Issue state: {reopened_issue['state']}")
+        """
+        # Validate issue number
+        validate_issue_number(issue_number)
+
+        # Get repository
+        repo = self._get_repository()
+        if repo is None:
+            logger.error("Failed to get repository")
+            return create_empty_issue_data()
+
+        # Get and reopen issue
+        github_issue = repo.get_issue(issue_number)
+        github_issue.edit(state="open")
+
+        # Get fresh issue data after reopening
+        github_issue = repo.get_issue(issue_number)
+
+        # Convert to IssueData
+        return IssueData(
+            number=github_issue.number,
+            title=github_issue.title,
+            body=github_issue.body or "",
+            state=github_issue.state,
+            labels=[label.name for label in github_issue.labels],
+            assignees=[assignee.login for assignee in github_issue.assignees],
+            user=github_issue.user.login if github_issue.user else None,
+            created_at=(
+                github_issue.created_at.isoformat() if github_issue.created_at else None
+            ),
+            updated_at=(
+                github_issue.updated_at.isoformat() if github_issue.updated_at else None
+            ),
+            url=github_issue.html_url,
+            locked=github_issue.locked,
+        )
