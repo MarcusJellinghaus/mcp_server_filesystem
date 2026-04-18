@@ -1,1 +1,0 @@
-fix(claude_local.bat): reference mcp-workspace instead of mcp-coder (#80)
