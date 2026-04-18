@@ -32,7 +32,9 @@ type = layers
 layers =
     mcp_workspace.main
     mcp_workspace.server
-    mcp_workspace.file_tools | mcp_workspace.git_operations
+    mcp_workspace.file_tools | mcp_workspace.github_operations
+    mcp_workspace.git_operations
+    mcp_workspace.config | mcp_workspace.constants | mcp_workspace.utils
 
 # -----------------------------------------------------------------------------
 # Contract: MCP Library Isolation
@@ -40,6 +42,38 @@ layers =
 # The 'mcp' package should only be imported by main.py and server.py.
 # File tools should remain MCP-agnostic for reusability.
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Contract: PyGithub Library Isolation
+# -----------------------------------------------------------------------------
+# The 'github' package should only be used by github_operations module.
+# -----------------------------------------------------------------------------
+[importlinter:contract:pygithub_isolation]
+name = PyGithub Library Isolation
+type = forbidden
+source_modules =
+    mcp_workspace
+forbidden_modules =
+    github
+ignore_imports =
+    mcp_workspace.github_operations.* -> github
+    mcp_workspace.github_operations.** -> github
+
+# -----------------------------------------------------------------------------
+# Contract: Requests Library Isolation
+# -----------------------------------------------------------------------------
+# The 'requests' library should only be used by github_operations module.
+# -----------------------------------------------------------------------------
+[importlinter:contract:requests_isolation]
+name = Requests Library Isolation
+type = forbidden
+source_modules =
+    mcp_workspace
+forbidden_modules =
+    requests
+ignore_imports =
+    mcp_workspace.github_operations.* -> requests
+    mcp_workspace.github_operations.** -> requests
+
 [importlinter:contract:mcp_library_isolation]
 name = MCP Library Isolation
 type = forbidden

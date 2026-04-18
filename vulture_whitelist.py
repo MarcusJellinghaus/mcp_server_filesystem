@@ -83,3 +83,39 @@ _.__getitem__
 _.name
 _.description
 _.inputSchema
+
+# =============================================================================
+# GitHub Operations
+# =============================================================================
+# Enum members used by external callers or for completeness
+_.CLOSED
+_.REOPENED
+_.ASSIGNED
+_.UNASSIGNED
+_.MILESTONED
+_.DEMILESTONED
+_.REFERENCED
+_.CROSS_REFERENCED
+_.COMMENTED
+_.MENTIONED
+_.SUBSCRIBED
+_.UNSUBSCRIBED
+_.RENAMED
+_.LOCKED
+_.UNLOCKED
+_.REVIEW_REQUESTED
+_.REVIEW_REQUEST_REMOVED
+_.CONVERTED_TO_DRAFT
+_.READY_FOR_REVIEW
+
+# CI results manager - variables used in dict unpacking / data extraction
+_.run_ids
+_.workflow_name
+_.workflow_path
+_.commit_sha
+_.jobs_fetch_warning
+_.issues
+
+# Test fixtures
+_.mock_zip_content
+_.sample_issue

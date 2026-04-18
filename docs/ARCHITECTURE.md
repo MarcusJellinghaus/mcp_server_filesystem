@@ -7,15 +7,17 @@ This document describes the architectural principles and enforcement tools for t
 The project follows a layered architecture pattern:
 
 ```
-┌─────────────────────────────────┐
-│  Entry Point (main.py)          │  ← Application entry
-├─────────────────────────────────┤
-│  MCP Server (server.py)         │  ← Protocol implementation
-├─────────────────────────────────┤
-│  File Tools (file_tools/)       │  ← Business logic
-├─────────────────────────────────┤
-│  Shared Libs (mcp_coder_utils)  │  ← External shared libraries
-└─────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│  Entry Point (main.py)                               │  ← Application entry
+├──────────────────────────────────────────────────────┤
+│  MCP Server (server.py)                              │  ← Protocol implementation
+├──────────────────────────────────────────────────────┤
+│  file_tools/  │  git_operations/  │  github_operations/  │  ← Business logic
+├──────────────────────────────────────────────────────┤
+│  config  │  constants  │  utils                      │  ← Utilities
+├──────────────────────────────────────────────────────┤
+│  Shared Libs (mcp_coder_utils)                       │  ← External shared libraries
+└──────────────────────────────────────────────────────┘
 ```
 
 ### Layer Responsibilities
@@ -23,8 +25,10 @@ The project follows a layered architecture pattern:
 | Layer | Purpose | Can Import From |
 |-------|---------|-----------------|
 | **Entry** | Application startup and initialization | All layers below |
-| **Protocol** | MCP server implementation and tool registration | File Tools, Utilities |
-| **Tools** | File operation implementations | Utilities only |
+| **Protocol** | MCP server implementation and tool registration | Tools, Utilities |
+| **Tools (upper)** | file_tools, github_operations | git_operations, Utilities |
+| **Tools (lower)** | git_operations | Utilities only |
+| **Utilities** | config, constants, utils | N/A (leaf modules) |
 | **Shared Libs** | Logging via `mcp_coder_utils` (external package) | N/A (external) |
 
 ## Architectural Principles
@@ -55,7 +59,9 @@ External libraries are isolated to specific modules:
 | Library | Used By | Rationale |
 |---------|---------|-----------|
 | `mcp` | main.py, server.py | Protocol implementation only |
-| `git` (GitPython) | file_tools/git_operations.py | Git functionality isolated |
+| `git` (GitPython) | git_operations/ | Git functionality isolated |
+| `github` (PyGithub) | github_operations/ | GitHub API access isolated |
+| `requests` | github_operations/ | HTTP requests isolated |
 | `structlog` | mcp_coder_utils.log_utils (external) | Logging setup centralized in external package |
 
 ## Architecture Enforcement Tools

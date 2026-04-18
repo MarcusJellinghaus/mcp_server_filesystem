@@ -104,7 +104,8 @@ jobs:
           - {name: "black", cmd: "black --version && black --check src tests"}
           - {name: "isort", cmd: "isort --version && isort --check --profile=black --float-to-top src tests"}
           - {name: "pylint", cmd: "pylint --version && pylint ./src ./tests"}
-          - {name: "pytest", cmd: "pytest --version && pytest -n auto"}
+          - {name: "unit-tests", cmd: "pytest --version && pytest -n auto -m 'not git_integration and not github_integration'"}
+          - {name: "integration-tests", cmd: "pytest --version && pytest -n auto -m 'git_integration or github_integration'"}
           - {name: "mypy", cmd: "mypy --version && mypy --strict src tests"}
 
     name: ${{ matrix.check.name }}
