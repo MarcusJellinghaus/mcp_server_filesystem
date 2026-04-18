@@ -3,7 +3,7 @@ cls
 setlocal enabledelayedexpansion
 REM Two-env aware launcher for iCoder (developer edition)
 REM Same two-env discovery as icoder.bat, plus editable-install verification
-REM Assumes mcp-coder is editable-installed (pip install -e .)
+REM Assumes mcp-workspace is editable-installed (pip install -e .)
 
 REM === Step 0: Project .venv must exist ===
 if not exist "%CD%\.venv\Scripts\activate.bat" (
@@ -66,7 +66,7 @@ if "!VIRTUAL_ENV!"=="" (
 
 REM === Step 4: Editable install verification ===
 set "EDITABLE_OK=0"
-for /f "delims=" %%L in ('pip show mcp-coder 2^>nul') do (
+for /f "delims=" %%L in ('pip show mcp-workspace 2^>nul') do (
     echo %%L | findstr /i /c:"Editable project location" >nul 2>&1
     if !errorlevel! equ 0 (
         echo %%L | findstr /i /c:"%CD%" >nul 2>&1
@@ -79,7 +79,7 @@ for /f "delims=" %%L in ('pip show mcp-coder 2^>nul') do (
     )
 )
 if "!EDITABLE_OK!"=="0" (
-    echo WARNING: mcp-coder does not appear to be editable-installed from %CD%
+    echo WARNING: mcp-workspace does not appear to be editable-installed from %CD%
     echo   For development, run: pip install -e .
     echo   Continuing anyway...
 )
