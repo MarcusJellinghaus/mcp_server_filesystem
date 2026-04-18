@@ -39,6 +39,7 @@ dev = [
     "black>=24.10.0",
     "isort>=5.13.2",
     "mypy>=1.13.0",
+    "types-requests>=2.31.0",
     # "mcp-tools-py",  # TODO: uncomment once mcp-tools-py is published on PyPI
     # "mcp-coder",  # TODO: uncomment once mcp-coder is published on PyPI
 ]
