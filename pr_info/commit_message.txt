@@ -1,0 +1,16 @@
+refactor: promote git_operations to top-level package
+
+Move git_operations from file_tools sub-package to a top-level sibling
+package under mcp_workspace, establishing it as an independent
+architectural module.
+
+Changes:
+- Move src/mcp_workspace/file_tools/git_operations/ to
+  src/mcp_workspace/git_operations/
+- Move tests/file_tools/git_operations/ to tests/git_operations/
+- Update all imports across source and test files
+- Remove git re-exports from file_tools/__init__.py
+- Update .importlinter: add git_operations to layered architecture,
+  fix gitpython isolation path
+- Update tach.toml: register git_operations as tools-layer module,
+  add dependency from file_tools and tests

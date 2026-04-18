@@ -6,19 +6,19 @@ from pathlib import Path
 import pytest
 from git import Repo
 
-from mcp_workspace.file_tools.git_operations.branch_queries import (
+from mcp_workspace.git_operations.branch_queries import (
     branch_exists,
     get_current_branch_name,
 )
-from mcp_workspace.file_tools.git_operations.branches import (
+from mcp_workspace.git_operations.branches import (
     checkout_branch,
     create_branch,
 )
-from mcp_workspace.file_tools.git_operations.diffs import (
+from mcp_workspace.git_operations.diffs import (
     get_branch_diff,
     get_git_diff_for_commit,
 )
-from mcp_workspace.file_tools.git_operations.workflows import commit_all_changes
+from mcp_workspace.git_operations.workflows import commit_all_changes
 
 
 @pytest.mark.git_integration

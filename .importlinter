@@ -32,7 +32,7 @@ type = layers
 layers =
     mcp_workspace.main
     mcp_workspace.server
-    mcp_workspace.file_tools
+    mcp_workspace.file_tools | mcp_workspace.git_operations
 
 # -----------------------------------------------------------------------------
 # Contract: MCP Library Isolation
@@ -63,7 +63,7 @@ source_modules =
 forbidden_modules =
     git
 ignore_imports =
-    mcp_workspace.file_tools.git_operations.* -> git
+    mcp_workspace.git_operations.* -> git
 
 # -----------------------------------------------------------------------------
 # Contract: Structlog Library Isolation

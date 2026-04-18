@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from git import Repo
 
-from mcp_workspace.file_tools.git_operations.branch_queries import (
+from mcp_workspace.git_operations.branch_queries import (
     branch_exists,
     extract_issue_number_from_branch,
     get_current_branch_name,

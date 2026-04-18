@@ -7,7 +7,7 @@ import pytest
 from git import Repo
 from git.exc import GitCommandError
 
-from mcp_workspace.file_tools.git_operations import is_file_tracked, is_git_repository
+from mcp_workspace.git_operations import is_file_tracked, is_git_repository
 
 
 class TestGitEdgeCases:
@@ -49,7 +49,7 @@ class TestGitEdgeCases:
         # Staged files should be considered tracked
         assert is_file_tracked(staged_file, tmp_path) is True
 
-    @patch("mcp_workspace.file_tools.git_operations.core.Repo")
+    @patch("mcp_workspace.git_operations.core.Repo")
     def test_is_git_repository_with_exception(
         self, mock_repo: Mock, tmp_path: Path
     ) -> None:
@@ -59,7 +59,7 @@ class TestGitEdgeCases:
         # Should return False and log warning
         assert is_git_repository(tmp_path) is False
 
-    @patch("mcp_workspace.file_tools.git_operations.core.Repo")
+    @patch("mcp_workspace.git_operations.core.Repo")
     def test_is_file_tracked_with_git_error(
         self, mock_repo: Mock, tmp_path: Path
     ) -> None:

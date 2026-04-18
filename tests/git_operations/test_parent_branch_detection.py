@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mcp_workspace.file_tools.git_operations.parent_branch_detection import (
+from mcp_workspace.git_operations.parent_branch_detection import (
     MERGE_BASE_DISTANCE_THRESHOLD,
     detect_parent_branch_via_merge_base,
 )
@@ -20,10 +20,10 @@ class TestDetectParentBranchViaMergeBase:
         """Mock GitPython Repo for merge-base tests."""
         with (
             patch(
-                "mcp_workspace.file_tools.git_operations.parent_branch_detection.is_git_repository"
+                "mcp_workspace.git_operations.parent_branch_detection.is_git_repository"
             ) as mock_is_repo,
             patch(
-                "mcp_workspace.file_tools.git_operations.parent_branch_detection._safe_repo_context"
+                "mcp_workspace.git_operations.parent_branch_detection._safe_repo_context"
             ) as mock_context,
         ):
             # is_git_repository returns True by default
@@ -332,7 +332,7 @@ class TestDetectParentBranchViaMergeBase:
         project_dir = Path("/test/project")
 
         with patch(
-            "mcp_workspace.file_tools.git_operations.parent_branch_detection.is_git_repository"
+            "mcp_workspace.git_operations.parent_branch_detection.is_git_repository"
         ) as mock_is_repo:
             mock_is_repo.return_value = False
 

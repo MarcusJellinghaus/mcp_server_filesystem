@@ -8,10 +8,10 @@ from pathlib import Path
 import pytest
 from git import Repo
 
-from mcp_workspace.file_tools.git_operations.branch_queries import (
+from mcp_workspace.git_operations.branch_queries import (
     get_current_branch_name,
 )
-from mcp_workspace.file_tools.git_operations.compact_diffs import get_compact_diff
+from mcp_workspace.git_operations.compact_diffs import get_compact_diff
 
 
 @pytest.mark.git_integration

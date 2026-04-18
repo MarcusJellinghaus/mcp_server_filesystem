@@ -5,11 +5,11 @@ from pathlib import Path
 import pytest
 from git import Repo
 
-from mcp_workspace.file_tools.git_operations.file_tracking import (
+from mcp_workspace.git_operations.file_tracking import (
     git_move,
     is_file_tracked,
 )
-from mcp_workspace.file_tools.git_operations.workflows import commit_all_changes
+from mcp_workspace.git_operations.workflows import commit_all_changes
 
 
 @pytest.mark.git_integration

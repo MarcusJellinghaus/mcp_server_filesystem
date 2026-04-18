@@ -2,7 +2,7 @@
 
 import pytest
 
-from mcp_workspace.file_tools.git_operations.compact_diffs import (
+from mcp_workspace.git_operations.compact_diffs import (
     parse_diff,
     render_compact_diff,
 )

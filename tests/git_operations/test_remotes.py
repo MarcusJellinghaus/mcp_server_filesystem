@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from git import Repo
 
-from mcp_workspace.file_tools.git_operations.remotes import (
+from mcp_workspace.git_operations.remotes import (
     get_github_repository_url,
     git_push,
     rebase_onto_branch,

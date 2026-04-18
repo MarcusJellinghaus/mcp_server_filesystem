@@ -5,11 +5,11 @@ from pathlib import Path
 import pytest
 from git import Repo
 
-from mcp_workspace.file_tools.git_operations.commits import (
+from mcp_workspace.git_operations.commits import (
     commit_staged_files,
     get_latest_commit_sha,
 )
-from mcp_workspace.file_tools.git_operations.workflows import commit_all_changes
+from mcp_workspace.git_operations.workflows import commit_all_changes
 
 
 @pytest.mark.git_integration

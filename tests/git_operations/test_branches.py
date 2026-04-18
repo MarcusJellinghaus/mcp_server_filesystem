@@ -5,15 +5,15 @@ from pathlib import Path
 import pytest
 from git import Repo
 
-from mcp_workspace.file_tools.git_operations.branch_queries import (
+from mcp_workspace.git_operations.branch_queries import (
     branch_exists,
     get_current_branch_name,
 )
-from mcp_workspace.file_tools.git_operations.branches import (
+from mcp_workspace.git_operations.branches import (
     checkout_branch,
     create_branch,
 )
-from mcp_workspace.file_tools.git_operations.workflows import needs_rebase
+from mcp_workspace.git_operations.workflows import needs_rebase
 
 
 @pytest.mark.git_integration
