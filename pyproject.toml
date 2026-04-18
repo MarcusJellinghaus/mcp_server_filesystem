@@ -79,6 +79,7 @@ pythonpath = ["src"]
 addopts = ["--strict-markers", "--tb=short", "-n", "auto", "-p", "no:tach"]
 markers = [
     "git_integration: File system git operations (repos, commits)",
+    "github_integration: GitHub API access (requires GITHUB_TOKEN)",
 ]
 
 [tool.black]
