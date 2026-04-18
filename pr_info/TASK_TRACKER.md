@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Fix wrong package references in claude_local.bat
-- [ ] Implementation: replace 3 occurrences of `mcp-coder` → `mcp-workspace` in `claude_local.bat`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `fix(claude_local.bat): reference mcp-workspace instead of mcp-coder (#80)`
+- [x] Implementation: replace 3 occurrences of `mcp-coder` → `mcp-workspace` in `claude_local.bat`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `fix(claude_local.bat): reference mcp-workspace instead of mcp-coder (#80)`
 
 ## Pull Request
 - [ ] PR review and approval
