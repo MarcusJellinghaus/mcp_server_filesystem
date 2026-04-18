@@ -23,8 +23,8 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 - [x] [Step 1: Promote git_operations to top-level](steps/step_1.md) — move source + tests, update all imports
 - [x] [Step 2: Add infrastructure files](steps/step_2.md) — config.py, constants.py, utils/timezone_utils.py + tests
-- [ ] [Step 3: Move github_operations source](steps/step_3.md) — copy from mcp_coder, adjust imports, add PyGithub dep
-- [ ] [Step 4: Move github_operations tests](steps/step_4.md) — copy from mcp_coder, adjust fixtures, register marker
-- [ ] [Step 5: Architecture enforcement + CI](steps/step_5.md) — .importlinter, tach.toml, CI split, full verification
+- [x] [Step 3: Move github_operations source](steps/step_3.md) — copy from mcp_coder, adjust imports, add PyGithub dep
+- [x] [Step 4: Move github_operations tests](steps/step_4.md) — copy from mcp_coder, adjust fixtures, register marker
+- [x] [Step 5: Architecture enforcement + CI](steps/step_5.md) — .importlinter, tach.toml, CI split, full verification
 
 ## Pull Request
