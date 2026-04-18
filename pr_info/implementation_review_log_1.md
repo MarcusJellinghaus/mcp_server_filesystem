@@ -23,5 +23,10 @@
 **Changes**: None
 **Status**: No changes needed
 
+## CI Fix — 2026-04-18
+**Issue**: CI mypy failing with `Library stubs not installed for "requests" [import-untyped]` across 4 files.
+**Fix**: Added `types-requests>=2.31.0` to `pyproject.toml` dev dependencies.
+**Status**: Committed (5dbeadc)
+
 ## Final Status
-Review complete after 2 rounds. One fix applied (stale docstring). All automated checks pass (pylint, mypy, pytest 795/797, lint-imports 8/8 contracts). PR is clean and ready to merge.
+Review complete after 2 rounds. Two fixes applied: stale docstring (review finding) and missing type stubs (CI fix). All local checks pass (pylint, mypy, pytest 795/797, lint-imports 8/8 contracts).
