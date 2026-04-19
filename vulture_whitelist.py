@@ -33,6 +33,8 @@ _.search_files
 _.get_reference_projects
 _.list_reference_directory
 _.read_reference_file
+_.search_reference_files
+_.clear_clone_failure_cache
 
 # =============================================================================
 # Public API Exports

@@ -28,13 +28,13 @@
         "--log-level",
         "DEBUG",
         "--reference-project",
-        "p_coder=${USERPROFILE}\\Documents\\GitHub\\mcp_coder",
+        "name=p_coder,path=${USERPROFILE}\\Documents\\GitHub\\mcp_coder",
         "--reference-project",
-        "p_tools=${USERPROFILE}\\Documents\\GitHub\\mcp-tools-py",
+        "name=p_tools,path=${USERPROFILE}\\Documents\\GitHub\\mcp-tools-py",
         "--reference-project",
-        "p_coder-utils=${USERPROFILE}\\Documents\\GitHub\\mcp-coder-utils",
+        "name=p_coder-utils,path=${USERPROFILE}\\Documents\\GitHub\\mcp-coder-utils",
         "--reference-project",
-        "p_config=${USERPROFILE}\\Documents\\GitHub\\mcp-config"
+        "name=p_config,path=${USERPROFILE}\\Documents\\GitHub\\mcp-config"
       ],
       "env": {
         "PYTHONPATH": "${MCP_CODER_VENV_DIR}\\Lib\\"

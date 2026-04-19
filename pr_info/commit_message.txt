@@ -1,12 +1,6 @@
-feat(server): add search_reference_files tool and update API response
+chore(config): add reference_projects to architecture configs, migrate .mcp.json
 
-- Add search_reference_files() async MCP tool that delegates to
-  search_files_util with reference project's path after ensuring
-  availability (same pattern as read_reference_file/list_reference_directory)
-- Update get_reference_projects() to return project objects with
-  name + url instead of plain name strings
-- Update usage string to include search_reference_files()
-- Add TestSearchReferenceFiles test class with 5 tests covering
-  glob search, pattern search, combined search, not-found project,
-  and ensure_available integration
-- Update existing get_reference_projects tests for new response format
+- .importlinter: add mcp_workspace.reference_projects to tools layer
+- tach.toml: add reference_projects module block, update server/main/tests depends_on
+- vulture_whitelist.py: add search_reference_files and clear_clone_failure_cache entries
+- .mcp.json: migrate 4 reference projects from name=path to name=name,path=path KV format
