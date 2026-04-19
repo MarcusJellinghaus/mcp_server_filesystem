@@ -32,6 +32,10 @@ Use MCP tools for **all** operations. Never use `Read`, `Write`, `Edit`, or `Bas
 | Format code (black+isort) | `mcp__tools-py__run_format_code` |
 | Get library source | `mcp__tools-py__get_library_source` |
 | Refactoring | `mcp__tools-py__move_symbol`, `move_module`, `rename_symbol`, `list_symbols`, `find_references` |
+| Git log | `mcp__workspace__git_log` |
+| Git diff | `mcp__workspace__git_diff` |
+| Git status | `mcp__workspace__git_status` |
+| Git merge-base | `mcp__workspace__git_merge_base` |
 
 ## Code quality checks
 
@@ -51,20 +55,21 @@ When debugging test failures, add `"-v", "-s", "--tb=short"` to extra_args.
 
 ## Git operations
 
-**Allowed commands via Bash tool.** These have no MCP equivalent — use Bash directly. Skills that instruct bash commands (e.g. `gh issue view`) must also use Bash.
+**Prefer MCP tools** for read-only git operations: `mcp__workspace__git_log`, `mcp__workspace__git_diff`, `mcp__workspace__git_status`, `mcp__workspace__git_merge_base`. These run without permission prompts.
+
+**`git_diff` includes compact diff by default** — detects moved code, collapses unchanged blocks. Use `compact=False` for raw output. For code review, prefer `mcp__workspace__git_diff` over `mcp-coder git-tool compact-diff`.
+
+**Bash commands** for git operations that have no MCP equivalent:
 
 ```
-git status / diff / commit / log / fetch / ls-tree / show
+git commit / fetch / ls-tree / show
 gh issue view / gh pr view / gh run view
-mcp-coder git-tool compact-diff
 mcp-coder check branch-status
 mcp-coder check file-size --max-lines 750
 mcp-coder gh-tool set-status <label>
 ```
 
 **Status labels:** use `mcp-coder gh-tool set-status` to change issue workflow status — never use raw `gh issue edit` with label flags.
-
-**Compact diff:** use `mcp-coder git-tool compact-diff` instead of `git diff` for code review. Detects moved code, collapses unchanged blocks. Supports `--exclude PATTERN`.
 
 **Before every commit:** run `mcp__tools-py__run_format_code`, then stage and commit.
 
