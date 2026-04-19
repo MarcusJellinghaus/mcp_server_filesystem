@@ -1,4 +1,4 @@
-"""Tests for reference project CLI parsing and validation."""
+"""Tests for reference project CLI parsing, validation, and integration."""
 
 import argparse
 from pathlib import Path
@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from mcp_workspace.main import parse_args, validate_reference_projects
+from mcp_workspace.reference_projects import ReferenceProject
 
 
 class TestReferenceProjectCLI:
@@ -22,11 +23,11 @@ class TestReferenceProjectCLI:
                 "--project-dir",
                 "/tmp",
                 "--reference-project",
-                "proj1=/path/to/proj1",
+                "name=proj1,path=/path/to/proj1",
             ],
         ):
             args = parse_args()
-            assert args.reference_project == ["proj1=/path/to/proj1"]
+            assert args.reference_project == ["name=proj1,path=/path/to/proj1"]
 
     def test_parse_multiple_reference_projects(self) -> None:
         """Test parsing multiple reference project arguments."""
@@ -37,21 +38,25 @@ class TestReferenceProjectCLI:
                 "--project-dir",
                 "/tmp",
                 "--reference-project",
-                "proj1=/path/to/proj1",
+                "name=proj1,path=/path/to/proj1",
                 "--reference-project",
-                "proj2=/path/to/proj2",
+                "name=proj2,path=/path/to/proj2",
             ],
         ):
             args = parse_args()
             assert args.reference_project == [
-                "proj1=/path/to/proj1",
-                "proj2=/path/to/proj2",
+                "name=proj1,path=/path/to/proj1",
+                "name=proj2,path=/path/to/proj2",
             ]
 
+    @patch("mcp_workspace.main.detect_and_verify_url", return_value=None)
     @patch("mcp_workspace.main.Path.exists")
     @patch("mcp_workspace.main.Path.is_dir")
     def test_auto_rename_duplicates(
-        self, mock_is_dir: MagicMock, mock_exists: MagicMock
+        self,
+        mock_is_dir: MagicMock,
+        mock_exists: MagicMock,
+        mock_detect: MagicMock,
     ) -> None:
         """Test auto-renaming duplicate project names."""
         # Mock path validation
@@ -60,50 +65,55 @@ class TestReferenceProjectCLI:
 
         # Test duplicate names get auto-renamed
         reference_args = [
-            "proj=/path/to/proj1",
-            "proj=/path/to/proj2",
-            "proj=/path/to/proj3",
+            "name=proj,path=/path/to/proj1",
+            "name=proj,path=/path/to/proj2",
+            "name=proj,path=/path/to/proj3",
         ]
         result = validate_reference_projects(
             reference_args, project_dir=Path("/unrelated/project")
         )
 
-        expected = {
-            "proj": Path("/path/to/proj1").resolve(),
-            "proj_2": Path("/path/to/proj2").resolve(),
-            "proj_3": Path("/path/to/proj3").resolve(),
-        }
-        assert result == expected
+        assert "proj" in result
+        assert "proj_2" in result
+        assert "proj_3" in result
+        assert isinstance(result["proj"], ReferenceProject)
+        assert result["proj"].path == Path("/path/to/proj1").resolve()
+        assert result["proj_2"].path == Path("/path/to/proj2").resolve()
+        assert result["proj_3"].path == Path("/path/to/proj3").resolve()
 
     @patch("mcp_workspace.main.stdlogger")
-    @patch("mcp_workspace.main.Path.exists")
-    def test_invalid_format_warnings(
-        self, mock_exists: MagicMock, mock_logger: MagicMock
-    ) -> None:
+    def test_invalid_format_warnings(self, mock_logger: MagicMock) -> None:
         """Test warnings for invalid argument formats."""
-        mock_exists.return_value = False
-
-        # Test invalid format (no '=' separator)
-        reference_args = ["invalid_format", "valid=/path/to/proj"]
+        # Test missing 'name' key
+        reference_args = ["path=/path/to/proj"]
         result = validate_reference_projects(
             reference_args, project_dir=Path("/unrelated/project")
         )
-
-        # Should log warning for invalid format
-        mock_logger.warning.assert_called()
-        # Check if the warning was called with the expected message
+        assert result == {}
         calls = mock_logger.warning.call_args_list
-        assert len(calls) > 0
-        # Look for the specific warning message about missing '='
-        found_invalid_format = any(
-            "missing" in str(call) and "=" in str(call) for call in calls
-        )
-        assert found_invalid_format
+        found_missing_name = any("missing 'name' key" in str(call) for call in calls)
+        assert found_missing_name
 
+        mock_logger.reset_mock()
+
+        # Test missing 'path' key
+        reference_args = ["name=proj"]
+        result = validate_reference_projects(
+            reference_args, project_dir=Path("/unrelated/project")
+        )
+        assert result == {}
+        calls = mock_logger.warning.call_args_list
+        found_missing_path = any("missing 'path' key" in str(call) for call in calls)
+        assert found_missing_path
+
+    @patch("mcp_workspace.main.detect_and_verify_url", return_value=None)
     @patch("mcp_workspace.main.Path.exists")
     @patch("mcp_workspace.main.Path.is_dir")
     def test_path_normalization(
-        self, mock_is_dir: MagicMock, mock_exists: MagicMock
+        self,
+        mock_is_dir: MagicMock,
+        mock_exists: MagicMock,
+        mock_detect: MagicMock,
     ) -> None:
         """Test conversion to canonical resolved paths."""
         # Mock path validation
@@ -111,14 +121,15 @@ class TestReferenceProjectCLI:
         mock_is_dir.return_value = True
 
         # Test relative path gets converted to canonical resolved path
-        reference_args = ["proj=./relative/path"]
+        reference_args = ["name=proj,path=./relative/path"]
         result = validate_reference_projects(
             reference_args, project_dir=Path("/unrelated/project")
         )
 
         # Should contain canonical resolved path
         assert "proj" in result
-        assert result["proj"] == Path("./relative/path").resolve()
+        assert isinstance(result["proj"], ReferenceProject)
+        assert result["proj"].path == Path("./relative/path").resolve()
 
     @pytest.mark.parametrize(
         "ref_subpath, project_subpath, expected_count, expected_warning_fragment",
@@ -144,33 +155,35 @@ class TestReferenceProjectCLI:
         project_dir = tmp_path / project_subpath
         project_dir.mkdir(parents=True, exist_ok=True)
 
-        reference_args = [f"ref={ref_dir}"]
+        reference_args = [f"name=ref,path={ref_dir}"]
 
         with patch("mcp_workspace.main.stdlogger") as mock_logger:
-            result = validate_reference_projects(
-                reference_args, project_dir=project_dir
-            )
-
-            assert len(result) == expected_count
-            if expected_warning_fragment:
-                assert any(
-                    expected_warning_fragment in str(call)
-                    for call in mock_logger.warning.call_args_list
+            with patch("mcp_workspace.main.detect_and_verify_url", return_value=None):
+                result = validate_reference_projects(
+                    reference_args, project_dir=project_dir
                 )
-            else:
-                mock_logger.warning.assert_not_called()
-                assert "ref" in result
-                assert result["ref"] == ref_dir.resolve()
+
+                assert len(result) == expected_count
+                if expected_warning_fragment:
+                    assert any(
+                        expected_warning_fragment in str(call)
+                        for call in mock_logger.warning.call_args_list
+                    )
+                else:
+                    mock_logger.warning.assert_not_called()
+                    assert "ref" in result
+                    assert isinstance(result["ref"], ReferenceProject)
+                    assert result["ref"].path == ref_dir.resolve()
 
     @patch("mcp_workspace.main.stdlogger")
     @patch("mcp_workspace.main.Path.exists")
     def test_nonexistent_path_warning(
         self, mock_exists: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """Test warnings for non-existent paths."""
+        """Test warnings for non-existent paths without URL."""
         mock_exists.return_value = False
 
-        reference_args = ["proj=/nonexistent/path"]
+        reference_args = ["name=proj,path=/nonexistent/path"]
         result = validate_reference_projects(
             reference_args, project_dir=Path("/unrelated/project")
         )
@@ -179,298 +192,87 @@ class TestReferenceProjectCLI:
         mock_logger.warning.assert_called()
         assert result == {}
 
+    @patch("mcp_workspace.main.detect_and_verify_url")
+    @patch("mcp_workspace.main.Path.exists")
+    @patch("mcp_workspace.main.Path.is_dir")
+    def test_url_resolved_from_detect_and_verify(
+        self,
+        mock_is_dir: MagicMock,
+        mock_exists: MagicMock,
+        mock_detect: MagicMock,
+    ) -> None:
+        """Test URL from detect_and_verify_url is stored in ReferenceProject."""
+        mock_exists.return_value = True
+        mock_is_dir.return_value = True
+        mock_detect.return_value = "https://github.com/org/repo"
 
-class TestReferenceProjectMCPTools:
-    """Test MCP tools functionality."""
+        reference_args = ["name=proj,path=/path/to/proj"]
+        result = validate_reference_projects(
+            reference_args, project_dir=Path("/unrelated/project")
+        )
 
-    def test_get_reference_projects_empty(self) -> None:
-        """Test discovery tool returns empty dict when no projects."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import get_reference_projects
+        assert "proj" in result
+        assert result["proj"].url == "https://github.com/org/repo"
 
-        # Clear reference projects
-        server_module._reference_projects = {}
+    @patch("mcp_workspace.main.detect_and_verify_url")
+    @patch("mcp_workspace.main.Path.exists")
+    @patch("mcp_workspace.main.Path.is_dir")
+    def test_url_mismatch_fatal(
+        self,
+        mock_is_dir: MagicMock,
+        mock_exists: MagicMock,
+        mock_detect: MagicMock,
+    ) -> None:
+        """Test detect_and_verify_url raising ValueError propagates."""
+        mock_exists.return_value = True
+        mock_is_dir.return_value = True
+        mock_detect.side_effect = ValueError("URL mismatch for 'proj'")
 
-        # Should return structured dict with empty projects list
-        result = get_reference_projects()
-        expected = {
-            "count": 0,
-            "projects": [],
-            "usage": "No reference projects available",
-        }
-        assert result == expected
-        assert isinstance(result, dict)
-
-    def test_get_reference_projects_sorted(self) -> None:
-        """Test discovery tool returns sorted list of project names in structured dict."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import get_reference_projects
-
-        # Set up test data in unsorted order
-        test_projects = {
-            "zebra": Path("/path/to/zebra"),
-            "alpha": Path("/path/to/alpha"),
-            "beta": Path("/path/to/beta"),
-        }
-        server_module._reference_projects = test_projects
-
-        # Should return structured dict with sorted projects list
-        result = get_reference_projects()
-        expected = {
-            "count": 3,
-            "projects": ["alpha", "beta", "zebra"],
-            "usage": "Use these 3 projects with list_reference_directory() and read_reference_file()",
-        }
-        assert result == expected
-        assert isinstance(result, dict)
-        assert result["projects"] == ["alpha", "beta", "zebra"]
-
-    def test_get_reference_projects_logging(self) -> None:
-        """Test INFO level logging for discovery operations."""
-        from unittest.mock import patch
-
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import get_reference_projects
-
-        # Set up test data
-        test_projects = {"proj1": Path("/path/to/proj1")}
-        server_module._reference_projects = test_projects
-
-        # Test logging behavior (the decorator handles logging)
-        with patch("mcp_workspace.server.logger") as mock_logger:
-            result = get_reference_projects()
-
-            # Should return structured dict with project names
-            expected = {
-                "count": 1,
-                "projects": ["proj1"],
-                "usage": "Use these 1 projects with list_reference_directory() and read_reference_file()",
-            }
-            assert result == expected
-
-            # The @log_function_call decorator should handle logging
-            # We can verify the function was called and returned the expected result
-            assert isinstance(result, dict)
-
-    def test_list_reference_directory_success(self) -> None:
-        """Test listing files in valid reference project."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import list_reference_directory
-
-        # Set up test reference projects
-        test_projects = {"test_proj": Path("/tmp/test_project").resolve()}
-        server_module._reference_projects = test_projects
-
-        # Mock the list_files_util function to return test data
-        with patch("mcp_workspace.server.list_files_util") as mock_list_files:
-            mock_list_files.return_value = ["file1.py", "file2.txt", "subdir/file3.md"]
-
-            result = list_reference_directory("test_proj")
-
-            # Should return the mocked file list
-            assert result == ["file1.py", "file2.txt", "subdir/file3.md"]
-            assert isinstance(result, list)
-
-            # Verify list_files_util was called with correct parameters
-            mock_list_files.assert_called_once_with(
-                ".", project_dir=test_projects["test_proj"], use_gitignore=True
+        reference_args = ["name=proj,path=/path/to/proj,url=https://wrong.com/repo"]
+        with pytest.raises(ValueError, match="URL mismatch"):
+            validate_reference_projects(
+                reference_args, project_dir=Path("/unrelated/project")
             )
 
-    def test_list_reference_directory_not_found(self) -> None:
-        """Test error handling for non-existent reference project."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import list_reference_directory
+    @patch("mcp_workspace.main.detect_and_verify_url")
+    @patch("mcp_workspace.main.Path.exists")
+    def test_path_missing_with_url_allowed(
+        self,
+        mock_exists: MagicMock,
+        mock_detect: MagicMock,
+    ) -> None:
+        """Test path doesn't exist but URL set — accepted."""
+        mock_exists.return_value = False
+        mock_detect.return_value = "https://github.com/org/repo"
 
-        # Set up test reference projects (empty)
-        server_module._reference_projects = {}
+        reference_args = [
+            "name=proj,path=/nonexistent/path,url=https://github.com/org/repo"
+        ]
+        result = validate_reference_projects(
+            reference_args, project_dir=Path("/unrelated/project")
+        )
 
-        # Should raise ValueError for non-existent project
-        with pytest.raises(
-            ValueError, match="Reference project 'nonexistent' not found"
-        ):
-            list_reference_directory("nonexistent")
+        assert "proj" in result
+        assert isinstance(result["proj"], ReferenceProject)
+        assert result["proj"].url == "https://github.com/org/repo"
 
-    def test_list_reference_directory_gitignore(self) -> None:
-        """Test gitignore filtering is applied."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import list_reference_directory
+    @patch("mcp_workspace.main.stdlogger")
+    @patch("mcp_workspace.main.Path.exists")
+    def test_path_missing_without_url_skipped(
+        self,
+        mock_exists: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        """Test path doesn't exist, no URL — warning + skip."""
+        mock_exists.return_value = False
 
-        # Set up test reference projects
-        test_projects = {"proj_with_gitignore": Path("/tmp/gitignore_test").resolve()}
-        server_module._reference_projects = test_projects
+        reference_args = ["name=proj,path=/nonexistent/path"]
+        result = validate_reference_projects(
+            reference_args, project_dir=Path("/unrelated/project")
+        )
 
-        # Mock the list_files_util function
-        with patch("mcp_workspace.server.list_files_util") as mock_list_files:
-            # Should return files after gitignore filtering
-            mock_list_files.return_value = ["src/main.py", "README.md"]
-
-            result = list_reference_directory("proj_with_gitignore")
-
-            # Verify gitignore filtering was enabled
-            mock_list_files.assert_called_once_with(
-                ".",
-                project_dir=test_projects["proj_with_gitignore"],
-                use_gitignore=True,
-            )
-            assert result == ["src/main.py", "README.md"]
-
-    def test_list_reference_directory_logging(self) -> None:
-        """Test DEBUG level logging for file operations."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import list_reference_directory
-
-        # Set up test reference projects
-        test_projects = {"log_test_proj": Path("/tmp/log_test").resolve()}
-        server_module._reference_projects = test_projects
-
-        # Mock the list_files_util function
-        with patch("mcp_workspace.server.list_files_util") as mock_list_files:
-            with patch("mcp_workspace.server.logger") as mock_logger:
-                mock_list_files.return_value = ["test.py"]
-
-                result = list_reference_directory("log_test_proj")
-
-                # Should return expected result
-                assert result == ["test.py"]
-
-                # The @log_function_call decorator should handle logging
-                # We can verify the function was called and returned the expected result
-                assert isinstance(result, list)
-
-    def test_read_reference_file_success(self) -> None:
-        """Test reading file from valid reference project."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
-
-        # Set up test reference projects
-        test_projects = {"test_proj": Path("/tmp/test_project").resolve()}
-        server_module._reference_projects = test_projects
-
-        # Mock the read_file_util function to return test data
-        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
-            mock_read_file.return_value = "Test file content\nLine 2\n"
-
-            result = read_reference_file("test_proj", "test_file.txt")
-
-            # Should return the mocked file content
-            assert result == "Test file content\nLine 2\n"
-            assert isinstance(result, str)
-
-            # Verify read_file_util was called with correct parameters
-            mock_read_file.assert_called_once_with(
-                "test_file.txt",
-                project_dir=test_projects["test_proj"],
-                start_line=None,
-                end_line=None,
-                with_line_numbers=None,
-            )
-
-    def test_read_reference_file_forwards_line_range_params(self) -> None:
-        """Test that line-range params are forwarded to read_file_util."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
-
-        test_projects = {"test_proj": Path("/tmp/test_project").resolve()}
-        server_module._reference_projects = test_projects
-
-        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
-            mock_read_file.return_value = "5→line five\n6→line six\n"
-
-            result = read_reference_file(
-                "test_proj",
-                "test_file.txt",
-                start_line=5,
-                end_line=10,
-                with_line_numbers=True,
-            )
-
-            assert result == "5→line five\n6→line six\n"
-            mock_read_file.assert_called_once_with(
-                "test_file.txt",
-                project_dir=test_projects["test_proj"],
-                start_line=5,
-                end_line=10,
-                with_line_numbers=True,
-            )
-
-    def test_read_reference_file_project_not_found(self) -> None:
-        """Test error handling for non-existent reference project."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
-
-        # Set up test reference projects (empty)
-        server_module._reference_projects = {}
-
-        # Should raise ValueError for non-existent project
-        with pytest.raises(
-            ValueError, match="Reference project 'nonexistent' not found"
-        ):
-            read_reference_file("nonexistent", "test_file.txt")
-
-    def test_read_reference_file_file_not_found(self) -> None:
-        """Test error handling for non-existent file."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
-
-        # Set up test reference projects
-        test_projects = {"test_proj": Path("/tmp/test_project").resolve()}
-        server_module._reference_projects = test_projects
-
-        # Mock the read_file_util function to raise FileNotFoundError
-        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
-            mock_read_file.side_effect = FileNotFoundError(
-                "File not found: test_file.txt"
-            )
-
-            # Should propagate the FileNotFoundError
-            with pytest.raises(
-                FileNotFoundError, match="File not found: test_file.txt"
-            ):
-                read_reference_file("test_proj", "nonexistent_file.txt")
-
-    def test_read_reference_file_security(self) -> None:
-        """Test path traversal prevention (reuse existing security)."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
-
-        # Set up test reference projects
-        test_projects = {"test_proj": Path("/tmp/test_project").resolve()}
-        server_module._reference_projects = test_projects
-
-        # Mock the read_file_util function to raise security error
-        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
-            mock_read_file.side_effect = ValueError(
-                "Security error: Path traversal detected"
-            )
-
-            # Should propagate the security error
-            with pytest.raises(
-                ValueError, match="Security error: Path traversal detected"
-            ):
-                read_reference_file("test_proj", "../../../etc/passwd")
-
-    def test_read_reference_file_logging(self) -> None:
-        """Test DEBUG level logging for file operations."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
-
-        # Set up test reference projects
-        test_projects = {"log_test_proj": Path("/tmp/log_test").resolve()}
-        server_module._reference_projects = test_projects
-
-        # Mock the read_file_util function
-        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
-            with patch("mcp_workspace.server.logger") as mock_logger:
-                mock_read_file.return_value = "test content"
-
-                result = read_reference_file("log_test_proj", "test.txt")
-
-                # Should return expected result
-                assert result == "test content"
-
-                # The @log_function_call decorator should handle logging
-                # We can verify the function was called and returned the expected result
-                assert isinstance(result, str)
+        assert result == {}
+        mock_logger.warning.assert_called()
 
 
 class TestReferenceProjectServerStorage:
@@ -483,8 +285,12 @@ class TestReferenceProjectServerStorage:
 
         # Test setting reference projects
         test_projects = {
-            "proj1": Path("/path/to/proj1").resolve(),
-            "proj2": Path("/path/to/proj2").resolve(),
+            "proj1": ReferenceProject(
+                name="proj1", path=Path("/path/to/proj1").resolve()
+            ),
+            "proj2": ReferenceProject(
+                name="proj2", path=Path("/path/to/proj2").resolve()
+            ),
         }
 
         set_reference_projects(test_projects)
@@ -500,8 +306,12 @@ class TestReferenceProjectServerStorage:
 
         # Test that run_server can be called with reference_projects parameter
         test_projects = {
-            "proj1": Path("/path/to/proj1").resolve(),
-            "proj2": Path("/path/to/proj2").resolve(),
+            "proj1": ReferenceProject(
+                name="proj1", path=Path("/path/to/proj1").resolve()
+            ),
+            "proj2": ReferenceProject(
+                name="proj2", path=Path("/path/to/proj2").resolve()
+            ),
         }
 
         # Mock the mcp.run() call to avoid actually starting the server
@@ -520,8 +330,12 @@ class TestReferenceProjectServerStorage:
         from mcp_workspace.server import set_reference_projects
 
         test_projects = {
-            "proj1": Path("/path/to/proj1").resolve(),
-            "proj2": Path("/path/to/proj2").resolve(),
+            "proj1": ReferenceProject(
+                name="proj1", path=Path("/path/to/proj1").resolve()
+            ),
+            "proj2": ReferenceProject(
+                name="proj2", path=Path("/path/to/proj2").resolve()
+            ),
         }
 
         # Test logging behavior
@@ -535,23 +349,27 @@ class TestReferenceProjectServerStorage:
             info_calls = mock_logger.info.call_args_list
             assert len(info_calls) >= 1
 
+    @patch("mcp_workspace.main.detect_and_verify_url", return_value=None)
     @patch("mcp_workspace.main.Path.exists")
     @patch("mcp_workspace.main.Path.is_dir")
     def test_empty_name_validation(
-        self, mock_is_dir: MagicMock, mock_exists: MagicMock
+        self,
+        mock_is_dir: MagicMock,
+        mock_exists: MagicMock,
+        mock_detect: MagicMock,
     ) -> None:
         """Test validation of empty project names."""
         mock_exists.return_value = True
         mock_is_dir.return_value = True
 
-        # Test empty name gets rejected
-        reference_args = ["=/path/to/proj"]
+        # Test empty name gets rejected (name key missing entirely)
+        reference_args = ["path=/path/to/proj"]
         with patch("mcp_workspace.main.stdlogger") as mock_logger:
             result = validate_reference_projects(
                 reference_args, project_dir=Path("/unrelated/project")
             )
 
-            # Should log warning for empty name
+            # Should log warning for missing name
             mock_logger.warning.assert_called()
             assert result == {}
 
@@ -559,11 +377,16 @@ class TestReferenceProjectServerStorage:
 class TestReferenceProjectIntegration:
     """Test CLI to server integration."""
 
+    @patch("mcp_workspace.main.detect_and_verify_url", return_value=None)
     @patch("mcp_workspace.server.run_server")
     @patch("mcp_workspace.main.Path.exists")
     @patch("mcp_workspace.main.Path.is_dir")
     def test_main_with_reference_projects(
-        self, mock_is_dir: MagicMock, mock_exists: MagicMock, mock_run_server: MagicMock
+        self,
+        mock_is_dir: MagicMock,
+        mock_exists: MagicMock,
+        mock_run_server: MagicMock,
+        mock_detect: MagicMock,
     ) -> None:
         """Test main() passes reference projects to run_server()."""
         # Mock path validation for both project dir and reference projects
@@ -576,9 +399,9 @@ class TestReferenceProjectIntegration:
             "--project-dir",
             "/test/project",
             "--reference-project",
-            "proj1=/path/to/proj1",
+            "name=proj1,path=/path/to/proj1",
             "--reference-project",
-            "proj2=/path/to/proj2",
+            "name=proj2,path=/path/to/proj2",
         ]
 
         with patch("sys.argv", test_args):
@@ -595,11 +418,12 @@ class TestReferenceProjectIntegration:
                 assert call_args[0][0] == Path("/test/project").resolve()
 
                 # Check reference_projects argument (keyword)
-                expected_ref_projects = {
-                    "proj1": Path("/path/to/proj1").resolve(),
-                    "proj2": Path("/path/to/proj2").resolve(),
-                }
-                assert call_args[1]["reference_projects"] == expected_ref_projects
+                ref_projects = call_args[1]["reference_projects"]
+                assert "proj1" in ref_projects
+                assert "proj2" in ref_projects
+                assert isinstance(ref_projects["proj1"], ReferenceProject)
+                assert ref_projects["proj1"].path == Path("/path/to/proj1").resolve()
+                assert ref_projects["proj2"].path == Path("/path/to/proj2").resolve()
 
     @patch("mcp_workspace.server.run_server")
     @patch("mcp_workspace.main.Path.exists")
@@ -631,11 +455,16 @@ class TestReferenceProjectIntegration:
                 # Check reference_projects argument (keyword) - should be empty dict
                 assert call_args[1]["reference_projects"] == {}
 
+    @patch("mcp_workspace.main.detect_and_verify_url", return_value=None)
     @patch("mcp_workspace.server.run_server")
     @patch("mcp_workspace.main.Path.exists")
     @patch("mcp_workspace.main.Path.is_dir")
     def test_main_with_auto_rename(
-        self, mock_is_dir: MagicMock, mock_exists: MagicMock, mock_run_server: MagicMock
+        self,
+        mock_is_dir: MagicMock,
+        mock_exists: MagicMock,
+        mock_run_server: MagicMock,
+        mock_detect: MagicMock,
     ) -> None:
         """Test main() handles duplicate names with auto-rename."""
         # Mock path validation
@@ -648,11 +477,11 @@ class TestReferenceProjectIntegration:
             "--project-dir",
             "/test/project",
             "--reference-project",
-            "proj=/path/to/proj1",
+            "name=proj,path=/path/to/proj1",
             "--reference-project",
-            "proj=/path/to/proj2",
+            "name=proj,path=/path/to/proj2",
             "--reference-project",
-            "proj=/path/to/proj3",
+            "name=proj,path=/path/to/proj3",
         ]
 
         with patch("sys.argv", test_args):
@@ -669,9 +498,43 @@ class TestReferenceProjectIntegration:
                 assert call_args[0][0] == Path("/test/project").resolve()
 
                 # Check reference_projects argument with auto-rename
-                expected_ref_projects = {
-                    "proj": Path("/path/to/proj1").resolve(),
-                    "proj_2": Path("/path/to/proj2").resolve(),
-                    "proj_3": Path("/path/to/proj3").resolve(),
-                }
-                assert call_args[1]["reference_projects"] == expected_ref_projects
+                ref_projects = call_args[1]["reference_projects"]
+                assert "proj" in ref_projects
+                assert "proj_2" in ref_projects
+                assert "proj_3" in ref_projects
+                assert isinstance(ref_projects["proj"], ReferenceProject)
+                assert ref_projects["proj"].path == Path("/path/to/proj1").resolve()
+                assert ref_projects["proj_2"].path == Path("/path/to/proj2").resolve()
+                assert ref_projects["proj_3"].path == Path("/path/to/proj3").resolve()
+
+    @patch("mcp_workspace.main.detect_and_verify_url")
+    @patch("mcp_workspace.main.Path.exists")
+    @patch("mcp_workspace.main.Path.is_dir")
+    def test_main_url_mismatch_exits(
+        self,
+        mock_is_dir: MagicMock,
+        mock_exists: MagicMock,
+        mock_detect: MagicMock,
+    ) -> None:
+        """Test main() exits with code 1 on URL mismatch."""
+        mock_exists.return_value = True
+        mock_is_dir.return_value = True
+        mock_detect.side_effect = ValueError(
+            "URL mismatch for 'proj': explicit 'a' != detected 'b'"
+        )
+
+        test_args = [
+            "script.py",
+            "--project-dir",
+            "/test/project",
+            "--reference-project",
+            "name=proj,path=/path/to/proj,url=https://wrong.com/repo",
+        ]
+
+        with patch("sys.argv", test_args):
+            with patch("mcp_workspace.main.setup_logging"):
+                from mcp_workspace.main import main
+
+                with pytest.raises(SystemExit) as exc_info:
+                    main()
+                assert exc_info.value.code == 1

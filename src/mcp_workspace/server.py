@@ -16,6 +16,7 @@ from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
+from mcp_workspace.reference_projects import ReferenceProject, ensure_available
 
 # Initialize loggers
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ mcp = FastMCP("File System Service")
 _project_dir: Optional[Path] = None
 
 # Store reference projects as a module-level variable
-_reference_projects: Dict[str, Path] = {}
+_reference_projects: Dict[str, ReferenceProject] = {}
 
 
 def _check_not_gitignored(file_path: str) -> None:
@@ -64,11 +65,11 @@ def set_project_dir(directory: Path) -> None:
 
 
 @log_function_call
-def set_reference_projects(reference_projects: Dict[str, Path]) -> None:
+def set_reference_projects(reference_projects: Dict[str, ReferenceProject]) -> None:
     """Set the reference projects for file operations.
 
     Args:
-        reference_projects: Dictionary mapping project names to directory paths
+        reference_projects: Dictionary mapping project names to ReferenceProject instances
     """
     global _reference_projects  # pylint: disable=global-statement
     _reference_projects = (
@@ -76,8 +77,8 @@ def set_reference_projects(reference_projects: Dict[str, Path]) -> None:
     )  # Create a copy to avoid external modifications
 
     # Log each reference project
-    for project_name, project_path in reference_projects.items():
-        logger.info("Reference project '%s' set to: %s", project_name, project_path)
+    for project_name, project in reference_projects.items():
+        logger.info("Reference project '%s' set to: %s", project_name, project.path)
 
 
 @mcp.tool()
@@ -106,15 +107,20 @@ def get_reference_projects() -> Dict[str, Any]:
                 "usage": "No reference projects available",
             }
 
-        project_names = sorted(_reference_projects.keys())
+        projects = sorted(
+            [{"name": p.name, "url": p.url} for p in _reference_projects.values()],
+            key=lambda p: str(p["name"]),
+        )
         logger.info(
-            "Found %d reference projects: %s", len(project_names), project_names
+            "Found %d reference projects: %s",
+            len(projects),
+            [p["name"] for p in projects],
         )
 
         return {
-            "count": len(project_names),
-            "projects": project_names,
-            "usage": f"Use these {len(project_names)} projects with list_reference_directory() and read_reference_file()",
+            "count": len(projects),
+            "projects": projects,
+            "usage": f"Use these {len(projects)} projects with list_reference_directory(), read_reference_file(), and search_reference_files()",
         }
 
     except Exception as e:
@@ -123,8 +129,7 @@ def get_reference_projects() -> Dict[str, Any]:
 
 
 @mcp.tool()
-@log_function_call
-def read_reference_file(
+async def read_reference_file(
     reference_name: str,
     file_path: str,
     start_line: Optional[int] = None,
@@ -149,8 +154,10 @@ def read_reference_file(
         logger.error("Reference project '%s' not found", reference_name)
         raise ValueError(f"Reference project '{reference_name}' not found")
 
-    # Get reference project path
-    ref_path = _reference_projects[reference_name]
+    # Get reference project and ensure it's available (may trigger clone)
+    project = _reference_projects[reference_name]
+    await ensure_available(project)
+    ref_path = project.path
 
     # Log operation at DEBUG level
     logger.debug(
@@ -172,8 +179,7 @@ def read_reference_file(
 
 
 @mcp.tool()
-@log_function_call
-def list_reference_directory(reference_name: str) -> List[str]:
+async def list_reference_directory(reference_name: str) -> List[str]:
     """List files and directories in a reference project directory.
 
     Args:
@@ -187,8 +193,10 @@ def list_reference_directory(reference_name: str) -> List[str]:
         logger.error("Reference project '%s' not found", reference_name)
         raise ValueError(f"Reference project '{reference_name}' not found")
 
-    # Get reference project path
-    ref_path = _reference_projects[reference_name]
+    # Get reference project and ensure it's available (may trigger clone)
+    project = _reference_projects[reference_name]
+    await ensure_available(project)
+    ref_path = project.path
 
     # Log operation at DEBUG level
     logger.debug(
@@ -200,6 +208,53 @@ def list_reference_directory(reference_name: str) -> List[str]:
     # Call list_files_util with gitignore filtering enabled
     # The utility function handles all parameter validation
     return list_files_util(".", project_dir=ref_path, use_gitignore=True)
+
+
+@mcp.tool()
+async def search_reference_files(
+    reference_name: str,
+    glob: Optional[str] = None,
+    pattern: Optional[str] = None,
+    context_lines: int = 0,
+    max_results: int = 50,
+    max_result_lines: int = 200,
+) -> Dict[str, Any]:
+    """Search file contents by regex and/or find files by glob pattern in a reference project.
+
+    Modes:
+        - File search: provide `glob` to find files by path pattern (like find)
+        - Content search: provide `pattern` (regex) to search inside files (like grep)
+        - Combined: both to search content within matching files
+
+    Args:
+        reference_name: Name of the reference project
+        glob: File path pattern (e.g. "**/*.py", "tests/**/test_*.py")
+        pattern: Regex to match file contents (e.g. "def foo", "TODO.*fix")
+        context_lines: Lines of context around each match (0 = match line only)
+        max_results: Maximum number of matches or files returned (default 50)
+        max_result_lines: Hard cap on total output lines (default 200)
+
+    Returns:
+        Dict with matches (content search) or file list (file search),
+        plus truncated flag if results were capped.
+    """
+    # Check if reference project exists
+    if reference_name not in _reference_projects:
+        logger.error("Reference project '%s' not found", reference_name)
+        raise ValueError(f"Reference project '{reference_name}' not found")
+
+    # Get reference project and ensure it's available (may trigger clone)
+    project = _reference_projects[reference_name]
+    await ensure_available(project)
+
+    return search_files_util(
+        project_dir=project.path,
+        glob=glob,
+        pattern=pattern,
+        context_lines=context_lines,
+        max_results=max_results,
+        max_result_lines=max_result_lines,
+    )
 
 
 @mcp.tool()
@@ -569,7 +624,8 @@ def edit_file(
 
 @log_function_call
 def run_server(
-    project_dir: Path, reference_projects: Optional[Dict[str, Path]] = None
+    project_dir: Path,
+    reference_projects: Optional[Dict[str, ReferenceProject]] = None,
 ) -> None:
     """Run the MCP server with the given project directory and optional reference projects.
 
