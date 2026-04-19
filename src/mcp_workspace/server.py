@@ -16,6 +16,7 @@ from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
+from mcp_workspace.reference_projects import ReferenceProject
 
 # Initialize loggers
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ mcp = FastMCP("File System Service")
 _project_dir: Optional[Path] = None
 
 # Store reference projects as a module-level variable
-_reference_projects: Dict[str, Path] = {}
+_reference_projects: Dict[str, ReferenceProject] = {}
 
 
 def _check_not_gitignored(file_path: str) -> None:
@@ -64,11 +65,11 @@ def set_project_dir(directory: Path) -> None:
 
 
 @log_function_call
-def set_reference_projects(reference_projects: Dict[str, Path]) -> None:
+def set_reference_projects(reference_projects: Dict[str, ReferenceProject]) -> None:
     """Set the reference projects for file operations.
 
     Args:
-        reference_projects: Dictionary mapping project names to directory paths
+        reference_projects: Dictionary mapping project names to ReferenceProject instances
     """
     global _reference_projects  # pylint: disable=global-statement
     _reference_projects = (
@@ -76,8 +77,8 @@ def set_reference_projects(reference_projects: Dict[str, Path]) -> None:
     )  # Create a copy to avoid external modifications
 
     # Log each reference project
-    for project_name, project_path in reference_projects.items():
-        logger.info("Reference project '%s' set to: %s", project_name, project_path)
+    for project_name, project in reference_projects.items():
+        logger.info("Reference project '%s' set to: %s", project_name, project.path)
 
 
 @mcp.tool()
@@ -150,7 +151,7 @@ def read_reference_file(
         raise ValueError(f"Reference project '{reference_name}' not found")
 
     # Get reference project path
-    ref_path = _reference_projects[reference_name]
+    ref_path = _reference_projects[reference_name].path
 
     # Log operation at DEBUG level
     logger.debug(
@@ -188,7 +189,7 @@ def list_reference_directory(reference_name: str) -> List[str]:
         raise ValueError(f"Reference project '{reference_name}' not found")
 
     # Get reference project path
-    ref_path = _reference_projects[reference_name]
+    ref_path = _reference_projects[reference_name].path
 
     # Log operation at DEBUG level
     logger.debug(
@@ -569,7 +570,8 @@ def edit_file(
 
 @log_function_call
 def run_server(
-    project_dir: Path, reference_projects: Optional[Dict[str, Path]] = None
+    project_dir: Path,
+    reference_projects: Optional[Dict[str, ReferenceProject]] = None,
 ) -> None:
     """Run the MCP server with the given project directory and optional reference projects.
 

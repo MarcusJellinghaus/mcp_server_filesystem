@@ -1,8 +1,12 @@
-feat(ref-projects): add ensure_available with lazy cloning and failure cache
+feat(cli): switch to KV reference project format with URL verification
 
-- Add ensure_available() async function with per-project asyncio.Lock
-- Clone via asyncio.to_thread(clone_repo) for non-blocking operation
-- Cache clone failures to avoid repeated attempts
-- Add clear_clone_failure_cache() utility for testing
-- Add 6 tests covering: existing dir, missing URL, clone trigger,
-  failure caching, cache clearing, and concurrent access serialization
+- Rewrite validate_reference_projects() to parse comma-separated KV pairs
+  (name=proj,path=/dir,url=https://...) instead of name=/path format
+- Integrate detect_and_verify_url() for URL detection and verification
+- Relax path existence check when URL is provided (for lazy cloning)
+- Add try/except ValueError in main() to exit on URL mismatch
+- Migrate server.py from Dict[str, Path] to Dict[str, ReferenceProject]
+- Update all server handlers to access .path on ReferenceProject instances
+- Update all test classes for new KV format and ReferenceProject assertions
+- Add new tests: url_resolved, url_mismatch_fatal, path_missing_with_url,
+  path_missing_without_url, main_url_mismatch_exits

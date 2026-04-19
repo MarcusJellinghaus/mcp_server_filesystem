@@ -11,6 +11,7 @@ from typing import Dict, List
 from mcp_coder_utils.log_utils import setup_logging
 
 from mcp_workspace import __version__
+from mcp_workspace.reference_projects import ReferenceProject, detect_and_verify_url
 
 # Create loggers
 stdlogger = logging.getLogger(__name__)
@@ -59,41 +60,48 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--reference-project",
         action="append",
-        help="Reference project in format name=/path/to/dir (can be repeated)",
+        help="Reference project as key-value pairs: name=myproj,path=/path/to/dir,url=https://... (name and path required, url optional)",
     )
     return parser.parse_args()
 
 
 def validate_reference_projects(
     reference_args: List[str], project_dir: Path
-) -> Dict[str, Path]:
+) -> Dict[str, ReferenceProject]:
     """Parse and validate reference project arguments.
 
-    Validates name format (very permissive) and path existence. Logs warnings for invalid
+    Parses comma-separated KV pairs: name=proj,path=/dir,url=https://...
+    Validates name and path are present. Logs warnings for invalid
     references and continues with valid ones only. Auto-renames duplicates.
     Filters out reference projects that overlap with project_dir.
+
+    Raises:
+        ValueError: If explicit URL doesn't match detected git remote URL.
     """
     if not reference_args:
         return {}
 
     resolved_project_dir = project_dir.resolve()
-    validated_projects: Dict[str, Path] = {}
+    validated_projects: Dict[str, ReferenceProject] = {}
 
     for arg in reference_args:
-        # Split on first '=' only
-        if "=" not in arg:
+        # Parse comma-separated key=value pairs
+        pairs = dict(pair.split("=", 1) for pair in arg.split(",") if "=" in pair)
+
+        # Validate "name" is present
+        name = pairs.get("name")
+        if not name:
             stdlogger.warning(
-                "Invalid reference project format (missing '='): argument=%s, expected_format=name=/path/to/dir",
+                "Invalid reference project format (missing 'name' key): argument=%s",
                 arg,
             )
             continue
 
-        name, path_str = arg.split("=", 1)
-
-        # Validate name is not empty
-        if not name:
+        # Validate "path" is present
+        path_str = pairs.get("path")
+        if not path_str:
             stdlogger.warning(
-                "Invalid reference project format (empty name): argument=%s, expected_format=name=/path/to/dir",
+                "Invalid reference project format (missing 'path' key): argument=%s",
                 arg,
             )
             continue
@@ -101,8 +109,10 @@ def validate_reference_projects(
         # Convert to canonical resolved path
         project_path = Path(path_str).resolve()
 
-        # Validate path exists and is directory
-        if not project_path.exists():
+        explicit_url = pairs.get("url")
+
+        # Check path existence — relaxed when URL is provided
+        if not project_path.exists() and explicit_url is None:
             stdlogger.warning(
                 "Reference project path does not exist: name=%s, path=%s",
                 name,
@@ -110,7 +120,7 @@ def validate_reference_projects(
             )
             continue
 
-        if not project_path.is_dir():
+        if project_path.exists() and not project_path.is_dir():
             stdlogger.warning(
                 "Reference project path is not a directory: name=%s, path=%s",
                 name,
@@ -119,27 +129,31 @@ def validate_reference_projects(
             continue
 
         # Check for overlap with the main project directory
-        if project_path == resolved_project_dir:
-            stdlogger.warning(
-                "Reference project '%s' points to the same directory as the main project, ignoring: path=%s",
-                name,
-                project_path,
-            )
-            continue
-        elif project_path.is_relative_to(resolved_project_dir):
-            stdlogger.warning(
-                "Reference project '%s' is a subdirectory of the main project, ignoring: path=%s",
-                name,
-                project_path,
-            )
-            continue
-        elif resolved_project_dir.is_relative_to(project_path):
-            stdlogger.warning(
-                "Reference project '%s' is a parent of the main project, ignoring: path=%s",
-                name,
-                project_path,
-            )
-            continue
+        if project_path.exists():
+            if project_path == resolved_project_dir:
+                stdlogger.warning(
+                    "Reference project '%s' points to the same directory as the main project, ignoring: path=%s",
+                    name,
+                    project_path,
+                )
+                continue
+            elif project_path.is_relative_to(resolved_project_dir):
+                stdlogger.warning(
+                    "Reference project '%s' is a subdirectory of the main project, ignoring: path=%s",
+                    name,
+                    project_path,
+                )
+                continue
+            elif resolved_project_dir.is_relative_to(project_path):
+                stdlogger.warning(
+                    "Reference project '%s' is a parent of the main project, ignoring: path=%s",
+                    name,
+                    project_path,
+                )
+                continue
+
+        # Detect and verify URL (raises ValueError on mismatch)
+        url = detect_and_verify_url(project_path, explicit_url, name)
 
         # Handle duplicate names with auto-rename
         final_name = name
@@ -148,7 +162,9 @@ def validate_reference_projects(
             final_name = f"{name}_{counter}"
             counter += 1
 
-        validated_projects[final_name] = project_path
+        validated_projects[final_name] = ReferenceProject(
+            name=final_name, path=project_path, url=url
+        )
 
     return validated_projects
 
@@ -189,11 +205,15 @@ def main() -> None:
     stdlogger.debug("Logger initialized in main")
 
     # Parse reference projects
-    reference_projects = {}
+    reference_projects: Dict[str, ReferenceProject] = {}
     if args.reference_project:
-        reference_projects = validate_reference_projects(
-            args.reference_project, project_dir
-        )
+        try:
+            reference_projects = validate_reference_projects(
+                args.reference_project, project_dir
+            )
+        except ValueError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
 
     # Import here to avoid circular imports (after logging is configured)
     from mcp_workspace.server import run_server
