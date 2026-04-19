@@ -1,9 +1,8 @@
-feat(ref-projects): add ReferenceProject dataclass, URL normalizer and verifier
+feat(ref-projects): add ensure_available with lazy cloning and failure cache
 
-- Add ReferenceProject dataclass with name, path, and optional url fields
-- Add normalize_git_url() for SSH-to-HTTPS conversion, .git stripping,
-  trailing slash removal, and host lowercasing
-- Add verify_url_match() to compare URLs after normalization
-- Add detect_and_verify_url() to detect URL from git repo and/or verify
-  against explicit URL, with deferred imports for lazy loading
-- Add comprehensive tests for all new functions
+- Add ensure_available() async function with per-project asyncio.Lock
+- Clone via asyncio.to_thread(clone_repo) for non-blocking operation
+- Cache clone failures to avoid repeated attempts
+- Add clear_clone_failure_cache() utility for testing
+- Add 6 tests covering: existing dir, missing URL, clone trigger,
+  failure caching, cache clearing, and concurrent access serialization

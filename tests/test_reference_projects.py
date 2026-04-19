@@ -871,3 +871,147 @@ class TestDetectAndVerifyUrl:
             "myproj",
         )
         assert result == "https://github.com/org/repo"
+
+
+class TestEnsureAvailable:
+    """Test ensure_available() with async locking and failure cache."""
+
+    @pytest.mark.asyncio
+    async def test_dir_exists_returns_immediately(self, tmp_path: Path) -> None:
+        """Path exists → no clone attempted."""
+        from mcp_workspace.reference_projects import (
+            ReferenceProject,
+            clear_clone_failure_cache,
+            ensure_available,
+        )
+
+        clear_clone_failure_cache()
+        proj = ReferenceProject(
+            name="existing", path=tmp_path, url="https://github.com/org/repo"
+        )
+        with patch("mcp_workspace.reference_projects.clone_repo") as mock_clone:
+            await ensure_available(proj)
+            mock_clone.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_no_dir_no_url_raises(self) -> None:
+        """Path missing, no URL → ValueError."""
+        from mcp_workspace.reference_projects import (
+            ReferenceProject,
+            clear_clone_failure_cache,
+            ensure_available,
+        )
+
+        clear_clone_failure_cache()
+        proj = ReferenceProject(
+            name="missing", path=Path("/nonexistent/path/abc123"), url=None
+        )
+        with pytest.raises(ValueError, match="directory missing and no URL configured"):
+            await ensure_available(proj)
+
+    @pytest.mark.asyncio
+    async def test_clone_triggered_when_url_set(self, tmp_path: Path) -> None:
+        """Path missing, URL set → clone_repo called."""
+        from mcp_workspace.reference_projects import (
+            ReferenceProject,
+            clear_clone_failure_cache,
+            ensure_available,
+        )
+
+        clear_clone_failure_cache()
+        target = tmp_path / "new_clone"
+        proj = ReferenceProject(
+            name="cloneme", path=target, url="https://github.com/org/repo"
+        )
+        with patch("mcp_workspace.reference_projects.clone_repo") as mock_clone:
+            await ensure_available(proj)
+            mock_clone.assert_called_once_with("https://github.com/org/repo", target)
+
+    @pytest.mark.asyncio
+    async def test_clone_failure_cached(self, tmp_path: Path) -> None:
+        """First call fails → second call raises immediately without re-cloning."""
+        from mcp_workspace.reference_projects import (
+            ReferenceProject,
+            clear_clone_failure_cache,
+            ensure_available,
+        )
+
+        clear_clone_failure_cache()
+        target = tmp_path / "fail_clone"
+        proj = ReferenceProject(
+            name="failproj", path=target, url="https://github.com/org/repo"
+        )
+        with patch(
+            "mcp_workspace.reference_projects.clone_repo",
+            side_effect=ValueError("auth required"),
+        ) as mock_clone:
+            # First call fails
+            with pytest.raises(ValueError, match="Failed to clone"):
+                await ensure_available(proj)
+            assert mock_clone.call_count == 1
+
+            # Second call raises cached error without cloning again
+            with pytest.raises(ValueError, match="Clone previously failed"):
+                await ensure_available(proj)
+            assert mock_clone.call_count == 1  # Not called again
+
+    @pytest.mark.asyncio
+    async def test_cache_cleared(self, tmp_path: Path) -> None:
+        """After clear_clone_failure_cache(), retry is allowed."""
+        from mcp_workspace.reference_projects import (
+            ReferenceProject,
+            clear_clone_failure_cache,
+            ensure_available,
+        )
+
+        clear_clone_failure_cache()
+        target = tmp_path / "retry_clone"
+        proj = ReferenceProject(
+            name="retryproj", path=target, url="https://github.com/org/repo"
+        )
+        with patch(
+            "mcp_workspace.reference_projects.clone_repo",
+            side_effect=ValueError("auth required"),
+        ):
+            with pytest.raises(ValueError, match="Failed to clone"):
+                await ensure_available(proj)
+
+        # Clear cache
+        clear_clone_failure_cache()
+
+        # Now it should try cloning again (not use cached error)
+        with patch("mcp_workspace.reference_projects.clone_repo") as mock_clone:
+            await ensure_available(proj)
+            mock_clone.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_concurrent_access_single_clone(self, tmp_path: Path) -> None:
+        """Two concurrent calls → only one clone."""
+        import asyncio
+
+        from mcp_workspace.reference_projects import (
+            ReferenceProject,
+            clear_clone_failure_cache,
+            ensure_available,
+        )
+
+        clear_clone_failure_cache()
+        target = tmp_path / "concurrent_clone"
+        proj = ReferenceProject(
+            name="concurrent", path=target, url="https://github.com/org/repo"
+        )
+
+        call_count = 0
+
+        def fake_clone(url: str, path: Path) -> None:
+            nonlocal call_count
+            call_count += 1
+            # Simulate that clone creates the directory
+            path.mkdir(parents=True, exist_ok=True)
+
+        with patch(
+            "mcp_workspace.reference_projects.clone_repo", side_effect=fake_clone
+        ):
+            await asyncio.gather(ensure_available(proj), ensure_available(proj))
+
+        assert call_count == 1  # Only one clone despite two concurrent calls

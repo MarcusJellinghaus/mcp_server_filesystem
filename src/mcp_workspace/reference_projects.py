@@ -1,12 +1,18 @@
 """Reference project management — dataclass, URL normalization, and verification."""
 
+import asyncio
 import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
+
+from mcp_workspace.git_operations.remotes import clone_repo
 
 logger = logging.getLogger(__name__)
+
+_project_locks: Dict[str, asyncio.Lock] = {}
+_clone_failure_cache: Dict[str, str] = {}  # project_name -> error message
 
 
 @dataclass
@@ -86,3 +92,42 @@ def detect_and_verify_url(
         return get_remote_url(path)  # auto-detect, may be None
 
     return None  # no explicit URL, path doesn't exist or not a git repo
+
+
+async def ensure_available(project: ReferenceProject) -> None:
+    """Ensure the reference project directory exists, cloning if needed.
+
+    Uses per-project locking to prevent concurrent clones and caches
+    clone failures to avoid repeated attempts.
+
+    Raises:
+        ValueError: If clone fails, was previously cached as failed,
+            or directory is missing with no URL configured.
+    """
+    lock = _project_locks.setdefault(project.name, asyncio.Lock())
+    async with lock:
+        if project.name in _clone_failure_cache:
+            cached_error = _clone_failure_cache[project.name]
+            raise ValueError(
+                f"Clone previously failed for '{project.name}': {cached_error}"
+            )
+        if project.path.exists():
+            return
+        if project.url is None:
+            raise ValueError(
+                f"Reference project '{project.name}' directory missing "
+                f"and no URL configured"
+            )
+        try:
+            await asyncio.to_thread(clone_repo, project.url, project.path)
+        except Exception as e:
+            _clone_failure_cache[project.name] = str(e)
+            raise ValueError(
+                f"Failed to clone '{project.name}' from {project.url}: {e}"
+            ) from e
+
+
+def clear_clone_failure_cache() -> None:
+    """Clear the clone failure cache and per-project locks (for testing)."""
+    _clone_failure_cache.clear()
+    _project_locks.clear()
