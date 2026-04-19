@@ -1,9 +1,9 @@
-feat(git): add get_remote_url and clone_repo primitives
+feat(ref-projects): add ReferenceProject dataclass, URL normalizer and verifier
 
-Add two git primitive functions to remotes.py:
-- get_remote_url(): returns raw origin URL (SSH/HTTPS, any host)
-- clone_repo(): full clone with input validation and error wrapping
-
-Export both from git_operations package. Includes unit tests for
-all code paths (success, missing origin, non-git dir, mock clone,
-validation errors).
+- Add ReferenceProject dataclass with name, path, and optional url fields
+- Add normalize_git_url() for SSH-to-HTTPS conversion, .git stripping,
+  trailing slash removal, and host lowercasing
+- Add verify_url_match() to compare URLs after normalization
+- Add detect_and_verify_url() to detect URL from git repo and/or verify
+  against explicit URL, with deferred imports for lazy loading
+- Add comprehensive tests for all new functions
