@@ -1,10 +1,14 @@
-feat: add arg validation module for read-only git operations (#77)
+feat: add output filtering module for read-only git operations
 
-Add per-command flag allowlists and validate_args() function that
-validates CLI arguments against security allowlists before execution.
+Add structure-aware filtering and truncation for git command output:
 
-- Allowlists for log, diff, status, and merge_base commands
-- Rejects unknown flags, blocks "--" (injected internally for pathspec)
-- Supports --flag=value and short flags with attached values (-n5)
-- Non-flag arguments (refs, SHAs, ranges) pass through to git
-- 38 comprehensive unit tests covering all validation paths
+- filter_diff_output(): parses unified diffs and returns only hunks
+  matching a search pattern, with configurable context lines
+- filter_log_output(): splits git log into commit entries and returns
+  only entries matching a search pattern
+- truncate_output(): truncates text to a line budget with a notice
+
+All functions are pure (string in, string out) and case-insensitive.
+Comprehensive unit tests with synthetic diff/log data included.
+
+Part of #77 (read-only git operations).
