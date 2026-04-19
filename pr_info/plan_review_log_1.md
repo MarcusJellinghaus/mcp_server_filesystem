@@ -56,4 +56,25 @@
 - `step_4.md`: Replaced inline URL logic with `detect_and_verify_url()` call, removed `git_operations` imports from main.py, added sizing warning
 - `step_6.md`: Removed `@log_function_call` from async `search_reference_files`
 
+**Status**: Committed (8c2ba66)
+
+## Round 3 — 2026-04-19
+
+**Findings**:
+- (Nit) Step 2: `is_git_repository` import source stated as `git_operations.core` but actual location is `git_operations.repository_status` (re-exported via `git_operations`)
+- (Nit) Step 4: `main()` try/except ValueError catch described but lacked explicit test; added `test_main_url_mismatch_exits`
+- All round 2 fixes verified correct and internally consistent
+- Cross-step dependencies verified clean
+- No async handler has `@log_function_call`
+- `main.py` no longer imports from `git_operations`
+
+**Decisions**:
+- Both nits: Accept — fix import source text and add test reference
+
+**User decisions**: None needed
+
+**Changes**:
+- `step_2.md`: Corrected `is_git_repository` import source from `git_operations.core` to `git_operations` (re-exported from `repository_status`)
+- `step_4.md`: Made `main()` try/except catch more explicit, added `test_main_url_mismatch_exits` reference
+
 **Status**: Changes applied, pending commit

@@ -82,7 +82,7 @@ Handlers remain **sync** in this step (they become async in Step 5).
 - Path existence check relaxed when `url` is provided
 - `detect_and_verify_url()` raises `ValueError` on URL mismatch
 - `validate_reference_projects()` lets the `ValueError` propagate (does NOT catch it)
-- `main()` catches `ValueError` from `validate_reference_projects()` and calls `sys.exit(1)` with an error message
+- `main()` wraps the `validate_reference_projects()` call in `try/except ValueError` and calls `sys.exit(1)` with the error message. Add `test_main_url_mismatch_exits` to `TestReferenceProjectIntegration` to verify this
 
 ## ALGORITHM (KV parsing)
 

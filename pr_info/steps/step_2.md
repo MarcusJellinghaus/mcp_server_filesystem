@@ -68,13 +68,13 @@ def detect_and_verify_url(path: Path, explicit_url: Optional[str], project_name:
     return None  # no explicit URL, path doesn't exist or not a git repo
 ```
 
-**Note:** `is_git_repository` is imported from `mcp_workspace.git_operations.core`. The `get_remote_url` import is deferred (inside function body) to keep module-level imports minimal until Step 3 adds `git_operations` imports.
+**Note:** `is_git_repository` is imported from `mcp_workspace.git_operations` (re-exported from `repository_status`). The `get_remote_url` import is deferred (inside function body) to keep module-level imports minimal until Step 3 adds `git_operations` imports.
 
 ## HOW
 
 - New file at `src/mcp_workspace/reference_projects.py`
 - Imports: `dataclasses.dataclass`, `pathlib.Path`, `typing.Optional`, `re`, `logging`
-- `detect_and_verify_url` imports `get_remote_url` locally (deferred import) and `is_git_repository` from `git_operations.core`
+- `detect_and_verify_url` imports `get_remote_url` locally (deferred import) and `is_git_repository` from `git_operations` (re-exported from `repository_status`)
 - `normalize_git_url` is a pure function — no I/O, easy to test
 
 ## DATA
