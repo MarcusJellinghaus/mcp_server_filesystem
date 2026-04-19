@@ -25,6 +25,7 @@ Add four MCP tools for read-only git operations: `git_log`, `git_diff`, `git_sta
 | `tach.toml` | Add `mcp_workspace.git_operations` to `server.py` depends_on |
 | `vulture_whitelist.py` | Add `_.git_log`, `_.git_diff`, `_.git_status`, `_.git_merge_base` |
 | `tests/test_server.py` | Add tests for the 4 new server tool wrappers |
+| `src/mcp_workspace/git_operations/__init__.py` | Export new public functions if needed for tach boundary (verify during step 3) |
 
 ### Layer Diagram (after change)
 

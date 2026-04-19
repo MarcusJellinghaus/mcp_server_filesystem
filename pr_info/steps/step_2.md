@@ -53,6 +53,8 @@ def truncate_output(text: str, max_lines: int) -> str:
 5. If no matches: return "No matches for search pattern '{search}'"
 ```
 
+**Note:** The `context` parameter here refers to lines within the parsed hunk around each matching line — not git's `-U` unified context. For example, `context=1` means 1 line before and after each match within the hunk.
+
 ## ALGORITHM — `filter_log_output`
 
 ```

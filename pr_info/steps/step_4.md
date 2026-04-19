@@ -102,6 +102,10 @@ def git_log(
 
 All 4 wrappers: validate `_project_dir`, then delegate to `git_operations.read_operations`.
 
+### Docstrings
+
+Each tool wrapper needs a full docstring with parameter descriptions (Args/Returns), matching the existing server tool pattern. MCP tool docstrings serve as the tool's API description for LLM clients — sparse docstrings lead to poor tool discoverability.
+
 ### `tach.toml` Change
 
 Add `git_operations` to `server.py` module's `depends_on`:

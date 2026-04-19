@@ -31,7 +31,6 @@ from .arg_validation import validate_args
 from .compact_diffs import render_compact_diff
 from .core import _safe_repo_context
 from .output_filtering import filter_diff_output, filter_log_output, truncate_output
-from .repository_status import is_git_repository
 
 logger = logging.getLogger(__name__)
 
@@ -94,8 +93,10 @@ def git_merge_base(
 ```
 1. validate_args("diff", args)
 2. user_args = args or []
-3. If compact:
+3. with _safe_repo_context(project_dir) as repo:
+   If compact:
      a. Strip any color-related args from user_args
+        (strip any arg starting with `--color`; note: `--color-words` from the allowlist is incompatible with compact mode and should be stripped when compact=True)
      b. Inject -M -C90% for move/copy detection
      c. Build base_args = _SAFETY_FLAGS + final_args + (["--"] + pathspec if pathspec else [])
      d. plain = repo.git.diff(*base_args)
@@ -115,7 +116,8 @@ def git_merge_base(
 ```
 1. validate_args("status", args)
 2. Build cmd_args = args or []
-3. output = repo.git.status(*cmd_args)
+3. with _safe_repo_context(project_dir) as repo:
+     output = repo.git.status(*cmd_args)
 4. If not output: return "No changes found"
 5. return truncate_output(output, max_lines)
 ```
@@ -125,10 +127,14 @@ def git_merge_base(
 ```
 1. validate_args("merge_base", args)
 2. Build cmd_args = args or []
-3. output = repo.git.merge_base(*cmd_args)
+3. with _safe_repo_context(project_dir) as repo:
+     output = repo.git.merge_base(*cmd_args)
+     For --is-ancestor: catch GitCommandError; exit code 1 → return "false", exit code 0 → return "true"
 4. If not output: return "No common ancestor found"
 5. return output
 ```
+
+**Note:** `git merge-base --is-ancestor` communicates via exit codes, not stdout. Exit code 0 means "is ancestor" (return `"true"`), exit code 1 means "not ancestor" (return `"false"`). GitPython raises `GitCommandError` for non-zero exit codes, so the implementation must catch this.
 
 ## DATA
 
@@ -160,7 +166,7 @@ class TestGitLog:
     def test_log_max_lines_truncates(): ...
     def test_log_empty_repo_message(): ...
     def test_log_rejected_flag_raises(): ...
-    def test_log_hardcodes_safety_flags(): ...  # verify --no-ext-diff --no-textconv in call
+    def test_log_hardcodes_safety_flags(): ...  # mock repo.git.log to verify --no-ext-diff --no-textconv in args
 
 @pytest.mark.git_integration
 class TestGitDiff:
@@ -174,6 +180,7 @@ class TestGitDiff:
     def test_diff_max_lines_truncates(): ...
     def test_diff_no_changes_message(): ...
     def test_diff_rejected_flag_raises(): ...
+    def test_diff_hardcodes_safety_flags(): ...  # mock repo.git.diff to verify --no-ext-diff --no-textconv in args
 
 @pytest.mark.git_integration
 class TestGitStatus:
@@ -185,7 +192,10 @@ class TestGitStatus:
 
 @pytest.mark.git_integration
 class TestGitMergeBase:
-    def test_merge_base_two_branches(): ...
-    def test_merge_base_is_ancestor(): ...
+    # Note: these tests create additional branches within the test body
+    # using the repo from git_repo_with_commit; the shared fixture is not modified.
+    def test_merge_base_two_branches(): ...     # create a second branch to have common ancestor
+    def test_merge_base_is_ancestor(): ...      # --is-ancestor with valid ancestor returns "true"
+    def test_merge_base_not_ancestor(): ...     # --is-ancestor with non-ancestor returns "false"
     def test_merge_base_rejected_flag_raises(): ...
 ```

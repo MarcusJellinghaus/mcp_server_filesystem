@@ -60,7 +60,7 @@ def validate_args(command: str, args: list[str]) -> None:
 
 ### Allowlisted Flags
 
-**`log`**: `--oneline`, `--format`, `--pretty`, `--abbrev-commit`, `--no-abbrev-commit`, `--date`, `--author`, `--committer`, `--grep`, `--invert-grep`, `--all-match`, `--since`, `--until`, `--after`, `--before`, `--all`, `--branches`, `--tags`, `--remotes`, `--merges`, `--no-merges`, `--first-parent`, `--max-count`, `-n`, `--skip`, `--reverse`, `--stat`, `--shortstat`, `--name-only`, `--name-status`, `--no-patch`, `--patch`, `-p`, `--graph`, `--decorate`, `--no-decorate`, `--follow`, `--diff-filter`, `--unified`, `-U`
+**`log`**: `--oneline`, `--format`, `--pretty`, `--abbrev-commit`, `--no-abbrev-commit`, `--date`, `--author`, `--committer`, `--grep`, `--invert-grep`, `--all-match`, `--since`, `--until`, `--after`, `--before`, `--all`, `--branches`, `--tags`, `--remotes`, `--merges`, `--no-merges`, `--first-parent`, `--max-count`, `-n`, `--skip`, `--reverse`, `--stat`, `--shortstat`, `--name-only`, `--name-status`, `--no-patch`, `--patch`, `-p`, `--graph`, `--decorate`, `--no-decorate`, `--follow`, `--diff-filter`, `--unified`, `-U`, `--no-ext-diff`, `--no-textconv`
 
 **`diff`**: `--staged`, `--cached`, `--name-only`, `--name-status`, `--stat`, `--shortstat`, `--numstat`, `--no-patch`, `--patch`, `-p`, `--unified`, `-U`, `--diff-filter`, `--no-prefix`, `--word-diff`, `--word-diff-regex`, `--color-words`, `--ignore-space-change`, `-b`, `--ignore-all-space`, `-w`, `--ignore-blank-lines`, `--no-ext-diff`, `--no-textconv`, `--minimal`, `--patience`, `--histogram`, `--diff-algorithm`, `-M`, `-C`, `--find-renames`, `--find-copies`, `--relative`
 
