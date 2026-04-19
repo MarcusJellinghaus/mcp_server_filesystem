@@ -32,9 +32,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit message prepared
 
 ### Step 3: Read Operations Module
-- [ ] Implementation: `read_operations.py` with `git_log()`, `git_diff()`, `git_status()`, `git_merge_base()`, and `test_read_operations.py` with git_integration tests (TDD)
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: `read_operations.py` with `git_log()`, `git_diff()`, `git_status()`, `git_merge_base()`, and `test_read_operations.py` with git_integration tests (TDD)
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 4: MCP Server Wrappers + Config Updates
 - [ ] Implementation: 4 thin `@mcp.tool()` wrappers in `server.py`, update `tach.toml` and `vulture_whitelist.py`, add server-level tests in `test_server.py`
