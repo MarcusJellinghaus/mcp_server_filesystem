@@ -88,6 +88,22 @@ def validate_reference_projects(
         # Parse comma-separated key=value pairs
         pairs = dict(pair.split("=", 1) for pair in arg.split(",") if "=" in pair)
 
+        # Detect old format: single pair like "projname=/path/to/dir"
+        known_keys = {"name", "path", "url"}
+        if (
+            len(pairs) == 1
+            and not pairs.keys() & known_keys
+            and (
+                "/" in next(iter(pairs.values())) or "\\" in next(iter(pairs.values()))
+            )
+        ):
+            stdlogger.warning(
+                "Skipping reference project '%s': appears to be old format. "
+                "Use: name=<name>,path=<path>[,url=<url>]",
+                arg,
+            )
+            continue
+
         # Validate "name" is present
         name = pairs.get("name")
         if not name:
