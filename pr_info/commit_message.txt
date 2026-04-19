@@ -1,0 +1,10 @@
+feat: add arg validation module for read-only git operations (#77)
+
+Add per-command flag allowlists and validate_args() function that
+validates CLI arguments against security allowlists before execution.
+
+- Allowlists for log, diff, status, and merge_base commands
+- Rejects unknown flags, blocks "--" (injected internally for pathspec)
+- Supports --flag=value and short flags with attached values (-n5)
+- Non-flag arguments (refs, SHAs, ranges) pass through to git
+- 38 comprehensive unit tests covering all validation paths

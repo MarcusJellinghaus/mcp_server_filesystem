@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Arg Validation Module
-- [ ] Implementation: `arg_validation.py` with per-command allowlists + `validate_args()`, and `test_arg_validation.py` with comprehensive unit tests (TDD)
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: `arg_validation.py` with per-command allowlists + `validate_args()`, and `test_arg_validation.py` with comprehensive unit tests (TDD)
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 2: Output Filtering Module
 - [ ] Implementation: `output_filtering.py` with `filter_diff_output()`, `filter_log_output()`, `truncate_output()`, and `test_output_filtering.py` with synthetic string tests (TDD)
