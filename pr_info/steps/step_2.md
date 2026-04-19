@@ -49,11 +49,32 @@ def verify_url_match(explicit_url: str, detected_url: str, project_name: str) ->
         raise ValueError(f"URL mismatch for '{project_name}': ...")
 ```
 
+### `detect_and_verify_url(path: Path, explicit_url: Optional[str], project_name: str) -> Optional[str]`
+
+Detect URL from git repo and/or verify against explicit URL. Returns the resolved URL (explicit or auto-detected), or None. Raises ValueError if explicit URL doesn't match detected URL.
+
+```
+def detect_and_verify_url(path: Path, explicit_url: Optional[str], project_name: str) -> Optional[str]:
+    from mcp_workspace.git_operations.remotes import get_remote_url
+    if explicit_url and path.exists() and is_git_repository(path):
+        detected = get_remote_url(path)
+        if detected:
+            verify_url_match(explicit_url, detected, project_name)
+        return explicit_url
+    if explicit_url and (not path.exists() or not is_git_repository(path)):
+        return explicit_url  # will be used for lazy cloning
+    if not explicit_url and path.exists() and is_git_repository(path):
+        return get_remote_url(path)  # auto-detect, may be None
+    return None  # no explicit URL, path doesn't exist or not a git repo
+```
+
+**Note:** `is_git_repository` is imported from `mcp_workspace.git_operations.core`. The `get_remote_url` import is deferred (inside function body) to keep module-level imports minimal until Step 3 adds `git_operations` imports.
+
 ## HOW
 
 - New file at `src/mcp_workspace/reference_projects.py`
 - Imports: `dataclasses.dataclass`, `pathlib.Path`, `typing.Optional`, `re`, `logging`
-- No imports from `git_operations` yet (that comes in Step 3)
+- `detect_and_verify_url` imports `get_remote_url` locally (deferred import) and `is_git_repository` from `git_operations.core`
 - `normalize_git_url` is a pure function — no I/O, easy to test
 
 ## DATA
@@ -91,3 +112,13 @@ New test classes in `tests/test_reference_projects.py`:
 - `test_matching_urls_no_error` — SSH vs HTTPS for same repo → no exception
 - `test_mismatching_urls_raises` — different repos → ValueError
 - `test_mismatch_error_includes_project_name` — error message contains project name
+
+### `TestDetectAndVerifyUrl`
+
+Mock `get_remote_url` and `is_git_repository` from `git_operations` in all tests.
+
+- `test_detect_explicit_url_matches_remote` — explicit URL provided, path exists, is git repo, remote matches → returns explicit URL, no error
+- `test_detect_explicit_url_mismatch` — explicit URL provided, path exists, is git repo, remote differs → raises ValueError
+- `test_detect_auto_from_git` — no explicit URL, path exists, is git repo → returns auto-detected URL
+- `test_detect_no_url_no_git` — no explicit URL, path doesn't exist → returns None
+- `test_detect_explicit_url_path_missing` — explicit URL provided, path doesn't exist → returns explicit URL (for lazy cloning)

@@ -17,7 +17,6 @@
 
 ```python
 @mcp.tool()
-@log_function_call
 async def search_reference_files(
     reference_name: str,
     glob: Optional[str] = None,
@@ -37,6 +36,8 @@ async def search_reference_files(
         max_result_lines=max_result_lines,
     )
 ```
+
+> **IMPORTANT:** Do NOT add `@log_function_call` to this handler. The decorator is sync-only — it creates a sync wrapper that doesn't `await` async functions. FastMCP checks `asyncio.iscoroutinefunction()` on the wrapper, which returns `False` for sync wrappers, causing the handler to break. (Same issue as `read_reference_file` and `list_reference_directory` in Step 5.)
 
 ### Updated `get_reference_projects()` response
 

@@ -36,9 +36,9 @@ async def ensure_available(project: ReferenceProject) -> None:
             raise ValueError(f"Reference project '{project.name}' directory missing and no URL configured")
         try:
             await asyncio.to_thread(clone_repo, project.url, project.path)
-        except (ValueError, Exception) as e:
+        except Exception as e:
             _clone_failure_cache[project.name] = str(e)
-            raise ValueError(f"Failed to clone '{project.name}' from {project.url}: {e}")
+            raise ValueError(f"Failed to clone '{project.name}' from {project.url}: {e}") from e
 ```
 
 ### `clear_clone_failure_cache() -> None`

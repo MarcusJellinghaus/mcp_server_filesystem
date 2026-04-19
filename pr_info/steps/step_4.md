@@ -6,6 +6,8 @@
 > Rewrite `validate_reference_projects()` in `main.py` for the new KV CLI format and add URL verification at startup. TDD — update existing tests first, then modify implementation.
 > Run all code quality checks (pylint, pytest, mypy) after changes. Commit: `feat(cli): switch to KV reference project format with URL verification`
 
+> **NOTE: This is the largest step in the plan.** It touches `main.py`, `server.py`, and many test classes simultaneously. Run code quality checks (pylint, pytest, mypy) incrementally during development rather than waiting until the end.
+
 ## WHERE
 
 - **Tests:** `tests/test_reference_projects.py` — update `TestReferenceProjectCLI`, `TestReferenceProjectIntegration`, `TestReferenceProjectMCPTools`, and `TestReferenceProjectServerStorage`
@@ -29,15 +31,9 @@ def validate_reference_projects(reference_args, project_dir):
     for arg in reference_args:
         parse comma-separated key=value pairs into dict
         validate "name" and "path" are present
-        if url provided AND path exists AND is_git_repository(path):
-            detected = get_remote_url(path)
-            if detected: verify_url_match(url, detected, name)  # raises ValueError on mismatch
-        elif url not provided AND path exists AND is_git_repository(path):
-            auto_url = get_remote_url(path)  # store if detected, None otherwise
         if path doesn't exist AND url is None:
             warn and skip (path required without URL)
-        if path doesn't exist AND url is set:
-            allow (will be cloned lazily)
+        url = detect_and_verify_url(path, explicit_url, name)  # handles verification + auto-detect
         # existing overlap/duplicate checks remain
         build ReferenceProject(name, path, url)
     return validated dict
@@ -79,12 +75,12 @@ Handlers remain **sync** in this step (they become async in Step 5).
 
 ## HOW
 
-- Import `ReferenceProject` from `mcp_workspace.reference_projects` (in both `main.py` and `server.py`)
-- Import `get_remote_url` from `mcp_workspace.git_operations.remotes`
-- Import `verify_url_match` from `mcp_workspace.reference_projects`
+- Import `ReferenceProject` and `detect_and_verify_url` from `mcp_workspace.reference_projects` (in `main.py`)
+- Import `ReferenceProject` from `mcp_workspace.reference_projects` (in `server.py`)
+- **Do NOT** import `get_remote_url` or `verify_url_match` in `main.py` — URL detection and verification is handled internally by `detect_and_verify_url` (defined in `reference_projects.py`, which already depends on `git_operations`)
 - KV parsing: `dict(pair.split("=", 1) for pair in arg.split(","))` — split on comma first, then on first `=` per pair
 - Path existence check relaxed when `url` is provided
-- `verify_url_match()` raises `ValueError` on URL mismatch
+- `detect_and_verify_url()` raises `ValueError` on URL mismatch
 - `validate_reference_projects()` lets the `ValueError` propagate (does NOT catch it)
 - `main()` catches `ValueError` from `validate_reference_projects()` and calls `sys.exit(1)` with an error message
 
@@ -96,8 +92,9 @@ Handlers remain **sync** in this step (they become async in Step 5).
 3. Check "name" in dict → warn + skip if missing
 4. Check "path" in dict → warn + skip if missing
 5. Resolve path, apply overlap/duplicate checks
-6. Handle URL verification and auto-detection
-7. Create ReferenceProject(name, path, url)
+6. If path doesn't exist and no URL → warn + skip
+7. url = detect_and_verify_url(path, explicit_url, name)  # raises ValueError on mismatch
+8. Create ReferenceProject(name, path, url)
 ```
 
 ## DATA
@@ -126,10 +123,9 @@ Update existing test classes in `tests/test_reference_projects.py`:
 - `test_nonexistent_path_warning` — test skip when no URL, allow when URL set
 
 ### New tests in `TestReferenceProjectCLI`
-- `test_url_auto_detected_from_git` — path is git repo → URL auto-populated (mock `get_remote_url`)
-- `test_url_verification_passes` — explicit URL matches detected → no error (mock both)
-- `test_url_mismatch_fatal` — explicit URL differs from detected → raises `ValueError`
-- `test_path_missing_with_url_allowed` — path doesn't exist but URL set → accepted
+- `test_url_resolved_from_detect_and_verify` — mock `detect_and_verify_url` to return a URL, verify it's stored in ReferenceProject
+- `test_url_mismatch_fatal` — mock `detect_and_verify_url` raising ValueError → propagates from `validate_reference_projects`
+- `test_path_missing_with_url_allowed` — path doesn't exist but URL set → accepted (mock `detect_and_verify_url`)
 - `test_path_missing_without_url_skipped` — path doesn't exist, no URL → warning + skip
 
 ### `TestReferenceProjectMCPTools` (update existing)

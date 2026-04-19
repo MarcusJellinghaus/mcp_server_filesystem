@@ -31,4 +31,29 @@
 - `step_5.md`: Narrowed scope to async+ensure_available only, removed `@log_function_call` from async handlers, added mocking instructions
 - `step_7.md`: Added `_.clear_clone_failure_cache` to vulture whitelist
 
+**Status**: Committed (b00bba0)
+
+## Round 2 — 2026-04-19
+
+**Findings**:
+- (Critical) Finding 1: `@log_function_call` applied to async `search_reference_files` in Step 6 — same sync-only decorator problem as Step 5
+- (Critical) Findings 2+3: `main.py` imports `get_remote_url` from `git_operations` but `tach.toml` doesn't declare this dependency — `tach check` will fail
+- (Improvement) Finding 5: Step 4 is the largest step — needs sizing warning
+- (Nit) Finding 7: Redundant `(ValueError, Exception)` catch in Step 3 pseudocode
+- 3 nits skipped (test name, usage string, mocking scope)
+
+**Decisions**:
+- Finding 1: Accept — remove `@log_function_call` from `search_reference_files` in Step 6
+- Findings 2+3: Accept — create `detect_and_verify_url()` helper in `reference_projects.py` (Step 2), have `main.py` import only from `reference_projects` (Step 4)
+- Finding 5: Accept — add sizing warning to Step 4
+- Finding 7: Accept — simplify to `except Exception`
+
+**User decisions**: None needed
+
+**Changes**:
+- `step_2.md`: Added `detect_and_verify_url()` function spec and 5 test cases
+- `step_3.md`: Simplified exception catch from `(ValueError, Exception)` to `Exception`
+- `step_4.md`: Replaced inline URL logic with `detect_and_verify_url()` call, removed `git_operations` imports from main.py, added sizing warning
+- `step_6.md`: Removed `@log_function_call` from async `search_reference_files`
+
 **Status**: Changes applied, pending commit
