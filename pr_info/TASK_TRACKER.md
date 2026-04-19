@@ -21,6 +21,26 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Arg Validation Module
+- [ ] Implementation: `arg_validation.py` with per-command allowlists + `validate_args()`, and `test_arg_validation.py` with comprehensive unit tests (TDD)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 2: Output Filtering Module
+- [ ] Implementation: `output_filtering.py` with `filter_diff_output()`, `filter_log_output()`, `truncate_output()`, and `test_output_filtering.py` with synthetic string tests (TDD)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 3: Read Operations Module
+- [ ] Implementation: `read_operations.py` with `git_log()`, `git_diff()`, `git_status()`, `git_merge_base()`, and `test_read_operations.py` with git_integration tests (TDD)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 4: MCP Server Wrappers + Config Updates
+- [ ] Implementation: 4 thin `@mcp.tool()` wrappers in `server.py`, update `tach.toml` and `vulture_whitelist.py`, add server-level tests in `test_server.py`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
 
 ## Pull Request
+- [ ] PR review: verify all steps integrated correctly
+- [ ] PR summary prepared
