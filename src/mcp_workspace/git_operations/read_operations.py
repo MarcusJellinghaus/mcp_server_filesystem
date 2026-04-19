@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from git.exc import GitCommandError, InvalidGitRepositoryError
+from git.exc import GitCommandError
 
 from .arg_validation import validate_args
 from .compact_diffs import render_compact_diff
@@ -54,8 +54,10 @@ def git_log(
     with _safe_repo_context(project_dir) as repo:
         try:
             output: str = repo.git.log(*cmd_args)
-        except GitCommandError:
-            return "No commits found"
+        except GitCommandError as exc:
+            if "does not have any commits yet" in str(exc):
+                return "No commits found."
+            raise
 
     if not output:
         return "No commits found"
@@ -97,7 +99,8 @@ def git_diff(
 
     with _safe_repo_context(project_dir) as repo:
         if compact:
-            # Strip color-related args (incompatible with compact mode)
+            # Strip color-related args; --color-words is incompatible with
+            # ANSI-based move detection used by compact mode.
             final_args = [a for a in user_args if not a.startswith("--color")]
             # Inject move/copy detection flags
             final_args = ["-M", "-C90%"] + final_args
@@ -122,7 +125,7 @@ def git_diff(
                 suppressed = plain_count - compact_count
                 header = (
                     f"# Compact diff: {plain_count} → {compact_count} lines "
-                    f"({pct}% reduction, {suppressed} moved lines suppressed)"
+                    f"({pct}% reduction, {suppressed} lines suppressed)"
                 )
                 output = header + "\n" + output
         else:

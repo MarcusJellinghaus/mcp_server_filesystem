@@ -24,7 +24,10 @@ def filter_diff_output(text: str, search: str, context: int = 3) -> str:
         Filtered diff fragment, or a descriptive message if no matches found.
     """
     files = parse_diff(text)
-    pattern = re.compile(search, re.IGNORECASE)
+    try:
+        pattern = re.compile(search, re.IGNORECASE)
+    except re.error as e:
+        return f"Invalid search pattern: {e}"
 
     output_parts: list[str] = []
 
@@ -94,7 +97,10 @@ def filter_log_output(text: str, search: str) -> str:
     Returns:
         Matching commit entries, or a descriptive message if no matches found.
     """
-    pattern = re.compile(search, re.IGNORECASE)
+    try:
+        pattern = re.compile(search, re.IGNORECASE)
+    except re.error as e:
+        return f"Invalid search pattern: {e}"
     commit_re = re.compile(r"^commit [0-9a-f]{7,}", re.MULTILINE)
 
     # Split into commit entries

@@ -75,7 +75,7 @@ class TestGitLog:
     def test_log_empty_repo_message(self, git_repo: tuple[Repo, Path]) -> None:
         _, project_dir = git_repo
         result = git_log(project_dir)
-        assert result == "No commits found"
+        assert result == "No commits found."
 
     def test_log_rejected_flag_raises(
         self, git_repo_with_commit: tuple[Repo, Path]
