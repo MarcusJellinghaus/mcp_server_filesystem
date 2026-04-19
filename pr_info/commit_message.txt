@@ -1,15 +1,10 @@
-feat(git-ops): add read-only git operations module
+feat: add MCP tool wrappers for read-only git operations
 
-Add read_operations.py with git_log(), git_diff(), git_status(), and
-git_merge_base() functions. All operations:
+Add 4 thin @mcp.tool() wrappers in server.py for git_log, git_diff,
+git_status, and git_merge_base. Each wrapper validates _project_dir
+then delegates to git_operations.read_operations.
 
-- Validate args against per-command security allowlists
-- Use _safe_repo_context() for Windows handle safety
-- Inject --no-ext-diff --no-textconv safety flags (log/diff)
-- Support pathspec via separate parameter (-- injected internally)
-- Apply output filtering (search) and truncation (max_lines)
-- git_diff supports compact mode via render_compact_diff()
-- git_merge_base handles --is-ancestor exit code semantics
-
-Add comprehensive integration tests (28 tests) using real git repos
-via git_repo_with_commit fixture.
+- server.py: import and wrap git_log, git_diff, git_status, git_merge_base
+- tach.toml: add mcp_workspace.git_operations dependency for server module
+- vulture_whitelist.py: register 4 new tool names
+- test_server.py: add delegation and no-project-dir tests for each wrapper

@@ -16,6 +16,12 @@ from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
+from mcp_workspace.git_operations.read_operations import git_diff as git_diff_impl
+from mcp_workspace.git_operations.read_operations import git_log as git_log_impl
+from mcp_workspace.git_operations.read_operations import (
+    git_merge_base as git_merge_base_impl,
+)
+from mcp_workspace.git_operations.read_operations import git_status as git_status_impl
 from mcp_workspace.reference_projects import ReferenceProject, ensure_available
 
 # Initialize loggers
@@ -620,6 +626,122 @@ def edit_file(
     except Exception as e:
         logger.error("Error editing file %s: %s", file_path, str(e))
         raise
+
+
+@mcp.tool()
+@log_function_call
+def git_log(
+    args: Optional[List[str]] = None,
+    pathspec: Optional[List[str]] = None,
+    search: Optional[str] = None,
+    max_lines: int = 50,
+) -> str:
+    """Run git log with filtering support.
+
+    Args:
+        args: Optional CLI flags (e.g. ["--oneline", "-n", "10"]).
+            Validated against a security allowlist.
+        pathspec: Optional file paths to restrict log scope.
+        search: Optional regex to filter output (case-insensitive).
+        max_lines: Maximum output lines before truncation (default 50).
+
+    Returns:
+        Filtered/truncated log output, or a descriptive message.
+    """
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+    return git_log_impl(
+        project_dir=_project_dir,
+        args=args,
+        pathspec=pathspec,
+        search=search,
+        max_lines=max_lines,
+    )
+
+
+@mcp.tool()
+@log_function_call
+def git_diff(
+    args: Optional[List[str]] = None,
+    pathspec: Optional[List[str]] = None,
+    search: Optional[str] = None,
+    context: int = 3,
+    max_lines: int = 100,
+    compact: bool = True,
+) -> str:
+    """Run git diff with compact diff and filtering support.
+
+    Args:
+        args: Optional CLI flags (e.g. ["--staged", "HEAD~1"]).
+            Validated against a security allowlist.
+        pathspec: Optional file paths to restrict diff scope.
+        search: Optional regex to filter output (case-insensitive).
+        context: Lines of context around search matches (default 3).
+        max_lines: Maximum output lines before truncation (default 100).
+        compact: If True, apply compact diff rendering (default True).
+
+    Returns:
+        Filtered/truncated diff output, or a descriptive message.
+    """
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+    return git_diff_impl(
+        project_dir=_project_dir,
+        args=args,
+        pathspec=pathspec,
+        search=search,
+        context=context,
+        max_lines=max_lines,
+        compact=compact,
+    )
+
+
+@mcp.tool()
+@log_function_call
+def git_status(
+    args: Optional[List[str]] = None,
+    max_lines: int = 200,
+) -> str:
+    """Run git status.
+
+    Args:
+        args: Optional CLI flags (e.g. ["--short", "--branch"]).
+            Validated against a security allowlist.
+        max_lines: Maximum output lines before truncation (default 200).
+
+    Returns:
+        Status output, or a descriptive message if clean.
+    """
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+    return git_status_impl(
+        project_dir=_project_dir,
+        args=args,
+        max_lines=max_lines,
+    )
+
+
+@mcp.tool()
+@log_function_call
+def git_merge_base(
+    args: Optional[List[str]] = None,
+) -> str:
+    """Run git merge-base.
+
+    Args:
+        args: CLI flags and refs (e.g. ["main", "feature-branch"]).
+            Validated against a security allowlist.
+
+    Returns:
+        Merge-base SHA, "true"/"false" for --is-ancestor,
+        or a descriptive message.
+    """
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+    return git_merge_base_impl(
+        project_dir=_project_dir,
+        args=args,
+    )
 
 
 @log_function_call

@@ -37,9 +37,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit message prepared
 
 ### Step 4: MCP Server Wrappers + Config Updates
-- [ ] Implementation: 4 thin `@mcp.tool()` wrappers in `server.py`, update `tach.toml` and `vulture_whitelist.py`, add server-level tests in `test_server.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: 4 thin `@mcp.tool()` wrappers in `server.py`, update `tach.toml` and `vulture_whitelist.py`, add server-level tests in `test_server.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ## Pull Request
 - [ ] PR review: verify all steps integrated correctly
