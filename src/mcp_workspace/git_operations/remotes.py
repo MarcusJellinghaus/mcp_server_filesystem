@@ -4,11 +4,61 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
+import git
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
 from .branch_queries import branch_exists
 from .core import _safe_repo_context, logger
 from .repository_status import is_git_repository
+
+
+def get_remote_url(project_dir: Path) -> Optional[str]:
+    """Get the raw remote origin URL from a git repository.
+
+    Unlike ``get_github_repository_url`` which normalises to GitHub HTTPS
+    format, this returns the URL exactly as configured (SSH, HTTPS, any host).
+
+    Args:
+        project_dir: Path to the project directory containing a git repository.
+
+    Returns:
+        The raw origin URL string, or ``None`` if the directory is not a git
+        repository or has no origin remote.
+    """
+    if not is_git_repository(project_dir):
+        return None
+
+    try:
+        with _safe_repo_context(project_dir) as repo:
+            if "origin" not in [remote.name for remote in repo.remotes]:
+                return None
+            return str(repo.remotes.origin.url)
+    except (InvalidGitRepositoryError, GitCommandError):
+        return None
+
+
+def clone_repo(url: str, target_path: Path) -> None:
+    """Clone a git repository to *target_path*.
+
+    Args:
+        url: Remote repository URL to clone.
+        target_path: Local filesystem path for the clone.
+
+    Raises:
+        ValueError: If *url* is empty, *target_path* is empty, *target_path*
+            already exists, or the git clone command fails.
+    """
+    if not url or not url.strip():
+        raise ValueError("URL cannot be empty")
+    if not str(target_path) or str(target_path) == ".":
+        raise ValueError("Target path cannot be empty")
+    if target_path.exists():
+        raise ValueError(f"Target path already exists: {target_path}")
+
+    try:
+        git.Repo.clone_from(url, str(target_path))
+    except GitCommandError as e:
+        raise ValueError(f"Failed to clone '{url}': {e}") from e
 
 
 def git_push(project_dir: Path, force_with_lease: bool = False) -> dict[str, Any]:

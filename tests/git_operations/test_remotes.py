@@ -1,12 +1,17 @@
 """Minimal tests for git remote operations."""
 
 from pathlib import Path
+from typing import Any
+from unittest.mock import patch
 
 import pytest
 from git import Repo
+from git.exc import GitCommandError
 
 from mcp_workspace.git_operations.remotes import (
+    clone_repo,
     get_github_repository_url,
+    get_remote_url,
     git_push,
     rebase_onto_branch,
 )
@@ -333,3 +338,80 @@ class TestRebaseOntoBranch:
 
         # Verify: returns False
         assert result is False
+
+
+@pytest.mark.git_integration
+class TestGetRemoteUrl:
+    """Tests for get_remote_url function."""
+
+    def test_returns_ssh_url(self, git_repo: tuple[Repo, Path]) -> None:
+        """Test returns SSH URL as-is."""
+        repo, project_dir = git_repo
+        repo.create_remote("origin", "git@github.com:org/repo.git")
+
+        result = get_remote_url(project_dir)
+
+        assert result == "git@github.com:org/repo.git"
+
+    def test_returns_https_url(self, git_repo: tuple[Repo, Path]) -> None:
+        """Test returns HTTPS URL as-is."""
+        repo, project_dir = git_repo
+        repo.create_remote("origin", "https://github.com/org/repo.git")
+
+        result = get_remote_url(project_dir)
+
+        assert result == "https://github.com/org/repo.git"
+
+    def test_returns_none_no_origin(self, git_repo: tuple[Repo, Path]) -> None:
+        """Test returns None when no origin remote exists."""
+        _repo, project_dir = git_repo
+
+        result = get_remote_url(project_dir)
+
+        assert result is None
+
+    def test_returns_none_not_git_repo(self, tmp_path: Path) -> None:
+        """Test returns None for a plain directory."""
+        result = get_remote_url(tmp_path)
+
+        assert result is None
+
+
+class TestCloneRepo:
+    """Tests for clone_repo function."""
+
+    @patch("mcp_workspace.git_operations.remotes.git.Repo.clone_from")
+    def test_clone_success(self, mock_clone_from: Any) -> None:
+        """Test successful clone calls Repo.clone_from with correct args."""
+        target = Path("/tmp/test-clone")
+        clone_repo("https://github.com/org/repo.git", target)
+
+        mock_clone_from.assert_called_once_with(
+            "https://github.com/org/repo.git", str(target)
+        )
+
+    def test_clone_target_exists(self, tmp_path: Path) -> None:
+        """Test raises ValueError when target directory already exists."""
+        with pytest.raises(ValueError, match="already exists"):
+            clone_repo("https://github.com/org/repo.git", tmp_path)
+
+    @patch(
+        "mcp_workspace.git_operations.remotes.git.Repo.clone_from",
+        side_effect=GitCommandError("clone", "fatal: repository not found"),
+    )
+    def test_clone_git_error(self, mock_clone_from: Any) -> None:
+        """Test raises ValueError with context on git error."""
+        target = Path("/tmp/nonexistent-clone-target")
+        with pytest.raises(ValueError, match="Failed to clone"):
+            clone_repo("https://github.com/org/repo.git", target)
+
+    def test_clone_empty_url(self, tmp_path: Path) -> None:
+        """Test raises ValueError for empty URL."""
+        target = tmp_path / "clone-target"
+        with pytest.raises(ValueError, match="URL cannot be empty"):
+            clone_repo("", target)
+
+    def test_clone_empty_target_path(self) -> None:
+        """Test raises ValueError for empty target path."""
+        with pytest.raises(ValueError, match="Target path cannot be empty"):
+            clone_repo("https://github.com/org/repo.git", Path(""))
