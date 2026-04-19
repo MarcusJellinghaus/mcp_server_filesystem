@@ -14,8 +14,8 @@ class TestReferenceProjectMCPTools:
 
     def test_get_reference_projects_empty(self) -> None:
         """Test discovery tool returns empty dict when no projects."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import get_reference_projects
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import get_reference_projects
 
         # Clear reference projects
         server_module._reference_projects = {}
@@ -32,8 +32,8 @@ class TestReferenceProjectMCPTools:
 
     def test_get_reference_projects_sorted(self) -> None:
         """Test discovery tool returns sorted list of project objects in structured dict."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import get_reference_projects
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import get_reference_projects
 
         # Set up test data in unsorted order
         test_projects = {
@@ -67,8 +67,8 @@ class TestReferenceProjectMCPTools:
         """Test INFO level logging for discovery operations."""
         from unittest.mock import patch
 
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import get_reference_projects
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import get_reference_projects
 
         # Set up test data
         test_projects = {
@@ -77,7 +77,7 @@ class TestReferenceProjectMCPTools:
         server_module._reference_projects = test_projects
 
         # Test logging behavior (the decorator handles logging)
-        with patch("mcp_workspace.server.logger") as mock_logger:
+        with patch("mcp_workspace.server_reference_tools.logger") as mock_logger:
             result = get_reference_projects()
 
             # Should return structured dict with project objects
@@ -95,8 +95,8 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_list_reference_directory_success(self) -> None:
         """Test listing files in valid reference project."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import list_reference_directory
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import list_reference_directory
 
         # Set up test reference projects
         ref_path = Path("/tmp/test_project").resolve()
@@ -106,9 +106,11 @@ class TestReferenceProjectMCPTools:
         server_module._reference_projects = test_projects
 
         # Mock the list_files_util function to return test data
-        with patch("mcp_workspace.server.list_files_util") as mock_list_files:
+        with patch(
+            "mcp_workspace.server_reference_tools.list_files_util"
+        ) as mock_list_files:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ):
@@ -132,8 +134,8 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_list_reference_directory_not_found(self) -> None:
         """Test error handling for non-existent reference project."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import list_reference_directory
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import list_reference_directory
 
         # Set up test reference projects (empty)
         server_module._reference_projects = {}
@@ -147,8 +149,8 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_list_reference_directory_gitignore(self) -> None:
         """Test gitignore filtering is applied."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import list_reference_directory
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import list_reference_directory
 
         # Set up test reference projects
         ref_path = Path("/tmp/gitignore_test").resolve()
@@ -160,9 +162,11 @@ class TestReferenceProjectMCPTools:
         server_module._reference_projects = test_projects
 
         # Mock the list_files_util function
-        with patch("mcp_workspace.server.list_files_util") as mock_list_files:
+        with patch(
+            "mcp_workspace.server_reference_tools.list_files_util"
+        ) as mock_list_files:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ):
@@ -182,8 +186,8 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_list_reference_directory_logging(self) -> None:
         """Test DEBUG level logging for file operations."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import list_reference_directory
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import list_reference_directory
 
         # Set up test reference projects
         ref_path = Path("/tmp/log_test").resolve()
@@ -193,13 +197,17 @@ class TestReferenceProjectMCPTools:
         server_module._reference_projects = test_projects
 
         # Mock the list_files_util function
-        with patch("mcp_workspace.server.list_files_util") as mock_list_files:
+        with patch(
+            "mcp_workspace.server_reference_tools.list_files_util"
+        ) as mock_list_files:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ):
-                with patch("mcp_workspace.server.logger") as mock_logger:
+                with patch(
+                    "mcp_workspace.server_reference_tools.logger"
+                ) as mock_logger:
                     mock_list_files.return_value = ["test.py"]
 
                     result = await list_reference_directory("log_test_proj")
@@ -211,8 +219,8 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_read_reference_file_success(self) -> None:
         """Test reading file from valid reference project."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import read_reference_file
 
         # Set up test reference projects
         ref_path = Path("/tmp/test_project").resolve()
@@ -222,9 +230,11 @@ class TestReferenceProjectMCPTools:
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function to return test data
-        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
+        with patch(
+            "mcp_workspace.server_reference_tools.read_file_util"
+        ) as mock_read_file:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ):
@@ -248,8 +258,8 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_read_reference_file_forwards_line_range_params(self) -> None:
         """Test that line-range params are forwarded to read_file_util."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import read_reference_file
 
         ref_path = Path("/tmp/test_project").resolve()
         test_projects = {
@@ -257,9 +267,11 @@ class TestReferenceProjectMCPTools:
         }
         server_module._reference_projects = test_projects
 
-        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
+        with patch(
+            "mcp_workspace.server_reference_tools.read_file_util"
+        ) as mock_read_file:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ):
@@ -285,8 +297,8 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_read_reference_file_project_not_found(self) -> None:
         """Test error handling for non-existent reference project."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import read_reference_file
 
         # Set up test reference projects (empty)
         server_module._reference_projects = {}
@@ -300,8 +312,8 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_read_reference_file_file_not_found(self) -> None:
         """Test error handling for non-existent file."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import read_reference_file
 
         # Set up test reference projects
         ref_path = Path("/tmp/test_project").resolve()
@@ -311,9 +323,11 @@ class TestReferenceProjectMCPTools:
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function to raise FileNotFoundError
-        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
+        with patch(
+            "mcp_workspace.server_reference_tools.read_file_util"
+        ) as mock_read_file:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ):
@@ -330,8 +344,8 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_read_reference_file_security(self) -> None:
         """Test path traversal prevention (reuse existing security)."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import read_reference_file
 
         # Set up test reference projects
         ref_path = Path("/tmp/test_project").resolve()
@@ -341,9 +355,11 @@ class TestReferenceProjectMCPTools:
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function to raise security error
-        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
+        with patch(
+            "mcp_workspace.server_reference_tools.read_file_util"
+        ) as mock_read_file:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ):
@@ -360,8 +376,8 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_read_reference_file_logging(self) -> None:
         """Test DEBUG level logging for file operations."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import read_reference_file
 
         # Set up test reference projects
         ref_path = Path("/tmp/log_test").resolve()
@@ -371,13 +387,17 @@ class TestReferenceProjectMCPTools:
         server_module._reference_projects = test_projects
 
         # Mock the read_file_util function
-        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
+        with patch(
+            "mcp_workspace.server_reference_tools.read_file_util"
+        ) as mock_read_file:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ):
-                with patch("mcp_workspace.server.logger") as mock_logger:
+                with patch(
+                    "mcp_workspace.server_reference_tools.logger"
+                ) as mock_logger:
                     mock_read_file.return_value = "test content"
 
                     result = await read_reference_file("log_test_proj", "test.txt")
@@ -389,16 +409,18 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_read_reference_file_calls_ensure_available(self) -> None:
         """Verify ensure_available is awaited before file access."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import read_reference_file
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import read_reference_file
 
         ref_path = Path("/tmp/test_project").resolve()
         proj = ReferenceProject(name="test_proj", path=ref_path)
         server_module._reference_projects = {"test_proj": proj}
 
-        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
+        with patch(
+            "mcp_workspace.server_reference_tools.read_file_util"
+        ) as mock_read_file:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ) as mock_ensure:
@@ -411,16 +433,18 @@ class TestReferenceProjectMCPTools:
     @pytest.mark.asyncio
     async def test_list_reference_directory_calls_ensure_available(self) -> None:
         """Verify ensure_available is awaited before directory listing."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import list_reference_directory
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import list_reference_directory
 
         ref_path = Path("/tmp/test_project").resolve()
         proj = ReferenceProject(name="test_proj", path=ref_path)
         server_module._reference_projects = {"test_proj": proj}
 
-        with patch("mcp_workspace.server.list_files_util") as mock_list_files:
+        with patch(
+            "mcp_workspace.server_reference_tools.list_files_util"
+        ) as mock_list_files:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ) as mock_ensure:
@@ -432,16 +456,19 @@ class TestReferenceProjectMCPTools:
 
     @pytest.mark.asyncio
     async def test_ensure_available_failure_propagates(self) -> None:
-        """Mock ensure_available raising → handler raises."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import list_reference_directory, read_reference_file
+        """Mock ensure_available raising -> handler raises."""
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import (
+            list_reference_directory,
+            read_reference_file,
+        )
 
         ref_path = Path("/tmp/test_project").resolve()
         proj = ReferenceProject(name="test_proj", path=ref_path)
         server_module._reference_projects = {"test_proj": proj}
 
         with patch(
-            "mcp_workspace.server.ensure_available",
+            "mcp_workspace.server_reference_tools.ensure_available",
             new_callable=AsyncMock,
             side_effect=ValueError("Clone previously failed"),
         ):
@@ -455,7 +482,7 @@ class TestReferenceProjectMCPTools:
         """Verify async reference handlers are coroutine functions."""
         import asyncio
 
-        from mcp_workspace.server import (
+        from mcp_workspace.server_reference_tools import (
             list_reference_directory,
             read_reference_file,
             search_reference_files,
@@ -472,8 +499,8 @@ class TestSearchReferenceFiles:
     @pytest.mark.asyncio
     async def test_search_by_glob(self) -> None:
         """Test file search by glob pattern delegates to search_files_util."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import search_reference_files
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import search_reference_files
 
         ref_path = Path("/tmp/test_project").resolve()
         test_projects = {
@@ -481,9 +508,11 @@ class TestSearchReferenceFiles:
         }
         server_module._reference_projects = test_projects
 
-        with patch("mcp_workspace.server.search_files_util") as mock_search:
+        with patch(
+            "mcp_workspace.server_reference_tools.search_files_util"
+        ) as mock_search:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ):
@@ -510,8 +539,8 @@ class TestSearchReferenceFiles:
     @pytest.mark.asyncio
     async def test_search_by_pattern(self) -> None:
         """Test content search by regex pattern."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import search_reference_files
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import search_reference_files
 
         ref_path = Path("/tmp/test_project").resolve()
         test_projects = {
@@ -519,9 +548,11 @@ class TestSearchReferenceFiles:
         }
         server_module._reference_projects = test_projects
 
-        with patch("mcp_workspace.server.search_files_util") as mock_search:
+        with patch(
+            "mcp_workspace.server_reference_tools.search_files_util"
+        ) as mock_search:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ):
@@ -550,8 +581,8 @@ class TestSearchReferenceFiles:
     @pytest.mark.asyncio
     async def test_search_combined(self) -> None:
         """Test combined glob + pattern search."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import search_reference_files
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import search_reference_files
 
         ref_path = Path("/tmp/test_project").resolve()
         test_projects = {
@@ -559,9 +590,11 @@ class TestSearchReferenceFiles:
         }
         server_module._reference_projects = test_projects
 
-        with patch("mcp_workspace.server.search_files_util") as mock_search:
+        with patch(
+            "mcp_workspace.server_reference_tools.search_files_util"
+        ) as mock_search:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ):
@@ -589,8 +622,8 @@ class TestSearchReferenceFiles:
     @pytest.mark.asyncio
     async def test_search_not_found_project(self) -> None:
         """Test error for non-existent reference project."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import search_reference_files
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import search_reference_files
 
         server_module._reference_projects = {}
 
@@ -602,16 +635,18 @@ class TestSearchReferenceFiles:
     @pytest.mark.asyncio
     async def test_search_calls_ensure_available(self) -> None:
         """Verify ensure_available is awaited before search."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import search_reference_files
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import search_reference_files
 
         ref_path = Path("/tmp/test_project").resolve()
         proj = ReferenceProject(name="test_proj", path=ref_path)
         server_module._reference_projects = {"test_proj": proj}
 
-        with patch("mcp_workspace.server.search_files_util") as mock_search:
+        with patch(
+            "mcp_workspace.server_reference_tools.search_files_util"
+        ) as mock_search:
             with patch(
-                "mcp_workspace.server.ensure_available",
+                "mcp_workspace.server_reference_tools.ensure_available",
                 new_callable=AsyncMock,
                 return_value=None,
             ) as mock_ensure:
