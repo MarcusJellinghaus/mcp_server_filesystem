@@ -60,7 +60,7 @@ def git_log(
             raise
 
     if not output:
-        return "No commits found"
+        return "No commits found."
 
     if search:
         output = filter_log_output(output, search)

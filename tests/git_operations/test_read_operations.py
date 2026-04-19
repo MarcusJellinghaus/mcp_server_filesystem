@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from git import Repo
+from git.exc import GitCommandError
 
 from mcp_workspace.git_operations.read_operations import (
     git_diff,
@@ -101,6 +102,23 @@ class TestGitLog:
             call_args = mock_repo.git.log.call_args[0]
             assert "--no-ext-diff" in call_args
             assert "--no-textconv" in call_args
+
+    def test_log_reraises_non_empty_repo_git_error(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        with patch(
+            "mcp_workspace.git_operations.read_operations._safe_repo_context"
+        ) as mock_ctx:
+            mock_repo = MagicMock()
+            mock_repo.git.log.side_effect = GitCommandError(
+                "git log", 128, stderr="fatal: bad revision 'nonexistent'"
+            )
+            mock_ctx.return_value.__enter__ = MagicMock(return_value=mock_repo)
+            mock_ctx.return_value.__exit__ = MagicMock(return_value=False)
+
+            with pytest.raises(GitCommandError):
+                git_log(project_dir)
 
 
 @pytest.mark.git_integration

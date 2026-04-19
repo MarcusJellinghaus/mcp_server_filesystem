@@ -88,6 +88,10 @@ class TestFilterDiffOutput:
         assert "old_value" in result
         assert "unrelated_old" in result
 
+    def test_invalid_regex_returns_error_message(self) -> None:
+        result = filter_diff_output(SAMPLE_DIFF, "[unclosed")
+        assert result.startswith("Invalid search pattern:")
+
 
 class TestFilterLogOutput:
     """Structure-aware log filtering tests."""
@@ -115,6 +119,10 @@ class TestFilterLogOutput:
     def test_search_is_case_insensitive(self) -> None:
         result = filter_log_output(SAMPLE_LOG, "PARSER")
         assert "Fix critical bug in parser" in result
+
+    def test_invalid_regex_returns_error_message(self) -> None:
+        result = filter_log_output(SAMPLE_LOG, "[unclosed")
+        assert result.startswith("Invalid search pattern:")
 
 
 class TestTruncateOutput:
