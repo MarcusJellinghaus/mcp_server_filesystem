@@ -107,15 +107,20 @@ def get_reference_projects() -> Dict[str, Any]:
                 "usage": "No reference projects available",
             }
 
-        project_names = sorted(_reference_projects.keys())
+        projects = sorted(
+            [{"name": p.name, "url": p.url} for p in _reference_projects.values()],
+            key=lambda p: str(p["name"]),
+        )
         logger.info(
-            "Found %d reference projects: %s", len(project_names), project_names
+            "Found %d reference projects: %s",
+            len(projects),
+            [p["name"] for p in projects],
         )
 
         return {
-            "count": len(project_names),
-            "projects": project_names,
-            "usage": f"Use these {len(project_names)} projects with list_reference_directory() and read_reference_file()",
+            "count": len(projects),
+            "projects": projects,
+            "usage": f"Use these {len(projects)} projects with list_reference_directory(), read_reference_file(), and search_reference_files()",
         }
 
     except Exception as e:
@@ -203,6 +208,53 @@ async def list_reference_directory(reference_name: str) -> List[str]:
     # Call list_files_util with gitignore filtering enabled
     # The utility function handles all parameter validation
     return list_files_util(".", project_dir=ref_path, use_gitignore=True)
+
+
+@mcp.tool()
+async def search_reference_files(
+    reference_name: str,
+    glob: Optional[str] = None,
+    pattern: Optional[str] = None,
+    context_lines: int = 0,
+    max_results: int = 50,
+    max_result_lines: int = 200,
+) -> Dict[str, Any]:
+    """Search file contents by regex and/or find files by glob pattern in a reference project.
+
+    Modes:
+        - File search: provide `glob` to find files by path pattern (like find)
+        - Content search: provide `pattern` (regex) to search inside files (like grep)
+        - Combined: both to search content within matching files
+
+    Args:
+        reference_name: Name of the reference project
+        glob: File path pattern (e.g. "**/*.py", "tests/**/test_*.py")
+        pattern: Regex to match file contents (e.g. "def foo", "TODO.*fix")
+        context_lines: Lines of context around each match (0 = match line only)
+        max_results: Maximum number of matches or files returned (default 50)
+        max_result_lines: Hard cap on total output lines (default 200)
+
+    Returns:
+        Dict with matches (content search) or file list (file search),
+        plus truncated flag if results were capped.
+    """
+    # Check if reference project exists
+    if reference_name not in _reference_projects:
+        logger.error("Reference project '%s' not found", reference_name)
+        raise ValueError(f"Reference project '{reference_name}' not found")
+
+    # Get reference project and ensure it's available (may trigger clone)
+    project = _reference_projects[reference_name]
+    await ensure_available(project)
+
+    return search_files_util(
+        project_dir=project.path,
+        glob=glob,
+        pattern=pattern,
+        context_lines=context_lines,
+        max_results=max_results,
+        max_result_lines=max_result_lines,
+    )
 
 
 @mcp.tool()
