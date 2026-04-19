@@ -280,8 +280,8 @@ class TestReferenceProjectServerStorage:
 
     def test_set_reference_projects(self) -> None:
         """Test setting reference projects storage."""
-        import mcp_workspace.server as server_module
-        from mcp_workspace.server import set_reference_projects
+        import mcp_workspace.server_reference_tools as ref_tools_module
+        from mcp_workspace.server_reference_tools import set_reference_projects
 
         # Test setting reference projects
         test_projects = {
@@ -296,7 +296,7 @@ class TestReferenceProjectServerStorage:
         set_reference_projects(test_projects)
 
         # Check that the global variable was updated
-        assert server_module._reference_projects == test_projects
+        assert ref_tools_module._reference_projects == test_projects
 
     def test_run_server_with_reference_projects(self) -> None:
         """Test run_server accepts reference projects parameter."""
@@ -327,7 +327,7 @@ class TestReferenceProjectServerStorage:
         """Test INFO level logging during initialization."""
         from unittest.mock import patch
 
-        from mcp_workspace.server import set_reference_projects
+        from mcp_workspace.server_reference_tools import set_reference_projects
 
         test_projects = {
             "proj1": ReferenceProject(
@@ -339,7 +339,7 @@ class TestReferenceProjectServerStorage:
         }
 
         # Test logging behavior
-        with patch("mcp_workspace.server.logger") as mock_logger:
+        with patch("mcp_workspace.server_reference_tools.logger") as mock_logger:
             set_reference_projects(test_projects)
 
             # Verify INFO level logging was called
