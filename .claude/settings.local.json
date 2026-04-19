@@ -71,7 +71,18 @@
       "Skill(implement_direct)",
       "Skill(issue_requirements)",
       "Skill(rebase)",
-      "mcp__workspace__search_files"
+      "mcp__workspace__search_files",
+      "mcp__obsidian-wiki__add-tags",
+      "mcp__obsidian-wiki__create-directory",
+      "mcp__obsidian-wiki__create-note",
+      "mcp__obsidian-wiki__delete-note",
+      "mcp__obsidian-wiki__edit-note",
+      "mcp__obsidian-wiki__list-available-vaults",
+      "mcp__obsidian-wiki__move-note",
+      "mcp__obsidian-wiki__read-note",
+      "mcp__obsidian-wiki__remove-tags",
+      "mcp__obsidian-wiki__rename-tag",
+      "mcp__obsidian-wiki__search-vault"
     ]
   },
   "enableAllProjectMcpServers": true,
