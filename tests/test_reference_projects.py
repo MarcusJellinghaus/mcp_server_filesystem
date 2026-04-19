@@ -1,9 +1,10 @@
 """Tests for reference project CLI parsing and validation."""
 
 import argparse
+import asyncio
 from pathlib import Path
 from typing import Dict
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -349,7 +350,8 @@ class TestReferenceProjectMCPTools:
             # We can verify the function was called and returned the expected result
             assert isinstance(result, dict)
 
-    def test_list_reference_directory_success(self) -> None:
+    @pytest.mark.asyncio
+    async def test_list_reference_directory_success(self) -> None:
         """Test listing files in valid reference project."""
         import mcp_workspace.server as server_module
         from mcp_workspace.server import list_reference_directory
@@ -363,20 +365,30 @@ class TestReferenceProjectMCPTools:
 
         # Mock the list_files_util function to return test data
         with patch("mcp_workspace.server.list_files_util") as mock_list_files:
-            mock_list_files.return_value = ["file1.py", "file2.txt", "subdir/file3.md"]
+            with patch(
+                "mcp_workspace.server.ensure_available",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                mock_list_files.return_value = [
+                    "file1.py",
+                    "file2.txt",
+                    "subdir/file3.md",
+                ]
 
-            result = list_reference_directory("test_proj")
+                result = await list_reference_directory("test_proj")
 
-            # Should return the mocked file list
-            assert result == ["file1.py", "file2.txt", "subdir/file3.md"]
-            assert isinstance(result, list)
+                # Should return the mocked file list
+                assert result == ["file1.py", "file2.txt", "subdir/file3.md"]
+                assert isinstance(result, list)
 
-            # Verify list_files_util was called with correct parameters
-            mock_list_files.assert_called_once_with(
-                ".", project_dir=ref_path, use_gitignore=True
-            )
+                # Verify list_files_util was called with correct parameters
+                mock_list_files.assert_called_once_with(
+                    ".", project_dir=ref_path, use_gitignore=True
+                )
 
-    def test_list_reference_directory_not_found(self) -> None:
+    @pytest.mark.asyncio
+    async def test_list_reference_directory_not_found(self) -> None:
         """Test error handling for non-existent reference project."""
         import mcp_workspace.server as server_module
         from mcp_workspace.server import list_reference_directory
@@ -388,9 +400,10 @@ class TestReferenceProjectMCPTools:
         with pytest.raises(
             ValueError, match="Reference project 'nonexistent' not found"
         ):
-            list_reference_directory("nonexistent")
+            await list_reference_directory("nonexistent")
 
-    def test_list_reference_directory_gitignore(self) -> None:
+    @pytest.mark.asyncio
+    async def test_list_reference_directory_gitignore(self) -> None:
         """Test gitignore filtering is applied."""
         import mcp_workspace.server as server_module
         from mcp_workspace.server import list_reference_directory
@@ -406,20 +419,26 @@ class TestReferenceProjectMCPTools:
 
         # Mock the list_files_util function
         with patch("mcp_workspace.server.list_files_util") as mock_list_files:
-            # Should return files after gitignore filtering
-            mock_list_files.return_value = ["src/main.py", "README.md"]
+            with patch(
+                "mcp_workspace.server.ensure_available",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                # Should return files after gitignore filtering
+                mock_list_files.return_value = ["src/main.py", "README.md"]
 
-            result = list_reference_directory("proj_with_gitignore")
+                result = await list_reference_directory("proj_with_gitignore")
 
-            # Verify gitignore filtering was enabled
-            mock_list_files.assert_called_once_with(
-                ".",
-                project_dir=ref_path,
-                use_gitignore=True,
-            )
-            assert result == ["src/main.py", "README.md"]
+                # Verify gitignore filtering was enabled
+                mock_list_files.assert_called_once_with(
+                    ".",
+                    project_dir=ref_path,
+                    use_gitignore=True,
+                )
+                assert result == ["src/main.py", "README.md"]
 
-    def test_list_reference_directory_logging(self) -> None:
+    @pytest.mark.asyncio
+    async def test_list_reference_directory_logging(self) -> None:
         """Test DEBUG level logging for file operations."""
         import mcp_workspace.server as server_module
         from mcp_workspace.server import list_reference_directory
@@ -433,19 +452,22 @@ class TestReferenceProjectMCPTools:
 
         # Mock the list_files_util function
         with patch("mcp_workspace.server.list_files_util") as mock_list_files:
-            with patch("mcp_workspace.server.logger") as mock_logger:
-                mock_list_files.return_value = ["test.py"]
+            with patch(
+                "mcp_workspace.server.ensure_available",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                with patch("mcp_workspace.server.logger") as mock_logger:
+                    mock_list_files.return_value = ["test.py"]
 
-                result = list_reference_directory("log_test_proj")
+                    result = await list_reference_directory("log_test_proj")
 
-                # Should return expected result
-                assert result == ["test.py"]
+                    # Should return expected result
+                    assert result == ["test.py"]
+                    assert isinstance(result, list)
 
-                # The @log_function_call decorator should handle logging
-                # We can verify the function was called and returned the expected result
-                assert isinstance(result, list)
-
-    def test_read_reference_file_success(self) -> None:
+    @pytest.mark.asyncio
+    async def test_read_reference_file_success(self) -> None:
         """Test reading file from valid reference project."""
         import mcp_workspace.server as server_module
         from mcp_workspace.server import read_reference_file
@@ -459,24 +481,30 @@ class TestReferenceProjectMCPTools:
 
         # Mock the read_file_util function to return test data
         with patch("mcp_workspace.server.read_file_util") as mock_read_file:
-            mock_read_file.return_value = "Test file content\nLine 2\n"
+            with patch(
+                "mcp_workspace.server.ensure_available",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                mock_read_file.return_value = "Test file content\nLine 2\n"
 
-            result = read_reference_file("test_proj", "test_file.txt")
+                result = await read_reference_file("test_proj", "test_file.txt")
 
-            # Should return the mocked file content
-            assert result == "Test file content\nLine 2\n"
-            assert isinstance(result, str)
+                # Should return the mocked file content
+                assert result == "Test file content\nLine 2\n"
+                assert isinstance(result, str)
 
-            # Verify read_file_util was called with correct parameters
-            mock_read_file.assert_called_once_with(
-                "test_file.txt",
-                project_dir=ref_path,
-                start_line=None,
-                end_line=None,
-                with_line_numbers=None,
-            )
+                # Verify read_file_util was called with correct parameters
+                mock_read_file.assert_called_once_with(
+                    "test_file.txt",
+                    project_dir=ref_path,
+                    start_line=None,
+                    end_line=None,
+                    with_line_numbers=None,
+                )
 
-    def test_read_reference_file_forwards_line_range_params(self) -> None:
+    @pytest.mark.asyncio
+    async def test_read_reference_file_forwards_line_range_params(self) -> None:
         """Test that line-range params are forwarded to read_file_util."""
         import mcp_workspace.server as server_module
         from mcp_workspace.server import read_reference_file
@@ -488,26 +516,32 @@ class TestReferenceProjectMCPTools:
         server_module._reference_projects = test_projects
 
         with patch("mcp_workspace.server.read_file_util") as mock_read_file:
-            mock_read_file.return_value = "5→line five\n6→line six\n"
+            with patch(
+                "mcp_workspace.server.ensure_available",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                mock_read_file.return_value = "5→line five\n6→line six\n"
 
-            result = read_reference_file(
-                "test_proj",
-                "test_file.txt",
-                start_line=5,
-                end_line=10,
-                with_line_numbers=True,
-            )
+                result = await read_reference_file(
+                    "test_proj",
+                    "test_file.txt",
+                    start_line=5,
+                    end_line=10,
+                    with_line_numbers=True,
+                )
 
-            assert result == "5→line five\n6→line six\n"
-            mock_read_file.assert_called_once_with(
-                "test_file.txt",
-                project_dir=ref_path,
-                start_line=5,
-                end_line=10,
-                with_line_numbers=True,
-            )
+                assert result == "5→line five\n6→line six\n"
+                mock_read_file.assert_called_once_with(
+                    "test_file.txt",
+                    project_dir=ref_path,
+                    start_line=5,
+                    end_line=10,
+                    with_line_numbers=True,
+                )
 
-    def test_read_reference_file_project_not_found(self) -> None:
+    @pytest.mark.asyncio
+    async def test_read_reference_file_project_not_found(self) -> None:
         """Test error handling for non-existent reference project."""
         import mcp_workspace.server as server_module
         from mcp_workspace.server import read_reference_file
@@ -519,9 +553,10 @@ class TestReferenceProjectMCPTools:
         with pytest.raises(
             ValueError, match="Reference project 'nonexistent' not found"
         ):
-            read_reference_file("nonexistent", "test_file.txt")
+            await read_reference_file("nonexistent", "test_file.txt")
 
-    def test_read_reference_file_file_not_found(self) -> None:
+    @pytest.mark.asyncio
+    async def test_read_reference_file_file_not_found(self) -> None:
         """Test error handling for non-existent file."""
         import mcp_workspace.server as server_module
         from mcp_workspace.server import read_reference_file
@@ -535,17 +570,23 @@ class TestReferenceProjectMCPTools:
 
         # Mock the read_file_util function to raise FileNotFoundError
         with patch("mcp_workspace.server.read_file_util") as mock_read_file:
-            mock_read_file.side_effect = FileNotFoundError(
-                "File not found: test_file.txt"
-            )
-
-            # Should propagate the FileNotFoundError
-            with pytest.raises(
-                FileNotFoundError, match="File not found: test_file.txt"
+            with patch(
+                "mcp_workspace.server.ensure_available",
+                new_callable=AsyncMock,
+                return_value=None,
             ):
-                read_reference_file("test_proj", "nonexistent_file.txt")
+                mock_read_file.side_effect = FileNotFoundError(
+                    "File not found: test_file.txt"
+                )
 
-    def test_read_reference_file_security(self) -> None:
+                # Should propagate the FileNotFoundError
+                with pytest.raises(
+                    FileNotFoundError, match="File not found: test_file.txt"
+                ):
+                    await read_reference_file("test_proj", "nonexistent_file.txt")
+
+    @pytest.mark.asyncio
+    async def test_read_reference_file_security(self) -> None:
         """Test path traversal prevention (reuse existing security)."""
         import mcp_workspace.server as server_module
         from mcp_workspace.server import read_reference_file
@@ -559,17 +600,23 @@ class TestReferenceProjectMCPTools:
 
         # Mock the read_file_util function to raise security error
         with patch("mcp_workspace.server.read_file_util") as mock_read_file:
-            mock_read_file.side_effect = ValueError(
-                "Security error: Path traversal detected"
-            )
-
-            # Should propagate the security error
-            with pytest.raises(
-                ValueError, match="Security error: Path traversal detected"
+            with patch(
+                "mcp_workspace.server.ensure_available",
+                new_callable=AsyncMock,
+                return_value=None,
             ):
-                read_reference_file("test_proj", "../../../etc/passwd")
+                mock_read_file.side_effect = ValueError(
+                    "Security error: Path traversal detected"
+                )
 
-    def test_read_reference_file_logging(self) -> None:
+                # Should propagate the security error
+                with pytest.raises(
+                    ValueError, match="Security error: Path traversal detected"
+                ):
+                    await read_reference_file("test_proj", "../../../etc/passwd")
+
+    @pytest.mark.asyncio
+    async def test_read_reference_file_logging(self) -> None:
         """Test DEBUG level logging for file operations."""
         import mcp_workspace.server as server_module
         from mcp_workspace.server import read_reference_file
@@ -583,17 +630,93 @@ class TestReferenceProjectMCPTools:
 
         # Mock the read_file_util function
         with patch("mcp_workspace.server.read_file_util") as mock_read_file:
-            with patch("mcp_workspace.server.logger") as mock_logger:
-                mock_read_file.return_value = "test content"
+            with patch(
+                "mcp_workspace.server.ensure_available",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                with patch("mcp_workspace.server.logger") as mock_logger:
+                    mock_read_file.return_value = "test content"
 
-                result = read_reference_file("log_test_proj", "test.txt")
+                    result = await read_reference_file("log_test_proj", "test.txt")
 
-                # Should return expected result
-                assert result == "test content"
+                    # Should return expected result
+                    assert result == "test content"
+                    assert isinstance(result, str)
 
-                # The @log_function_call decorator should handle logging
-                # We can verify the function was called and returned the expected result
-                assert isinstance(result, str)
+    @pytest.mark.asyncio
+    async def test_read_reference_file_calls_ensure_available(self) -> None:
+        """Verify ensure_available is awaited before file access."""
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import read_reference_file
+
+        ref_path = Path("/tmp/test_project").resolve()
+        proj = ReferenceProject(name="test_proj", path=ref_path)
+        server_module._reference_projects = {"test_proj": proj}
+
+        with patch("mcp_workspace.server.read_file_util") as mock_read_file:
+            with patch(
+                "mcp_workspace.server.ensure_available",
+                new_callable=AsyncMock,
+                return_value=None,
+            ) as mock_ensure:
+                mock_read_file.return_value = "content"
+
+                await read_reference_file("test_proj", "file.txt")
+
+                mock_ensure.assert_awaited_once_with(proj)
+
+    @pytest.mark.asyncio
+    async def test_list_reference_directory_calls_ensure_available(self) -> None:
+        """Verify ensure_available is awaited before directory listing."""
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import list_reference_directory
+
+        ref_path = Path("/tmp/test_project").resolve()
+        proj = ReferenceProject(name="test_proj", path=ref_path)
+        server_module._reference_projects = {"test_proj": proj}
+
+        with patch("mcp_workspace.server.list_files_util") as mock_list_files:
+            with patch(
+                "mcp_workspace.server.ensure_available",
+                new_callable=AsyncMock,
+                return_value=None,
+            ) as mock_ensure:
+                mock_list_files.return_value = ["file.py"]
+
+                await list_reference_directory("test_proj")
+
+                mock_ensure.assert_awaited_once_with(proj)
+
+    @pytest.mark.asyncio
+    async def test_ensure_available_failure_propagates(self) -> None:
+        """Mock ensure_available raising → handler raises."""
+        import mcp_workspace.server as server_module
+        from mcp_workspace.server import list_reference_directory, read_reference_file
+
+        ref_path = Path("/tmp/test_project").resolve()
+        proj = ReferenceProject(name="test_proj", path=ref_path)
+        server_module._reference_projects = {"test_proj": proj}
+
+        with patch(
+            "mcp_workspace.server.ensure_available",
+            new_callable=AsyncMock,
+            side_effect=ValueError("Clone previously failed"),
+        ):
+            with pytest.raises(ValueError, match="Clone previously failed"):
+                await read_reference_file("test_proj", "file.txt")
+
+            with pytest.raises(ValueError, match="Clone previously failed"):
+                await list_reference_directory("test_proj")
+
+    def test_log_function_call_removed(self) -> None:
+        """Verify read_reference_file and list_reference_directory are coroutine functions."""
+        import asyncio
+
+        from mcp_workspace.server import list_reference_directory, read_reference_file
+
+        assert asyncio.iscoroutinefunction(read_reference_file)
+        assert asyncio.iscoroutinefunction(list_reference_directory)
 
 
 class TestReferenceProjectServerStorage:

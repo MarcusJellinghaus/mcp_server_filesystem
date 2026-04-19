@@ -16,7 +16,7 @@ from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
-from mcp_workspace.reference_projects import ReferenceProject
+from mcp_workspace.reference_projects import ReferenceProject, ensure_available
 
 # Initialize loggers
 logger = logging.getLogger(__name__)
@@ -124,8 +124,7 @@ def get_reference_projects() -> Dict[str, Any]:
 
 
 @mcp.tool()
-@log_function_call
-def read_reference_file(
+async def read_reference_file(
     reference_name: str,
     file_path: str,
     start_line: Optional[int] = None,
@@ -150,8 +149,10 @@ def read_reference_file(
         logger.error("Reference project '%s' not found", reference_name)
         raise ValueError(f"Reference project '{reference_name}' not found")
 
-    # Get reference project path
-    ref_path = _reference_projects[reference_name].path
+    # Get reference project and ensure it's available (may trigger clone)
+    project = _reference_projects[reference_name]
+    await ensure_available(project)
+    ref_path = project.path
 
     # Log operation at DEBUG level
     logger.debug(
@@ -173,8 +174,7 @@ def read_reference_file(
 
 
 @mcp.tool()
-@log_function_call
-def list_reference_directory(reference_name: str) -> List[str]:
+async def list_reference_directory(reference_name: str) -> List[str]:
     """List files and directories in a reference project directory.
 
     Args:
@@ -188,8 +188,10 @@ def list_reference_directory(reference_name: str) -> List[str]:
         logger.error("Reference project '%s' not found", reference_name)
         raise ValueError(f"Reference project '{reference_name}' not found")
 
-    # Get reference project path
-    ref_path = _reference_projects[reference_name].path
+    # Get reference project and ensure it's available (may trigger clone)
+    project = _reference_projects[reference_name]
+    await ensure_available(project)
+    ref_path = project.path
 
     # Log operation at DEBUG level
     logger.debug(
