@@ -8,8 +8,9 @@
 
 ## WHERE
 
-- **Tests:** `tests/test_reference_projects.py` — update `TestReferenceProjectCLI` and `TestReferenceProjectIntegration`
+- **Tests:** `tests/test_reference_projects.py` — update `TestReferenceProjectCLI`, `TestReferenceProjectIntegration`, `TestReferenceProjectMCPTools`, and `TestReferenceProjectServerStorage`
 - **Implementation:** `src/mcp_workspace/main.py` — rewrite `validate_reference_projects()`
+- **Implementation:** `src/mcp_workspace/server.py` — update type signatures from `Dict[str, Path]` to `Dict[str, ReferenceProject]` and update all path accesses
 
 ## WHAT
 
@@ -30,7 +31,7 @@ def validate_reference_projects(reference_args, project_dir):
         validate "name" and "path" are present
         if url provided AND path exists AND is_git_repository(path):
             detected = get_remote_url(path)
-            if detected: verify_url_match(url, detected, name)  # fatal on mismatch
+            if detected: verify_url_match(url, detected, name)  # raises ValueError on mismatch
         elif url not provided AND path exists AND is_git_repository(path):
             auto_url = get_remote_url(path)  # store if detected, None otherwise
         if path doesn't exist AND url is None:
@@ -52,14 +53,40 @@ parser.add_argument(
 )
 ```
 
+### `server.py` — Type signature updates
+
+These changes must be included in this step to keep tests passing between steps.
+
+```python
+# Module-level variable:
+from mcp_workspace.reference_projects import ReferenceProject
+_reference_projects: Dict[str, ReferenceProject] = {}  # was Dict[str, Path]
+
+# Updated signatures:
+def set_reference_projects(reference_projects: Dict[str, ReferenceProject]) -> None:
+
+def run_server(
+    project_dir: Path, reference_projects: Optional[Dict[str, ReferenceProject]] = None
+) -> None:
+```
+
+Update all path accesses in handlers:
+- `read_reference_file`: `_reference_projects[reference_name]` -> `_reference_projects[reference_name].path`
+- `list_reference_directory`: `_reference_projects[reference_name]` -> `_reference_projects[reference_name].path`
+- `get_reference_projects`: `_reference_projects[name]` path accesses -> `_reference_projects[name].path`
+
+Handlers remain **sync** in this step (they become async in Step 5).
+
 ## HOW
 
-- Import `ReferenceProject` from `mcp_workspace.reference_projects`
+- Import `ReferenceProject` from `mcp_workspace.reference_projects` (in both `main.py` and `server.py`)
 - Import `get_remote_url` from `mcp_workspace.git_operations.remotes`
 - Import `verify_url_match` from `mcp_workspace.reference_projects`
 - KV parsing: `dict(pair.split("=", 1) for pair in arg.split(","))` — split on comma first, then on first `=` per pair
 - Path existence check relaxed when `url` is provided
-- URL mismatch raises `SystemExit` (fatal — server refuses to start)
+- `verify_url_match()` raises `ValueError` on URL mismatch
+- `validate_reference_projects()` lets the `ValueError` propagate (does NOT catch it)
+- `main()` catches `ValueError` from `validate_reference_projects()` and calls `sys.exit(1)` with an error message
 
 ## ALGORITHM (KV parsing)
 
@@ -87,6 +114,8 @@ parser.add_argument(
 
 Update existing test classes in `tests/test_reference_projects.py`:
 
+> **IMPORTANT:** ALL assertions that previously compared values to `Path` instances must now compare to `ReferenceProject` instances. This includes equality checks, dictionary value assertions, and any format string assertions. Do not just update the CLI format strings — update the expected values in assertions too.
+
 ### `TestReferenceProjectCLI` (update existing tests)
 - `test_parse_single_reference_project` — update CLI arg to new KV format
 - `test_parse_multiple_reference_projects` — update to KV format
@@ -99,9 +128,21 @@ Update existing test classes in `tests/test_reference_projects.py`:
 ### New tests in `TestReferenceProjectCLI`
 - `test_url_auto_detected_from_git` — path is git repo → URL auto-populated (mock `get_remote_url`)
 - `test_url_verification_passes` — explicit URL matches detected → no error (mock both)
-- `test_url_mismatch_fatal` — explicit URL differs from detected → `SystemExit` / `ValueError`
+- `test_url_mismatch_fatal` — explicit URL differs from detected → raises `ValueError`
 - `test_path_missing_with_url_allowed` — path doesn't exist but URL set → accepted
 - `test_path_missing_without_url_skipped` — path doesn't exist, no URL → warning + skip
+
+### `TestReferenceProjectMCPTools` (update existing)
+- All tests that set `server_module._reference_projects` → use `ReferenceProject` instances instead of `Path`
+- `test_list_reference_directory_success` — update to `ReferenceProject`
+- `test_read_reference_file_success` — update to `ReferenceProject`
+- `test_read_reference_file_forwards_line_range_params` — update to `ReferenceProject`
+- All error tests remain structurally the same, just with `ReferenceProject` data
+
+### `TestReferenceProjectServerStorage` (update existing)
+- `test_set_reference_projects` — pass `Dict[str, ReferenceProject]`
+- `test_run_server_with_reference_projects` — pass `Dict[str, ReferenceProject]`
+- `test_reference_projects_logging` — pass `Dict[str, ReferenceProject]`
 
 ### `TestReferenceProjectIntegration` (update existing tests)
 - Update all test args to new KV format

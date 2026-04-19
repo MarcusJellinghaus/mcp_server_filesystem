@@ -24,8 +24,8 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [ ] [Step 1](steps/step_1.md) — Git primitives: `get_remote_url()` and `clone_repo()` in `remotes.py`
 - [ ] [Step 2](steps/step_2.md) — `reference_projects.py`: ReferenceProject dataclass, URL normalizer, URL verifier
 - [ ] [Step 3](steps/step_3.md) — `reference_projects.py`: `ensure_available()` with async locking and failure cache
-- [ ] [Step 4](steps/step_4.md) — `main.py`: new KV CLI parser + URL verification at startup
-- [ ] [Step 5](steps/step_5.md) — `server.py`: new data model, async handlers, `ensure_available()` integration
+- [ ] [Step 4](steps/step_4.md) — `main.py` + `server.py`: KV CLI parser, URL verification, data model migration
+- [ ] [Step 5](steps/step_5.md) — `server.py`: async handlers + `ensure_available()` integration
 - [ ] [Step 6](steps/step_6.md) — `server.py`: `search_reference_files()` tool + API response update
 - [ ] [Step 7](steps/step_7.md) — Config files: `.importlinter`, `tach.toml`, `vulture_whitelist.py`, `.mcp.json`
 

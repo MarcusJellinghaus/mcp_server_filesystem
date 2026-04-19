@@ -84,7 +84,7 @@ Two functions added to `git_operations/remotes.py`:
 | [Step 1](step_1.md) | Git primitives: `get_remote_url()` and `clone_repo()` |  |
 | [Step 2](step_2.md) | `reference_projects.py`: dataclass, URL normalizer, URL verifier |  |
 | [Step 3](step_3.md) | `reference_projects.py`: `ensure_available()` with async locking and failure cache |  |
-| [Step 4](step_4.md) | `main.py`: new KV CLI parser + URL verification at startup |  |
-| [Step 5](step_5.md) | `server.py`: new data model, async handlers, `ensure_available()` integration |  |
+| [Step 4](step_4.md) | `main.py` + `server.py`: KV CLI parser, URL verification, data model migration |  |
+| [Step 5](step_5.md) | `server.py`: async handlers + `ensure_available()` integration |  |
 | [Step 6](step_6.md) | `server.py`: `search_reference_files()` MCP tool + API response update |  |
 | [Step 7](step_7.md) | Config files: `.importlinter`, `tach.toml`, `vulture_whitelist.py`, `.mcp.json` |  |

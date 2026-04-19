@@ -46,6 +46,7 @@ Also add `{ path = "mcp_workspace.reference_projects" }` to `mcp_workspace.serve
 ```python
 # Under "# Reference project tools"
 _.search_reference_files
+_.clear_clone_failure_cache
 ```
 
 ### `.mcp.json` — migrate to KV format

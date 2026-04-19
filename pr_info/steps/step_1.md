@@ -74,5 +74,6 @@ Tests in `tests/git_operations/test_remotes.py` — add new test classes:
 - `test_clone_target_exists` — target dir exists → raises ValueError
 - `test_clone_git_error` — mock `Repo.clone_from` raising error → raises ValueError with context
 - `test_clone_empty_url` — empty URL → raises ValueError
+- `test_clone_empty_target_path` — empty/None Path → raises ValueError
 
 Mark clone tests that hit the filesystem with `@pytest.mark.git_integration` if they use real git operations; use mocks for unit tests.
