@@ -47,5 +47,5 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `feat(github): add github_pr_view and github_search MCP tools (#78)`
 
 ## Pull Request
-- [ ] PR review: verify all steps complete, tests pass, no regressions
+- [x] PR review: verify all steps complete, tests pass, no regressions
 - [ ] PR summary prepared
