@@ -7,6 +7,7 @@ import os
 import pytest
 
 from mcp_workspace.workflows.task_tracker import (
+    TASK_TRACKER_TEMPLATE,
     TaskInfo,
     TaskTrackerError,
     TaskTrackerFileNotFoundError,
@@ -18,7 +19,6 @@ from mcp_workspace.workflows.task_tracker import (
     has_incomplete_work,
     is_task_done,
     validate_task_tracker,
-    TASK_TRACKER_TEMPLATE,
 )
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), "test_data")

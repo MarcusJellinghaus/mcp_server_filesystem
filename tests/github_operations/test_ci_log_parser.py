@@ -182,7 +182,9 @@ class TestBuildCiErrorDetails:
                     "conclusion": "failure",
                     "name": "test-job",
                     "run_id": 123,
-                    "steps": [{"name": "Run tests", "number": 3, "conclusion": "failure"}],
+                    "steps": [
+                        {"name": "Run tests", "number": 3, "conclusion": "failure"}
+                    ],
                 }
             ]
         }
@@ -201,7 +203,9 @@ class TestBuildCiErrorDetails:
                     "conclusion": "failure",
                     "name": "test-job",
                     "run_id": 123,
-                    "steps": [{"name": "Run tests", "number": 3, "conclusion": "failure"}],
+                    "steps": [
+                        {"name": "Run tests", "number": 3, "conclusion": "failure"}
+                    ],
                 }
             ]
         }
@@ -252,7 +256,9 @@ class TestBuildCiErrorDetails:
                     "conclusion": "failure",
                     "name": "test-job",
                     "run_id": 123,
-                    "steps": [{"name": "Run tests", "number": 3, "conclusion": "failure"}],
+                    "steps": [
+                        {"name": "Run tests", "number": 3, "conclusion": "failure"}
+                    ],
                 }
             ]
         }

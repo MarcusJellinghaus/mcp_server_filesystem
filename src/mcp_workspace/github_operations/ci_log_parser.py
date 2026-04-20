@@ -45,9 +45,7 @@ def truncate_ci_details(
     tail = lines[-tail_lines:]
     skipped = len(lines) - head_lines - tail_lines
 
-    return "\n".join(
-        head + [f"\n... ({skipped} lines truncated) ...\n"] + tail
-    )
+    return "\n".join(head + [f"\n... ({skipped} lines truncated) ...\n"] + tail)
 
 
 def _strip_timestamps(log_content: str) -> str:
