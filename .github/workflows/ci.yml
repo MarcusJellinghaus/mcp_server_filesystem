@@ -140,7 +140,7 @@ jobs:
       - id: check
         env:
           TOKEN: ${{ secrets.GH_INTEGRATION_TOKEN }}
-          REPO_URL: ${{ secrets.GITHUB_TEST_REPO_URL }}
+          REPO_URL: ${{ secrets.GH_TEST_REPO_URL }}
         run: |
           if [[ -n "$TOKEN" && -n "$REPO_URL" ]]; then
             echo "has-secrets=true" >> $GITHUB_OUTPUT
@@ -153,7 +153,7 @@ jobs:
     name: github-integration-tests
     env:
       GITHUB_TOKEN: ${{ secrets.GH_INTEGRATION_TOKEN }}
-      GITHUB_TEST_REPO_URL: ${{ secrets.GITHUB_TEST_REPO_URL }}
+      GITHUB_TEST_REPO_URL: ${{ secrets.GH_TEST_REPO_URL }}
     steps:
       - uses: actions/checkout@v6
 
