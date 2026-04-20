@@ -1,6 +1,8 @@
-Replace 4 git tool registrations with unified git() dispatcher
+docs: update CLAUDE.md for unified git tool
 
-- Remove git_log, git_diff, git_status, git_merge_base tools from server.py
-- Add single git() tool that delegates to git_impl dispatcher
-- Replace 4 test classes with TestGitTool in test_server.py
-- Update vulture_whitelist.py: replace 4 entries with _.git
+Replace 4 individual git tool references (git_log, git_diff,
+git_status, git_merge_base) with single unified `mcp__workspace__git`
+tool in tool mapping table and git operations section.
+
+Update bash commands list to reflect commands now handled by the
+unified git tool (fetch, ls-tree, show moved to MCP).

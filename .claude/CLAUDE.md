@@ -32,10 +32,7 @@ Use MCP tools for **all** operations. Never use `Read`, `Write`, `Edit`, or `Bas
 | Format code (black+isort) | `mcp__tools-py__run_format_code` |
 | Get library source | `mcp__tools-py__get_library_source` |
 | Refactoring | `mcp__tools-py__move_symbol`, `move_module`, `rename_symbol`, `list_symbols`, `find_references` |
-| Git log | `mcp__workspace__git_log` |
-| Git diff | `mcp__workspace__git_diff` |
-| Git status | `mcp__workspace__git_status` |
-| Git merge-base | `mcp__workspace__git_merge_base` |
+| Git (read-only) | `mcp__workspace__git` |
 
 ## Code quality checks
 
@@ -55,14 +52,14 @@ When debugging test failures, add `"-v", "-s", "--tb=short"` to extra_args.
 
 ## Git operations
 
-**Prefer MCP tools** for read-only git operations: `mcp__workspace__git_log`, `mcp__workspace__git_diff`, `mcp__workspace__git_status`, `mcp__workspace__git_merge_base`. These run without permission prompts.
+**Prefer MCP tools** for read-only git operations: use `mcp__workspace__git` with the `command` parameter (log, diff, status, merge_base, show, branch, fetch, rev_parse, ls_tree, ls_files, ls_remote). These run without permission prompts.
 
-**`git_diff` includes compact diff by default** — detects moved code, collapses unchanged blocks. Use `compact=False` for raw output. For code review, prefer `mcp__workspace__git_diff` over `mcp-coder git-tool compact-diff`.
+**`git(command="diff")` includes compact diff by default** — detects moved code, collapses unchanged blocks. Use `compact=False` for raw output.
 
 **Bash commands** for git operations that have no MCP equivalent:
 
 ```
-git commit / fetch / ls-tree / show
+git commit / git add
 gh issue view / gh pr view / gh run view
 mcp-coder check branch-status
 mcp-coder check file-size --max-lines 750
