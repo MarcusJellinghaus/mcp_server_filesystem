@@ -1,8 +1,0 @@
-Fix black formatting in read_operations and tests
-
-Run black-compliant formatting on two files that were committed
-without running the formatter:
-- Expand packed function args to one-per-line in git dispatcher
-  handler lambdas (line length violations and trailing comma style)
-- Collapse method signatures that fit within 88-char line limit
-  in test_read_operations.py
