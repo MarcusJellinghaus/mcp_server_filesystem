@@ -1,11 +1,8 @@
-feat: add argument validation allowlists for 7 new git commands
+feat: add _run_simple_command helper, git_show, and git_branch
 
-Add security allowlists for fetch, show, branch, rev-parse, ls-tree,
-ls-files, and ls-remote commands in arg_validation.py. Register all 7
-in the _ALLOWLISTS dict.
-
-Add validate_branch_has_read_flag() to prevent bare `git branch <name>`
-from creating branches — requires a read-only flag to proceed.
-
-Tests cover all new allowlists, cross-command isolation, and the
-branch read-flag validator.
+- Add _run_simple_command() generic helper for validate→execute→truncate
+  pattern (used by fetch, rev_parse, ls_tree, ls_files, ls_remote)
+- Add git_show() with compact diff rendering and colon pattern detection
+- Add git_branch() with read-only flag enforcement
+- Add comprehensive tests: 6 unit tests for _run_simple_command,
+  5 integration tests for git_show, 6 integration tests for git_branch

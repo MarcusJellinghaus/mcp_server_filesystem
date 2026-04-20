@@ -11,9 +11,12 @@ from git import Repo
 from git.exc import GitCommandError
 
 from mcp_workspace.git_operations.read_operations import (
+    _run_simple_command,
+    git_branch,
     git_diff,
     git_log,
     git_merge_base,
+    git_show,
     git_status,
 )
 
@@ -326,3 +329,217 @@ class TestGitMergeBase:
         _, project_dir = git_repo_with_commit
         with pytest.raises(ValueError, match="not in the security allowlist"):
             git_merge_base(project_dir, args=["--exec=evil"])
+
+
+class TestRunSimpleCommand:
+    """Unit tests for _run_simple_command() with mocked repo."""
+
+    def _make_mock_context(self) -> tuple[MagicMock, MagicMock]:
+        mock_repo = MagicMock()
+        mock_ctx = MagicMock()
+        mock_ctx.return_value.__enter__ = MagicMock(return_value=mock_repo)
+        mock_ctx.return_value.__exit__ = MagicMock(return_value=False)
+        return mock_ctx, mock_repo
+
+    @patch("mcp_workspace.git_operations.read_operations.validate_args")
+    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    def test_validates_args(
+        self, mock_ctx: MagicMock, mock_validate: MagicMock, tmp_path: Path
+    ) -> None:
+        mock_ctx_obj, mock_repo = self._make_mock_context()
+        mock_ctx.side_effect = mock_ctx_obj.side_effect
+        mock_ctx.return_value = mock_ctx_obj.return_value
+        mock_repo.git.fetch.return_value = "ok"
+
+        _run_simple_command(
+            git_method="fetch",
+            project_dir=tmp_path,
+            command="fetch",
+            args=["--all"],
+            pathspec=None,
+            max_lines=100,
+        )
+        mock_validate.assert_called_once_with("fetch", ["--all"])
+
+    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    def test_appends_pathspec(self, mock_ctx: MagicMock, tmp_path: Path) -> None:
+        mock_ctx_obj, mock_repo = self._make_mock_context()
+        mock_ctx.return_value = mock_ctx_obj.return_value
+        mock_repo.git.ls_files.return_value = "file.txt"
+
+        _run_simple_command(
+            git_method="ls_files",
+            project_dir=tmp_path,
+            command="ls_files",
+            args=["--cached"],
+            pathspec=["src/"],
+            max_lines=100,
+        )
+        call_args = mock_repo.git.ls_files.call_args[0]
+        assert "--" in call_args
+        assert "src/" in call_args
+
+    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    def test_truncates_output(self, mock_ctx: MagicMock, tmp_path: Path) -> None:
+        mock_ctx_obj, mock_repo = self._make_mock_context()
+        mock_ctx.return_value = mock_ctx_obj.return_value
+        mock_repo.git.ls_files.return_value = "\n".join(f"file_{i}" for i in range(200))
+
+        result = _run_simple_command(
+            git_method="ls_files",
+            project_dir=tmp_path,
+            command="ls_files",
+            args=["--cached"],
+            pathspec=None,
+            max_lines=5,
+        )
+        assert "[truncated" in result
+
+    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    def test_no_output_message(self, mock_ctx: MagicMock, tmp_path: Path) -> None:
+        mock_ctx_obj, mock_repo = self._make_mock_context()
+        mock_ctx.return_value = mock_ctx_obj.return_value
+        mock_repo.git.fetch.return_value = ""
+
+        result = _run_simple_command(
+            git_method="fetch",
+            project_dir=tmp_path,
+            command="fetch",
+            args=["--all"],
+            pathspec=None,
+            max_lines=100,
+            no_output_message="Nothing fetched.",
+        )
+        assert result == "Nothing fetched."
+
+    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    def test_includes_safety_flags(self, mock_ctx: MagicMock, tmp_path: Path) -> None:
+        mock_ctx_obj, mock_repo = self._make_mock_context()
+        mock_ctx.return_value = mock_ctx_obj.return_value
+        mock_repo.git.ls_tree.return_value = "blob"
+
+        _run_simple_command(
+            git_method="ls_tree",
+            project_dir=tmp_path,
+            command="ls_tree",
+            args=["HEAD"],
+            pathspec=None,
+            max_lines=100,
+            use_safety_flags=True,
+        )
+        call_args = mock_repo.git.ls_tree.call_args[0]
+        assert "--no-ext-diff" in call_args
+        assert "--no-textconv" in call_args
+
+    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    def test_no_safety_flags(self, mock_ctx: MagicMock, tmp_path: Path) -> None:
+        mock_ctx_obj, mock_repo = self._make_mock_context()
+        mock_ctx.return_value = mock_ctx_obj.return_value
+        mock_repo.git.rev_parse.return_value = "abc123"
+
+        _run_simple_command(
+            git_method="rev_parse",
+            project_dir=tmp_path,
+            command="rev_parse",
+            args=["HEAD"],
+            pathspec=None,
+            max_lines=100,
+            use_safety_flags=False,
+        )
+        call_args = mock_repo.git.rev_parse.call_args[0]
+        assert "--no-ext-diff" not in call_args
+        assert "--no-textconv" not in call_args
+
+
+@pytest.mark.git_integration
+class TestGitShow:
+    """Tests for git_show()."""
+
+    def test_show_head_commit(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD"])
+        # Compact rendering may strip commit message; check for diff content
+        assert "README.md" in result
+
+    def test_show_compact_default(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        # compact=True is default — should apply compact rendering
+        result = git_show(project_dir, args=["HEAD"])
+        assert "diff --git" in result
+
+    def test_show_colon_skips_compact(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD:README.md"])
+        # Should return file content directly, not compact diff
+        assert "# Test Project" in result
+
+    def test_show_search_filters(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        repo, project_dir = git_repo_with_commit
+        (project_dir / "marker.txt").write_text("SHOW_MARKER_TOKEN")
+        repo.index.add(["marker.txt"])
+        repo.index.commit("Commit with SHOW_MARKER_TOKEN")
+
+        result = git_show(project_dir, args=["HEAD"], search="SHOW_MARKER_TOKEN")
+        assert "SHOW_MARKER_TOKEN" in result
+
+    def test_show_rejected_flag_raises(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        with pytest.raises(ValueError, match="not in the security allowlist"):
+            git_show(project_dir, args=["--exec=evil"])
+
+
+@pytest.mark.git_integration
+class TestGitBranch:
+    """Tests for git_branch()."""
+
+    def test_branch_list(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_branch(project_dir, args=["--list"])
+        assert "master" in result or "main" in result or result.strip()
+
+    def test_branch_all(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_branch(project_dir, args=["-a"])
+        assert result.strip()
+
+    def test_branch_show_current(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_branch(project_dir, args=["--show-current"])
+        assert result.strip()
+
+    def test_branch_bare_rejected(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        with pytest.raises(ValueError, match="requires a read-only flag"):
+            git_branch(project_dir, args=[])
+
+    def test_branch_no_read_flag_rejected(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        with pytest.raises(ValueError, match="requires a read-only flag"):
+            git_branch(project_dir, args=["new-branch-name"])
+
+    def test_branch_rejected_flag_raises(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        with pytest.raises(ValueError, match="not in the security allowlist"):
+            git_branch(project_dir, args=["--delete", "some-branch"])
