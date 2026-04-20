@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Split matrix entry and add GitHub integration job
-- [ ] Implementation: rename matrix entry to `git-integration-tests`, add standalone `github-integration-tests` job with secret guards
-- [ ] Quality checks: verify YAML syntax and structure (YAML-only change — no pylint/pytest/mypy needed)
-- [ ] Commit message prepared
+- [x] Implementation: rename matrix entry to `git-integration-tests`, add standalone `github-integration-tests` job with secret guards
+- [x] Quality checks: verify YAML syntax and structure (YAML-only change — no pylint/pytest/mypy needed)
+- [x] Commit message prepared
 
 ## Pull Request
 - [ ] PR review
