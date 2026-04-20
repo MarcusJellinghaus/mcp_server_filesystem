@@ -11,6 +11,8 @@ from mcp_workspace.github_operations.issues.types import CommentData, IssueData
 from mcp_workspace.server import (
     github_issue_list,
     github_issue_view,
+    github_pr_view,
+    github_search,
     set_project_dir,
 )
 
@@ -208,3 +210,348 @@ def test_github_issue_list_error(mock_manager_cls: MagicMock) -> None:
     result = github_issue_list()
 
     assert result == "Error: API down"
+
+
+# =============================================================================
+# github_pr_view tests
+# =============================================================================
+
+
+def _make_pr_data(
+    number: int = 10,
+    title: str = "Fix bug",
+    body: str = "PR body text",
+    state: str = "open",
+    head_branch: str = "feature",
+    base_branch: str = "main",
+    draft: bool = False,
+    merged: bool = False,
+) -> dict[str, object]:
+    """Create a PR data dict for testing."""
+    return {
+        "number": number,
+        "title": title,
+        "body": body,
+        "state": state,
+        "head_branch": head_branch,
+        "base_branch": base_branch,
+        "draft": draft,
+        "merged": merged,
+    }
+
+
+def _mock_pull(
+    number: int = 10,
+    title: str = "Fix bug",
+    body: str = "PR body text",
+    state: str = "open",
+    draft: bool = False,
+    merged: bool = False,
+    head_branch: str = "feature",
+    base_branch: str = "main",
+) -> MagicMock:
+    """Create a mock PR object resembling PyGithub PullRequest."""
+    pr = MagicMock()
+    pr.number = number
+    pr.title = title
+    pr.body = body
+    pr.state = state
+    pr.draft = draft
+    pr.merged = merged
+    pr.head.ref = head_branch
+    pr.base.ref = base_branch
+    pr.get_reviews.return_value = []
+    pr.get_review_comments.return_value = []
+    return pr
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_pr_view_basic(mock_manager_cls: MagicMock) -> None:
+    """Returns formatted text with title, state, branches."""
+    mock_repo = MagicMock()
+    mock_pr = _mock_pull()
+    mock_repo.get_pull.return_value = mock_pr
+
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = mock_repo
+
+    result = github_pr_view(number=10)
+
+    assert "#10" in result
+    assert "Fix bug" in result
+    assert "open" in result
+    assert "feature" in result
+    assert "main" in result
+    mock_repo.get_pull.assert_called_once_with(10)
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_pr_view_with_comments(mock_manager_cls: MagicMock) -> None:
+    """Reviews + conversation + inline comments rendered."""
+    mock_repo = MagicMock()
+    mock_pr = _mock_pull()
+
+    review = MagicMock()
+    review.user.login = "reviewer1"
+    review.state = "APPROVED"
+    review.body = "LGTM"
+    mock_pr.get_reviews.return_value = [review]
+
+    conv_comment = MagicMock()
+    conv_comment.id = 100
+    conv_comment.body = "Nice change"
+    conv_comment.user.login = "commenter1"
+    conv_comment.created_at.isoformat.return_value = "2024-01-05T00:00:00"
+    conv_comment.updated_at = None
+    mock_repo.get_issue.return_value.get_comments.return_value = [conv_comment]
+
+    inline_comment = MagicMock()
+    inline_comment.path = "src/main.py"
+    inline_comment.line = 42
+    inline_comment.user.login = "reviewer1"
+    inline_comment.body = "nit: rename"
+    mock_pr.get_review_comments.return_value = [inline_comment]
+
+    mock_repo.get_pull.return_value = mock_pr
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = mock_repo
+
+    result = github_pr_view(number=10, include_comments=True)
+
+    assert "LGTM" in result
+    assert "reviewer1" in result
+    assert "Nice change" in result
+    assert "src/main.py" in result
+    assert "nit: rename" in result
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_pr_view_without_comments(mock_manager_cls: MagicMock) -> None:
+    """No comment sections when include_comments=False."""
+    mock_repo = MagicMock()
+    mock_pr = _mock_pull()
+    mock_repo.get_pull.return_value = mock_pr
+
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = mock_repo
+
+    result = github_pr_view(number=10, include_comments=False)
+
+    assert "Fix bug" in result
+    assert "Reviews" not in result
+    assert "Inline" not in result
+    mock_pr.get_reviews.assert_not_called()
+    mock_pr.get_review_comments.assert_not_called()
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_pr_view_not_found(mock_manager_cls: MagicMock) -> None:
+    """Returns error text on 404."""
+    from github.GithubException import UnknownObjectException
+
+    mock_repo = MagicMock()
+    mock_repo.get_pull.side_effect = UnknownObjectException(404, {"message": "Not Found"}, {})
+
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = mock_repo
+
+    result = github_pr_view(number=999)
+
+    assert "Error" in result
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_pr_view_error(mock_manager_cls: MagicMock) -> None:
+    """Returns 'Error: ...' on exception."""
+    mock_manager_cls.side_effect = RuntimeError("connection failed")
+
+    result = github_pr_view(number=10)
+
+    assert result == "Error: connection failed"
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_pr_view_no_repo(mock_manager_cls: MagicMock) -> None:
+    """Returns error when repository not accessible."""
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = None
+
+    result = github_pr_view(number=10)
+
+    assert "Error" in result
+    assert "repository" in result.lower()
+
+
+# =============================================================================
+# github_search tests
+# =============================================================================
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_search_basic(mock_manager_cls: MagicMock) -> None:
+    """Returns compact summary lines with auto-scoped repo."""
+    mock_repo = MagicMock()
+    mock_repo.full_name = "owner/repo"
+
+    item1 = MagicMock()
+    item1.number = 1
+    item1.title = "Bug fix"
+    item1.state = "open"
+    item1.labels = []
+    item1.pull_request = None
+
+    item2 = MagicMock()
+    item2.number = 2
+    item2.title = "Feature PR"
+    item2.state = "open"
+    item2.labels = []
+    item2.pull_request = MagicMock()  # truthy = is a PR
+
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = mock_repo
+    mock_mgr._github_client.search_issues.return_value = [item1, item2]
+
+    result = github_search(query="fix")
+
+    assert "#1" in result
+    assert "Bug fix" in result
+    assert "#2" in result
+    assert "Feature PR" in result
+    mock_mgr._github_client.search_issues.assert_called_once()
+    call_args = mock_mgr._github_client.search_issues.call_args
+    assert "repo:owner/repo" in call_args[1]["query"]
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_search_empty(mock_manager_cls: MagicMock) -> None:
+    """Returns 'No results found.' for empty results."""
+    mock_repo = MagicMock()
+    mock_repo.full_name = "owner/repo"
+
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = mock_repo
+    mock_mgr._github_client.search_issues.return_value = []
+
+    result = github_search(query="nonexistent")
+
+    assert result == "No results found."
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_search_with_qualifiers(mock_manager_cls: MagicMock) -> None:
+    """Verifies state/labels/assignee/sort/order passed through."""
+    mock_repo = MagicMock()
+    mock_repo.full_name = "owner/repo"
+
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = mock_repo
+    mock_mgr._github_client.search_issues.return_value = []
+
+    github_search(
+        query="bug",
+        state="open",
+        labels=["bug", "urgent"],
+        assignee="alice",
+        sort="created",
+        order="desc",
+    )
+
+    call_kwargs = mock_mgr._github_client.search_issues.call_args[1]
+    assert "repo:owner/repo" in call_kwargs["query"]
+    assert call_kwargs.get("state") == "open"
+    assert call_kwargs.get("sort") == "created"
+    assert call_kwargs.get("order") == "desc"
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_search_issue_vs_pr_indicator(mock_manager_cls: MagicMock) -> None:
+    """Correct Issue/PR indicator in results."""
+    mock_repo = MagicMock()
+    mock_repo.full_name = "owner/repo"
+
+    issue_item = MagicMock()
+    issue_item.number = 1
+    issue_item.title = "A bug"
+    issue_item.state = "open"
+    issue_item.labels = []
+    issue_item.pull_request = None
+
+    pr_item = MagicMock()
+    pr_item.number = 2
+    pr_item.title = "A PR"
+    pr_item.state = "open"
+    pr_item.labels = []
+    pr_item.pull_request = MagicMock()
+
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = mock_repo
+    mock_mgr._github_client.search_issues.return_value = [issue_item, pr_item]
+
+    result = github_search(query="test")
+
+    lines = result.strip().split("\n")
+    assert "[Issue]" in lines[0]
+    assert "[PR]" in lines[1]
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_search_max_results_cap(mock_manager_cls: MagicMock) -> None:
+    """Results capped at max_results."""
+    mock_repo = MagicMock()
+    mock_repo.full_name = "owner/repo"
+
+    items = []
+    for i in range(10):
+        item = MagicMock()
+        item.number = i + 1
+        item.title = f"Item {i + 1}"
+        item.state = "open"
+        item.labels = []
+        item.pull_request = None
+        items.append(item)
+
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = mock_repo
+    mock_mgr._github_client.search_issues.return_value = items
+
+    result = github_search(query="test", max_results=3)
+
+    assert "#1" in result
+    assert "#3" in result
+    # Item 4+ should not appear in the output lines
+    # (only 3 items are passed to the formatter)
+    lines = [line for line in result.strip().split("\n") if line.startswith("#")]
+    assert len(lines) == 3
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_search_error(mock_manager_cls: MagicMock) -> None:
+    """Returns 'Error: ...' on exception."""
+    mock_manager_cls.side_effect = RuntimeError("API down")
+
+    result = github_search(query="test")
+
+    assert result == "Error: API down"
+
+
+@patch("mcp_workspace.server.IssueManager")
+def test_github_search_no_repo(mock_manager_cls: MagicMock) -> None:
+    """Returns error when repository not accessible."""
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = None
+
+    result = github_search(query="test")
+
+    assert "Error" in result
+    assert "repository" in result.lower()

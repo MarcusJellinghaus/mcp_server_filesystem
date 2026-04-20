@@ -1,13 +1,1 @@
-feat(github): add github_issue_view and github_issue_list MCP tools (#78)
-
-Register two read-only GitHub MCP tools in server.py:
-
-- github_issue_view: View issue detail with optional comments
-- github_issue_list: List issues with state/labels/assignee/since filters
-
-Both tools use IssueManager for data fetching and formatters for output.
-Errors are caught and returned as "Error: ..." strings.
-
-Also updates:
-- tach.toml: allow server -> github_operations dependency
-- vulture_whitelist.py: whitelist new tool names
+feat(github): add github_pr_view and github_search MCP tools (#78)
