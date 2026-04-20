@@ -80,7 +80,7 @@ def github_search(
 
 ### `github_search`
 - Create `IssueManager(project_dir=_project_dir)` to get authenticated client
-- Derive `repo:owner/name` from git remote via `get_github_repository_url()` + `parse_github_url()`
+- Use `manager._get_repository().full_name` directly for the `repo:owner/name` qualifier
 - Build qualifiers dict from named params (`state`, `labels` → comma-joined, `assignee`, `sort`, `order`)
 - Call `manager._github_client.search_issues(query=f"repo:{full_name} {query}", **qualifiers)`
 - Iterate results up to `max_results`, convert to dicts
@@ -109,9 +109,9 @@ except Exception as e: return f"Error: {e}"
 ```
 try:
     manager = IssueManager(project_dir=_project_dir)
-    github_url = get_github_repository_url(_project_dir)
-    owner, repo_name = parse_github_url(github_url)
-    full_query = f"repo:{owner}/{repo_name} {query}"
+    repo = manager._get_repository()
+    if not repo: return "Error: Could not access repository"
+    full_query = f"repo:{repo.full_name} {query}"
     qualifiers = {}  # build from state, labels, assignee, sort, order
     results = manager._github_client.search_issues(full_query, **qualifiers)
     items = []

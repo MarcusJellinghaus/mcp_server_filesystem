@@ -76,6 +76,8 @@ def github_issue_list(
 try:
     manager = IssueManager(project_dir=_project_dir)
     issue = manager.get_issue(number)
+    # Note: manager.get_issue() is decorated with _handle_github_errors which
+    # returns empty IssueData (number=0) on 404 instead of raising an exception.
     if not issue["number"]: return f"Error: Issue #{number} not found"
     comments = manager.get_comments(number) if include_comments else []
     return format_issue_view(issue, comments, max_lines)

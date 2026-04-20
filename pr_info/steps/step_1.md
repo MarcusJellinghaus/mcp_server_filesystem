@@ -10,7 +10,7 @@
 ## WHERE
 
 - **Modify**: `src/mcp_workspace/github_operations/issues/manager.py`
-- **Modify**: `tests/github_operations/test_issue_manager_core.py` (add tests)
+- **Modify**: `tests/github_operations/issues/test_list_issues.py` (add tests)
 
 ## WHAT
 
@@ -43,7 +43,7 @@ def list_issues(
 
 - Parameters forwarded to PyGithub's `repo.get_issues()` via `kwargs` dict built conditionally
 - `max_results` applied as early-break in the iteration loop (count items added, break when limit reached)
-- `labels` passed directly (PyGithub accepts `List[str]`)
+- `labels` passed directly — PyGithub's `repo.get_issues()` accepts `List[str]` in recent versions (verify in tests; if it requires `Label` objects, convert via `repo.get_label(name)`)
 - `assignee` passed directly (PyGithub accepts username, `"none"`, or `"*"`)
 
 ## ALGORITHM
@@ -67,7 +67,7 @@ for issue in issues_iterator:
 
 ## TESTS
 
-Add to `tests/github_operations/test_issue_manager_core.py` (or new class within):
+Add to `tests/github_operations/issues/test_list_issues.py`:
 
 1. `test_list_issues_with_labels` — Verify `labels` param forwarded to `repo.get_issues()`
 2. `test_list_issues_with_assignee` — Verify `assignee` param forwarded to `repo.get_issues()`
