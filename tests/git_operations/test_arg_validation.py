@@ -2,7 +2,10 @@
 
 import pytest
 
-from mcp_workspace.git_operations.arg_validation import validate_args
+from mcp_workspace.git_operations.arg_validation import (
+    validate_args,
+    validate_branch_has_read_flag,
+)
 
 
 class TestValidateArgsLogAllowed:
@@ -115,6 +118,109 @@ class TestValidateArgsRejected:
             validate_args("log", ["--unknown"])
 
 
+class TestValidateArgsFetchAllowed:
+    """Allowed fetch flags pass through silently."""
+
+    def test_prune(self) -> None:
+        validate_args("fetch", ["--prune"])
+
+    def test_tags(self) -> None:
+        validate_args("fetch", ["--tags"])
+
+    def test_verbose(self) -> None:
+        validate_args("fetch", ["--verbose"])
+
+    def test_depth_with_value(self) -> None:
+        validate_args("fetch", ["--depth=1"])
+
+
+class TestValidateArgsShowAllowed:
+    """Allowed show flags pass through silently."""
+
+    def test_format(self) -> None:
+        validate_args("show", ["--format=short"])
+
+    def test_stat(self) -> None:
+        validate_args("show", ["--stat"])
+
+    def test_oneline(self) -> None:
+        validate_args("show", ["--oneline"])
+
+    def test_patch(self) -> None:
+        validate_args("show", ["-p"])
+
+
+class TestValidateArgsBranchAllowed:
+    """Allowed branch flags pass through silently."""
+
+    def test_list(self) -> None:
+        validate_args("branch", ["--list"])
+
+    def test_all(self) -> None:
+        validate_args("branch", ["-a"])
+
+    def test_remote(self) -> None:
+        validate_args("branch", ["-r"])
+
+    def test_contains(self) -> None:
+        validate_args("branch", ["--contains"])
+
+    def test_show_current(self) -> None:
+        validate_args("branch", ["--show-current"])
+
+
+class TestValidateArgsRevParseAllowed:
+    """Allowed rev-parse flags pass through silently."""
+
+    def test_abbrev_ref(self) -> None:
+        validate_args("rev_parse", ["--abbrev-ref"])
+
+    def test_show_toplevel(self) -> None:
+        validate_args("rev_parse", ["--show-toplevel"])
+
+    def test_verify(self) -> None:
+        validate_args("rev_parse", ["--verify"])
+
+
+class TestValidateArgsLsTreeAllowed:
+    """Allowed ls-tree flags pass through silently."""
+
+    def test_recursive(self) -> None:
+        validate_args("ls_tree", ["-r"])
+
+    def test_name_only(self) -> None:
+        validate_args("ls_tree", ["--name-only"])
+
+    def test_long(self) -> None:
+        validate_args("ls_tree", ["--long"])
+
+
+class TestValidateArgsLsFilesAllowed:
+    """Allowed ls-files flags pass through silently."""
+
+    def test_cached(self) -> None:
+        validate_args("ls_files", ["--cached"])
+
+    def test_others(self) -> None:
+        validate_args("ls_files", ["--others"])
+
+    def test_exclude_standard(self) -> None:
+        validate_args("ls_files", ["--exclude-standard"])
+
+
+class TestValidateArgsLsRemoteAllowed:
+    """Allowed ls-remote flags pass through silently."""
+
+    def test_heads(self) -> None:
+        validate_args("ls_remote", ["--heads"])
+
+    def test_tags(self) -> None:
+        validate_args("ls_remote", ["--tags"])
+
+    def test_get_url(self) -> None:
+        validate_args("ls_remote", ["--get-url"])
+
+
 class TestValidateArgsCrossCommandIsolation:
     """Flags valid for one command must not work in another."""
 
@@ -129,6 +235,45 @@ class TestValidateArgsCrossCommandIsolation:
     def test_porcelain_rejected_in_merge_base(self) -> None:
         with pytest.raises(ValueError, match="--porcelain"):
             validate_args("merge_base", ["--porcelain"])
+
+    def test_prune_rejected_in_show(self) -> None:
+        with pytest.raises(ValueError, match="--prune"):
+            validate_args("show", ["--prune"])
+
+    def test_cached_rejected_in_branch(self) -> None:
+        with pytest.raises(ValueError, match="--cached"):
+            validate_args("branch", ["--cached"])
+
+    def test_heads_rejected_in_ls_files(self) -> None:
+        with pytest.raises(ValueError, match="--heads"):
+            validate_args("ls_files", ["--heads"])
+
+
+class TestValidateBranchHasReadFlag:
+    """validate_branch_has_read_flag rejects bare args, accepts read-only flags."""
+
+    def test_bare_args_rejected(self) -> None:
+        with pytest.raises(ValueError, match="read-only flag"):
+            validate_branch_has_read_flag(["new-branch"])
+
+    def test_empty_args_rejected(self) -> None:
+        with pytest.raises(ValueError, match="read-only flag"):
+            validate_branch_has_read_flag([])
+
+    def test_list_passes(self) -> None:
+        validate_branch_has_read_flag(["--list"])
+
+    def test_all_passes(self) -> None:
+        validate_branch_has_read_flag(["-a"])
+
+    def test_show_current_passes(self) -> None:
+        validate_branch_has_read_flag(["--show-current"])
+
+    def test_verbose_passes(self) -> None:
+        validate_branch_has_read_flag(["-v"])
+
+    def test_sort_with_value_passes(self) -> None:
+        validate_branch_has_read_flag(["--sort=committerdate"])
 
 
 class TestValidateArgsUnknownCommand:

@@ -10,10 +10,7 @@ from mcp_workspace.server import (
     append_file,
     delete_this_file,
     edit_file,
-    git_diff,
-    git_log,
-    git_merge_base,
-    git_status,
+    git,
     list_directory,
     move_file,
     read_file,
@@ -445,130 +442,42 @@ def test_read_file_forwards_line_range_params(
 # --- Git read-only operation tool tests ---
 
 
-class TestGitLogTool:
-    """Tests for the git_log server wrapper."""
+class TestGitTool:
+    """Tests for the unified git server wrapper."""
 
-    @patch("mcp_workspace.server.git_log_impl")
+    @patch("mcp_workspace.server.git_impl")
     def test_delegates_to_impl(self, mock_impl: MagicMock, project_dir: Path) -> None:
-        """Verify git_log delegates to the implementation with correct args."""
-        mock_impl.return_value = "commit abc123\nAuthor: Test"
-        result = git_log(
-            args=["--oneline", "-n", "5"],
+        """Verify git() delegates all params to git_impl."""
+        mock_impl.return_value = "output"
+        result = git(
+            command="log",
+            args=["--oneline"],
             pathspec=["src/"],
             search="fix",
-            max_lines=25,
-        )
-        assert result == "commit abc123\nAuthor: Test"
-        mock_impl.assert_called_once_with(
-            project_dir=project_dir,
-            args=["--oneline", "-n", "5"],
-            pathspec=["src/"],
-            search="fix",
-            max_lines=25,
-        )
-
-    def test_raises_without_project_dir(self) -> None:
-        """git_log raises ValueError when _project_dir is None."""
-        import mcp_workspace.server as srv
-
-        original = srv._project_dir
-        try:
-            srv._project_dir = None
-            with pytest.raises(ValueError, match="Project directory has not been set"):
-                git_log()
-        finally:
-            srv._project_dir = original
-
-
-class TestGitDiffTool:
-    """Tests for the git_diff server wrapper."""
-
-    @patch("mcp_workspace.server.git_diff_impl")
-    def test_delegates_to_impl(self, mock_impl: MagicMock, project_dir: Path) -> None:
-        """Verify git_diff delegates to the implementation with correct args."""
-        mock_impl.return_value = "diff --git a/file.py b/file.py"
-        result = git_diff(
-            args=["--staged"],
-            pathspec=["file.py"],
-            search="def",
             context=5,
-            max_lines=50,
+            max_lines=25,
             compact=False,
         )
-        assert result == "diff --git a/file.py b/file.py"
+        assert result == "output"
         mock_impl.assert_called_once_with(
+            command="log",
             project_dir=project_dir,
-            args=["--staged"],
-            pathspec=["file.py"],
-            search="def",
+            args=["--oneline"],
+            pathspec=["src/"],
+            search="fix",
             context=5,
-            max_lines=50,
+            max_lines=25,
             compact=False,
         )
 
     def test_raises_without_project_dir(self) -> None:
-        """git_diff raises ValueError when _project_dir is None."""
+        """git() raises ValueError when _project_dir is None."""
         import mcp_workspace.server as srv
 
         original = srv._project_dir
         try:
             srv._project_dir = None
             with pytest.raises(ValueError, match="Project directory has not been set"):
-                git_diff()
-        finally:
-            srv._project_dir = original
-
-
-class TestGitStatusTool:
-    """Tests for the git_status server wrapper."""
-
-    @patch("mcp_workspace.server.git_status_impl")
-    def test_delegates_to_impl(self, mock_impl: MagicMock, project_dir: Path) -> None:
-        """Verify git_status delegates to the implementation with correct args."""
-        mock_impl.return_value = "On branch main\nnothing to commit"
-        result = git_status(args=["--short"], max_lines=100)
-        assert result == "On branch main\nnothing to commit"
-        mock_impl.assert_called_once_with(
-            project_dir=project_dir,
-            args=["--short"],
-            max_lines=100,
-        )
-
-    def test_raises_without_project_dir(self) -> None:
-        """git_status raises ValueError when _project_dir is None."""
-        import mcp_workspace.server as srv
-
-        original = srv._project_dir
-        try:
-            srv._project_dir = None
-            with pytest.raises(ValueError, match="Project directory has not been set"):
-                git_status()
-        finally:
-            srv._project_dir = original
-
-
-class TestGitMergeBaseTool:
-    """Tests for the git_merge_base server wrapper."""
-
-    @patch("mcp_workspace.server.git_merge_base_impl")
-    def test_delegates_to_impl(self, mock_impl: MagicMock, project_dir: Path) -> None:
-        """Verify git_merge_base delegates to the implementation with correct args."""
-        mock_impl.return_value = "abc123def456"
-        result = git_merge_base(args=["main", "feature"])
-        assert result == "abc123def456"
-        mock_impl.assert_called_once_with(
-            project_dir=project_dir,
-            args=["main", "feature"],
-        )
-
-    def test_raises_without_project_dir(self) -> None:
-        """git_merge_base raises ValueError when _project_dir is None."""
-        import mcp_workspace.server as srv
-
-        original = srv._project_dir
-        try:
-            srv._project_dir = None
-            with pytest.raises(ValueError, match="Project directory has not been set"):
-                git_merge_base()
+                git(command="log")
         finally:
             srv._project_dir = original
