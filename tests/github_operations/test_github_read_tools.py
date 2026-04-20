@@ -229,29 +229,6 @@ def test_github_issue_list_error(mock_manager_cls: MagicMock) -> None:
 # =============================================================================
 
 
-def _make_pr_data(
-    number: int = 10,
-    title: str = "Fix bug",
-    body: str = "PR body text",
-    state: str = "open",
-    head_branch: str = "feature",
-    base_branch: str = "main",
-    draft: bool = False,
-    merged: bool = False,
-) -> dict[str, object]:
-    """Create a PR data dict for testing."""
-    return {
-        "number": number,
-        "title": title,
-        "body": body,
-        "state": state,
-        "head_branch": head_branch,
-        "base_branch": base_branch,
-        "draft": draft,
-        "merged": merged,
-    }
-
-
 def _mock_pull(
     number: int = 10,
     title: str = "Fix bug",
