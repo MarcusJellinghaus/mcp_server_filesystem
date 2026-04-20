@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Add tests and tighten content type hint from Any to str
-- [ ] Implementation: add rejection tests in `test_server.py` + change `content: Any` → `content: str` in `server.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: add rejection tests in `test_server.py` + change `content: Any` → `content: str` in `server.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ## Pull Request
 - [ ] PR review and summary

@@ -1,7 +1,7 @@
 """Tests for the MCP server API endpoints."""
 
 from pathlib import Path
-from typing import Generator
+from typing import Callable, Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -437,6 +437,21 @@ def test_read_file_forwards_line_range_params(
         end_line=10,
         with_line_numbers=True,
     )
+
+
+# --- Content type rejection tests ---
+
+
+@pytest.mark.parametrize("func", [save_file, append_file])
+def test_rejects_non_string_content(func: Callable[..., bool], project_dir: Path) -> None:
+    """save_file and append_file reject non-string content with ValueError."""
+    # Create a file for append_file to target
+    target = project_dir / TEST_DIR / "type_test.txt"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("existing")
+
+    with pytest.raises(ValueError, match="Content must be a string"):
+        func(str(TEST_DIR / "type_test.txt"), {"key": "value"})
 
 
 # --- Git read-only operation tool tests ---

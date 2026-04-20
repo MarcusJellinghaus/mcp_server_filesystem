@@ -172,7 +172,7 @@ def read_file(
 
 @mcp.tool()
 @log_function_call
-def save_file(file_path: str, content: Any) -> bool:
+def save_file(file_path: str, content: str) -> bool:
     """Write content to a file.
 
     Args:
@@ -186,11 +186,11 @@ def save_file(file_path: str, content: Any) -> bool:
         logger.error("Invalid file path parameter: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
-    if content is None:
-        logger.warning("Content is None, treating as empty string")
+    if content is None:  # defense-in-depth for direct callers
+        logger.warning("Content is None, treating as empty string")  # type: ignore[unreachable]
         content = ""
     elif not isinstance(content, str):
-        logger.error("Invalid content type: %s", type(content))
+        logger.error("Invalid content type: %s", type(content))  # type: ignore[unreachable]
         raise ValueError(f"Content must be a string, got {type(content)}")
 
     if _project_dir is None:
@@ -209,7 +209,7 @@ def save_file(file_path: str, content: Any) -> bool:
 
 @mcp.tool()
 @log_function_call
-def append_file(file_path: str, content: Any) -> bool:
+def append_file(file_path: str, content: str) -> bool:
     """Append content to the end of a file.
 
     Args:
@@ -223,11 +223,11 @@ def append_file(file_path: str, content: Any) -> bool:
         logger.error("Invalid file path parameter: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
 
-    if content is None:
-        logger.warning("Content is None, treating as empty string")
+    if content is None:  # defense-in-depth for direct callers
+        logger.warning("Content is None, treating as empty string")  # type: ignore[unreachable]
         content = ""
     elif not isinstance(content, str):
-        logger.error("Invalid content type: %s", type(content))
+        logger.error("Invalid content type: %s", type(content))  # type: ignore[unreachable]
         raise ValueError(f"Content must be a string, got {type(content)}")
 
     if _project_dir is None:
