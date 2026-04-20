@@ -5,14 +5,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mcp_workspace.github_operations.issues.types import IssueData
 from mcp_workspace.git_operations.base_branch import (
     _detect_from_issue,
     _detect_from_merge_base,
     _detect_from_pr,
     detect_base_branch,
 )
-
+from mcp_workspace.github_operations.issues.types import IssueData
 
 # ---------------------------------------------------------------------------
 # _detect_from_issue tests
@@ -206,18 +205,14 @@ class TestDetectBaseBranch:
     """Tests for the main detect_base_branch function."""
 
     @patch("mcp_workspace.git_operations.base_branch.get_current_branch_name")
-    def test_returns_none_on_detached_head(
-        self, mock_get_branch: MagicMock
-    ) -> None:
+    def test_returns_none_on_detached_head(self, mock_get_branch: MagicMock) -> None:
         """If current branch is None (detached HEAD), return None."""
         mock_get_branch.return_value = None
         result = detect_base_branch(Path("/repo"))
         assert result is None
 
     @patch("mcp_workspace.git_operations.base_branch.get_current_branch_name")
-    def test_uses_provided_current_branch(
-        self, mock_get_branch: MagicMock
-    ) -> None:
+    def test_uses_provided_current_branch(self, mock_get_branch: MagicMock) -> None:
         """If current_branch is provided, don't auto-detect."""
         issue_data = IssueData(
             number=42,

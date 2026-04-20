@@ -6,7 +6,12 @@ from typing import Any, Dict, List, Optional
 from mcp.server.fastmcp import FastMCP
 from mcp_coder_utils.log_utils import log_function_call
 
-# Import utility functions from the main package
+from mcp_workspace.checks.branch_status import collect_branch_status
+from mcp_workspace.checks.file_sizes import (
+    check_file_sizes,
+    load_allowlist,
+    render_output,
+)
 from mcp_workspace.file_tools import append_file as append_file_util
 from mcp_workspace.file_tools import delete_file as delete_file_util
 from mcp_workspace.file_tools import edit_file as edit_file_util
@@ -17,8 +22,6 @@ from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
-from mcp_workspace.checks.branch_status import collect_branch_status
-from mcp_workspace.checks.file_sizes import check_file_sizes, load_allowlist, render_output
 from mcp_workspace.git_operations.base_branch import detect_base_branch
 from mcp_workspace.git_operations.read_operations import git as git_impl
 from mcp_workspace.github_operations.formatters import (

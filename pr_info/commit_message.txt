@@ -1,7 +1,15 @@
-chore: update architecture configs for new modules
+style: apply black and isort formatting to new/modified files
 
-Add checks/ and workflows/ packages to .importlinter layered
-architecture and tach.toml module boundaries. Ensure vulture
-whitelist includes all new MCP tool handlers.
+Run black and isort formatting on 5 files that were committed
+without running the format_all.sh script:
 
-Ref: #114
+- src/mcp_workspace/server.py: reorder imports alphabetically,
+  wrap long import line
+- src/mcp_workspace/checks/branch_status.py: collapse multiline
+  expressions that fit on one line
+- tests/checks/test_file_sizes.py: collapse multiline function
+  calls that fit on one line
+- tests/checks/test_branch_status.py: reorder import names,
+  collapse multiline @patch() decorators
+- tests/git_operations/test_base_branch.py: fix import order,
+  collapse multiline @patch() decorators and method signatures

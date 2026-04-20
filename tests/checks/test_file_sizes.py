@@ -63,10 +63,7 @@ class TestLoadAllowlist:
     def test_parses_entries(self, tmp_path: Path) -> None:
         p = tmp_path / ".large-files-allowlist"
         p.write_text(
-            "# comment\n"
-            "\n"
-            "src/big.py\n"
-            "tests/huge.py  # inline comment\n",
+            "# comment\n" "\n" "src/big.py\n" "tests/huge.py  # inline comment\n",
             encoding="utf-8",
         )
         result = load_allowlist(p)
@@ -99,24 +96,18 @@ class TestCheckFileSizes:
 
     def test_allowlisted_file_skipped(self, project_dir: Path) -> None:
         _write_file(project_dir, "big.py", 200)
-        result = check_file_sizes(
-            project_dir, max_lines=100, allowlist={"big.py"}
-        )
+        result = check_file_sizes(project_dir, max_lines=100, allowlist={"big.py"})
         assert result.passed is True
         assert result.allowlisted_count == 1
 
     def test_stale_allowlist_entry_missing_file(self, project_dir: Path) -> None:
         _write_file(project_dir, "a.py", 5)
-        result = check_file_sizes(
-            project_dir, max_lines=100, allowlist={"gone.py"}
-        )
+        result = check_file_sizes(project_dir, max_lines=100, allowlist={"gone.py"})
         assert "gone.py" in result.stale_entries
 
     def test_stale_allowlist_entry_under_limit(self, project_dir: Path) -> None:
         _write_file(project_dir, "small.py", 5)
-        result = check_file_sizes(
-            project_dir, max_lines=100, allowlist={"small.py"}
-        )
+        result = check_file_sizes(project_dir, max_lines=100, allowlist={"small.py"})
         assert "small.py" in result.stale_entries
 
     def test_violations_sorted_descending(self, project_dir: Path) -> None:

@@ -71,9 +71,7 @@ class BranchStatusReport:
         if self.ci_details:
             lines.append(f"CI Details:\n{self.ci_details}")
         lines.append(f"Rebase needed: {self.rebase_needed} ({self.rebase_reason})")
-        lines.append(
-            f"Tasks: {self.tasks_status.value} ({self.tasks_reason})"
-        )
+        lines.append(f"Tasks: {self.tasks_status.value} ({self.tasks_reason})")
         lines.append(f"Label: {self.current_github_label}")
         if self.pr_found:
             lines.append(f"PR: #{self.pr_number} ({self.pr_url})")
@@ -94,9 +92,7 @@ class BranchStatusReport:
             f"- **Rebase**: {'NEEDED' if self.rebase_needed else 'OK'}"
             f" — {self.rebase_reason}"
         )
-        lines.append(
-            f"- **Tasks**: {self.tasks_status.value} — {self.tasks_reason}"
-        )
+        lines.append(f"- **Tasks**: {self.tasks_status.value} — {self.tasks_reason}")
         lines.append(f"- **Label**: {self.current_github_label}")
 
         if self.pr_found:
@@ -199,9 +195,7 @@ def _collect_ci_status(
         return CIStatus.NOT_CONFIGURED, None
 
 
-def _collect_rebase_status(
-    project_dir: Path, base_branch: str
-) -> tuple[bool, str]:
+def _collect_rebase_status(project_dir: Path, base_branch: str) -> tuple[bool, str]:
     """Collect rebase status.
 
     Returns:
@@ -351,9 +345,7 @@ def collect_branch_status(
     base_branch = base_branch_result if base_branch_result else "main"
 
     # 4. Collect CI status
-    ci_status, ci_details = _collect_ci_status(
-        project_dir, branch_name, max_log_lines
-    )
+    ci_status, ci_details = _collect_ci_status(project_dir, branch_name, max_log_lines)
 
     # 5. Check rebase status
     rebase_needed, rebase_reason = _collect_rebase_status(project_dir, base_branch)
@@ -365,9 +357,9 @@ def collect_branch_status(
     current_github_label = _collect_github_label(issue_data)
 
     # 8. Collect PR info
-    pr_number, pr_url, pr_found = _collect_pr_info(
-        pr_manager, branch_name
-    ) if pr_manager else (None, None, None)
+    pr_number, pr_url, pr_found = (
+        _collect_pr_info(pr_manager, branch_name) if pr_manager else (None, None, None)
+    )
 
     # 9. Generate recommendations
     recommendations = _generate_recommendations(

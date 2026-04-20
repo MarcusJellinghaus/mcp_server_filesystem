@@ -8,15 +8,15 @@ import pytest
 from mcp_workspace.checks.branch_status import (
     BranchStatusReport,
     CIStatus,
-    collect_branch_status,
-    create_empty_report,
-    get_failed_jobs_summary,
     _collect_ci_status,
     _collect_github_label,
     _collect_pr_info,
     _collect_rebase_status,
     _collect_task_status,
     _generate_recommendations,
+    collect_branch_status,
+    create_empty_report,
+    get_failed_jobs_summary,
 )
 from mcp_workspace.github_operations.issues import IssueData
 from mcp_workspace.workflows.task_tracker import TaskTrackerStatus
@@ -176,9 +176,7 @@ class TestCollectCIStatus:
 
     @patch("mcp_workspace.checks.branch_status._build_ci_error_details")
     @patch("mcp_workspace.checks.branch_status.CIResultsManager")
-    def test_failed(
-        self, mock_ci_cls: MagicMock, mock_build: MagicMock
-    ) -> None:
+    def test_failed(self, mock_ci_cls: MagicMock, mock_build: MagicMock) -> None:
         mock_ci = MagicMock()
         mock_ci.get_latest_ci_status.return_value = {
             "run": {"conclusion": "failure", "status": "completed"},
@@ -210,9 +208,7 @@ class TestCollectCIStatus:
         assert status == CIStatus.NOT_CONFIGURED
 
     @patch("mcp_workspace.checks.branch_status.CIResultsManager")
-    def test_exception_returns_not_configured(
-        self, mock_ci_cls: MagicMock
-    ) -> None:
+    def test_exception_returns_not_configured(self, mock_ci_cls: MagicMock) -> None:
         mock_ci_cls.side_effect = Exception("fail")
         status, _ = _collect_ci_status(Path("/tmp"), "main", 300)
         assert status == CIStatus.NOT_CONFIGURED
@@ -402,9 +398,7 @@ class TestCollectBranchStatus:
     @patch("mcp_workspace.checks.branch_status.detect_base_branch")
     @patch("mcp_workspace.checks.branch_status.PullRequestManager")
     @patch("mcp_workspace.checks.branch_status.IssueManager")
-    @patch(
-        "mcp_workspace.checks.branch_status.extract_issue_number_from_branch"
-    )
+    @patch("mcp_workspace.checks.branch_status.extract_issue_number_from_branch")
     @patch("mcp_workspace.checks.branch_status.get_current_branch_name")
     def test_full_collection(
         self,
@@ -448,9 +442,7 @@ class TestCollectBranchStatus:
     @patch("mcp_workspace.checks.branch_status.detect_base_branch")
     @patch("mcp_workspace.checks.branch_status.PullRequestManager")
     @patch("mcp_workspace.checks.branch_status.IssueManager")
-    @patch(
-        "mcp_workspace.checks.branch_status.extract_issue_number_from_branch"
-    )
+    @patch("mcp_workspace.checks.branch_status.extract_issue_number_from_branch")
     @patch("mcp_workspace.checks.branch_status.get_current_branch_name")
     def test_github_init_failure(
         self,
@@ -466,13 +458,15 @@ class TestCollectBranchStatus:
         mock_issue_mgr_cls.side_effect = Exception("no token")
         mock_detect.return_value = "main"
 
-        with patch(
-            "mcp_workspace.checks.branch_status._collect_ci_status"
-        ) as mock_ci, patch(
-            "mcp_workspace.checks.branch_status._collect_rebase_status"
-        ) as mock_rebase, patch(
-            "mcp_workspace.checks.branch_status._collect_task_status"
-        ) as mock_tasks:
+        with (
+            patch("mcp_workspace.checks.branch_status._collect_ci_status") as mock_ci,
+            patch(
+                "mcp_workspace.checks.branch_status._collect_rebase_status"
+            ) as mock_rebase,
+            patch(
+                "mcp_workspace.checks.branch_status._collect_task_status"
+            ) as mock_tasks,
+        ):
             mock_ci.return_value = (CIStatus.NOT_CONFIGURED, None)
             mock_rebase.return_value = (False, "up-to-date")
             mock_tasks.return_value = (TaskTrackerStatus.N_A, "N/A", False)
