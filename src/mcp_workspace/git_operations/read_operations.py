@@ -194,6 +194,7 @@ def git_status(
     project_dir: Path,
     args: Optional[list[str]] = None,
     max_lines: int = 200,
+    pathspec: Optional[list[str]] = None,
 ) -> str:
     """Run ``git status`` with validated arguments.
 
@@ -201,6 +202,7 @@ def git_status(
         project_dir: Path to the git repository.
         args: Optional CLI flags (validated against allowlist).
         max_lines: Maximum output lines before truncation.
+        pathspec: Optional file paths to restrict scope.
 
     Returns:
         Status output, or a descriptive message if clean.
@@ -211,8 +213,12 @@ def git_status(
     safe_args = args or []
     validate_args("status", safe_args)
 
+    cmd_args = list(safe_args)
+    if pathspec:
+        cmd_args += ["--"] + pathspec
+
     with _safe_repo_context(project_dir) as repo:
-        output: str = repo.git.status(*safe_args)
+        output: str = repo.git.status(*cmd_args)
 
     if not output:
         return "No changes found"
@@ -311,6 +317,8 @@ def git_show(
                 "--color=always", "--color-moved=dimmed-zebra", *base_args
             )
             output = render_compact_diff(plain, ansi)
+            if not output:
+                output = plain  # Fall back when no diff hunks (e.g. --no-patch)
 
             plain_count = len(plain.splitlines())
             compact_count = len(output.splitlines()) if output else 0
@@ -384,7 +392,7 @@ _DEFAULT_MAX_LINES: dict[str, int] = {
 _SUPPORTS_SEARCH: frozenset[str] = frozenset({"log", "diff", "show"})
 _SUPPORTS_COMPACT: frozenset[str] = frozenset({"diff", "show"})
 _SUPPORTS_PATHSPEC: frozenset[str] = frozenset(
-    {"log", "diff", "show", "ls_tree", "ls_files"}
+    {"log", "diff", "show", "ls_tree", "ls_files", "status"}
 )
 _SUPPORTS_CONTEXT: frozenset[str] = frozenset({"diff", "show"})
 
@@ -461,7 +469,9 @@ def git(
             resolved_max_lines,
             compact,
         ),
-        "status": lambda: git_status(project_dir, safe_args, resolved_max_lines),
+        "status": lambda: git_status(
+            project_dir, safe_args, resolved_max_lines, pathspec
+        ),
         "merge_base": lambda: git_merge_base(project_dir, safe_args),
         "show": lambda: git_show(
             project_dir,
@@ -499,6 +509,7 @@ def git(
             list_args,
             pathspec,
             resolved_max_lines,
+            use_safety_flags=False,
         ),
         "ls_files": lambda: _run_simple_command(
             "ls_files",
@@ -507,6 +518,7 @@ def git(
             list_args,
             pathspec,
             resolved_max_lines,
+            use_safety_flags=False,
         ),
         "ls_remote": lambda: _run_simple_command(
             "ls_remote",

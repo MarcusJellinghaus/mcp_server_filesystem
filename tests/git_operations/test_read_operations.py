@@ -577,7 +577,7 @@ class TestGitDispatcher:
     def test_routes_to_status(self, mock_status: MagicMock, tmp_path: Path) -> None:
         mock_status.return_value = "status output"
         result = git(command="status", project_dir=tmp_path, args=["--short"])
-        mock_status.assert_called_once_with(tmp_path, ["--short"], 200)
+        mock_status.assert_called_once_with(tmp_path, ["--short"], 200, None)
         assert result == "status output"
 
     @patch("mcp_workspace.git_operations.read_operations.git_merge_base")
