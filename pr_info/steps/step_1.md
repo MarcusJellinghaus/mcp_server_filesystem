@@ -35,11 +35,6 @@ BRANCH_ALLOWED_FLAGS: frozenset[str]
 # --list, -a, -r, --contains, --merged, --no-merged, --sort,
 # -v, --show-current, --no-color
 
-BRANCH_REQUIRED_READ_FLAGS: frozenset[str]
-# --list, -a, -r, --contains, --merged, --no-merged, --sort,
-# -v, --show-current, --no-color
-# (Same set — at least one of these must be present for branch to execute)
-
 REV_PARSE_ALLOWED_FLAGS: frozenset[str]
 # --abbrev-ref, --short, --verify, --symbolic, --symbolic-full-name,
 # --show-toplevel, --show-cdup, --git-dir, --is-inside-work-tree,
@@ -80,6 +75,8 @@ _ALLOWLISTS: dict[str, frozenset[str]] = {
 def validate_branch_has_read_flag(args: list[str]) -> None:
     """Raise ValueError if no read-only flag is present in branch args.
 
+    Checks against BRANCH_ALLOWED_FLAGS — every allowed flag is a read-only
+    flag, so any allowed flag proves read-only intent.
     Prevents bare `git branch <name>` from creating branches.
     """
 ```
@@ -92,7 +89,7 @@ def validate_branch_has_read_flag(args: list[str]) -> None:
 ## ALGORITHM (validate_branch_has_read_flag)
 ```
 1. Extract all flags from args (items starting with "-")
-2. Check if any flag (or its "=" prefix) is in BRANCH_REQUIRED_READ_FLAGS
+2. Check if any flag (or its "=" prefix) is in BRANCH_ALLOWED_FLAGS
 3. If none found → raise ValueError("git branch requires a read-only flag")
 ```
 

@@ -26,6 +26,7 @@ def _run_simple_command(
     pathspec: Optional[list[str]],
     max_lines: int,
     no_output_message: str = "No output.",
+    use_safety_flags: bool = True,
 ) -> str:
 ```
 Used by: `git_status` (could be refactored later), `git_merge_base` (ditto), and the new simple commands (fetch, rev_parse, ls_tree, ls_files, ls_remote). For now, only the new commands use it — existing functions are left unchanged.
@@ -61,7 +62,7 @@ def git_branch(
 ## ALGORITHM (_run_simple_command)
 ```
 1. validate_args(command, args)
-2. cmd_args = SAFETY_FLAGS + args
+2. cmd_args = (SAFETY_FLAGS if use_safety_flags else []) + args
 3. if pathspec: cmd_args += ["--"] + pathspec
 4. with _safe_repo_context: output = getattr(repo.git, git_method)(*cmd_args)
 5. if not output: return no_output_message
@@ -101,7 +102,8 @@ In `test_read_operations.py`, add:
 - `test_appends_pathspec` — verify `--` + pathspec appended
 - `test_truncates_output` — verify max_lines applied
 - `test_no_output_message` — verify custom message on empty output
-- `test_includes_safety_flags` — verify `--no-ext-diff`, `--no-textconv` injected
+- `test_includes_safety_flags` — verify `--no-ext-diff`, `--no-textconv` injected when `use_safety_flags=True`
+- `test_no_safety_flags` — verify safety flags omitted when `use_safety_flags=False`
 
 ### `TestGitShow` (integration, `@pytest.mark.git_integration`)
 - `test_show_head_commit` — shows HEAD commit info

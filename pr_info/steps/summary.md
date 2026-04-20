@@ -22,21 +22,21 @@ server.py  ──→  read_operations.py  (unified git() dispatcher + existing f
 
 ### Key Design Decisions
 
-1. **Generic helper `_run_simple_command()`** — Commands that follow the validate→execute→truncate pattern (status, merge_base, fetch, rev_parse, ls_tree, ls_files, ls_remote) use a shared helper instead of 7 copy-paste functions.
+1. **Generic helper `_run_simple_command()`** — Commands that follow the validate→execute→truncate pattern (fetch, rev_parse, ls_tree, ls_files, ls_remote) use a shared helper instead of copy-paste functions. Has `use_safety_flags` parameter to skip `--no-ext-diff`/`--no-textconv` for commands that don't produce diffs.
 
 2. **Dedicated functions kept for complex commands** — `git_log` (search filtering), `git_diff` (compact rendering + search), `git_show` (compact + colon detection), `git_branch` (read-only flag enforcement) have enough unique logic to warrant their own functions.
 
-3. **Dispatcher is a simple dict + function** — The unified `git()` function maps command → handler, applies per-command `max_lines` defaults, generates soft warnings for unsupported params, and delegates. No classes or new modules.
+3. **Dispatcher routes to existing functions** — The unified `git()` function maps command → handler. `status` routes to `git_status()`, `merge_base` routes to `git_merge_base()`, preserving existing behavior. Applies per-command `max_lines` defaults, generates soft warnings for unsupported non-default params, and delegates. No classes or new modules.
 
-4. **`max_lines` uses `Optional[int] = None`** — Allows distinguishing "caller didn't specify" (apply per-command default) from "caller explicitly set 100".
+4. **`max_lines` uses `Optional[int] = None`** — A deliberate improvement over the issue's `int = 100`. Allows distinguishing "caller didn't specify" (apply per-command default) from "caller explicitly set a value".
 
-5. **Existing functions unchanged** — `git_log`, `git_diff`, `git_status`, `git_merge_base` internals are preserved. The dispatcher calls them. Existing unit tests for these functions remain valid.
+5. **Existing functions unchanged** — `git_log`, `git_diff`, `git_status`, `git_merge_base` internals are preserved. The dispatcher calls them directly. Existing unit tests for these functions remain valid.
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/mcp_workspace/git_operations/arg_validation.py` | Add 7 new allowlists, `BRANCH_REQUIRED_READ_FLAGS`, register in `_ALLOWLISTS` |
+| `src/mcp_workspace/git_operations/arg_validation.py` | Add 7 new allowlists, register in `_ALLOWLISTS` |
 | `src/mcp_workspace/git_operations/read_operations.py` | Add `_run_simple_command()`, `git_show()`, `git_branch()`, unified `git()` dispatcher |
 | `src/mcp_workspace/server.py` | Replace 4 tool functions with 1 unified `git()` tool |
 | `tests/git_operations/test_arg_validation.py` | Add tests for 7 new allowlists + branch safety |
@@ -47,7 +47,7 @@ server.py  ──→  read_operations.py  (unified git() dispatcher + existing f
 
 ## Files NOT Modified
 
-- `read_operations.py` existing functions (`git_log`, `git_diff`, `git_status`, `git_merge_base`) — internals preserved
+- `read_operations.py` existing functions (`git_log`, `git_diff`, `git_status`, `git_merge_base`) — internals preserved; dispatcher routes to `git_status()` and `git_merge_base()` directly
 - `compact_diffs.py`, `output_filtering.py`, `core.py` — no changes needed
 - `remotes.py` — `fetch` is a fresh implementation, no reuse
 - Architecture configs (`.importlinter`, `tach.toml`) — no new modules

@@ -44,7 +44,7 @@ _DEFAULT_MAX_LINES: dict[str, int] = {
 ```python
 _SUPPORTS_SEARCH: frozenset[str] = frozenset({"log", "diff", "show"})
 _SUPPORTS_COMPACT: frozenset[str] = frozenset({"diff", "show"})
-_SUPPORTS_PATHSPEC: frozenset[str] = frozenset({"log", "diff", "show", "status", "ls_tree", "ls_files"})
+_SUPPORTS_PATHSPEC: frozenset[str] = frozenset({"log", "diff", "show", "ls_tree", "ls_files"})
 _SUPPORTS_CONTEXT: frozenset[str] = frozenset({"diff", "show"})
 ```
 
@@ -57,7 +57,11 @@ _SUPPORTS_CONTEXT: frozenset[str] = frozenset({"diff", "show"})
 ## ALGORITHM
 ```
 1. Resolve max_lines from defaults if None
-2. Collect soft warnings for unsupported params (search, compact, pathspec, context)
+2. Collect soft warnings — only warn when a non-default value is set for an unsupported param:
+   - compact: warn when compact=False (not the default True) AND command not in _SUPPORTS_COMPACT
+   - context: warn when context != 3 (not the default) AND command not in _SUPPORTS_CONTEXT
+   - search: warn when search is not None AND command not in _SUPPORTS_SEARCH
+   - pathspec: warn when pathspec is not None AND command not in _SUPPORTS_PATHSPEC
 3. Look up command in handler dict
 4. If not found: raise ValueError("Unknown git command: '{command}'")
 5. Call handler with applicable params
@@ -75,15 +79,15 @@ _SUPPORTS_CONTEXT: frozenset[str] = frozenset({"diff", "show"})
 _HANDLERS = {
     "log": lambda: git_log(project_dir, args, pathspec, search, max_lines),
     "diff": lambda: git_diff(project_dir, args, pathspec, search, context, max_lines, compact),
-    "status": lambda: _run_simple_command("status", project_dir, "status", args, pathspec, max_lines, "No changes found"),
+    "status": lambda: git_status(project_dir, args, max_lines),
     "merge_base": lambda: git_merge_base(project_dir, args),
     "show": lambda: git_show(project_dir, args, pathspec, search, context, max_lines, compact),
     "branch": lambda: git_branch(project_dir, args, max_lines),
-    "fetch": lambda: _run_simple_command("fetch", project_dir, "fetch", args, None, max_lines, "Fetch complete (no output)."),
-    "rev_parse": lambda: _run_simple_command("rev_parse", project_dir, "rev_parse", args, None, max_lines),
+    "fetch": lambda: _run_simple_command("fetch", project_dir, "fetch", args, None, max_lines, "Fetch complete (no output).", use_safety_flags=False),
+    "rev_parse": lambda: _run_simple_command("rev_parse", project_dir, "rev_parse", args, None, max_lines, use_safety_flags=False),
     "ls_tree": lambda: _run_simple_command("ls_tree", project_dir, "ls_tree", args, pathspec, max_lines),
     "ls_files": lambda: _run_simple_command("ls_files", project_dir, "ls_files", args, pathspec, max_lines),
-    "ls_remote": lambda: _run_simple_command("ls_remote", project_dir, "ls_remote", args, None, max_lines),
+    "ls_remote": lambda: _run_simple_command("ls_remote", project_dir, "ls_remote", args, None, max_lines, use_safety_flags=False),
 }
 ```
 Note: The actual implementation will use an inner dispatch pattern (not lambdas with closures) — this pseudocode shows the routing logic.
@@ -94,7 +98,7 @@ Note: The actual implementation will use an inner dispatch pattern (not lambdas 
 
 - `test_routes_to_log` — command="log" calls git_log with correct params
 - `test_routes_to_diff` — command="diff" calls git_diff with correct params
-- `test_routes_to_status` — command="status" calls _run_simple_command
+- `test_routes_to_status` — command="status" calls git_status
 - `test_routes_to_merge_base` — command="merge_base" calls git_merge_base
 - `test_routes_to_show` — command="show" calls git_show
 - `test_routes_to_branch` — command="branch" calls git_branch
@@ -106,7 +110,8 @@ Note: The actual implementation will use an inner dispatch pattern (not lambdas 
 - `test_default_max_lines_other` — fetch gets 100 when max_lines=None
 - `test_explicit_max_lines_overrides` — explicit max_lines=25 passed through
 - `test_soft_warning_search_on_status` — search param on status produces warning in output
-- `test_soft_warning_compact_on_log` — compact=False on log produces warning
+- `test_soft_warning_compact_on_log` — compact=**False** on log produces warning
 - `test_soft_warning_pathspec_on_fetch` — pathspec on fetch produces warning
-- `test_no_warning_for_defaults` — compact=True (default) on log does NOT warn
+- `test_no_warning_for_defaults` — compact=True on log does NOT warn (default value)
+- `test_no_warning_context_default_on_status` — context=3 on status does NOT warn (default value)
 - `test_no_warning_for_supported_params` — search on diff does NOT warn

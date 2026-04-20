@@ -17,32 +17,53 @@ Run all three quality checks after.
 
 ### Update tool mapping table:
 
+In the `### Tool mapping` table, replace the 4 individual git rows:
+```markdown
+| Git log | `mcp__workspace__git_log` |
+| Git diff | `mcp__workspace__git_diff` |
+| Git status | `mcp__workspace__git_status` |
+| Git merge-base | `mcp__workspace__git_merge_base` |
+```
+
+With a single row:
+```markdown
+| Git (read-only) | `mcp__workspace__git` |
+```
+
+### Update `## Git operations` section:
+
 Replace:
 ```markdown
-| Git operations | ✅ `Bash("git ...")` | ✅ `Bash("git ...")` (allowed) |
+**Prefer MCP tools** for read-only git operations: `mcp__workspace__git_log`, `mcp__workspace__git_diff`, `mcp__workspace__git_status`, `mcp__workspace__git_merge_base`. These run without permission prompts.
+
+**`git_diff` includes compact diff by default** — detects moved code, collapses unchanged blocks. Use `compact=False` for raw output. For code review, prefer `mcp__workspace__git_diff` over `mcp-coder git-tool compact-diff`.
+
+**Bash commands** for git operations that have no MCP equivalent:
+
+\`\`\`
+git commit / fetch / ls-tree / show
+gh issue view / gh pr view / gh run view
+mcp-coder check branch-status
+mcp-coder check file-size --max-lines 750
+mcp-coder gh-tool set-status <label>
+\`\`\`
 ```
 
 With:
 ```markdown
-| Git read-only | `Bash("git ...")` | `mcp__workspace__git()` |
-| Git write (add, commit) | ✅ `Bash("git ...")` | ✅ `Bash("git ...")` (allowed) |
-```
+**Prefer MCP tools** for read-only git operations: use `mcp__workspace__git` with the `command` parameter (log, diff, status, merge_base, show, branch, fetch, rev_parse, ls_tree, ls_files, ls_remote). These run without permission prompts.
 
-### Update Git Operations section:
+**`git(command="diff")` includes compact diff by default** — detects moved code, collapses unchanged blocks. Use `compact=False` for raw output.
 
-Replace the `ALLOWED git operations via Bash tool` section to clarify which operations use the unified tool vs Bash:
+**Bash commands** for git operations that have no MCP equivalent:
 
-```markdown
-## 🔄 Git Operations
-
-**Read-only git commands** — use the unified `git` MCP tool:
-- `git(command="log", ...)`, `git(command="diff", ...)`, `git(command="status", ...)`
-- `git(command="show", ...)`, `git(command="branch", ...)`, `git(command="fetch", ...)`
-- `git(command="merge_base", ...)`, `git(command="rev_parse", ...)`
-- `git(command="ls_tree", ...)`, `git(command="ls_files", ...)`, `git(command="ls_remote", ...)`
-
-**Write git operations via Bash tool (allowed):**
-- `git add`, `git commit`
+\`\`\`
+git commit / git add
+gh issue view / gh pr view / gh run view
+mcp-coder check branch-status
+mcp-coder check file-size --max-lines 750
+mcp-coder gh-tool set-status <label>
+\`\`\`
 ```
 
 ## HOW
