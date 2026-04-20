@@ -122,8 +122,17 @@ def test_github_issue_view_without_comments(mock_manager_cls: MagicMock) -> None
 def test_github_issue_view_not_found(mock_manager_cls: MagicMock) -> None:
     """Returns error text when issue number=0 (empty IssueData)."""
     empty_issue = IssueData(
-        number=0, title="", body="", state="", labels=[], assignees=[],
-        user=None, created_at=None, updated_at=None, url="", locked=False,
+        number=0,
+        title="",
+        body="",
+        state="",
+        labels=[],
+        assignees=[],
+        user=None,
+        created_at=None,
+        updated_at=None,
+        url="",
+        locked=False,
     )
     mock_mgr = MagicMock()
     mock_mgr.get_issue.return_value = empty_issue
@@ -153,7 +162,10 @@ def test_github_issue_view_error(mock_manager_cls: MagicMock) -> None:
 @patch("mcp_workspace.server.IssueManager")
 def test_github_issue_list_basic(mock_manager_cls: MagicMock) -> None:
     """Returns compact summary lines."""
-    issues = [_make_issue(number=1, title="First"), _make_issue(number=2, title="Second")]
+    issues = [
+        _make_issue(number=1, title="First"),
+        _make_issue(number=2, title="Second"),
+    ]
     mock_mgr = MagicMock()
     mock_mgr.list_issues.return_value = issues
     mock_manager_cls.return_value = mock_mgr
@@ -353,7 +365,9 @@ def test_github_pr_view_not_found(mock_manager_cls: MagicMock) -> None:
     from github.GithubException import UnknownObjectException
 
     mock_repo = MagicMock()
-    mock_repo.get_pull.side_effect = UnknownObjectException(404, {"message": "Not Found"}, {})
+    mock_repo.get_pull.side_effect = UnknownObjectException(
+        404, {"message": "Not Found"}, {}
+    )
 
     mock_mgr = MagicMock()
     mock_manager_cls.return_value = mock_mgr

@@ -69,7 +69,9 @@ def format_issue_view(
     if comments:
         parts.append(f"## Comments ({len(comments)})")
         for comment in comments:
-            parts.append(f"**{comment['user']}** ({comment['created_at']}):\n{comment['body']}")
+            parts.append(
+                f"**{comment['user']}** ({comment['created_at']}):\n{comment['body']}"
+            )
 
     return truncate_output("\n\n".join(parts), max_lines)
 
@@ -94,7 +96,9 @@ def format_issue_list(
     for issue in issues[:max_results]:
         labels_str = ", ".join(issue["labels"]) if issue["labels"] else ""
         label_part = f"  {labels_str}" if labels_str else ""
-        lines.append(f"#{issue['number']} [{issue['state']}] {issue['title']}{label_part}")
+        lines.append(
+            f"#{issue['number']} [{issue['state']}] {issue['title']}{label_part}"
+        )
 
     if len(issues) > max_results:
         lines.append(
@@ -177,7 +181,9 @@ def format_search_results(
         kind = "PR" if item.get("pull_request") else "Issue"
         labels = ", ".join(item.get("labels", []))
         label_part = f"  {labels}" if labels else ""
-        lines.append(f"#{item['number']} [{kind}] [{item['state']}] {item['title']}{label_part}")
+        lines.append(
+            f"#{item['number']} [{kind}] [{item['state']}] {item['title']}{label_part}"
+        )
 
     if len(items) > max_results:
         lines.append(

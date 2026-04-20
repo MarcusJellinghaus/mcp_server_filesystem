@@ -112,8 +112,16 @@ class TestFormatIssueView:
         """Comments section rendered."""
         issue = _make_issue()
         comments = [
-            _make_comment(body="First comment", user="alice", created_at="2024-01-03T00:00:00Z"),
-            _make_comment(body="Second comment", user="bob", created_at="2024-01-04T00:00:00Z"),
+            _make_comment(
+                body="First comment",
+                user="alice",
+                created_at="2024-01-03T00:00:00Z",
+            ),
+            _make_comment(
+                body="Second comment",
+                user="bob",
+                created_at="2024-01-04T00:00:00Z",
+            ),
         ]
         result = format_issue_view(issue, comments=comments)
         assert "Comments (2)" in result
@@ -248,7 +256,11 @@ class TestFormatPrView:
         """Conversation comments rendered."""
         pr = _make_pr()
         comments = [
-            _make_comment(body="Looks good", user="alice", created_at="2024-01-05T00:00:00Z"),
+            _make_comment(
+                body="Looks good",
+                user="alice",
+                created_at="2024-01-05T00:00:00Z",
+            ),
             _make_comment(body="Thanks", user="bob", created_at="2024-01-06T00:00:00Z"),
         ]
         result = format_pr_view(pr, conversation_comments=comments)
@@ -262,7 +274,12 @@ class TestFormatPrView:
         """Compact path:line (user): 'body' format."""
         pr = _make_pr()
         inline: list[InlineCommentData] = [
-            InlineCommentData(path="src/main.py", line=42, user="alice", body="Nit: rename this"),
+            InlineCommentData(
+                path="src/main.py",
+                line=42,
+                user="alice",
+                body="Nit: rename this",
+            ),
         ]
         result = format_pr_view(pr, inline_comments=inline)
         assert "## Inline Review Comments (1)" in result

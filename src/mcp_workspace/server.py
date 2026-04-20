@@ -6,17 +6,6 @@ from typing import Any, Dict, List, Optional
 from mcp.server.fastmcp import FastMCP
 from mcp_coder_utils.log_utils import log_function_call
 
-from mcp_workspace.github_operations.formatters import (
-    InlineCommentData,
-    ReviewData,
-    format_issue_list,
-    format_issue_view,
-    format_pr_view,
-    format_search_results,
-)
-from mcp_workspace.github_operations.issues import IssueManager
-from mcp_workspace.github_operations.issues.types import CommentData
-
 # Import utility functions from the main package
 from mcp_workspace.file_tools import append_file as append_file_util
 from mcp_workspace.file_tools import delete_file as delete_file_util
@@ -29,6 +18,16 @@ from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
 from mcp_workspace.git_operations.read_operations import git as git_impl
+from mcp_workspace.github_operations.formatters import (
+    InlineCommentData,
+    ReviewData,
+    format_issue_list,
+    format_issue_view,
+    format_pr_view,
+    format_search_results,
+)
+from mcp_workspace.github_operations.issues import IssueManager
+from mcp_workspace.github_operations.issues.types import CommentData
 from mcp_workspace.reference_projects import ReferenceProject
 from mcp_workspace.server_reference_tools import register as register_reference_tools
 from mcp_workspace.server_reference_tools import set_reference_projects
