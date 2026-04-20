@@ -16,12 +16,7 @@ from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
-from mcp_workspace.git_operations.read_operations import git_diff as git_diff_impl
-from mcp_workspace.git_operations.read_operations import git_log as git_log_impl
-from mcp_workspace.git_operations.read_operations import (
-    git_merge_base as git_merge_base_impl,
-)
-from mcp_workspace.git_operations.read_operations import git_status as git_status_impl
+from mcp_workspace.git_operations.read_operations import git as git_impl
 from mcp_workspace.reference_projects import ReferenceProject
 from mcp_workspace.server_reference_tools import register as register_reference_tools
 from mcp_workspace.server_reference_tools import set_reference_projects
@@ -437,62 +432,34 @@ def edit_file(
 
 @mcp.tool()
 @log_function_call
-def git_log(
-    args: Optional[List[str]] = None,
-    pathspec: Optional[List[str]] = None,
-    search: Optional[str] = None,
-    max_lines: int = 50,
-) -> str:
-    """Run git log with filtering support.
-
-    Args:
-        args: Optional CLI flags (e.g. ["--oneline", "-n", "10"]).
-            Validated against a security allowlist.
-        pathspec: Optional file paths to restrict log scope.
-        search: Optional regex to filter output (case-insensitive).
-        max_lines: Maximum output lines before truncation (default 50).
-
-    Returns:
-        Filtered/truncated log output, or a descriptive message.
-    """
-    if _project_dir is None:
-        raise ValueError("Project directory has not been set")
-    return git_log_impl(
-        project_dir=_project_dir,
-        args=args,
-        pathspec=pathspec,
-        search=search,
-        max_lines=max_lines,
-    )
-
-
-@mcp.tool()
-@log_function_call
-def git_diff(
+def git(
+    command: str,
     args: Optional[List[str]] = None,
     pathspec: Optional[List[str]] = None,
     search: Optional[str] = None,
     context: int = 3,
-    max_lines: int = 100,
+    max_lines: Optional[int] = None,
     compact: bool = True,
 ) -> str:
-    """Run git diff with compact diff and filtering support.
+    """Run a read-only git command.
 
     Args:
-        args: Optional CLI flags (e.g. ["--staged", "HEAD~1"]).
-            Validated against a security allowlist.
-        pathspec: Optional file paths to restrict diff scope.
-        search: Optional regex to filter output (case-insensitive).
+        command: Git subcommand (log, diff, status, merge_base, fetch,
+            show, branch, rev_parse, ls_tree, ls_files, ls_remote).
+        args: Optional CLI flags (validated against per-command security allowlists).
+        pathspec: Optional file paths appended after --.
+        search: Optional regex to filter output (log, diff, show only).
         context: Lines of context around search matches (default 3).
-        max_lines: Maximum output lines before truncation (default 100).
-        compact: If True, apply compact diff rendering (default True).
+        max_lines: Maximum output lines. Per-command defaults: log=50, diff=100, status=200, others=100.
+        compact: If True, apply compact diff rendering (diff, show only).
 
     Returns:
-        Filtered/truncated diff output, or a descriptive message.
+        Command output, optionally filtered/truncated.
     """
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
-    return git_diff_impl(
+    return git_impl(
+        command=command,
         project_dir=_project_dir,
         args=args,
         pathspec=pathspec,
@@ -500,54 +467,6 @@ def git_diff(
         context=context,
         max_lines=max_lines,
         compact=compact,
-    )
-
-
-@mcp.tool()
-@log_function_call
-def git_status(
-    args: Optional[List[str]] = None,
-    max_lines: int = 200,
-) -> str:
-    """Run git status.
-
-    Args:
-        args: Optional CLI flags (e.g. ["--short", "--branch"]).
-            Validated against a security allowlist.
-        max_lines: Maximum output lines before truncation (default 200).
-
-    Returns:
-        Status output, or a descriptive message if clean.
-    """
-    if _project_dir is None:
-        raise ValueError("Project directory has not been set")
-    return git_status_impl(
-        project_dir=_project_dir,
-        args=args,
-        max_lines=max_lines,
-    )
-
-
-@mcp.tool()
-@log_function_call
-def git_merge_base(
-    args: Optional[List[str]] = None,
-) -> str:
-    """Run git merge-base.
-
-    Args:
-        args: CLI flags and refs (e.g. ["main", "feature-branch"]).
-            Validated against a security allowlist.
-
-    Returns:
-        Merge-base SHA, "true"/"false" for --is-ancestor,
-        or a descriptive message.
-    """
-    if _project_dir is None:
-        raise ValueError("Project directory has not been set")
-    return git_merge_base_impl(
-        project_dir=_project_dir,
-        args=args,
     )
 
 

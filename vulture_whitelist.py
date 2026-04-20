@@ -36,11 +36,8 @@ _.read_reference_file
 _.search_reference_files
 _.clear_clone_failure_cache
 
-# Git read-only operation tools registered in server.py
-_.git_log
-_.git_diff
-_.git_status
-_.git_merge_base
+# Git read-only operation tool registered in server.py
+_.git
 
 # =============================================================================
 # Public API Exports

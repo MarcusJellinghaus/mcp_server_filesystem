@@ -1,10 +1,6 @@
-feat: add unified git() dispatcher for all 11 read-only commands
+Replace 4 git tool registrations with unified git() dispatcher
 
-Add git() function in read_operations.py that routes to all 11
-sub-commands (log, diff, status, merge_base, show, branch, fetch,
-rev_parse, ls_tree, ls_files, ls_remote).
-
-- Per-command max_lines defaults (log=50, diff=100, status=200, others=100)
-- Soft warnings when non-default params are passed to unsupported commands
-- Unknown commands raise ValueError
-- 19 unit tests covering routing, defaults, warnings, and error handling
+- Remove git_log, git_diff, git_status, git_merge_base tools from server.py
+- Add single git() tool that delegates to git_impl dispatcher
+- Replace 4 test classes with TestGitTool in test_server.py
+- Update vulture_whitelist.py: replace 4 entries with _.git
