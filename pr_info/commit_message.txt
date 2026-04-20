@@ -1,8 +1,7 @@
-feat: add branch_status check and MCP tool
+chore: update architecture configs for new modules
 
-Move branch_status.py from mcp-coder checks into mcp_workspace.checks.
-Expose as check_branch_status MCP tool. Rewire imports from
-mcp_coder.mcp_workspace_git to mcp_workspace direct modules.
-No logic changes.
+Add checks/ and workflows/ packages to .importlinter layered
+architecture and tach.toml module boundaries. Ensure vulture
+whitelist includes all new MCP tool handlers.
 
 Ref: #114

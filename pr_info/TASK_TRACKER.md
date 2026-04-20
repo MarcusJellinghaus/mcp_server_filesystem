@@ -26,6 +26,6 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] [Step 3: Add base_branch detection and get_base_branch MCP tool](steps/step_3.md)
 - [x] [Step 4: Add file_sizes check and check_file_size MCP tool](steps/step_4.md)
 - [x] [Step 5: Add branch_status check and check_branch_status MCP tool](steps/step_5.md)
-- [ ] [Step 6: Update architecture configs for new modules](steps/step_6.md)
+- [x] [Step 6: Update architecture configs for new modules](steps/step_6.md)
 
 ## Pull Request
