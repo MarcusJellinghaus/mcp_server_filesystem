@@ -1,7 +1,8 @@
-feat: add file_sizes check and MCP tool
+feat: add branch_status check and MCP tool
 
-Move file_sizes.py from mcp-coder checks into mcp_workspace.checks.
-Expose as check_file_size MCP tool. Auto-loads .large-files-allowlist.
-Adjust imports only, no logic changes.
+Move branch_status.py from mcp-coder checks into mcp_workspace.checks.
+Expose as check_branch_status MCP tool. Rewire imports from
+mcp_coder.mcp_workspace_git to mcp_workspace direct modules.
+No logic changes.
 
 Ref: #114
