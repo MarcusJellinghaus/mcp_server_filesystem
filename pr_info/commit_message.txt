@@ -1,9 +1,5 @@
-fix: tighten content type hint from Any to str in save_file and append_file (#20)
+fix: reformat long function signature in test_server.py for black compliance
 
-Change `content` parameter type from `Any` to `str` in both `save_file`
-and `append_file` MCP tools so Pydantic rejects non-string input at the
-validation boundary instead of failing with a confusing runtime error.
-
-- Add parameterized test verifying both functions reject dict content
-- Keep existing isinstance/None runtime checks as defense-in-depth
-- Add type: ignore[unreachable] annotations for mypy compatibility
+Break the test_rejects_non_string_content function signature across
+multiple lines to stay within the 88-character line length limit
+enforced by black.

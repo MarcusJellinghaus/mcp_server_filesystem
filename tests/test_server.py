@@ -443,7 +443,9 @@ def test_read_file_forwards_line_range_params(
 
 
 @pytest.mark.parametrize("func", [save_file, append_file])
-def test_rejects_non_string_content(func: Callable[..., bool], project_dir: Path) -> None:
+def test_rejects_non_string_content(
+    func: Callable[..., bool], project_dir: Path
+) -> None:
     """save_file and append_file reject non-string content with ValueError."""
     # Create a file for append_file to target
     target = project_dir / TEST_DIR / "type_test.txt"
