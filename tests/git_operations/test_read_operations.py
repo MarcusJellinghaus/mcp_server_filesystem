@@ -263,6 +263,25 @@ class TestGitStatus:
         result = git_status(project_dir, max_lines=3)
         assert "[truncated" in result
 
+    def test_status_with_pathspec(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        with patch(
+            "mcp_workspace.git_operations.read_operations._safe_repo_context"
+        ) as mock_ctx:
+            mock_repo = MagicMock()
+            mock_repo.git.status.return_value = "mocked status"
+            mock_ctx.return_value.__enter__ = MagicMock(return_value=mock_repo)
+            mock_ctx.return_value.__exit__ = MagicMock(return_value=False)
+
+            result = git_status(project_dir, pathspec=["src/"])
+
+            call_args = mock_repo.git.status.call_args[0]
+            assert "--" in call_args
+            assert "src/" in call_args
+            assert result == "mocked status"
+
     def test_status_rejected_flag_raises(
         self, git_repo_with_commit: tuple[Repo, Path]
     ) -> None:
@@ -576,8 +595,13 @@ class TestGitDispatcher:
     @patch("mcp_workspace.git_operations.read_operations.git_status")
     def test_routes_to_status(self, mock_status: MagicMock, tmp_path: Path) -> None:
         mock_status.return_value = "status output"
-        result = git(command="status", project_dir=tmp_path, args=["--short"])
-        mock_status.assert_called_once_with(tmp_path, ["--short"], 200, None)
+        result = git(
+            command="status",
+            project_dir=tmp_path,
+            args=["--short"],
+            pathspec=["src/"],
+        )
+        mock_status.assert_called_once_with(tmp_path, ["--short"], 200, ["src/"])
         assert result == "status output"
 
     @patch("mcp_workspace.git_operations.read_operations.git_merge_base")
