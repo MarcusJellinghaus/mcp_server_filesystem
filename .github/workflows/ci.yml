@@ -132,9 +132,24 @@ jobs:
       - name: Run ${{ matrix.check.name }}
         run: ${{ matrix.check.cmd }}
 
+  check-github-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+    steps:
+      - id: check
+        env:
+          TOKEN: ${{ secrets.GH_INTEGRATION_TOKEN }}
+          REPO_URL: ${{ secrets.GITHUB_TEST_REPO_URL }}
+        run: |
+          if [[ -n "$TOKEN" && -n "$REPO_URL" ]]; then
+            echo "has-secrets=true" >> $GITHUB_OUTPUT
+          fi
+
   github-integration-tests:
     runs-on: ubuntu-latest
-    if: ${{ secrets.GH_INTEGRATION_TOKEN != '' && secrets.GITHUB_TEST_REPO_URL != '' }}
+    needs: check-github-secrets
+    if: needs.check-github-secrets.outputs.has-secrets == 'true'
     name: github-integration-tests
     env:
       GITHUB_TOKEN: ${{ secrets.GH_INTEGRATION_TOKEN }}
