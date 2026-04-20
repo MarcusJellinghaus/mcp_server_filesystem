@@ -26,12 +26,13 @@
       "mcp__tools-py__run_ruff_check",
       "mcp__tools-py__run_ruff_fix",
       "mcp__tools-py__run_bandit_check",
-      "Bash(git log *)",
-      "Bash(git diff *)",
+      "mcp__workspace__git_log",
+      "mcp__workspace__git_diff",
+      "mcp__workspace__git_status",
+      "mcp__workspace__git_merge_base",
       "Bash(git fetch *)",
       "Bash(git show *)",
       "Bash(git mv *)",
-      "Bash(git status *)",
       "Bash(git ls-tree *)",
       "Bash(gh run view *)",
       "Bash(gh issue view *)",
@@ -82,7 +83,9 @@
       "mcp__obsidian-wiki__read-note",
       "mcp__obsidian-wiki__remove-tags",
       "mcp__obsidian-wiki__rename-tag",
-      "mcp__obsidian-wiki__search-vault"
+      "mcp__obsidian-wiki__search-vault",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
