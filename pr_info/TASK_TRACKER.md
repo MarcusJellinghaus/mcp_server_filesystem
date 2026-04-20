@@ -21,6 +21,31 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Extend `IssueManager.list_issues()` with `labels`, `assignee`, `max_results`
+- [ ] Implementation: tests + production code in `issues/manager.py`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `feat(github): extend IssueManager.list_issues with labels, assignee, max_results (#78)`
+
+### Step 2: Create `formatters.py` — Issue Formatters (`format_issue_view`, `format_issue_list`)
+- [ ] Implementation: tests + production code in `github_operations/formatters.py`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `feat(github): add issue formatters for view and list tools (#78)`
+
+### Step 3: Add PR and Search Formatters (`format_pr_view`, `format_search_results`)
+- [ ] Implementation: tests + production code in `github_operations/formatters.py`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `feat(github): add PR view and search result formatters (#78)`
+
+### Step 4: Register `github_issue_view` and `github_issue_list` Tools in `server.py`
+- [ ] Implementation: tests + production code in `server.py`, update `tach.toml` and `vulture_whitelist.py`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `feat(github): add github_issue_view and github_issue_list MCP tools (#78)`
+
+### Step 5: Register `github_pr_view` and `github_search` Tools in `server.py`
+- [ ] Implementation: tests + production code in `server.py`, update `vulture_whitelist.py`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `feat(github): add github_pr_view and github_search MCP tools (#78)`
 
 ## Pull Request
+- [ ] PR review: verify all steps complete, tests pass, no regressions
+- [ ] PR summary prepared
