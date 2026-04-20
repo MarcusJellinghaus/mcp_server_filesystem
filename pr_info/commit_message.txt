@@ -1,10 +1,13 @@
-feat(github): add PR view and search result formatters (#78)
+feat(github): add github_issue_view and github_issue_list MCP tools (#78)
 
-Add format_pr_view and format_search_results to formatters.py:
+Register two read-only GitHub MCP tools in server.py:
 
-- format_pr_view: renders PR details with optional reviews,
-  conversation comments, and inline review comments
-- format_search_results: compact one-line-per-result output
-  with Issue/PR type indicator
-- Add ReviewData and InlineCommentData TypedDicts
-- Add 11 new tests covering both formatters
+- github_issue_view: View issue detail with optional comments
+- github_issue_list: List issues with state/labels/assignee/since filters
+
+Both tools use IssueManager for data fetching and formatters for output.
+Errors are caught and returned as "Error: ..." strings.
+
+Also updates:
+- tach.toml: allow server -> github_operations dependency
+- vulture_whitelist.py: whitelist new tool names

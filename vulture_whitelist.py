@@ -39,6 +39,10 @@ _.clear_clone_failure_cache
 # Git read-only operation tool registered in server.py
 _.git
 
+# GitHub read-only tools registered in server.py
+_.github_issue_view
+_.github_issue_list
+
 # =============================================================================
 # Public API Exports
 # =============================================================================

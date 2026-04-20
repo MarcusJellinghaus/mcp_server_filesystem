@@ -37,9 +37,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `feat(github): add PR view and search result formatters (#78)`
 
 ### Step 4: Register `github_issue_view` and `github_issue_list` Tools in `server.py`
-- [ ] Implementation: tests + production code in `server.py`, update `tach.toml` and `vulture_whitelist.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `feat(github): add github_issue_view and github_issue_list MCP tools (#78)`
+- [x] Implementation: tests + production code in `server.py`, update `tach.toml` and `vulture_whitelist.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `feat(github): add github_issue_view and github_issue_list MCP tools (#78)`
 
 ### Step 5: Register `github_pr_view` and `github_search` Tools in `server.py`
 - [ ] Implementation: tests + production code in `server.py`, update `vulture_whitelist.py`

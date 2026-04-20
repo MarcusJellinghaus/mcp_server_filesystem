@@ -1,9 +1,16 @@
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from mcp.server.fastmcp import FastMCP
 from mcp_coder_utils.log_utils import log_function_call
+
+from mcp_workspace.github_operations.formatters import (
+    format_issue_list,
+    format_issue_view,
+)
+from mcp_workspace.github_operations.issues import IssueManager
 
 # Import utility functions from the main package
 from mcp_workspace.file_tools import append_file as append_file_util
@@ -468,6 +475,70 @@ def git(
         max_lines=max_lines,
         compact=compact,
     )
+
+
+@mcp.tool()
+@log_function_call
+def github_issue_view(
+    number: int,
+    include_comments: bool = True,
+    max_lines: int = 200,
+) -> str:
+    """View a GitHub issue with full detail.
+
+    Args:
+        number: Issue number to view
+        include_comments: Include issue comments (default: True)
+        max_lines: Maximum output lines (default: 200)
+
+    Returns:
+        Formatted issue detail text, or error message string.
+    """
+    try:
+        manager = IssueManager(project_dir=_project_dir)
+        issue = manager.get_issue(number)
+        if not issue["number"]:
+            return f"Error: Issue #{number} not found"
+        comments = manager.get_comments(number) if include_comments else []
+        return format_issue_view(issue, comments, max_lines)
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+@log_function_call
+def github_issue_list(
+    state: str = "open",
+    labels: Optional[List[str]] = None,
+    assignee: Optional[str] = None,
+    since: Optional[str] = None,
+    max_results: int = 30,
+) -> str:
+    """List GitHub issues with optional filters.
+
+    Args:
+        state: Filter by state - "open", "closed", or "all" (default: "open")
+        labels: Filter by label names
+        assignee: Filter by assignee username, "none", or "*"
+        since: Only issues updated after this ISO datetime string
+        max_results: Maximum results to return (default: 30)
+
+    Returns:
+        Compact summary lines, or error message string.
+    """
+    try:
+        manager = IssueManager(project_dir=_project_dir)
+        since_dt = datetime.fromisoformat(since) if since else None
+        issues = manager.list_issues(
+            state=state,
+            labels=labels,
+            assignee=assignee,
+            since=since_dt,
+            max_results=max_results,
+        )
+        return format_issue_list(issues, max_results)
+    except Exception as e:
+        return f"Error: {e}"
 
 
 @log_function_call
