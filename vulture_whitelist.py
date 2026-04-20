@@ -48,6 +48,9 @@ _.github_search
 # Base branch detection tool
 _.get_base_branch
 
+# File size check tool
+_.check_file_size
+
 # =============================================================================
 # Public API Exports
 # =============================================================================

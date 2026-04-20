@@ -17,6 +17,7 @@ from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
+from mcp_workspace.checks.file_sizes import check_file_sizes, load_allowlist, render_output
 from mcp_workspace.git_operations.base_branch import detect_base_branch
 from mcp_workspace.git_operations.read_operations import git as git_impl
 from mcp_workspace.github_operations.formatters import (
@@ -705,6 +706,25 @@ def get_base_branch() -> str:
         # Fallback: return "main" as safe default
         return "main"
     return result
+
+
+@mcp.tool()
+@log_function_call
+def check_file_size(max_lines: int = 600) -> str:
+    """Check file line counts against threshold.
+
+    Args:
+        max_lines: Maximum allowed lines per file (default 600).
+
+    Returns:
+        Formatted report of files exceeding the threshold.
+    """
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+    allowlist_path = _project_dir / ".large-files-allowlist"
+    allowlist = load_allowlist(allowlist_path)
+    result = check_file_sizes(_project_dir, max_lines=max_lines, allowlist=allowlist)
+    return render_output(result, max_lines)
 
 
 @log_function_call

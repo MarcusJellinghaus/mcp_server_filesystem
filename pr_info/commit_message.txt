@@ -1,8 +1,7 @@
-feat: add base_branch detection and MCP tool
+feat: add file_sizes check and MCP tool
 
-Move base_branch.py from mcp-coder workflow_utils into
-mcp_workspace.git_operations. Expose as get_base_branch MCP tool.
-Apply dependency injection for github_operations objects
-(architecture boundary enforcement). No other logic changes.
+Move file_sizes.py from mcp-coder checks into mcp_workspace.checks.
+Expose as check_file_size MCP tool. Auto-loads .large-files-allowlist.
+Adjust imports only, no logic changes.
 
 Ref: #114
