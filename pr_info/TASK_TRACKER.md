@@ -21,7 +21,7 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-- [ ] [Step 1: Add allowlists for 7 new git commands](steps/step_1.md) — arg_validation.py + tests
+- [x] [Step 1: Add allowlists for 7 new git commands](steps/step_1.md) — arg_validation.py + tests
 - [ ] [Step 2: Add new git command implementations](steps/step_2.md) — _run_simple_command, git_show, git_branch + tests
 - [ ] [Step 3: Unified git() dispatcher](steps/step_3.md) — dispatcher function + tests
 - [ ] [Step 4: Replace server tools + vulture whitelist](steps/step_4.md) — server.py, test_server.py, vulture_whitelist.py

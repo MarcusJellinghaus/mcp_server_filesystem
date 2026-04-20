@@ -1,0 +1,11 @@
+feat: add argument validation allowlists for 7 new git commands
+
+Add security allowlists for fetch, show, branch, rev-parse, ls-tree,
+ls-files, and ls-remote commands in arg_validation.py. Register all 7
+in the _ALLOWLISTS dict.
+
+Add validate_branch_has_read_flag() to prevent bare `git branch <name>`
+from creating branches — requires a read-only flag to proceed.
+
+Tests cover all new allowlists, cross-command isolation, and the
+branch read-flag validator.

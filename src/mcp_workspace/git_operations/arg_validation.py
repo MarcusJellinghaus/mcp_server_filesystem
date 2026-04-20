@@ -128,12 +128,177 @@ MERGE_BASE_ALLOWED_FLAGS: frozenset[str] = frozenset(
     }
 )
 
+FETCH_ALLOWED_FLAGS: frozenset[str] = frozenset(
+    {
+        "--all",
+        "--prune",
+        "--tags",
+        "--no-tags",
+        "--depth",
+        "--shallow-since",
+        "--shallow-exclude",
+        "--force",
+        "-f",
+        "--verbose",
+        "-v",
+        "--quiet",
+        "-q",
+        "--dry-run",
+        "-n",
+    }
+)
+
+SHOW_ALLOWED_FLAGS: frozenset[str] = frozenset(
+    {
+        "--format",
+        "--pretty",
+        "--abbrev-commit",
+        "--no-abbrev-commit",
+        "--date",
+        "--stat",
+        "--shortstat",
+        "--name-only",
+        "--name-status",
+        "--no-patch",
+        "--patch",
+        "-p",
+        "--unified",
+        "-U",
+        "--diff-filter",
+        "--no-ext-diff",
+        "--no-textconv",
+        "--oneline",
+        "-M",
+        "-C",
+        "--find-renames",
+        "--find-copies",
+        "--color-words",
+        "--word-diff",
+    }
+)
+
+BRANCH_ALLOWED_FLAGS: frozenset[str] = frozenset(
+    {
+        "--list",
+        "-a",
+        "-r",
+        "--contains",
+        "--merged",
+        "--no-merged",
+        "--sort",
+        "-v",
+        "--show-current",
+        "--no-color",
+    }
+)
+
+REV_PARSE_ALLOWED_FLAGS: frozenset[str] = frozenset(
+    {
+        "--abbrev-ref",
+        "--short",
+        "--verify",
+        "--symbolic",
+        "--symbolic-full-name",
+        "--show-toplevel",
+        "--show-cdup",
+        "--git-dir",
+        "--is-inside-work-tree",
+        "--is-bare-repository",
+        "--show-prefix",
+        "--show-superproject-working-tree",
+    }
+)
+
+LS_TREE_ALLOWED_FLAGS: frozenset[str] = frozenset(
+    {
+        "-r",
+        "-t",
+        "-d",
+        "--name-only",
+        "--name-status",
+        "--long",
+        "-l",
+        "--abbrev",
+        "--full-name",
+        "--full-tree",
+    }
+)
+
+LS_FILES_ALLOWED_FLAGS: frozenset[str] = frozenset(
+    {
+        "--cached",
+        "-c",
+        "--deleted",
+        "-d",
+        "--modified",
+        "-m",
+        "--others",
+        "-o",
+        "--ignored",
+        "-i",
+        "--stage",
+        "-s",
+        "--unmerged",
+        "-u",
+        "--exclude",
+        "--exclude-standard",
+        "--error-unmatch",
+        "--full-name",
+        "--abbrev",
+    }
+)
+
+LS_REMOTE_ALLOWED_FLAGS: frozenset[str] = frozenset(
+    {
+        "--heads",
+        "--tags",
+        "--refs",
+        "--quiet",
+        "-q",
+        "--sort",
+        "--get-url",
+    }
+)
+
 _ALLOWLISTS: dict[str, frozenset[str]] = {
     "log": LOG_ALLOWED_FLAGS,
     "diff": DIFF_ALLOWED_FLAGS,
     "status": STATUS_ALLOWED_FLAGS,
     "merge_base": MERGE_BASE_ALLOWED_FLAGS,
+    "fetch": FETCH_ALLOWED_FLAGS,
+    "show": SHOW_ALLOWED_FLAGS,
+    "branch": BRANCH_ALLOWED_FLAGS,
+    "rev_parse": REV_PARSE_ALLOWED_FLAGS,
+    "ls_tree": LS_TREE_ALLOWED_FLAGS,
+    "ls_files": LS_FILES_ALLOWED_FLAGS,
+    "ls_remote": LS_REMOTE_ALLOWED_FLAGS,
 }
+
+
+def validate_branch_has_read_flag(args: list[str]) -> None:
+    """Raise ValueError if no read-only flag is present in branch args.
+
+    Checks against BRANCH_ALLOWED_FLAGS — every allowed flag is a read-only
+    flag, so any allowed flag proves read-only intent.
+    Prevents bare ``git branch <name>`` from creating branches.
+
+    Args:
+        args: List of CLI arguments to check.
+
+    Raises:
+        ValueError: If no read-only flag is found.
+    """
+    for arg in args:
+        if not arg.startswith("-"):
+            continue
+        if arg in BRANCH_ALLOWED_FLAGS:
+            return
+        if "=" in arg:
+            prefix = arg.split("=", 1)[0]
+            if prefix in BRANCH_ALLOWED_FLAGS:
+                return
+    msg = "git branch requires a read-only flag (e.g. --list, -a, --show-current)"
+    raise ValueError(msg)
 
 
 def validate_args(command: str, args: list[str]) -> None:
