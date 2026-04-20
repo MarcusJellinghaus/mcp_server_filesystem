@@ -1,8 +1,9 @@
-"""Read-only git operations: log, diff, status, merge-base.
+"""Read-only git operations: log, diff, status, merge-base, and more.
 
 Thin wrappers around GitPython that validate arguments against
 security allowlists, inject safety flags, and apply output
-filtering/truncation.
+filtering/truncation.  The unified :func:`git` dispatcher routes
+to all 11 supported sub-commands.
 """
 
 import logging
@@ -368,3 +369,129 @@ def git_branch(
         return "No branches found."
 
     return truncate_output(output, max_lines)
+
+
+# ---------------------------------------------------------------------------
+# Unified git() dispatcher
+# ---------------------------------------------------------------------------
+
+_DEFAULT_MAX_LINES: dict[str, int] = {
+    "log": 50,
+    "diff": 100,
+    "status": 200,
+}
+
+_SUPPORTS_SEARCH: frozenset[str] = frozenset({"log", "diff", "show"})
+_SUPPORTS_COMPACT: frozenset[str] = frozenset({"diff", "show"})
+_SUPPORTS_PATHSPEC: frozenset[str] = frozenset(
+    {"log", "diff", "show", "ls_tree", "ls_files"}
+)
+_SUPPORTS_CONTEXT: frozenset[str] = frozenset({"diff", "show"})
+
+
+def git(
+    command: str,
+    project_dir: Path,
+    args: Optional[list[str]] = None,
+    pathspec: Optional[list[str]] = None,
+    search: Optional[str] = None,
+    context: int = 3,
+    max_lines: Optional[int] = None,
+    compact: bool = True,
+) -> str:
+    """Unified dispatcher for read-only git commands.
+
+    Routes *command* to the appropriate handler function, applying
+    per-command ``max_lines`` defaults and generating soft warnings
+    when non-default parameter values are passed for commands that
+    do not support them.
+
+    Args:
+        command: Git sub-command name (e.g. ``"log"``, ``"diff"``).
+        project_dir: Path to the git repository.
+        args: Optional CLI flags (validated per command).
+        pathspec: Optional file paths appended after ``--``.
+        search: Optional regex to filter output.
+        context: Lines of context around search matches.
+        max_lines: Maximum output lines.  Per-command default when *None*.
+        compact: If True, apply compact diff rendering where supported.
+
+    Returns:
+        Command output with optional warning prefix.
+
+    Raises:
+        ValueError: If *command* is not recognised.
+    """
+    resolved_max_lines = (
+        max_lines if max_lines is not None else _DEFAULT_MAX_LINES.get(command, 100)
+    )
+    safe_args = args  # keep None propagation to individual handlers
+    list_args = args or []  # coerced to list for _run_simple_command
+
+    # --- soft warnings for unsupported non-default params ----------------
+    warnings: list[str] = []
+    if not compact and command not in _SUPPORTS_COMPACT:
+        warnings.append(
+            f"⚠ 'compact' is not supported for git {command} and was ignored."
+        )
+    if context != 3 and command not in _SUPPORTS_CONTEXT:
+        warnings.append(
+            f"⚠ 'context' is not supported for git {command} and was ignored."
+        )
+    if search is not None and command not in _SUPPORTS_SEARCH:
+        warnings.append(
+            f"⚠ 'search' is not supported for git {command} and was ignored."
+        )
+    if pathspec is not None and command not in _SUPPORTS_PATHSPEC:
+        warnings.append(
+            f"⚠ 'pathspec' is not supported for git {command} and was ignored."
+        )
+
+    # --- dispatch --------------------------------------------------------
+    handlers: dict[str, object] = {
+        "log": lambda: git_log(
+            project_dir, safe_args, pathspec, search, resolved_max_lines
+        ),
+        "diff": lambda: git_diff(
+            project_dir, safe_args, pathspec, search, context, resolved_max_lines, compact
+        ),
+        "status": lambda: git_status(project_dir, safe_args, resolved_max_lines),
+        "merge_base": lambda: git_merge_base(project_dir, safe_args),
+        "show": lambda: git_show(
+            project_dir, safe_args, pathspec, search, context, resolved_max_lines, compact
+        ),
+        "branch": lambda: git_branch(project_dir, safe_args, resolved_max_lines),
+        "fetch": lambda: _run_simple_command(
+            "fetch", project_dir, "fetch", list_args, None,
+            resolved_max_lines, "Fetch complete (no output).",
+            use_safety_flags=False,
+        ),
+        "rev_parse": lambda: _run_simple_command(
+            "rev_parse", project_dir, "rev_parse", list_args, None,
+            resolved_max_lines, use_safety_flags=False,
+        ),
+        "ls_tree": lambda: _run_simple_command(
+            "ls_tree", project_dir, "ls_tree", list_args, pathspec,
+            resolved_max_lines,
+        ),
+        "ls_files": lambda: _run_simple_command(
+            "ls_files", project_dir, "ls_files", list_args, pathspec,
+            resolved_max_lines,
+        ),
+        "ls_remote": lambda: _run_simple_command(
+            "ls_remote", project_dir, "ls_remote", list_args, None,
+            resolved_max_lines, use_safety_flags=False,
+        ),
+    }
+
+    handler = handlers.get(command)
+    if handler is None:
+        raise ValueError(f"Unknown git command: '{command}'")
+
+    output: str = handler()  # type: ignore[operator]
+
+    if warnings:
+        prefix = "\n".join(warnings) + "\n\n"
+        return prefix + output
+
+    return output

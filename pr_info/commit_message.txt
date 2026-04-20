@@ -1,8 +1,10 @@
-feat: add _run_simple_command helper, git_show, and git_branch
+feat: add unified git() dispatcher for all 11 read-only commands
 
-- Add _run_simple_command() generic helper for validate→execute→truncate
-  pattern (used by fetch, rev_parse, ls_tree, ls_files, ls_remote)
-- Add git_show() with compact diff rendering and colon pattern detection
-- Add git_branch() with read-only flag enforcement
-- Add comprehensive tests: 6 unit tests for _run_simple_command,
-  5 integration tests for git_show, 6 integration tests for git_branch
+Add git() function in read_operations.py that routes to all 11
+sub-commands (log, diff, status, merge_base, show, branch, fetch,
+rev_parse, ls_tree, ls_files, ls_remote).
+
+- Per-command max_lines defaults (log=50, diff=100, status=200, others=100)
+- Soft warnings when non-default params are passed to unsupported commands
+- Unknown commands raise ValueError
+- 19 unit tests covering routing, defaults, warnings, and error handling
