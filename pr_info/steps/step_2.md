@@ -26,34 +26,40 @@ Copy the test file. All checks must pass.
 
 **File**: `src/mcp_workspace/github_operations/ci_log_parser.py`
 
-Copied 1:1 from mcp-coder. Key functions (signatures preserved):
+Copied 1:1 from mcp-coder. Key public functions (signatures preserved):
 
 ```python
-def parse_failed_log_section(log_text: str) -> list[dict[str, str]]:
-    """Parse GitHub Actions log text, extract failed step sections."""
-
-def get_failed_jobs_summary(
-    ci_status: dict[str, Any],
-    ci_manager: "CIResultsManager",
-    max_log_lines: int = 300,
+def truncate_ci_details(
+    details: str, max_lines: int = 300, head_lines: int = 10
 ) -> str:
-    """Fetch logs for failed jobs, parse them, return formatted summary."""
+    """Truncate CI details with head + tail preservation."""
 ```
+
+Also contains internal helpers used by `branch_status.py` (re-exported there):
+
+```python
+def _strip_timestamps(log_content: str) -> str: ...
+def _parse_groups(log_content: str) -> List[Tuple[str, List[str]]]: ...
+def _extract_failed_step_log(log_content: str, step_name: str) -> str: ...
+def _find_log_content(logs, job_name, step_number, step_name) -> str: ...
+def _build_ci_error_details(ci_manager, status_result, max_lines) -> Optional[str]: ...
+```
+
+Note: `_build_ci_error_details` takes a `CIResultsManager` instance (TYPE_CHECKING import only).
 
 ## HOW — Import adjustments
 
-- `from mcp_coder.mcp_workspace_git` → direct imports from `mcp_workspace.github_operations` (e.g., `CIResultsManager`)
+- `from mcp_coder.utils.github_operations.ci_results_manager import CIResultsManager` (TYPE_CHECKING only) → `from mcp_workspace.github_operations.ci_results_manager import CIResultsManager`
 - Any `from mcp_coder.checks.ci_log_parser` in tests → `from mcp_workspace.github_operations.ci_log_parser`
 
-## ALGORITHM — `get_failed_jobs_summary` (pseudocode)
+## ALGORITHM — `_build_ci_error_details` (pseudocode)
 
 ```
-1. Extract failed jobs from ci_status dict
-2. For each failed job, fetch log via ci_manager.get_job_log(job_id)
-3. Parse log with parse_failed_log_section()
-4. Truncate to max_log_lines
-5. Format and concatenate all failed job summaries
-6. Return formatted string
+1. Extract failed jobs from status_result["jobs"]
+2. Fetch logs for up to 3 failed run_ids via ci_manager.get_run_logs()
+3. For each failed job: find log content, strip timestamps, extract failed step section
+4. Build output with job headers, log content, and truncation as needed
+5. Return structured multi-line string or None
 ```
 
 ## WHAT — Tests
@@ -65,14 +71,9 @@ Copied 1:1 from mcp-coder's `tests/checks/test_ci_log_parser.py`. Only adjust im
 
 ## DATA — Return structures
 
-`parse_failed_log_section` returns:
-```python
-[
-    {"step_name": "Run tests", "log_content": "FAILED test_foo.py ..."},
-]
-```
+`truncate_ci_details` returns: `str` — truncated log content with head + tail preservation.
 
-`get_failed_jobs_summary` returns a formatted multi-line string.
+`_build_ci_error_details` returns: `Optional[str]` — structured CI error details with failed job summaries and log excerpts, or None if no logs available.
 
 ## Commit
 

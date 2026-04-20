@@ -29,7 +29,7 @@ Run all code quality checks (pylint, pytest, mypy).
 
 Add `mcp_workspace.checks` and `mcp_workspace.workflows` to the layered architecture contract.
 
-`checks` is at the same layer as `file_tools | github_operations` because it depends on both `git_operations` and `github_operations`.
+`checks` must be on a **higher layer** than `github_operations` because `checks` imports from `github_operations` (e.g., `branch_status.py` imports `CIResultsManager`, `IssueManager`, `IssueData`). In import-linter, modules at the same layer (separated by `|`) **cannot** import each other.
 
 `workflows` is at the same layer as `git_operations` (it has no dependencies on other tools-layer modules).
 
@@ -39,14 +39,13 @@ layers =
     mcp_workspace.main
     mcp_workspace.server
     mcp_workspace.server_reference_tools
-    mcp_workspace.file_tools | mcp_workspace.github_operations | mcp_workspace.reference_projects | mcp_workspace.checks
+    mcp_workspace.checks
+    mcp_workspace.file_tools | mcp_workspace.github_operations | mcp_workspace.reference_projects
     mcp_workspace.git_operations | mcp_workspace.workflows
     mcp_workspace.config | mcp_workspace.constants | mcp_workspace.utils
 ```
 
-Note: `checks` depends on `github_operations` (same layer via `|`) and on `workflows` + `git_operations` (lower layer). The `|` means "same layer, may import each other". Since `checks` needs `github_operations`, they share a layer. `workflows` drops to `git_operations` layer since it has no upward deps.
-
-**Important**: If `checks` does NOT import `github_operations` at the Python level but only uses it at runtime, it can stay on the same layer. Review actual imports in the moved code to confirm layer placement.
+`checks` is on its own layer above `file_tools | github_operations | reference_projects` because it imports from `github_operations`. Modules on the same `|`-separated layer cannot import each other in import-linter. `workflows` stays at the `git_operations` layer since it has no upward deps.
 
 ## WHAT — `tach.toml` changes
 
@@ -60,6 +59,7 @@ layer = "protocol"
 depends_on = [
     { path = "mcp_workspace.file_tools" },
     { path = "mcp_workspace.git_operations" },
+    { path = "mcp_workspace.github_operations" },
     { path = "mcp_workspace.checks" },
     { path = "mcp_workspace.reference_projects" },
     { path = "mcp_workspace.server_reference_tools" },

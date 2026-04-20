@@ -24,24 +24,31 @@ Move 5 modules and their tests from mcp-coder into mcp-workspace, then expose 3 
 
 | Tool | Function called | Parameters |
 |------|----------------|------------|
-| `check_branch_status` | `collect_branch_status()` → `format_for_llm()` | `max_log_lines: int = 300` |
-| `check_file_size` | `check_file_sizes()` → `render_output()` | `max_lines: int = 600` |
-| `get_base_branch` | `detect_base_branch()` | none |
+| `check_branch_status` | `collect_branch_status()` → `report.format_for_llm()` | `max_log_lines: int = 300` |
+| `check_file_size` | `check_file_sizes()` → `render_output(result, max_lines)` | `max_lines: int = 600` |
+| `get_base_branch` | `detect_base_branch()` (with DI) → fallback to `"main"` if None | none |
 
 ### Layer placement
 
 ```
 server.py  (protocol layer — calls new tools)
-  ├── checks/branch_status  (tools layer — depends on git_ops, github_ops, workflows)
-  ├── checks/file_sizes     (tools layer — depends on file_tools)
-  ├── workflows/task_tracker (tools layer — pure parsing, no external deps)
-  ├── git_operations/base_branch  (tools layer — existing package)
+  ├── checks/branch_status  (checks layer — above github_ops, depends on git_ops, github_ops, workflows)
+  ├── checks/file_sizes     (checks layer — depends on file_tools)
+  ├── file_tools | github_operations | reference_projects  (tools layer)
+  ├── git_operations/base_branch | workflows/task_tracker  (tools layer — base_branch uses DI for github_ops)
   └── github_operations/ci_log_parser  (tools layer — existing package)
 ```
 
+import-linter layers (top = highest):
+```
+server > server_reference_tools > checks > file_tools|github_operations|reference_projects > git_operations|workflows > config|constants|utils
+```
+
+Key constraint: `checks` is above `github_operations` because `branch_status.py` imports from `github_operations`. `base_branch.py` uses dependency injection to avoid importing from `github_operations` (which would be an upward import from `git_operations`).
+
 ### Config file changes
 
-- **`.importlinter`**: Add `mcp_workspace.checks` and `mcp_workspace.workflows` to layered architecture (tools layer, alongside `file_tools | github_operations`)
+- **`.importlinter`**: Add `mcp_workspace.checks` (own layer above `file_tools | github_operations`) and `mcp_workspace.workflows` (at `git_operations` layer)
 - **`tach.toml`**: Add `mcp_workspace.checks` and `mcp_workspace.workflows` module entries with dependencies; update `mcp_workspace.server` to depend on `mcp_workspace.checks` and `mcp_workspace.git_operations`
 - **`vulture_whitelist.py`**: Add `check_branch_status`, `check_file_size`, `get_base_branch`
 

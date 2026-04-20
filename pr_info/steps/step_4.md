@@ -31,23 +31,50 @@ from project root. Add the check_file_size MCP tool to server.py. All checks mus
 
 **File**: `src/mcp_workspace/checks/file_sizes.py`
 
-Copied 1:1 from mcp-coder. Key functions:
+Copied 1:1 from mcp-coder. Key dataclasses and functions:
 
 ```python
-def load_allowlist(project_dir: Path) -> set[str]:
-    """Load .large-files-allowlist from project root. Returns set of relative paths."""
+@dataclass
+class FileMetrics:
+    """Metrics for a single file."""
+    path: Path
+    line_count: int
+
+@dataclass
+class CheckResult:
+    """Result of file size check."""
+    passed: bool
+    violations: list[FileMetrics]
+    total_files_checked: int
+    allowlisted_count: int
+    stale_entries: list[str]
+
+def count_lines(file_path: Path) -> int:
+    """Count lines in a file. Returns -1 for binary/non-UTF-8."""
+
+def load_allowlist(allowlist_path: Path) -> set[str]:
+    """Load allowlist from file. Returns set of normalized path strings."""
+
+def get_file_metrics(files: list[Path], project_dir: Path) -> list[FileMetrics]:
+    """Get file metrics for a list of files."""
 
 def check_file_sizes(
     project_dir: Path,
-    max_lines: int = 600,
-    allowlist: Optional[set[str]] = None,
-) -> list[dict[str, Any]]:
-    """Check all tracked files against max_lines threshold.
-    Returns list of violations: [{"path": str, "lines": int}].
+    max_lines: int,
+    allowlist: set[str],
+) -> CheckResult:
+    """Check file sizes against maximum line limit.
+    Note: allowlist is REQUIRED (no default). max_lines has no default.
+    Returns CheckResult dataclass, not a raw list.
     """
 
-def render_output(violations: list[dict[str, Any]], max_lines: int) -> str:
-    """Format violations into human-readable output string."""
+def render_output(result: CheckResult, max_lines: int) -> str:
+    """Render check result for terminal output.
+    Takes a CheckResult dataclass, not a raw list of violations.
+    """
+
+def render_allowlist(violations: list[FileMetrics]) -> str:
+    """Render violations as allowlist entries."""
 ```
 
 ## WHAT — Package init
@@ -66,12 +93,12 @@ def render_output(violations: list[dict[str, Any]], max_lines: int) -> str:
 ## ALGORITHM — `check_file_sizes` (pseudocode)
 
 ```
-1. all_files = list_files(".", project_dir, use_gitignore=True)
-2. allowlist = load_allowlist(project_dir) if not provided
-3. For each file, count lines; if lines > max_lines and path not in allowlist:
-4.   Append {"path": rel_path, "lines": count} to violations
-5. Sort violations by line count descending
-6. Return violations list
+1. files = list_files(".", project_dir) — get all project files
+2. metrics = get_file_metrics(files, project_dir) — count lines for each
+3. For each file over max_lines: if path in allowlist, count as allowlisted; else add to violations
+4. Detect stale allowlist entries (file doesn't exist or is under limit)
+5. Sort violations by line_count descending
+6. Return CheckResult(passed, violations, total_files_checked, allowlisted_count, stale_entries)
 ```
 
 ## WHAT — MCP tool wrapper in `server.py`
@@ -90,9 +117,10 @@ def check_file_size(max_lines: int = 600) -> str:
     """
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
-    allowlist = load_allowlist(_project_dir)
-    violations = check_file_sizes(_project_dir, max_lines=max_lines, allowlist=allowlist)
-    return render_output(violations, max_lines)
+    allowlist_path = _project_dir / ".large-files-allowlist"
+    allowlist = load_allowlist(allowlist_path)
+    result = check_file_sizes(_project_dir, max_lines=max_lines, allowlist=allowlist)
+    return render_output(result, max_lines)
 ```
 
 **Imports to add in `server.py`**:
@@ -109,19 +137,25 @@ Copied 1:1 from mcp-coder's `tests/checks/test_file_sizes.py`. Only adjust impor
 
 ## DATA
 
-`check_file_sizes` returns:
+`check_file_sizes` returns a `CheckResult` dataclass:
 ```python
-[
-    {"path": "src/mcp_workspace/server.py", "lines": 812},
-    {"path": "src/mcp_workspace/some_big_file.py", "lines": 650},
-]
+CheckResult(
+    passed=False,
+    violations=[FileMetrics(path=Path("src/server.py"), line_count=812)],
+    total_files_checked=45,
+    allowlisted_count=2,
+    stale_entries=["old_file.py"],
+)
 ```
 
 `render_output` returns a formatted string like:
 ```
-2 files exceed 600 lines:
-  src/mcp_workspace/server.py: 812 lines
-  src/mcp_workspace/some_big_file.py: 650 lines
+File size check failed: 1 file(s) exceed 600 lines
+
+Violations:
+  - src/server.py: 812 lines
+
+Consider refactoring these files or adding them to the allowlist.
 ```
 
 ## Commit

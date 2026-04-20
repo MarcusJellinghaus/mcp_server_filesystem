@@ -31,20 +31,48 @@ mcp_workspace.github_operations.* directly. Add check_branch_status MCP tool. Al
 
 **File**: `src/mcp_workspace/checks/branch_status.py`
 
-Copied 1:1 from mcp-coder. Key functions:
+Copied 1:1 from mcp-coder. Key classes and functions:
 
 ```python
-def collect_branch_status(
-    project_dir: Path,
-    max_log_lines: int = 300,
-) -> dict[str, Any]:
-    """Collect comprehensive branch status: git state, CI, PR, tasks.
-    Always attempts PR lookup (no toggle parameter).
-    """
+class CIStatus(str, Enum):
+    """CI pipeline status: PASSED, FAILED, NOT_CONFIGURED, PENDING."""
 
-def format_for_llm(status: dict[str, Any]) -> str:
-    """Format collected status into LLM-friendly text output."""
+@dataclass(frozen=True)
+class BranchStatusReport:
+    """Branch readiness status report."""
+    branch_name: str
+    base_branch: str
+    ci_status: CIStatus
+    ci_details: Optional[str]
+    rebase_needed: bool
+    rebase_reason: str
+    tasks_status: TaskTrackerStatus
+    tasks_reason: str
+    tasks_is_blocking: bool
+    current_github_label: str
+    recommendations: List[str]
+    pr_number: Optional[int] = None
+    pr_url: Optional[str] = None
+    pr_found: Optional[bool] = None
+
+    def format_for_human(self) -> str: ...
+    def format_for_llm(self, max_lines: int = 300) -> str: ...
+
+def create_empty_report() -> BranchStatusReport: ...
+
+def get_failed_jobs_summary(
+    jobs: Sequence[Mapping[str, Any]], logs: Mapping[str, str]
+) -> Dict[str, Any]: ...
+
+def collect_branch_status(
+    project_dir: Path, max_log_lines: int = 300
+) -> BranchStatusReport:
+    """Collect comprehensive branch status from all sources.
+    Returns a BranchStatusReport dataclass (not a dict).
+    """
 ```
+
+Note: `format_for_llm()` is a **method** on `BranchStatusReport`, not a standalone function.
 
 ## HOW — Import adjustments (the main rewiring work)
 
@@ -52,27 +80,41 @@ Old mcp-coder imports → new mcp-workspace imports:
 
 | Old import | New import |
 |-----------|-----------|
+| `mcp_coder.checks.ci_log_parser._build_ci_error_details` | `mcp_workspace.github_operations.ci_log_parser._build_ci_error_details` |
+| `mcp_coder.checks.ci_log_parser._extract_failed_step_log` | `mcp_workspace.github_operations.ci_log_parser._extract_failed_step_log` |
+| `mcp_coder.checks.ci_log_parser._find_log_content` | `mcp_workspace.github_operations.ci_log_parser._find_log_content` |
+| `mcp_coder.checks.ci_log_parser._strip_timestamps` | `mcp_workspace.github_operations.ci_log_parser._strip_timestamps` |
+| `mcp_coder.checks.ci_log_parser.truncate_ci_details` | `mcp_workspace.github_operations.ci_log_parser.truncate_ci_details` |
+| `mcp_coder.mcp_workspace_git.extract_issue_number_from_branch` | `mcp_workspace.git_operations.branch_queries.extract_issue_number_from_branch` |
 | `mcp_coder.mcp_workspace_git.get_current_branch_name` | `mcp_workspace.git_operations.get_current_branch_name` |
-| `mcp_coder.mcp_workspace_git.get_default_branch_name` | `mcp_workspace.git_operations.get_default_branch_name` |
-| `mcp_coder.mcp_workspace_git.get_github_repository_url` | `mcp_workspace.git_operations.get_github_repository_url` |
+| `mcp_coder.mcp_workspace_git.needs_rebase` | `mcp_workspace.git_operations.workflows.needs_rebase` |
+| `mcp_coder.utils.github_operations.ci_results_manager.CIResultsManager` | `mcp_workspace.github_operations.ci_results_manager.CIResultsManager` |
+| `mcp_coder.utils.github_operations.issues.IssueData` | `mcp_workspace.github_operations.issues.IssueData` |
+| `mcp_coder.utils.github_operations.issues.IssueManager` | `mcp_workspace.github_operations.issues.IssueManager` |
 | `mcp_coder.workflow_utils.base_branch.detect_base_branch` | `mcp_workspace.git_operations.base_branch.detect_base_branch` |
-| `mcp_coder.workflow_utils.task_tracker.*` | `mcp_workspace.workflows.task_tracker.*` |
-| `mcp_coder.checks.ci_log_parser.get_failed_jobs_summary` | `mcp_workspace.github_operations.ci_log_parser.get_failed_jobs_summary` |
-| `mcp_coder.mcp_workspace_git.PullRequestManager` | `mcp_workspace.github_operations.PullRequestManager` |
-| `mcp_coder.mcp_workspace_git.CIResultsManager` | `mcp_workspace.github_operations.CIResultsManager` |
-| `mcp_coder.mcp_workspace_git.LabelsManager` | `mcp_workspace.github_operations.LabelsManager` |
+| `mcp_coder.workflow_utils.task_tracker.TaskTrackerFileNotFoundError` | `mcp_workspace.workflows.task_tracker.TaskTrackerFileNotFoundError` |
+| `mcp_coder.workflow_utils.task_tracker.TaskTrackerSectionNotFoundError` | `mcp_workspace.workflows.task_tracker.TaskTrackerSectionNotFoundError` |
+| `mcp_coder.workflow_utils.task_tracker.TaskTrackerStatus` | `mcp_workspace.workflows.task_tracker.TaskTrackerStatus` |
+| `mcp_coder.workflow_utils.task_tracker.get_task_counts` | `mcp_workspace.workflows.task_tracker.get_task_counts` |
+
+Also note: `MERGE_BASE_DISTANCE_THRESHOLD` is imported in the mcp-coder version's `base_branch.py` but not directly in `branch_status.py`.
 
 ## ALGORITHM — `collect_branch_status` (pseudocode)
 
 ```
-1. Get current branch, default branch, base branch via git_operations
-2. Get PR for current branch via PullRequestManager
-3. Get CI status via CIResultsManager
-4. If CI has failures: get_failed_jobs_summary(ci_status, ci_manager, max_log_lines)
-5. Parse TASK_TRACKER.md via task_tracker if it exists
-6. Check labels via LabelsManager
-7. Return dict with all collected status sections
+1. Get current branch via get_current_branch_name()
+2. Fetch issue data once (IssueManager) for sharing between detect_base_branch and label lookup
+3. Detect base branch via detect_base_branch(project_dir, branch_name, issue_data,
+   issue_manager=issue_manager, pr_manager=pr_manager)  # DI from step 3
+4. Collect CI status via CIResultsManager; if failed, _build_ci_error_details()
+5. Check rebase status via needs_rebase()
+6. Check task tracker via get_task_counts()
+7. Collect GitHub label from issue_data
+8. Generate recommendations based on all statuses
+9. Return BranchStatusReport dataclass
 ```
+
+Note: since `base_branch.py` now uses dependency injection (step 3), `branch_status.py` is the caller that constructs `IssueManager` and `PullRequestManager` and passes them to `detect_base_branch`.
 
 ## WHAT — MCP tool wrapper in `server.py`
 
@@ -90,13 +132,15 @@ def check_branch_status(max_log_lines: int = 300) -> str:
     """
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
-    status = collect_branch_status(_project_dir, max_log_lines=max_log_lines)
-    return format_for_llm(status)
+    report = collect_branch_status(_project_dir, max_log_lines=max_log_lines)
+    return report.format_for_llm()
 ```
+
+Note: `format_for_llm()` is a method on `BranchStatusReport`, not a standalone function.
 
 **Imports to add in `server.py`**:
 ```python
-from mcp_workspace.checks.branch_status import collect_branch_status, format_for_llm
+from mcp_workspace.checks.branch_status import collect_branch_status
 ```
 
 ## WHAT — Tests
@@ -113,22 +157,27 @@ Copied 1:1 from mcp-coder's `tests/checks/test_branch_status_pr_fields.py`. Same
 
 ## DATA
 
-`collect_branch_status` returns:
+`collect_branch_status` returns a `BranchStatusReport` dataclass:
 ```python
-{
-    "current_branch": "123-feature",
-    "default_branch": "main",
-    "base_branch": "main",
-    "pr": {"number": 45, "title": "...", "state": "open", ...} | None,
-    "ci_status": {"overall": "failure", "jobs": [...]} | None,
-    "ci_log_summary": "Failed job output..." | None,
-    "tasks": {"total": 5, "completed": 3, "remaining": 2} | None,
-    "labels": ["status-04:in-progress"] | None,
-    "rebase_needed": True | False,
-}
+BranchStatusReport(
+    branch_name="123-feature",
+    base_branch="main",
+    ci_status=CIStatus.PASSED,
+    ci_details=None,
+    rebase_needed=False,
+    rebase_reason="Up to date with origin/main",
+    tasks_status=TaskTrackerStatus.INCOMPLETE,
+    tasks_reason="3 of 5 tasks complete",
+    tasks_is_blocking=True,
+    current_github_label="status-04:in-progress",
+    recommendations=["Complete remaining tasks (3 of 5 tasks complete)"],
+    pr_number=45,
+    pr_url="https://github.com/...",
+    pr_found=True,
+)
 ```
 
-`format_for_llm` returns a formatted multi-line string.
+`report.format_for_llm()` returns a compact formatted multi-line string optimized for LLM context windows.
 
 ## Commit
 

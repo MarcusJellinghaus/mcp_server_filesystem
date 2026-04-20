@@ -29,17 +29,48 @@ Copy the test file and 5 test data fixtures. All checks must pass.
 
 **File**: `src/mcp_workspace/workflows/task_tracker.py`
 
-Copied 1:1 from mcp-coder. Key functions (signatures preserved):
+Copied 1:1 from mcp-coder. Key public classes, functions, and their signatures:
 
 ```python
-def parse_task_tracker(content: str) -> list[dict[str, Any]]:
-    """Parse TASK_TRACKER.md content into list of task dicts."""
+# --- Data classes ---
+@dataclass
+class TaskInfo:
+    """Simple data model for task information."""
+    name: str
+    is_complete: bool
+    line_number: int
+    indentation_level: int
 
-def get_completion_stats(tasks: list[dict[str, Any]]) -> dict[str, int]:
-    """Return {total, completed, remaining} counts."""
+class TaskTrackerStatus(str, Enum):
+    """Status of the task tracker: COMPLETE, INCOMPLETE, N_A, ERROR."""
 
-def format_completion_summary(stats: dict[str, int]) -> str:
-    """Return human-readable completion summary string."""
+# --- Exception classes ---
+class TaskTrackerError(Exception): ...
+class TaskTrackerFileNotFoundError(TaskTrackerError): ...
+class TaskTrackerSectionNotFoundError(TaskTrackerError): ...
+
+# --- Public functions ---
+def get_incomplete_tasks(
+    folder_path: str = "pr_info", exclude_meta_tasks: bool = False
+) -> list[str]:
+    """Get list of incomplete task names from Implementation Steps section."""
+
+def has_incomplete_work(folder_path: str = "pr_info") -> bool:
+    """Check if there is any incomplete work in the task tracker."""
+
+def get_task_counts(folder_path: str = "pr_info") -> tuple[int, int]:
+    """Get total and completed task counts. Returns (total, completed)."""
+
+def get_step_progress(
+    folder_path: str = "pr_info",
+) -> dict[str, dict[str, int | list[str]]]:
+    """Get detailed progress info for each step."""
+
+def validate_task_tracker(folder_path: str = "pr_info") -> None:
+    """Validate TASK_TRACKER.md has required structure."""
+
+def is_task_done(task_name: str, folder_path: str = "pr_info") -> bool:
+    """Check if specific task is marked as complete."""
 ```
 
 ## WHAT — Package init
@@ -65,18 +96,25 @@ Copied 1:1 from mcp-coder's `tests/workflow_utils/test_task_tracker.py`. Only ad
 
 ## DATA — Return structures
 
-`parse_task_tracker` returns:
+`get_incomplete_tasks` returns: `list[str]` — names of incomplete tasks.
+
+`get_task_counts` returns: `tuple[int, int]` — `(total_tasks, completed_tasks)`.
+
+`get_step_progress` returns:
 ```python
-[
-    {"text": "Task description", "completed": True, "detail_file": "steps/step_1.md"},
-    {"text": "Another task", "completed": False, "detail_file": None},
-]
+{
+    "Step 1: Create Package Structure": {
+        "total": 5,
+        "completed": 3,
+        "incomplete": 2,
+        "incomplete_tasks": ["Task A", "Task B"]
+    },
+}
 ```
 
-`get_completion_stats` returns:
-```python
-{"total": 5, "completed": 3, "remaining": 2}
-```
+`is_task_done` returns: `bool` — True if task is complete.
+
+Also exports: `TASK_TRACKER_TEMPLATE` string constant for creating new tracker files.
 
 ## Commit
 
