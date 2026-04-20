@@ -105,7 +105,7 @@ jobs:
           - {name: "isort", cmd: "isort --version && isort --check --profile=black --float-to-top src tests"}
           - {name: "pylint", cmd: "pylint --version && pylint ./src ./tests"}
           - {name: "unit-tests", cmd: "pytest --version && pytest -n auto -m 'not git_integration and not github_integration'"}
-          - {name: "integration-tests", cmd: "pytest --version && pytest -n auto -m 'git_integration or github_integration'"}
+          - {name: "git-integration-tests", cmd: "pytest --version && pytest -n auto -m 'git_integration'"}
           - {name: "mypy", cmd: "mypy --version && mypy --strict src tests"}
 
     name: ${{ matrix.check.name }}
@@ -131,6 +131,57 @@ jobs:
 
       - name: Run ${{ matrix.check.name }}
         run: ${{ matrix.check.cmd }}
+
+  check-github-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+    steps:
+      - id: check
+        env:
+          TOKEN: ${{ secrets.GH_INTEGRATION_TOKEN }}
+          REPO_URL: ${{ secrets.GITHUB_TEST_REPO_URL }}
+        run: |
+          if [[ -n "$TOKEN" && -n "$REPO_URL" ]]; then
+            echo "has-secrets=true" >> $GITHUB_OUTPUT
+          fi
+
+  github-integration-tests:
+    runs-on: ubuntu-latest
+    needs: check-github-secrets
+    if: needs.check-github-secrets.outputs.has-secrets == 'true'
+    name: github-integration-tests
+    env:
+      GITHUB_TOKEN: ${{ secrets.GH_INTEGRATION_TOKEN }}
+      GITHUB_TEST_REPO_URL: ${{ secrets.GITHUB_TEST_REPO_URL }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Environment info
+        run: |
+          uname -a
+          python --version
+          uv --version
+          git --version
+
+      - name: Integration test configuration
+        run: |
+          echo "✅ GitHub integration tests enabled"
+          echo "  Token: configured (GH_INTEGRATION_TOKEN)"
+          echo "  Test repo: $GITHUB_TEST_REPO_URL"
+
+      - name: Run github-integration-tests
+        run: pytest --version && pytest -n auto -m 'github_integration'
 
   file-size:
     runs-on: ubuntu-latest
