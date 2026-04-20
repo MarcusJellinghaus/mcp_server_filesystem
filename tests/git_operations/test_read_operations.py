@@ -555,8 +555,6 @@ class TestGitBranch:
 class TestGitDispatcher:
     """Unit tests for the unified git() dispatcher (mocked implementations)."""
 
-    MODULE = "mcp_workspace.git_operations.read_operations"
-
     @patch("mcp_workspace.git_operations.read_operations.git_log")
     def test_routes_to_log(self, mock_log: MagicMock, tmp_path: Path) -> None:
         mock_log.return_value = "log output"
