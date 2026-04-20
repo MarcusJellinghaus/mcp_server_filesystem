@@ -1,5 +1,0 @@
-fix: reformat long function signature in test_server.py for black compliance
-
-Break the test_rejects_non_string_content function signature across
-multiple lines to stay within the 88-character line length limit
-enforced by black.
