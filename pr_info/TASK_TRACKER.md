@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Extend `IssueManager.list_issues()` with `labels`, `assignee`, `max_results`
-- [ ] Implementation: tests + production code in `issues/manager.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `feat(github): extend IssueManager.list_issues with labels, assignee, max_results (#78)`
+- [x] Implementation: tests + production code in `issues/manager.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `feat(github): extend IssueManager.list_issues with labels, assignee, max_results (#78)`
 
 ### Step 2: Create `formatters.py` — Issue Formatters (`format_issue_view`, `format_issue_list`)
 - [ ] Implementation: tests + production code in `github_operations/formatters.py`

@@ -1,0 +1,12 @@
+feat(github): extend IssueManager.list_issues with labels, assignee, max_results (#78)
+
+Add three new optional parameters to list_issues() and
+_list_issues_no_error_handling():
+
+- labels: filter by label names (forwarded to PyGithub)
+- assignee: filter by assignee username (forwarded to PyGithub)
+- max_results: cap the number of returned issues with early-break
+
+All parameters default to None, preserving backward compatibility.
+Includes 6 new unit tests covering individual params, combined usage,
+and max_results interaction with PR filtering.

@@ -7,7 +7,7 @@ for managing GitHub issues through the PyGithub library.
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from mcp_coder_utils.log_utils import log_function_call
 
@@ -182,6 +182,9 @@ class IssueManager(CommentsMixin, LabelsMixin, EventsMixin, BaseGitHubManager):
         state: str = "open",
         include_pull_requests: bool = False,
         since: Optional[datetime] = None,
+        labels: Optional[List[str]] = None,
+        assignee: Optional[str] = None,
+        max_results: Optional[int] = None,
     ) -> List[IssueData]:
         """List issues without error handling. Raises on API failure.
 
@@ -200,13 +203,17 @@ class IssueManager(CommentsMixin, LabelsMixin, EventsMixin, BaseGitHubManager):
         if repo is None:
             raise RuntimeError("Failed to get repository")
 
-        # Get issues with pagination support (PyGithub handles this automatically)
-        # Pass since parameter to PyGithub's get_issues() when provided
-        issues_list: List[IssueData] = []
+        # Build kwargs for PyGithub's get_issues()
+        kwargs: dict[str, Any] = {"state": state}
         if since is not None:
-            issues_iterator = repo.get_issues(state=state, since=since)
-        else:
-            issues_iterator = repo.get_issues(state=state)
+            kwargs["since"] = since
+        if labels is not None:
+            kwargs["labels"] = labels
+        if assignee is not None:
+            kwargs["assignee"] = assignee
+
+        issues_list: List[IssueData] = []
+        issues_iterator = repo.get_issues(**kwargs)
 
         for issue in issues_iterator:
             # Filter out pull requests if not requested
@@ -238,6 +245,9 @@ class IssueManager(CommentsMixin, LabelsMixin, EventsMixin, BaseGitHubManager):
             )
             issues_list.append(issue_data)
 
+            if max_results is not None and len(issues_list) >= max_results:
+                break
+
         return issues_list
 
     @log_function_call
@@ -247,6 +257,9 @@ class IssueManager(CommentsMixin, LabelsMixin, EventsMixin, BaseGitHubManager):
         state: str = "open",
         include_pull_requests: bool = False,
         since: Optional[datetime] = None,
+        labels: Optional[List[str]] = None,
+        assignee: Optional[str] = None,
+        max_results: Optional[int] = None,
     ) -> List[IssueData]:
         """List all issues in the repository with pagination support.
 
@@ -254,6 +267,9 @@ class IssueManager(CommentsMixin, LabelsMixin, EventsMixin, BaseGitHubManager):
             state: Issue state filter - 'open', 'closed', or 'all' (default: 'open')
             include_pull_requests: Whether to include PRs in results (default: False)
             since: Only fetch issues updated after this time (optional)
+            labels: Filter by label names (optional)
+            assignee: Filter by assignee username, 'none', or '*' (optional)
+            max_results: Maximum number of issues to return (optional)
 
         Returns:
             List of IssueData dictionaries with issue information, or empty list on error
@@ -269,7 +285,12 @@ class IssueManager(CommentsMixin, LabelsMixin, EventsMixin, BaseGitHubManager):
             >>> recent_issues = manager.list_issues(since=cutoff_time)
         """
         return self._list_issues_no_error_handling(
-            state=state, include_pull_requests=include_pull_requests, since=since
+            state=state,
+            include_pull_requests=include_pull_requests,
+            since=since,
+            labels=labels,
+            assignee=assignee,
+            max_results=max_results,
         )
 
     @log_function_call
