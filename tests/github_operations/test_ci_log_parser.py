@@ -1,0 +1,261 @@
+"""Tests for ci_log_parser module."""
+
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from mcp_workspace.github_operations.ci_log_parser import (
+    _build_ci_error_details,
+    _extract_failed_step_log,
+    _find_log_content,
+    _parse_groups,
+    _strip_timestamps,
+    truncate_ci_details,
+)
+
+
+class TestTruncateCiDetails:
+    """Tests for truncate_ci_details."""
+
+    def test_short_content_unchanged(self) -> None:
+        """Content within limits is returned unchanged."""
+        content = "line1\nline2\nline3"
+        result = truncate_ci_details(content, max_lines=10)
+        assert result == content
+
+    def test_exact_limit_unchanged(self) -> None:
+        """Content exactly at limit is returned unchanged."""
+        lines = [f"line{i}" for i in range(10)]
+        content = "\n".join(lines)
+        result = truncate_ci_details(content, max_lines=10)
+        assert result == content
+
+    def test_over_limit_truncated(self) -> None:
+        """Content over limit is truncated with head + tail."""
+        lines = [f"line{i}" for i in range(20)]
+        content = "\n".join(lines)
+        result = truncate_ci_details(content, max_lines=10, head_lines=3)
+        assert "line0" in result
+        assert "line1" in result
+        assert "line2" in result
+        assert "line19" in result
+        assert "truncated" in result
+
+    def test_truncation_marker_shows_count(self) -> None:
+        """Truncation marker shows the number of skipped lines."""
+        lines = [f"line{i}" for i in range(30)]
+        content = "\n".join(lines)
+        result = truncate_ci_details(content, max_lines=10, head_lines=3)
+        assert "20 lines truncated" in result
+
+
+class TestStripTimestamps:
+    """Tests for _strip_timestamps."""
+
+    def test_strips_github_actions_timestamps(self) -> None:
+        """GitHub Actions timestamps are removed from log lines."""
+        log = "2024-01-15T10:30:45.1234567Z Run npm test\n2024-01-15T10:30:46.9876543Z FAIL src/test.js"
+        result = _strip_timestamps(log)
+        assert result == "Run npm test\nFAIL src/test.js"
+
+    def test_preserves_lines_without_timestamps(self) -> None:
+        """Lines without timestamps are preserved as-is."""
+        log = "no timestamp here\nalso no timestamp"
+        result = _strip_timestamps(log)
+        assert result == log
+
+    def test_handles_empty_string(self) -> None:
+        """Empty string input returns empty string."""
+        assert _strip_timestamps("") == ""
+
+
+class TestParseGroups:
+    """Tests for _parse_groups."""
+
+    def test_parses_single_group(self) -> None:
+        """Single group is parsed correctly."""
+        log = "##[group]Setup\ninstalling deps\ndone\n##[endgroup]"
+        groups = _parse_groups(log)
+        assert len(groups) >= 1
+        group_names = [g[0] for g in groups]
+        assert "Setup" in group_names
+
+    def test_parses_multiple_groups(self) -> None:
+        """Multiple groups are parsed in order."""
+        log = "##[group]Setup\nstep1\n##[endgroup]\n##[group]Test\nstep2\n##[endgroup]"
+        groups = _parse_groups(log)
+        group_names = [g[0] for g in groups if g[0]]
+        assert "Setup" in group_names
+        assert "Test" in group_names
+
+    def test_handles_content_outside_groups(self) -> None:
+        """Content outside groups is collected."""
+        log = "before\n##[group]Inside\ncontent\n##[endgroup]\nafter"
+        groups = _parse_groups(log)
+        assert len(groups) >= 1
+
+    def test_handles_empty_string(self) -> None:
+        """Empty string returns minimal result."""
+        groups = _parse_groups("")
+        # Should return at least one group with empty content
+        assert isinstance(groups, list)
+
+
+class TestExtractFailedStepLog:
+    """Tests for _extract_failed_step_log."""
+
+    def test_extracts_matching_step(self) -> None:
+        """Matching step group content is extracted."""
+        log = "##[group]Setup\nsetup line\n##[endgroup]\n##[group]Run tests\nerror here\n##[endgroup]"
+        result = _extract_failed_step_log(log, "Run tests")
+        assert "error here" in result
+
+    def test_case_insensitive_match(self) -> None:
+        """Step name matching is case-insensitive."""
+        log = "##[group]Run Tests\nerror line\n##[endgroup]"
+        result = _extract_failed_step_log(log, "run tests")
+        assert "error line" in result
+
+    def test_returns_full_log_if_no_match(self) -> None:
+        """Full log is returned when no matching group found."""
+        log = "some log content\nmore content"
+        result = _extract_failed_step_log(log, "nonexistent step")
+        assert result == log
+
+
+class TestFindLogContent:
+    """Tests for _find_log_content."""
+
+    def test_finds_by_job_and_step_number(self) -> None:
+        """Finds log by job name and step number."""
+        logs = {"test-job/3_Run tests.txt": "test output"}
+        result = _find_log_content(logs, "test-job", 3, "Run tests")
+        assert result == "test output"
+
+    def test_finds_by_job_and_step_name(self) -> None:
+        """Falls back to job name + step name matching."""
+        logs = {"test-job/run_tests.txt": "test output"}
+        result = _find_log_content(logs, "test-job", 99, "run_tests")
+        assert result == "test output"
+
+    def test_finds_by_job_name_only(self) -> None:
+        """Falls back to collecting all job logs."""
+        logs = {"test-job/setup.txt": "setup log", "other-job/1.txt": "other"}
+        result = _find_log_content(logs, "test-job", 99, "nonexistent")
+        assert "setup log" in result
+
+    def test_returns_empty_for_no_match(self) -> None:
+        """Returns empty string when no logs match."""
+        logs = {"other-job/1.txt": "content"}
+        result = _find_log_content(logs, "nonexistent-job", 1, "step")
+        assert result == ""
+
+    def test_returns_empty_for_empty_logs(self) -> None:
+        """Returns empty string for empty logs dict."""
+        result = _find_log_content({}, "job", 1, "step")
+        assert result == ""
+
+
+class TestBuildCiErrorDetails:
+    """Tests for _build_ci_error_details."""
+
+    def test_returns_none_for_no_jobs(self) -> None:
+        """Returns None when no jobs in status result."""
+        ci_manager = MagicMock()
+        result = _build_ci_error_details(ci_manager, {"jobs": []})
+        assert result is None
+
+    def test_returns_none_for_no_failed_jobs(self) -> None:
+        """Returns None when all jobs succeeded."""
+        ci_manager = MagicMock()
+        status = {"jobs": [{"conclusion": "success", "name": "test"}]}
+        result = _build_ci_error_details(ci_manager, status)
+        assert result is None
+
+    def test_returns_none_when_no_logs_available(self) -> None:
+        """Returns None when log fetch returns empty."""
+        ci_manager = MagicMock()
+        ci_manager.get_run_logs.return_value = {}
+        status = {
+            "jobs": [
+                {
+                    "conclusion": "failure",
+                    "name": "test-job",
+                    "run_id": 123,
+                    "steps": [{"name": "Run tests", "number": 3, "conclusion": "failure"}],
+                }
+            ]
+        }
+        result = _build_ci_error_details(ci_manager, status)
+        assert result is None
+
+    def test_builds_report_for_failed_job(self) -> None:
+        """Builds error details report for a failed job with logs."""
+        ci_manager = MagicMock()
+        ci_manager.get_run_logs.return_value = {
+            "test-job/3_Run tests.txt": "2024-01-15T10:30:45.1234567Z Error: test failed"
+        }
+        status = {
+            "jobs": [
+                {
+                    "conclusion": "failure",
+                    "name": "test-job",
+                    "run_id": 123,
+                    "steps": [{"name": "Run tests", "number": 3, "conclusion": "failure"}],
+                }
+            ]
+        }
+        result = _build_ci_error_details(ci_manager, status)
+        assert result is not None
+        assert "test-job" in result
+        assert "Run tests" in result
+
+    def test_limits_run_ids_to_three(self) -> None:
+        """Only fetches logs for up to 3 unique run IDs."""
+        ci_manager = MagicMock()
+        ci_manager.get_run_logs.return_value = {}
+        jobs = [
+            {"conclusion": "failure", "name": f"job-{i}", "run_id": i, "steps": []}
+            for i in range(5)
+        ]
+        status = {"jobs": jobs}
+        _build_ci_error_details(ci_manager, status)
+        assert ci_manager.get_run_logs.call_count == 3
+
+    def test_handles_log_fetch_failure(self) -> None:
+        """Continues gracefully when log fetch raises an exception."""
+        ci_manager = MagicMock()
+        ci_manager.get_run_logs.side_effect = RuntimeError("API error")
+        status = {
+            "jobs": [
+                {
+                    "conclusion": "failure",
+                    "name": "test-job",
+                    "run_id": 123,
+                    "steps": [],
+                }
+            ]
+        }
+        # Should not raise, returns None since no logs available
+        result = _build_ci_error_details(ci_manager, status)
+        assert result is None
+
+    def test_truncates_long_output(self) -> None:
+        """Output is truncated when exceeding max_lines."""
+        ci_manager = MagicMock()
+        # Create a large log
+        long_log = "\n".join([f"line {i}" for i in range(500)])
+        ci_manager.get_run_logs.return_value = {"test-job/3_Run tests.txt": long_log}
+        status = {
+            "jobs": [
+                {
+                    "conclusion": "failure",
+                    "name": "test-job",
+                    "run_id": 123,
+                    "steps": [{"name": "Run tests", "number": 3, "conclusion": "failure"}],
+                }
+            ]
+        }
+        result = _build_ci_error_details(ci_manager, status, max_lines=20)
+        assert result is not None
+        assert "truncated" in result

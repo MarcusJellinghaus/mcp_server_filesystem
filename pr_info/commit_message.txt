@@ -1,6 +1,6 @@
-feat: add task_tracker module to workflows
+feat: add ci_log_parser to github_operations
 
-Move task_tracker.py from mcp-coder workflow_utils into
-mcp_workspace.workflows. Adjust imports only, no logic changes.
+Move ci_log_parser.py from mcp-coder checks into
+mcp_workspace.github_operations. Adjust imports only, no logic changes.
 
 Ref: #114
