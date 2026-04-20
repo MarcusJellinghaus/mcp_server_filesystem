@@ -6,21 +6,31 @@
 
 ## Round 1 — 2026-04-20
 **Findings:**
-- Matrix entry correctly renamed from `integration-tests` to `git-integration-tests`, now runs only `git_integration` marker
-- New standalone `github-integration-tests` job correctly structured with setup steps matching existing `test` job pattern
-- Secret guard `if:` condition uses correct GitHub Actions syntax for checking both secrets
-- Info step safely prints config status without leaking the token value
-- Pytest command correctly uses `-n auto -m 'github_integration'`
-- Env block properly maps `GH_INTEGRATION_TOKEN` → `GITHUB_TOKEN` and `GITHUB_TEST_REPO_URL` → `GITHUB_TEST_REPO_URL`
-- No extra code changes beyond `.github/workflows/ci.yml` and expected `pr_info/` artifacts
+- **Critical**: Job-level `if: ${{ secrets.GH_INTEGRATION_TOKEN != '' }}` is unsupported — GitHub Actions does not allow `secrets` context in job-level `if:` conditions. This breaks the entire workflow (0 jobs run).
+- Accept: Matrix entry correctly renamed to `git-integration-tests` with only `git_integration` marker
+- Accept: New standalone job structure, env block, info step, pytest command all correct
+- Accept: No extra code changes beyond `.github/workflows/ci.yml`
 
 **Decisions:**
-- All 7 findings confirmed implementation matches issue requirements — no changes needed
+- **Accept (Critical)**: Fix using standard check-secrets job pattern — a preceding `check-github-secrets` job outputs a flag, and `github-integration-tests` uses `needs` + `if` on that output
+- All other findings confirmed correct — no changes needed
 
-**Changes:** None required
+**Changes:** Added `check-github-secrets` job; updated `github-integration-tests` to use `needs: check-github-secrets` and `if: needs.check-github-secrets.outputs.has-secrets == 'true'`
+**Status:** Committed as `c3967d3`
+
+## Round 2 — 2026-04-20
+**Findings:**
+- Accept: check-github-secrets job pattern correct (outputs, step id, env vars, GITHUB_OUTPUT syntax)
+- Accept: `if:` condition on github-integration-tests correctly uses `needs.` context
+- Accept: `needs: check-github-secrets` ensures proper dependency and skipped UI behavior
+- Accept: Matrix entry, env block, info step, pytest command, YAML syntax all correct
+- Accept: Security — secrets only exposed to jobs that need them; check job doesn't check out code
+
+**Decisions:** All findings confirmed correct — no changes needed
+**Changes:** None
 **Status:** No changes needed
 
 ## Final Status
 
-Review completed in 1 round with zero code changes required. Implementation precisely matches all issue #106 requirements.
+Review completed in 2 rounds. Round 1 found and fixed 1 critical issue (secrets context in job-level `if:` replaced with check-secrets job pattern). Round 2 confirmed the fix and all other aspects are correct. 1 code commit produced (`c3967d3`).
 
