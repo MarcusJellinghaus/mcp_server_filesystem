@@ -45,6 +45,9 @@ _.github_issue_list
 _.github_pr_view
 _.github_search
 
+# Base branch detection tool
+_.get_base_branch
+
 # =============================================================================
 # Public API Exports
 # =============================================================================

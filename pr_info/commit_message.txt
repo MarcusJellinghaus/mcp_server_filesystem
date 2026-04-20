@@ -1,6 +1,8 @@
-feat: add ci_log_parser to github_operations
+feat: add base_branch detection and MCP tool
 
-Move ci_log_parser.py from mcp-coder checks into
-mcp_workspace.github_operations. Adjust imports only, no logic changes.
+Move base_branch.py from mcp-coder workflow_utils into
+mcp_workspace.git_operations. Expose as get_base_branch MCP tool.
+Apply dependency injection for github_operations objects
+(architecture boundary enforcement). No other logic changes.
 
 Ref: #114

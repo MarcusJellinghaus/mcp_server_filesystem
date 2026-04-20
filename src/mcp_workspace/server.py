@@ -17,6 +17,7 @@ from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
+from mcp_workspace.git_operations.base_branch import detect_base_branch
 from mcp_workspace.git_operations.read_operations import git as git_impl
 from mcp_workspace.github_operations.formatters import (
     InlineCommentData,
@@ -483,6 +484,7 @@ def git(
 
 @mcp.tool()
 @log_function_call
+<<<<<<< HEAD
 def github_issue_view(
     number: int,
     include_comments: bool = True,
@@ -677,6 +679,32 @@ def github_search(
         return format_search_results(items, max_results)
     except Exception as e:
         return f"Error: {e}"
+
+
+@mcp.tool()
+@log_function_call
+def get_base_branch() -> str:
+    """Detect the base branch for the current branch.
+
+    Returns:
+        Branch name string. Returns default branch name if detection fails.
+    """
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+    from mcp_workspace.github_operations.issues import IssueManager
+    from mcp_workspace.github_operations.pr_manager import PullRequestManager
+
+    issue_manager = IssueManager(project_dir=_project_dir)
+    pr_manager = PullRequestManager(_project_dir)
+    result = detect_base_branch(
+        _project_dir,
+        issue_manager=issue_manager,
+        pr_manager=pr_manager,
+    )
+    if result is None:
+        # Fallback: return "main" as safe default
+        return "main"
+    return result
 
 
 @log_function_call
