@@ -6,7 +6,12 @@ from typing import Any, Dict, List, Optional
 from mcp.server.fastmcp import FastMCP
 from mcp_coder_utils.log_utils import log_function_call
 
-# Import utility functions from the main package
+from mcp_workspace.checks.branch_status import collect_branch_status
+from mcp_workspace.checks.file_sizes import (
+    check_file_sizes,
+    load_allowlist,
+    render_output,
+)
 from mcp_workspace.file_tools import append_file as append_file_util
 from mcp_workspace.file_tools import delete_file as delete_file_util
 from mcp_workspace.file_tools import edit_file as edit_file_util
@@ -17,6 +22,7 @@ from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
+from mcp_workspace.git_operations.base_branch import detect_base_branch
 from mcp_workspace.git_operations.read_operations import git as git_impl
 from mcp_workspace.github_operations.formatters import (
     InlineCommentData,
@@ -28,6 +34,7 @@ from mcp_workspace.github_operations.formatters import (
 )
 from mcp_workspace.github_operations.issues import IssueManager
 from mcp_workspace.github_operations.issues.types import CommentData
+from mcp_workspace.github_operations.pr_manager import PullRequestManager
 from mcp_workspace.reference_projects import ReferenceProject
 from mcp_workspace.server_reference_tools import register as register_reference_tools
 from mcp_workspace.server_reference_tools import set_reference_projects
@@ -677,6 +684,76 @@ def github_search(
         return format_search_results(items, max_results)
     except Exception as e:
         return f"Error: {e}"
+
+
+@mcp.tool()
+@log_function_call
+def get_base_branch() -> str:
+    """Detect the base branch for the current branch.
+
+    Returns:
+        Branch name string. Returns default branch name if detection fails.
+    """
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+
+    issue_manager: Optional[IssueManager] = None
+    pr_manager: Optional[PullRequestManager] = None
+
+    try:
+        issue_manager = IssueManager(project_dir=_project_dir)
+        pr_manager = PullRequestManager(_project_dir)
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.debug("GitHub manager initialization failed", exc_info=True)
+
+    try:
+        result = detect_base_branch(
+            _project_dir,
+            issue_manager=issue_manager,
+            pr_manager=pr_manager,
+        )
+        if result is None:
+            return "main"
+        return result
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.debug("Base branch detection failed", exc_info=True)
+        return "main"
+
+
+@mcp.tool()
+@log_function_call
+def check_file_size(max_lines: int = 600) -> str:
+    """Check file line counts against threshold.
+
+    Args:
+        max_lines: Maximum allowed lines per file (default 600).
+
+    Returns:
+        Formatted report of files exceeding the threshold.
+    """
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+    allowlist_path = _project_dir / ".large-files-allowlist"
+    allowlist = load_allowlist(allowlist_path)
+    result = check_file_sizes(_project_dir, max_lines=max_lines, allowlist=allowlist)
+    return render_output(result, max_lines)
+
+
+@mcp.tool()
+@log_function_call
+def check_branch_status(max_log_lines: int = 300) -> str:
+    """Check comprehensive branch status: git state, CI, PR, tasks.
+
+    Args:
+        max_log_lines: Maximum CI log lines to include (default 300).
+
+    Returns:
+        Formatted branch status report for LLM consumption.
+    """
+    if _project_dir is None:
+        raise ValueError("Project directory has not been set")
+    report = collect_branch_status(_project_dir, max_log_lines=max_log_lines)
+    return report.format_for_llm()
 
 
 @log_function_call

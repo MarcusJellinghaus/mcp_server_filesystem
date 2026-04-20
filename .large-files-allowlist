@@ -10,8 +10,8 @@
 #
 # Check with: mcp-coder check file-size --max-lines 750
 
-# Example (uncomment if needed):
-# src/mcp_workspace/server.py  # MCP protocol handlers - many tool definitions
+# MCP server - many tool definitions in single protocol handler file
+src/mcp_workspace/server.py
 
 # GitHub operations test files - comprehensive test coverage for GitHub API integration
 tests/github_operations/test_issue_cache.py

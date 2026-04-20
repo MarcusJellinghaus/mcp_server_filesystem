@@ -45,6 +45,15 @@ _.github_issue_list
 _.github_pr_view
 _.github_search
 
+# Base branch detection tool
+_.get_base_branch
+
+# File size check tool
+_.check_file_size
+
+# Branch status check tool
+_.check_branch_status
+
 # =============================================================================
 # Public API Exports
 # =============================================================================
