@@ -1,12 +1,11 @@
-feat(github): extend IssueManager.list_issues with labels, assignee, max_results (#78)
+feat(github): add issue formatters for view and list tools (#78)
 
-Add three new optional parameters to list_issues() and
-_list_issues_no_error_handling():
+Add pure formatting functions for GitHub issue data:
 
-- labels: filter by label names (forwarded to PyGithub)
-- assignee: filter by assignee username (forwarded to PyGithub)
-- max_results: cap the number of returned issues with early-break
+- truncate_output: shared helper for max_lines truncation
+- format_issue_view: detailed single-issue view with comments
+- format_issue_list: compact one-line-per-issue summary
 
-All parameters default to None, preserving backward compatibility.
-Includes 6 new unit tests covering individual params, combined usage,
-and max_results interaction with PR filtering.
+New files:
+- src/mcp_workspace/github_operations/formatters.py
+- tests/github_operations/test_formatters.py (12 tests)

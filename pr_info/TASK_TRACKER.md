@@ -27,9 +27,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `feat(github): extend IssueManager.list_issues with labels, assignee, max_results (#78)`
 
 ### Step 2: Create `formatters.py` — Issue Formatters (`format_issue_view`, `format_issue_list`)
-- [ ] Implementation: tests + production code in `github_operations/formatters.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `feat(github): add issue formatters for view and list tools (#78)`
+- [x] Implementation: tests + production code in `github_operations/formatters.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `feat(github): add issue formatters for view and list tools (#78)`
 
 ### Step 3: Add PR and Search Formatters (`format_pr_view`, `format_search_results`)
 - [ ] Implementation: tests + production code in `github_operations/formatters.py`
