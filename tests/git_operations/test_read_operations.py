@@ -1,7 +1,4 @@
-"""Integration tests for read-only git operations.
-
-All tests use real git repos via the ``git_repo_with_commit`` fixture.
-"""
+"""Integration tests for read-only git operations."""
 
 from pathlib import Path
 from unittest.mock import MagicMock, patch
