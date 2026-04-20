@@ -140,10 +140,30 @@ jobs:
       - id: check
         env:
           TOKEN: ${{ secrets.GH_INTEGRATION_TOKEN }}
-          REPO_URL: ${{ secrets.GH_TEST_REPO_URL }}
+          REPO_URL: ${{ vars.GH_TEST_REPO_URL }}
         run: |
+          echo "=== GitHub Integration Test Configuration ==="
+          echo ""
+          echo "Checking required credentials:"
+          if [[ -n "$TOKEN" ]]; then
+            echo "  ✅ GH_INTEGRATION_TOKEN: configured (secret)"
+          else
+            echo "  ❌ GH_INTEGRATION_TOKEN: NOT configured"
+            echo "     → Create a repo secret with a PAT that has 'repo' scope"
+          fi
+          if [[ -n "$REPO_URL" ]]; then
+            echo "  ✅ GH_TEST_REPO_URL: $REPO_URL (variable)"
+          else
+            echo "  ❌ GH_TEST_REPO_URL: NOT configured"
+            echo "     → Create a repo variable with the test repository URL"
+          fi
+          echo ""
           if [[ -n "$TOKEN" && -n "$REPO_URL" ]]; then
+            echo "✅ All credentials present — github-integration-tests will run"
             echo "has-secrets=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏭️ Missing credentials — github-integration-tests will be skipped"
+            echo "   Configure at: Settings → Secrets and variables → Actions"
           fi
 
   github-integration-tests:
@@ -153,7 +173,7 @@ jobs:
     name: github-integration-tests
     env:
       GITHUB_TOKEN: ${{ secrets.GH_INTEGRATION_TOKEN }}
-      GITHUB_TEST_REPO_URL: ${{ secrets.GH_TEST_REPO_URL }}
+      GITHUB_TEST_REPO_URL: ${{ vars.GH_TEST_REPO_URL }}
     steps:
       - uses: actions/checkout@v6
 
