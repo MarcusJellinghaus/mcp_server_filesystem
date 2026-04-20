@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +18,16 @@ from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
 from mcp_workspace.git_operations.read_operations import git as git_impl
+from mcp_workspace.github_operations.formatters import (
+    InlineCommentData,
+    ReviewData,
+    format_issue_list,
+    format_issue_view,
+    format_pr_view,
+    format_search_results,
+)
+from mcp_workspace.github_operations.issues import IssueManager
+from mcp_workspace.github_operations.issues.types import CommentData
 from mcp_workspace.reference_projects import ReferenceProject
 from mcp_workspace.server_reference_tools import register as register_reference_tools
 from mcp_workspace.server_reference_tools import set_reference_projects
@@ -468,6 +479,204 @@ def git(
         max_lines=max_lines,
         compact=compact,
     )
+
+
+@mcp.tool()
+@log_function_call
+def github_issue_view(
+    number: int,
+    include_comments: bool = True,
+    max_lines: int = 200,
+) -> str:
+    """View a GitHub issue with full detail.
+
+    Args:
+        number: Issue number to view
+        include_comments: Include issue comments (default: True)
+        max_lines: Maximum output lines (default: 200)
+
+    Returns:
+        Formatted issue detail text, or error message string.
+    """
+    try:
+        manager = IssueManager(project_dir=_project_dir)
+        issue = manager.get_issue(number)
+        if not issue["number"]:
+            return f"Error: Issue #{number} not found"
+        comments = manager.get_comments(number) if include_comments else []
+        return format_issue_view(issue, comments, max_lines)
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+@log_function_call
+def github_issue_list(
+    state: str = "open",
+    labels: Optional[List[str]] = None,
+    assignee: Optional[str] = None,
+    since: Optional[str] = None,
+    max_results: int = 30,
+) -> str:
+    """List GitHub issues with optional filters.
+
+    Args:
+        state: Filter by state - "open", "closed", or "all" (default: "open")
+        labels: Filter by label names
+        assignee: Filter by assignee username, "none", or "*"
+        since: Only issues updated after this ISO datetime string
+        max_results: Maximum results to return (default: 30)
+
+    Returns:
+        Compact summary lines, or error message string.
+    """
+    try:
+        manager = IssueManager(project_dir=_project_dir)
+        since_dt = datetime.fromisoformat(since) if since else None
+        issues = manager.list_issues(
+            state=state,
+            labels=labels,
+            assignee=assignee,
+            since=since_dt,
+            max_results=max_results,
+        )
+        return format_issue_list(issues, max_results)
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+@log_function_call
+def github_pr_view(
+    number: int,
+    include_comments: bool = False,
+    max_lines: int = 200,
+) -> str:
+    """View a GitHub pull request with full detail.
+
+    Args:
+        number: PR number to view
+        include_comments: Include reviews, conversation and inline comments (default: False)
+        max_lines: Maximum output lines (default: 200)
+
+    Returns:
+        Formatted PR detail text, or error message string.
+    """
+    try:
+        manager = IssueManager(project_dir=_project_dir)
+        repo = manager._get_repository()  # pylint: disable=protected-access
+        if not repo:
+            return "Error: Could not access repository"
+        pr = repo.get_pull(number)
+        pr_dict = {
+            "number": pr.number,
+            "title": pr.title,
+            "body": pr.body,
+            "state": pr.state,
+            "head_branch": pr.head.ref,
+            "base_branch": pr.base.ref,
+            "draft": pr.draft,
+            "merged": pr.merged,
+        }
+        reviews: Optional[List[ReviewData]] = None
+        conversation_comments: Optional[List[CommentData]] = None
+        inline_comments: Optional[List[InlineCommentData]] = None
+        if include_comments:
+            reviews = [
+                ReviewData(user=r.user.login, state=r.state, body=r.body)
+                for r in pr.get_reviews()
+            ]
+            conversation_comments = [
+                CommentData(
+                    id=c.id,
+                    body=c.body,
+                    user=c.user.login,
+                    created_at=c.created_at.isoformat(),
+                    updated_at=c.updated_at.isoformat() if c.updated_at else None,
+                    url="",
+                )
+                for c in repo.get_issue(number).get_comments()
+            ]
+            inline_comments = [
+                InlineCommentData(
+                    path=c.path,
+                    line=c.line,
+                    user=c.user.login,
+                    body=c.body,
+                )
+                for c in pr.get_review_comments()
+            ]
+        return format_pr_view(
+            pr_dict, reviews, conversation_comments, inline_comments, max_lines
+        )
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+@log_function_call
+def github_search(
+    query: str,
+    state: Optional[str] = None,
+    labels: Optional[List[str]] = None,
+    assignee: Optional[str] = None,
+    sort: Optional[str] = None,
+    order: Optional[str] = None,
+    max_results: int = 30,
+) -> str:
+    """Search GitHub issues and pull requests in this repository.
+
+    Automatically scoped to current repository. Additional qualifiers
+    can be included inline in the query string (e.g., "fix login author:marcus").
+
+    Args:
+        query: Search query text
+        state: Filter by state - "open" or "closed"
+        labels: Filter by label names
+        assignee: Filter by assignee username
+        sort: Sort by "comments", "created", or "updated"
+        order: Sort order - "asc" or "desc"
+        max_results: Maximum results to return (default: 30)
+
+    Returns:
+        Compact summary lines, or error message string.
+    """
+    try:
+        manager = IssueManager(project_dir=_project_dir)
+        repo = manager._get_repository()  # pylint: disable=protected-access
+        if not repo:
+            return "Error: Could not access repository"
+        full_query = f"repo:{repo.full_name} {query}"
+        qualifiers: Dict[str, str] = {"query": full_query}
+        if state:
+            qualifiers["state"] = state
+        if labels:
+            qualifiers["labels"] = ",".join(labels)
+        if assignee:
+            qualifiers["assignee"] = assignee
+        if sort:
+            qualifiers["sort"] = sort
+        if order:
+            qualifiers["order"] = order
+        # pylint: disable=protected-access
+        results = manager._github_client.search_issues(**qualifiers)
+        items = []
+        for i, item in enumerate(results):
+            if i >= max_results:
+                break
+            item_labels = [label.name for label in item.labels] if item.labels else []
+            items.append(
+                {
+                    "number": item.number,
+                    "title": item.title,
+                    "state": item.state,
+                    "labels": item_labels,
+                    "pull_request": item.pull_request is not None,
+                }
+            )
+        return format_search_results(items, max_results)
+    except Exception as e:
+        return f"Error: {e}"
 
 
 @log_function_call
