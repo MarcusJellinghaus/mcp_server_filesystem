@@ -18,7 +18,7 @@ from mcp_workspace.git_operations.branch_queries import (
 )
 from mcp_workspace.git_operations.workflows import needs_rebase
 from mcp_workspace.github_operations.ci_log_parser import (
-    _build_ci_error_details,
+    build_ci_error_details,
     truncate_ci_details,
 )
 from mcp_workspace.github_operations.ci_results_manager import CIResultsManager
@@ -181,7 +181,7 @@ def _collect_ci_status(
         if conclusion == "success":
             return CIStatus.PASSED, None
         elif conclusion == "failure":
-            details = _build_ci_error_details(
+            details = build_ci_error_details(
                 ci_manager, status_result, max_lines=max_log_lines
             )
             return CIStatus.FAILED, details

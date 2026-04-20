@@ -174,7 +174,7 @@ class TestCollectCIStatus:
         assert status == CIStatus.PASSED
         assert details is None
 
-    @patch("mcp_workspace.checks.branch_status._build_ci_error_details")
+    @patch("mcp_workspace.checks.branch_status.build_ci_error_details")
     @patch("mcp_workspace.checks.branch_status.CIResultsManager")
     def test_failed(self, mock_ci_cls: MagicMock, mock_build: MagicMock) -> None:
         mock_ci = MagicMock()

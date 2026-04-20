@@ -34,6 +34,7 @@ from mcp_workspace.github_operations.formatters import (
 )
 from mcp_workspace.github_operations.issues import IssueManager
 from mcp_workspace.github_operations.issues.types import CommentData
+from mcp_workspace.github_operations.pr_manager import PullRequestManager
 from mcp_workspace.reference_projects import ReferenceProject
 from mcp_workspace.server_reference_tools import register as register_reference_tools
 from mcp_workspace.server_reference_tools import set_reference_projects
@@ -489,7 +490,6 @@ def git(
 
 @mcp.tool()
 @log_function_call
-<<<<<<< HEAD
 def github_issue_view(
     number: int,
     include_comments: bool = True,
@@ -696,20 +696,28 @@ def get_base_branch() -> str:
     """
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
-    from mcp_workspace.github_operations.issues import IssueManager
-    from mcp_workspace.github_operations.pr_manager import PullRequestManager
 
-    issue_manager = IssueManager(project_dir=_project_dir)
-    pr_manager = PullRequestManager(_project_dir)
-    result = detect_base_branch(
-        _project_dir,
-        issue_manager=issue_manager,
-        pr_manager=pr_manager,
-    )
-    if result is None:
-        # Fallback: return "main" as safe default
+    issue_manager: Optional[IssueManager] = None
+    pr_manager: Optional[PullRequestManager] = None
+
+    try:
+        issue_manager = IssueManager(project_dir=_project_dir)
+        pr_manager = PullRequestManager(_project_dir)
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.debug("GitHub manager initialization failed", exc_info=True)
+
+    try:
+        result = detect_base_branch(
+            _project_dir,
+            issue_manager=issue_manager,
+            pr_manager=pr_manager,
+        )
+        if result is None:
+            return "main"
+        return result
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.debug("Base branch detection failed", exc_info=True)
         return "main"
-    return result
 
 
 @mcp.tool()

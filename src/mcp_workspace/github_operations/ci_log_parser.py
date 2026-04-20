@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "build_ci_error_details",
     "truncate_ci_details",
 ]
 
@@ -180,7 +181,7 @@ def _find_log_content(
     return ""
 
 
-def _build_ci_error_details(
+def build_ci_error_details(
     ci_manager: "CIResultsManager",
     status_result: Mapping[str, object],
     max_lines: int = 300,

@@ -5,11 +5,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from mcp_workspace.github_operations.ci_log_parser import (
-    _build_ci_error_details,
     _extract_failed_step_log,
     _find_log_content,
     _parse_groups,
     _strip_timestamps,
+    build_ci_error_details,
     truncate_ci_details,
 )
 
@@ -157,19 +157,19 @@ class TestFindLogContent:
 
 
 class TestBuildCiErrorDetails:
-    """Tests for _build_ci_error_details."""
+    """Tests for build_ci_error_details."""
 
     def test_returns_none_for_no_jobs(self) -> None:
         """Returns None when no jobs in status result."""
         ci_manager = MagicMock()
-        result = _build_ci_error_details(ci_manager, {"jobs": []})
+        result = build_ci_error_details(ci_manager, {"jobs": []})
         assert result is None
 
     def test_returns_none_for_no_failed_jobs(self) -> None:
         """Returns None when all jobs succeeded."""
         ci_manager = MagicMock()
         status = {"jobs": [{"conclusion": "success", "name": "test"}]}
-        result = _build_ci_error_details(ci_manager, status)
+        result = build_ci_error_details(ci_manager, status)
         assert result is None
 
     def test_returns_none_when_no_logs_available(self) -> None:
@@ -188,7 +188,7 @@ class TestBuildCiErrorDetails:
                 }
             ]
         }
-        result = _build_ci_error_details(ci_manager, status)
+        result = build_ci_error_details(ci_manager, status)
         assert result is None
 
     def test_builds_report_for_failed_job(self) -> None:
@@ -209,7 +209,7 @@ class TestBuildCiErrorDetails:
                 }
             ]
         }
-        result = _build_ci_error_details(ci_manager, status)
+        result = build_ci_error_details(ci_manager, status)
         assert result is not None
         assert "test-job" in result
         assert "Run tests" in result
@@ -223,7 +223,7 @@ class TestBuildCiErrorDetails:
             for i in range(5)
         ]
         status = {"jobs": jobs}
-        _build_ci_error_details(ci_manager, status)
+        build_ci_error_details(ci_manager, status)
         assert ci_manager.get_run_logs.call_count == 3
 
     def test_handles_log_fetch_failure(self) -> None:
@@ -241,7 +241,7 @@ class TestBuildCiErrorDetails:
             ]
         }
         # Should not raise, returns None since no logs available
-        result = _build_ci_error_details(ci_manager, status)
+        result = build_ci_error_details(ci_manager, status)
         assert result is None
 
     def test_truncates_long_output(self) -> None:
@@ -262,6 +262,6 @@ class TestBuildCiErrorDetails:
                 }
             ]
         }
-        result = _build_ci_error_details(ci_manager, status, max_lines=20)
+        result = build_ci_error_details(ci_manager, status, max_lines=20)
         assert result is not None
         assert "truncated" in result
