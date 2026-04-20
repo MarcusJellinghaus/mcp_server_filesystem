@@ -13,13 +13,12 @@
 
 ### Tests to add in `tests/test_server.py`
 
-```python
-def test_save_file_rejects_non_string_content(project_dir: Path) -> None:
-    """save_file rejects dict content with TypeError/ValueError."""
-    ...
+The tests call `save_file` and `append_file` directly as Python functions, bypassing Pydantic/MCP validation. Python does not enforce type hints at runtime, so a `dict` argument passes the signature and reaches the runtime `isinstance(content, str)` check inside the function body, which raises `ValueError`. The tests assert exactly that path.
 
-def test_append_file_rejects_non_string_content(project_dir: Path) -> None:
-    """append_file rejects dict content with TypeError/ValueError."""
+```python
+@pytest.mark.parametrize("func", [save_file, append_file])
+def test_rejects_non_string_content(func, project_dir: Path) -> None:
+    """save_file and append_file reject non-string content with ValueError."""
     ...
 ```
 
@@ -39,8 +38,9 @@ def test_append_file_rejects_non_string_content(project_dir: Path) -> None:
 ## ALGORITHM
 
 ```
-1. Add two test functions that call save_file/append_file with dict content
-2. Assert they raise an error (ValueError or TypeError depending on call path)
+1. Add a parameterized test covering both save_file and append_file
+2. Pass dict content and assert pytest.raises(ValueError) — the dict bypasses
+   Pydantic (direct Python call) and hits the runtime isinstance check
 3. In server.py, change `content: Any` to `content: str` on both functions
 4. Verify import of `Any` is still needed (yes — used by other functions)
 5. Run pylint, mypy, pytest — all must pass
