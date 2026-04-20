@@ -1,0 +1,6 @@
+feat: add task_tracker module to workflows
+
+Move task_tracker.py from mcp-coder workflow_utils into
+mcp_workspace.workflows. Adjust imports only, no logic changes.
+
+Ref: #114
