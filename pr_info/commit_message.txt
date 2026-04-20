@@ -1,11 +1,10 @@
-feat(github): add issue formatters for view and list tools (#78)
+feat(github): add PR view and search result formatters (#78)
 
-Add pure formatting functions for GitHub issue data:
+Add format_pr_view and format_search_results to formatters.py:
 
-- truncate_output: shared helper for max_lines truncation
-- format_issue_view: detailed single-issue view with comments
-- format_issue_list: compact one-line-per-issue summary
-
-New files:
-- src/mcp_workspace/github_operations/formatters.py
-- tests/github_operations/test_formatters.py (12 tests)
+- format_pr_view: renders PR details with optional reviews,
+  conversation comments, and inline review comments
+- format_search_results: compact one-line-per-result output
+  with Issue/PR type indicator
+- Add ReviewData and InlineCommentData TypedDicts
+- Add 11 new tests covering both formatters

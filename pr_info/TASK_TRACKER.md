@@ -32,9 +32,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `feat(github): add issue formatters for view and list tools (#78)`
 
 ### Step 3: Add PR and Search Formatters (`format_pr_view`, `format_search_results`)
-- [ ] Implementation: tests + production code in `github_operations/formatters.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `feat(github): add PR view and search result formatters (#78)`
+- [x] Implementation: tests + production code in `github_operations/formatters.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `feat(github): add PR view and search result formatters (#78)`
 
 ### Step 4: Register `github_issue_view` and `github_issue_list` Tools in `server.py`
 - [ ] Implementation: tests + production code in `server.py`, update `tach.toml` and `vulture_whitelist.py`

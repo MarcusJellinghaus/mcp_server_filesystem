@@ -1,8 +1,14 @@
 """Tests for GitHub issue formatters."""
 
+from typing import Any, Dict
+
 from mcp_workspace.github_operations.formatters import (
+    InlineCommentData,
+    ReviewData,
     format_issue_list,
     format_issue_view,
+    format_pr_view,
+    format_search_results,
     truncate_output,
 )
 from mcp_workspace.github_operations.issues.types import CommentData, IssueData
@@ -173,3 +179,169 @@ class TestFormatIssueList:
         result = format_issue_list(issues)
         assert "bug" in result
         assert "help wanted" in result
+
+
+# --- Helper for PR tests ---
+
+
+def _make_pr(
+    number: int = 99,
+    title: str = "Test PR",
+    body: str = "PR body text",
+    state: str = "open",
+    head_branch: str = "feature-branch",
+    base_branch: str = "main",
+    draft: bool = False,
+    merged: bool = False,
+) -> Dict[str, Any]:
+    """Create a test PR data dict."""
+    return {
+        "number": number,
+        "title": title,
+        "body": body,
+        "state": state,
+        "head_branch": head_branch,
+        "base_branch": base_branch,
+        "draft": draft,
+        "merged": merged,
+    }
+
+
+# --- format_pr_view tests ---
+
+
+class TestFormatPrView:
+    """Tests for format_pr_view."""
+
+    def test_format_pr_view_basic(self) -> None:
+        """Title, state, branches, body rendered."""
+        pr = _make_pr(
+            number=99,
+            title="Add feature",
+            body="This adds a feature",
+            state="open",
+            head_branch="feat/thing",
+            base_branch="main",
+        )
+        result = format_pr_view(pr)
+        assert "# PR #99: Add feature" in result
+        assert "open" in result
+        assert "feat/thing" in result
+        assert "main" in result
+        assert "This adds a feature" in result
+
+    def test_format_pr_view_with_reviews(self) -> None:
+        """Review verdicts rendered."""
+        pr = _make_pr()
+        reviews: list[ReviewData] = [
+            ReviewData(user="alice", state="APPROVED", body="LGTM"),
+            ReviewData(user="bob", state="CHANGES_REQUESTED", body="Fix the tests"),
+        ]
+        result = format_pr_view(pr, reviews=reviews)
+        assert "## Reviews" in result
+        assert "**alice**: APPROVED" in result
+        assert "LGTM" in result
+        assert "**bob**: CHANGES_REQUESTED" in result
+        assert "Fix the tests" in result
+
+    def test_format_pr_view_with_conversation_comments(self) -> None:
+        """Conversation comments rendered."""
+        pr = _make_pr()
+        comments = [
+            _make_comment(body="Looks good", user="alice", created_at="2024-01-05T00:00:00Z"),
+            _make_comment(body="Thanks", user="bob", created_at="2024-01-06T00:00:00Z"),
+        ]
+        result = format_pr_view(pr, conversation_comments=comments)
+        assert "## Comments (2)" in result
+        assert "**alice**" in result
+        assert "Looks good" in result
+        assert "**bob**" in result
+        assert "Thanks" in result
+
+    def test_format_pr_view_with_inline_comments(self) -> None:
+        """Compact path:line (user): 'body' format."""
+        pr = _make_pr()
+        inline: list[InlineCommentData] = [
+            InlineCommentData(path="src/main.py", line=42, user="alice", body="Nit: rename this"),
+        ]
+        result = format_pr_view(pr, inline_comments=inline)
+        assert "## Inline Review Comments (1)" in result
+        assert 'src/main.py:42 (alice): "Nit: rename this"' in result
+
+    def test_format_pr_view_no_comments(self) -> None:
+        """No comment sections when all None."""
+        pr = _make_pr()
+        result = format_pr_view(pr)
+        assert "Reviews" not in result
+        assert "Comments" not in result
+        assert "Inline" not in result
+
+    def test_format_pr_view_truncation(self) -> None:
+        """Long output truncated with indicator."""
+        pr = _make_pr(body="\n".join(f"line {i}" for i in range(300)))
+        result = format_pr_view(pr, max_lines=10)
+        assert "truncated" in result
+
+    def test_format_pr_view_merged_draft_flags(self) -> None:
+        """Merged/draft status displayed."""
+        pr = _make_pr(draft=True, merged=False)
+        result = format_pr_view(pr)
+        assert "Draft: True" in result
+        assert "Merged: False" in result
+
+        pr_merged = _make_pr(draft=False, merged=True)
+        result_merged = format_pr_view(pr_merged)
+        assert "Draft: False" in result_merged
+        assert "Merged: True" in result_merged
+
+
+# --- format_search_results tests ---
+
+
+class TestFormatSearchResults:
+    """Tests for format_search_results."""
+
+    def test_format_search_results_basic(self) -> None:
+        """Renders summary lines."""
+        items = [
+            {"number": 1, "title": "Bug fix", "state": "open", "labels": ["bug"]},
+            {"number": 2, "title": "Feature", "state": "closed", "labels": []},
+        ]
+        result = format_search_results(items)
+        assert "#1 [Issue] [open] Bug fix  bug" in result
+        assert "#2 [Issue] [closed] Feature" in result
+
+    def test_format_search_results_empty(self) -> None:
+        """'No results found.' message."""
+        result = format_search_results([])
+        assert result == "No results found."
+
+    def test_format_search_results_issue_vs_pr(self) -> None:
+        """Correct Issue/PR indicator."""
+        items = [
+            {"number": 1, "title": "An issue", "state": "open", "labels": []},
+            {
+                "number": 2,
+                "title": "A PR",
+                "state": "open",
+                "labels": [],
+                "pull_request": {"url": "https://..."},
+            },
+        ]
+        result = format_search_results(items)
+        assert "#1 [Issue]" in result
+        assert "#2 [PR]" in result
+
+    def test_format_search_results_max_results_cap(self) -> None:
+        """Excess results truncated with guidance."""
+        items = [
+            {"number": i, "title": f"Result {i}", "state": "open", "labels": []}
+            for i in range(5)
+        ]
+        result = format_search_results(items, max_results=3)
+        assert "#0" in result
+        assert "#1" in result
+        assert "#2" in result
+        assert "#3" not in result
+        assert "5 total results" in result
+        assert "Showing first 3" in result
