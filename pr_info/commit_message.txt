@@ -1,8 +1,8 @@
-docs: update CLAUDE.md for unified git tool
+Fix black formatting in read_operations and tests
 
-Replace 4 individual git tool references (git_log, git_diff,
-git_status, git_merge_base) with single unified `mcp__workspace__git`
-tool in tool mapping table and git operations section.
-
-Update bash commands list to reflect commands now handled by the
-unified git tool (fetch, ls-tree, show moved to MCP).
+Run black-compliant formatting on two files that were committed
+without running the formatter:
+- Expand packed function args to one-per-line in git dispatcher
+  handler lambdas (line length violations and trailing comma style)
+- Collapse method signatures that fit within 88-char line limit
+  in test_read_operations.py

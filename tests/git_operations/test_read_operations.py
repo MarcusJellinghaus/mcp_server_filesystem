@@ -456,9 +456,7 @@ class TestRunSimpleCommand:
 class TestGitShow:
     """Tests for git_show()."""
 
-    def test_show_head_commit(
-        self, git_repo_with_commit: tuple[Repo, Path]
-    ) -> None:
+    def test_show_head_commit(self, git_repo_with_commit: tuple[Repo, Path]) -> None:
         _, project_dir = git_repo_with_commit
         result = git_show(project_dir, args=["HEAD"])
         # Compact rendering may strip commit message; check for diff content
@@ -480,9 +478,7 @@ class TestGitShow:
         # Should return file content directly, not compact diff
         assert "# Test Project" in result
 
-    def test_show_search_filters(
-        self, git_repo_with_commit: tuple[Repo, Path]
-    ) -> None:
+    def test_show_search_filters(self, git_repo_with_commit: tuple[Repo, Path]) -> None:
         repo, project_dir = git_repo_with_commit
         (project_dir / "marker.txt").write_text("SHOW_MARKER_TOKEN")
         repo.index.add(["marker.txt"])
@@ -503,23 +499,17 @@ class TestGitShow:
 class TestGitBranch:
     """Tests for git_branch()."""
 
-    def test_branch_list(
-        self, git_repo_with_commit: tuple[Repo, Path]
-    ) -> None:
+    def test_branch_list(self, git_repo_with_commit: tuple[Repo, Path]) -> None:
         _, project_dir = git_repo_with_commit
         result = git_branch(project_dir, args=["--list"])
         assert "master" in result or "main" in result or result.strip()
 
-    def test_branch_all(
-        self, git_repo_with_commit: tuple[Repo, Path]
-    ) -> None:
+    def test_branch_all(self, git_repo_with_commit: tuple[Repo, Path]) -> None:
         _, project_dir = git_repo_with_commit
         result = git_branch(project_dir, args=["-a"])
         assert result.strip()
 
-    def test_branch_show_current(
-        self, git_repo_with_commit: tuple[Repo, Path]
-    ) -> None:
+    def test_branch_show_current(self, git_repo_with_commit: tuple[Repo, Path]) -> None:
         _, project_dir = git_repo_with_commit
         result = git_branch(project_dir, args=["--show-current"])
         assert result.strip()
@@ -591,9 +581,7 @@ class TestGitDispatcher:
         assert result == "status output"
 
     @patch("mcp_workspace.git_operations.read_operations.git_merge_base")
-    def test_routes_to_merge_base(
-        self, mock_mb: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_routes_to_merge_base(self, mock_mb: MagicMock, tmp_path: Path) -> None:
         mock_mb.return_value = "abc123"
         result = git(
             command="merge_base", project_dir=tmp_path, args=["main", "feature"]
@@ -627,9 +615,7 @@ class TestGitDispatcher:
         assert result == "branch output"
 
     @patch("mcp_workspace.git_operations.read_operations._run_simple_command")
-    def test_routes_to_fetch(
-        self, mock_simple: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_routes_to_fetch(self, mock_simple: MagicMock, tmp_path: Path) -> None:
         mock_simple.return_value = "fetch done"
         result = git(command="fetch", project_dir=tmp_path, args=["--all"])
         mock_simple.assert_called_once_with(
@@ -649,17 +635,13 @@ class TestGitDispatcher:
             git(command="push", project_dir=tmp_path)
 
     @patch("mcp_workspace.git_operations.read_operations.git_log")
-    def test_default_max_lines_log(
-        self, mock_log: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_default_max_lines_log(self, mock_log: MagicMock, tmp_path: Path) -> None:
         mock_log.return_value = ""
         git(command="log", project_dir=tmp_path)
         assert mock_log.call_args[0][4] == 50  # max_lines positional arg
 
     @patch("mcp_workspace.git_operations.read_operations.git_diff")
-    def test_default_max_lines_diff(
-        self, mock_diff: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_default_max_lines_diff(self, mock_diff: MagicMock, tmp_path: Path) -> None:
         mock_diff.return_value = ""
         git(command="diff", project_dir=tmp_path)
         assert mock_diff.call_args[0][5] == 100  # max_lines positional arg
@@ -720,9 +702,7 @@ class TestGitDispatcher:
         assert "fetch output" in result
 
     @patch("mcp_workspace.git_operations.read_operations.git_log")
-    def test_no_warning_for_defaults(
-        self, mock_log: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_no_warning_for_defaults(self, mock_log: MagicMock, tmp_path: Path) -> None:
         mock_log.return_value = "log output"
         # compact=True is the default, should NOT warn even though log doesn't support compact
         result = git(command="log", project_dir=tmp_path, compact=True)
