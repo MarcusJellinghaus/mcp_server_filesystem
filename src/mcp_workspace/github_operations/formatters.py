@@ -4,7 +4,7 @@ Pure formatting functions that take data dicts and return formatted text strings
 No API calls or manager dependencies.
 """
 
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Optional, TypedDict
 
 from mcp_workspace.github_operations.issues.types import CommentData, IssueData
 
@@ -45,7 +45,7 @@ def truncate_output(text: str, max_lines: int) -> str:
 
 def format_issue_view(
     issue: IssueData,
-    comments: List[CommentData],
+    comments: list[CommentData],
     max_lines: int = 200,
 ) -> str:
     """Format a single issue with full detail for LLM consumption.
@@ -77,7 +77,7 @@ def format_issue_view(
 
 
 def format_issue_list(
-    issues: List[IssueData],
+    issues: list[IssueData],
     max_results: int = 30,
 ) -> str:
     """Format issue list as compact summary lines.
@@ -111,10 +111,10 @@ def format_issue_list(
 
 
 def format_pr_view(
-    pr: Dict[str, Any],
-    reviews: Optional[List[ReviewData]] = None,
-    conversation_comments: Optional[List[CommentData]] = None,
-    inline_comments: Optional[List[InlineCommentData]] = None,
+    pr: dict[str, Any],
+    reviews: Optional[list[ReviewData]] = None,
+    conversation_comments: Optional[list[CommentData]] = None,
+    inline_comments: Optional[list[InlineCommentData]] = None,
     max_lines: int = 200,
 ) -> str:
     """Format a single PR with full detail for LLM consumption.
@@ -155,13 +155,14 @@ def format_pr_view(
     if inline_comments:
         parts.append(f"## Inline Review Comments ({len(inline_comments)})")
         for ic in inline_comments:
-            parts.append(f"{ic['path']}:{ic['line']} ({ic['user']}): \"{ic['body']}\"")
+            line_num = ic["line"] if ic["line"] is not None else "?"
+            parts.append(f"{ic['path']}:{line_num} ({ic['user']}): \"{ic['body']}\"")
 
     return truncate_output("\n\n".join(parts), max_lines)
 
 
 def format_search_results(
-    items: List[Dict[str, Any]],
+    items: list[dict[str, Any]],
     max_results: int = 30,
 ) -> str:
     """Format search results as compact summary lines.
