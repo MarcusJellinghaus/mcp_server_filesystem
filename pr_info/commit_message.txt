@@ -1,7 +1,0 @@
-style: fix formatting in search.py and test_search.py for CI compliance
-
-Reformat search module and its tests to satisfy isort and black CI
-checks. The files were modified during the search_files improvement
-plan but committed without running the project formatting tools.
-
-No logic or functional changes — formatting only.
