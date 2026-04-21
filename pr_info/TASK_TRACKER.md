@@ -32,9 +32,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `feat: add per-line truncation to search content results`
 
 ### Step 3: Add character budget and compact fallback
-- [ ] Implementation: replace line-counting with char budget (`max_result_lines * 120`), add `matched_files` compact fallback when truncated, add/update tests
-- [ ] Quality checks pass: pylint, pytest, mypy
-- [ ] Commit: `feat: add char budget and compact fallback for large search results`
+- [x] Implementation: replace line-counting with char budget (`max_result_lines * 120`), add `matched_files` compact fallback when truncated, add/update tests
+- [x] Quality checks pass: pylint, pytest, mypy
+- [x] Commit: `feat: add char budget and compact fallback for large search results`
 
 ## Pull Request
 - [ ] PR review: all steps complete, all checks green

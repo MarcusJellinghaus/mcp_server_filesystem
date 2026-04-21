@@ -1,12 +1,15 @@
-feat: add per-line truncation to search content results
+feat: add char budget and compact fallback for large search results
 
-Add _MAX_LINE_CHARS = 500 constant and truncation logic in
-_search_content() so that every line in context blocks is capped
-at 500 characters. Lines exceeding the limit get a truncation
-marker appended: " ... [truncated, line has {n} chars]".
+Replace newline-counting with character budget (max_result_lines * 120)
+in _search_content() for more accurate volume control, especially with
+long lines.
 
-This prevents single very long lines (e.g. minified JSON) from
-dominating the search output budget.
+When results are truncated, include a "matched_files" key with the
+complete file/line map so callers always know every match location.
 
-Includes tests for long-line truncation, short-line passthrough,
-and context-line truncation.
+Changes:
+- Replace total_lines_so_far with chars_used / char_budget
+- Track all matches in files_map dict for compact fallback
+- Add "matched_files" key to response only when truncated=True
+- Update truncation test to verify char-budget semantics
+- Add TestSearchFilesCompactFallback with 5 new tests

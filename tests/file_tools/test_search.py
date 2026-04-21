@@ -140,9 +140,8 @@ class TestSearchFilesContentSearch:
         assert "MATCH_HERE" in match["text"]
         assert "line4" in match["text"]
 
-    def test_search_files_max_result_lines_truncation(self, project_dir: Path) -> None:
-        """Verify max_result_lines cap triggers truncated: True."""
-        # Create file with many matchable lines
+    def test_search_files_char_budget_truncation(self, project_dir: Path) -> None:
+        """Verify char budget (max_result_lines * 120) triggers truncation."""
         lines = [f"match_line_{i}" for i in range(20)]
         (project_dir / "many.txt").write_text("\n".join(lines) + "\n")
 
@@ -150,13 +149,12 @@ class TestSearchFilesContentSearch:
             project_dir,
             pattern=r"match_line_",
             max_results=100,
-            max_result_lines=5,
+            max_result_lines=1,  # budget = 1 * 120 = 120 chars
         )
 
         assert result["truncated"] is True
-        # Should have stopped at or before 5 lines
-        total_lines = sum(m["text"].count("\n") + 1 for m in result["details"])
-        assert total_lines <= 5
+        total_chars = sum(len(m["text"]) for m in result["details"])
+        assert total_chars <= 120
         assert result["total_matches"] == 20
 
     def test_search_files_skips_binary_files(self, project_dir: Path) -> None:
@@ -209,3 +207,100 @@ class TestSearchFilesLineTruncation:
         assert "... [truncated, line has 800 chars]" in lines[0]
         # Match line should be intact
         assert lines[1] == "MATCH"
+
+
+class TestSearchFilesCompactFallback:
+    """Tests for compact fallback when results are truncated."""
+
+    def test_files_key_present_when_truncated(self, project_dir: Path) -> None:
+        """When truncated, 'matched_files' key contains complete file/line map."""
+        lines = [f"match_{i}" for i in range(50)]
+        (project_dir / "big.txt").write_text("\n".join(lines) + "\n")
+
+        result = search_files(
+            project_dir,
+            pattern=r"match_",
+            max_results=100,
+            max_result_lines=1,  # tiny budget forces truncation
+        )
+
+        assert result["truncated"] is True
+        assert "matched_files" in result
+        files_entry = result["matched_files"][0]
+        assert files_entry["file"].endswith("big.txt")
+        # All 50 matches should be in the files map
+        assert len(files_entry["lines"]) == 50
+
+    def test_files_key_absent_when_not_truncated(self, project_dir: Path) -> None:
+        """When not truncated, 'matched_files' key is not in the response."""
+        (project_dir / "small.txt").write_text("hello world\n")
+
+        result = search_files(project_dir, pattern=r"hello")
+
+        assert result["truncated"] is False
+        assert "matched_files" not in result
+
+    def test_compact_fallback_multiple_files(self, project_dir: Path) -> None:
+        """Compact fallback tracks matches across multiple files."""
+        d = project_dir / "multi"
+        d.mkdir()
+        # Use long lines so char budget is exceeded quickly
+        long_prefix = "z" * 100
+        (d / "a.py").write_text(f"{long_prefix} target 1\n{long_prefix} target 2\n")
+        (d / "b.py").write_text(f"{long_prefix} target 3\n")
+
+        result = search_files(
+            project_dir,
+            glob="multi/*.py",
+            pattern=r"target",
+            max_results=100,
+            max_result_lines=1,  # tiny budget = 120 chars
+        )
+
+        assert result["truncated"] is True
+        assert result["total_matches"] == 3
+        file_names = {e["file"] for e in result["matched_files"]}
+        assert any("a.py" in f for f in file_names)
+        assert any("b.py" in f for f in file_names)
+
+    def test_empty_details_when_first_match_exceeds_budget(
+        self, project_dir: Path
+    ) -> None:
+        """When first match exceeds char budget, details is empty but matched_files is populated."""
+        long_line = "x" * 200
+        (project_dir / "huge.txt").write_text(long_line + "\n")
+
+        result = search_files(
+            project_dir,
+            glob="huge.txt",
+            pattern=r"x+",
+            max_results=100,
+            max_result_lines=1,  # budget = 120 chars, truncated line = 200 chars
+        )
+
+        assert result["truncated"] is True
+        assert result["details"] == []
+        assert len(result["matched_files"]) == 1
+        assert result["total_matches"] == 1
+
+    def test_long_line_char_budget(self, project_dir: Path) -> None:
+        """A single long-line match can exhaust char budget on its own."""
+        # 600 char line, with max_result_lines=5 -> budget=600
+        # After per-line truncation to 500 + marker, context is ~540 chars
+        # Second match should not fit
+        long = "x" * 600
+        (project_dir / "two.txt").write_text(f"{long}\n{long}\n")
+
+        result = search_files(
+            project_dir,
+            glob="two.txt",
+            pattern=r"x+",
+            max_results=100,
+            max_result_lines=5,  # budget = 600
+        )
+
+        # At least one match fits, but both may not
+        assert len(result["details"]) >= 1
+        assert result["total_matches"] == 2
+        assert result["truncated"] is True
+        assert "matched_files" in result
