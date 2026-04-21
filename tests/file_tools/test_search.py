@@ -89,7 +89,7 @@ class TestSearchFilesContentSearch:
         assert result["mode"] == "content_search"
         assert result["truncated"] is False
         assert result["total_matches"] == 2
-        texts = [m["text"] for m in result["matches"]]
+        texts = [m["text"] for m in result["details"]]
         assert any("def hello" in t for t in texts)
         assert any("def world" in t for t in texts)
 
@@ -100,7 +100,7 @@ class TestSearchFilesContentSearch:
         result = search_files(project_dir, pattern=r"zzz_no_match_zzz")
 
         assert result["mode"] == "content_search"
-        assert result["matches"] == []
+        assert result["details"] == []
         assert result["total_matches"] == 0
         assert result["truncated"] is False
 
@@ -120,7 +120,7 @@ class TestSearchFilesContentSearch:
         result = search_files(project_dir, glob="**/*.py", pattern=r"def run")
 
         assert result["mode"] == "content_search"
-        files = [m["file"] for m in result["matches"]]
+        files = [m["file"] for m in result["details"]]
         assert any("app.py" in f for f in files)
         # app.txt should NOT match (glob filters it out)
         assert not any("app.txt" in f for f in files)
@@ -133,8 +133,8 @@ class TestSearchFilesContentSearch:
 
         result = search_files(project_dir, pattern=r"MATCH_HERE", context_lines=1)
 
-        assert len(result["matches"]) == 1
-        match = result["matches"][0]
+        assert len(result["details"]) == 1
+        match = result["details"][0]
         assert match["line"] == 3
         assert "line2" in match["text"]
         assert "MATCH_HERE" in match["text"]
@@ -155,7 +155,7 @@ class TestSearchFilesContentSearch:
 
         assert result["truncated"] is True
         # Should have stopped at or before 5 lines
-        total_lines = sum(m["text"].count("\n") + 1 for m in result["matches"])
+        total_lines = sum(m["text"].count("\n") + 1 for m in result["details"])
         assert total_lines <= 5
         assert result["total_matches"] == 20
 
@@ -167,5 +167,5 @@ class TestSearchFilesContentSearch:
         result = search_files(project_dir, pattern=r"def hello")
 
         assert result["mode"] == "content_search"
-        assert len(result["matches"]) == 1
-        assert "text.py" in result["matches"][0]["file"]
+        assert len(result["details"]) == 1
+        assert "text.py" in result["details"][0]["file"]

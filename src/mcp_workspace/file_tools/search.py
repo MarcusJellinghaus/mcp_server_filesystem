@@ -61,7 +61,7 @@ def _search_content(
 
     return {
         "mode": "content_search",
-        "matches": matches,
+        "details": matches,
         "total_matches": total_matches,
         "truncated": truncated,
     }

@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Rename "matches" key to "details" in search results
-- [ ] Implementation: rename `"matches"` → `"details"` in `_search_content()` and update all test assertions
-- [ ] Quality checks pass: pylint, pytest, mypy
-- [ ] Commit: `refactor: rename "matches" key to "details" in search results`
+- [x] Implementation: rename `"matches"` → `"details"` in `_search_content()` and update all test assertions
+- [x] Quality checks pass: pylint, pytest, mypy
+- [x] Commit: `refactor: rename "matches" key to "details" in search results`
 
 ### Step 2: Add per-line truncation (500 char cap)
 - [ ] Implementation: add `_MAX_LINE_CHARS` constant and truncation logic in `_search_content()`, add tests for long-line truncation
