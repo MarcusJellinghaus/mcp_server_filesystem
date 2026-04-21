@@ -1,4 +1,0 @@
-fix: reformat long list comprehension to satisfy black line-length
-
-Wrap list comprehension in test_github_search_issue_vs_pr_indicator
-that exceeded black's 88-character line limit (92 chars with indent).
