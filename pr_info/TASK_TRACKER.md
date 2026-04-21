@@ -21,6 +21,19 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Fix algorithm + update existing tests
+
+- [ ] Implementation: reverse distance direction, remove early-exit, add default-branch tiebreaker, update 2 existing test mocks ([step_1.md](./steps/step_1.md))
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 2: Add 4 new regression tests
+
+- [ ] Implementation: add `test_selects_main_over_dormant_feature_branch`, `test_prefers_default_branch_on_equal_distance`, `test_includes_candidate_at_threshold`, `test_distance_zero_collects_all_candidates` ([step_2.md](./steps/step_2.md))
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
 
 ## Pull Request
+
+- [ ] PR review complete
+- [ ] PR summary prepared
