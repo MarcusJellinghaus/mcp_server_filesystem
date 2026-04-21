@@ -445,9 +445,7 @@ class TestDetectParentBranchViaMergeBase:
 
         assert result == "main"
 
-    def test_includes_candidate_at_threshold(
-        self, mock_repo: MagicMock
-    ) -> None:
+    def test_includes_candidate_at_threshold(self, mock_repo: MagicMock) -> None:
         """Candidate at exactly the distance threshold is included."""
         project_dir = Path("/test/project")
         current_branch = "current"
@@ -456,9 +454,7 @@ class TestDetectParentBranchViaMergeBase:
         mock_main = self._create_mock_branch("main", "main1")
         branch_dict = {current_branch: mock_current, "main": mock_main}
         mock_heads = MagicMock()
-        mock_heads.__iter__ = MagicMock(
-            return_value=iter([mock_current, mock_main])
-        )
+        mock_heads.__iter__ = MagicMock(return_value=iter([mock_current, mock_main]))
         mock_heads.__getitem__ = lambda self, key: branch_dict[key]
         mock_repo.heads = mock_heads
 

@@ -156,7 +156,9 @@ def detect_parent_branch_via_merge_base(
 
             # Return smallest distance candidate
             if candidates_passing:
-                candidates_passing.sort(key=lambda x: (x[1], 0 if x[0] == default_branch else 1))
+                candidates_passing.sort(
+                    key=lambda x: (x[1], 0 if x[0] == default_branch else 1)
+                )
                 winner = candidates_passing[0]
                 logger.debug(
                     "Detected parent branch from merge-base: '%s' (distance=%d)",
