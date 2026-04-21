@@ -147,4 +147,4 @@ value is a dict with keys `job_name`, `step_name`, `step_number`, `log_excerpt`,
 - `DEFAULT_LABEL = "unknown"` — new module constant
 - `EMPTY_RECOMMENDATIONS: List[str] = []` — new module constant
 - `_collect_github_label` now returns `"unknown"` instead of `""`
-- `get_failed_jobs_summary` step dicts gain optional `log_excerpt` key
+- `get_failed_jobs_summary` return structure changes entirely — see WHAT section item 4 and p_coder reference
