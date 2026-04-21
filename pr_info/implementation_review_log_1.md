@@ -45,4 +45,33 @@ Issue: #128 — fix: check_branch_status reports failing CI — port back origin
 - `tests/checks/test_branch_status_pr_fields.py`: Updated format assertions
 - `tests/github_operations/test_ci_log_parser.py`: Updated for 2-tier lookup and new build_ci_error_details
 
-**Status**: Ready to commit — all checks pass (1216 passed, 2 skipped, pylint clean, mypy clean)
+**Status**: Committed as `7b9b129`
+
+## Round 2 — 2026-04-21
+
+**Findings**:
+- F1 (Skip): Module-level logger vs per-function — improvement, no behavioral change
+- F2 (Skip): Parameter named `branch_name` vs `branch` — trivial naming
+- F3 (Skip): Defensive `.get("run")` with None check — improvement
+- F4 (Skip): Intermediate variable `ci_state` vs `ci_status` — cleaner, no behavioral change
+- F5 (Skip): Reason text wording `"No pr_info directory"` vs `"No pr_info folder found"` — trivial
+- F6 (Skip): `completed >= total` vs `completed == total` — more defensive
+- F7 (Accept): Error reason `"Task tracker check failed"` missing exception message — verified already fixed in round 1
+- F8 (Skip): Missing `logger.info()` calls — less verbose logging, acceptable
+- F9 (Skip): `str()` wrapping on `.get()` values — type safety improvement
+- F10 (Accept): Missing early returns in `_extract_failed_step_log` — verified already fixed in round 1
+- F11 (Accept): `.strip()` on group names — verified already fixed in round 1
+- F12-F15 (Skip): Stricter typing, docstring wording — improvements or trivial
+
+**Decisions**: F7, F10, F11 accepted but already present in code from round 1. All others skipped as improvements or trivial.
+
+**Changes**: None — all accepted findings were already fixed.
+
+**Status**: No changes needed
+
+## Final Status
+
+- **Rounds**: 2 (1 with changes, 1 clean)
+- **Commits**: 1 (`7b9b129`)
+- **Remaining issues**: None — all critical and accept-level findings resolved
+- **Checks**: All passing (pytest 1216/2 skipped, pylint clean, mypy clean)
