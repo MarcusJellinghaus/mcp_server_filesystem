@@ -21,6 +21,21 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Rename "matches" key to "details" in search results
+- [ ] Implementation: rename `"matches"` → `"details"` in `_search_content()` and update all test assertions
+- [ ] Quality checks pass: pylint, pytest, mypy
+- [ ] Commit: `refactor: rename "matches" key to "details" in search results`
+
+### Step 2: Add per-line truncation (500 char cap)
+- [ ] Implementation: add `_MAX_LINE_CHARS` constant and truncation logic in `_search_content()`, add tests for long-line truncation
+- [ ] Quality checks pass: pylint, pytest, mypy
+- [ ] Commit: `feat: add per-line truncation to search content results`
+
+### Step 3: Add character budget and compact fallback
+- [ ] Implementation: replace line-counting with char budget (`max_result_lines * 120`), add `matched_files` compact fallback when truncated, add/update tests
+- [ ] Quality checks pass: pylint, pytest, mypy
+- [ ] Commit: `feat: add char budget and compact fallback for large search results`
 
 ## Pull Request
+- [ ] PR review: all steps complete, all checks green
+- [ ] PR summary prepared
