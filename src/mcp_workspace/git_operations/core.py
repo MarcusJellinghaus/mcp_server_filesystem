@@ -64,7 +64,7 @@ def _close_repo_safely(repo: Repo) -> None:
 
 
 @contextmanager
-def _safe_repo_context(project_dir: Path) -> Iterator[Repo]:
+def safe_repo_context(project_dir: Path) -> Iterator[Repo]:
     """Context manager for safely handling GitPython repository objects.
 
     Ensures proper cleanup of repository objects to prevent Windows handle issues.

@@ -21,7 +21,7 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-- [ ] [Step 1: Rename _safe_repo_context → safe_repo_context](steps/step_1.md)
+- [x] [Step 1: Rename _safe_repo_context → safe_repo_context](steps/step_1.md)
 - [ ] [Step 2: Expand __init__.py with 19 new re-exports](steps/step_2.md)
 
 ## Pull Request

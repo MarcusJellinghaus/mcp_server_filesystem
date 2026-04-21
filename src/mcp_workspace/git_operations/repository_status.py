@@ -4,7 +4,7 @@ from pathlib import Path
 
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
-from .core import _safe_repo_context, logger
+from .core import safe_repo_context, logger
 
 
 def is_working_directory_clean(
@@ -117,7 +117,7 @@ def get_unstaged_changes(project_dir: Path) -> dict[str, list[str]]:
         return {"modified": [], "untracked": []}
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Use git status --porcelain to get file status
             # Format: XY filename where X=index status, Y=working tree status
             # We want files where Y is not empty (working tree changes)
@@ -182,7 +182,7 @@ def get_staged_changes(project_dir: Path) -> list[str]:
         return []
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Use git diff --cached --name-only to get staged files
             # This shows files that are staged for the next commit
             staged_files = repo.git.diff("--cached", "--name-only").splitlines()
@@ -215,7 +215,7 @@ def is_git_repository(project_dir: Path) -> bool:
     logger.debug("Checking if %s is a git repository", project_dir)
 
     try:
-        with _safe_repo_context(project_dir):
+        with safe_repo_context(project_dir):
             logger.debug("Detected as git repository: %s", project_dir)
             return True
     except InvalidGitRepositoryError:

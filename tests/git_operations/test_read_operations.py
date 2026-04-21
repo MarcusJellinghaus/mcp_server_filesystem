@@ -91,7 +91,7 @@ class TestGitLog:
     ) -> None:
         _, project_dir = git_repo_with_commit
         with patch(
-            "mcp_workspace.git_operations.read_operations._safe_repo_context"
+            "mcp_workspace.git_operations.read_operations.safe_repo_context"
         ) as mock_ctx:
             mock_repo = MagicMock()
             mock_repo.git.log.return_value = "mocked"
@@ -109,7 +109,7 @@ class TestGitLog:
     ) -> None:
         _, project_dir = git_repo_with_commit
         with patch(
-            "mcp_workspace.git_operations.read_operations._safe_repo_context"
+            "mcp_workspace.git_operations.read_operations.safe_repo_context"
         ) as mock_ctx:
             mock_repo = MagicMock()
             mock_repo.git.log.side_effect = GitCommandError(
@@ -212,7 +212,7 @@ class TestGitDiff:
     ) -> None:
         _, project_dir = git_repo_with_commit
         with patch(
-            "mcp_workspace.git_operations.read_operations._safe_repo_context"
+            "mcp_workspace.git_operations.read_operations.safe_repo_context"
         ) as mock_ctx:
             mock_repo = MagicMock()
             mock_repo.git.diff.return_value = ""
@@ -265,7 +265,7 @@ class TestGitStatus:
     ) -> None:
         _, project_dir = git_repo_with_commit
         with patch(
-            "mcp_workspace.git_operations.read_operations._safe_repo_context"
+            "mcp_workspace.git_operations.read_operations.safe_repo_context"
         ) as mock_ctx:
             mock_repo = MagicMock()
             mock_repo.git.status.return_value = "mocked status"
@@ -359,7 +359,7 @@ class TestRunSimpleCommand:
         return mock_ctx, mock_repo
 
     @patch("mcp_workspace.git_operations.read_operations.validate_args")
-    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    @patch("mcp_workspace.git_operations.read_operations.safe_repo_context")
     def test_validates_args(
         self, mock_ctx: MagicMock, mock_validate: MagicMock, tmp_path: Path
     ) -> None:
@@ -378,7 +378,7 @@ class TestRunSimpleCommand:
         )
         mock_validate.assert_called_once_with("fetch", ["--all"])
 
-    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    @patch("mcp_workspace.git_operations.read_operations.safe_repo_context")
     def test_appends_pathspec(self, mock_ctx: MagicMock, tmp_path: Path) -> None:
         mock_ctx_obj, mock_repo = self._make_mock_context()
         mock_ctx.return_value = mock_ctx_obj.return_value
@@ -396,7 +396,7 @@ class TestRunSimpleCommand:
         assert "--" in call_args
         assert "src/" in call_args
 
-    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    @patch("mcp_workspace.git_operations.read_operations.safe_repo_context")
     def test_truncates_output(self, mock_ctx: MagicMock, tmp_path: Path) -> None:
         mock_ctx_obj, mock_repo = self._make_mock_context()
         mock_ctx.return_value = mock_ctx_obj.return_value
@@ -412,7 +412,7 @@ class TestRunSimpleCommand:
         )
         assert "[truncated" in result
 
-    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    @patch("mcp_workspace.git_operations.read_operations.safe_repo_context")
     def test_no_output_message(self, mock_ctx: MagicMock, tmp_path: Path) -> None:
         mock_ctx_obj, mock_repo = self._make_mock_context()
         mock_ctx.return_value = mock_ctx_obj.return_value
@@ -429,7 +429,7 @@ class TestRunSimpleCommand:
         )
         assert result == "Nothing fetched."
 
-    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    @patch("mcp_workspace.git_operations.read_operations.safe_repo_context")
     def test_includes_safety_flags(self, mock_ctx: MagicMock, tmp_path: Path) -> None:
         mock_ctx_obj, mock_repo = self._make_mock_context()
         mock_ctx.return_value = mock_ctx_obj.return_value
@@ -448,7 +448,7 @@ class TestRunSimpleCommand:
         assert "--no-ext-diff" in call_args
         assert "--no-textconv" in call_args
 
-    @patch("mcp_workspace.git_operations.read_operations._safe_repo_context")
+    @patch("mcp_workspace.git_operations.read_operations.safe_repo_context")
     def test_no_safety_flags(self, mock_ctx: MagicMock, tmp_path: Path) -> None:
         mock_ctx_obj, mock_repo = self._make_mock_context()
         mock_ctx.return_value = mock_ctx_obj.return_value

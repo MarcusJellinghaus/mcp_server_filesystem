@@ -14,7 +14,7 @@ from git.exc import GitCommandError
 
 from .arg_validation import validate_args, validate_branch_has_read_flag
 from .compact_diffs import render_compact_diff
-from .core import _safe_repo_context
+from .core import safe_repo_context
 from .output_filtering import filter_diff_output, filter_log_output, truncate_output
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ def _run_simple_command(
     if pathspec:
         cmd_args += ["--"] + pathspec
 
-    with _safe_repo_context(project_dir) as repo:
+    with safe_repo_context(project_dir) as repo:
         output: str = getattr(repo.git, git_method)(*cmd_args)
 
     if not output:
@@ -98,7 +98,7 @@ def git_log(
     if pathspec:
         cmd_args += ["--"] + pathspec
 
-    with _safe_repo_context(project_dir) as repo:
+    with safe_repo_context(project_dir) as repo:
         try:
             output: str = repo.git.log(*cmd_args)
         except GitCommandError as exc:
@@ -144,7 +144,7 @@ def git_diff(
     user_args = args or []
     validate_args("diff", user_args)
 
-    with _safe_repo_context(project_dir) as repo:
+    with safe_repo_context(project_dir) as repo:
         if compact:
             # Strip color-related args; --color-words is incompatible with
             # ANSI-based move detection used by compact mode.
@@ -217,7 +217,7 @@ def git_status(
     if pathspec:
         cmd_args += ["--"] + pathspec
 
-    with _safe_repo_context(project_dir) as repo:
+    with safe_repo_context(project_dir) as repo:
         output: str = repo.git.status(*cmd_args)
 
     if not output:
@@ -246,7 +246,7 @@ def git_merge_base(
     safe_args = args or []
     validate_args("merge_base", safe_args)
 
-    with _safe_repo_context(project_dir) as repo:
+    with safe_repo_context(project_dir) as repo:
         try:
             output: str = repo.git.merge_base(*safe_args)
         except GitCommandError as exc:
@@ -301,7 +301,7 @@ def git_show(
     # Detect colon pattern (e.g. HEAD:README.md) — file content, not diff
     has_colon = any(":" in a and not a.startswith("-") for a in user_args)
 
-    with _safe_repo_context(project_dir) as repo:
+    with safe_repo_context(project_dir) as repo:
         if compact and not has_colon:
             final_args = [a for a in user_args if not a.startswith("--color")]
             final_args = ["-M", "-C90%"] + final_args
@@ -370,7 +370,7 @@ def git_branch(
     validate_args("branch", safe_args)
     validate_branch_has_read_flag(safe_args)
 
-    with _safe_repo_context(project_dir) as repo:
+    with safe_repo_context(project_dir) as repo:
         output: str = repo.git.branch(*safe_args)
 
     if not output:

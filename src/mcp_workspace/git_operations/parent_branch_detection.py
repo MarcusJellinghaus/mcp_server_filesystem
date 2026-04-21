@@ -9,7 +9,7 @@ from typing import Optional
 
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
-from .core import _safe_repo_context, logger
+from .core import safe_repo_context, logger
 from .repository_status import is_git_repository
 
 MERGE_BASE_DISTANCE_THRESHOLD = 20
@@ -47,7 +47,7 @@ def detect_parent_branch_via_merge_base(
         return None
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Get current branch commit
             try:
                 current_commit = repo.heads[current_branch].commit

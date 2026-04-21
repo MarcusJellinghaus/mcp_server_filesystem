@@ -7,7 +7,7 @@ from typing import Optional
 from git import Repo
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
-from .core import _safe_repo_context, logger
+from .core import safe_repo_context, logger
 from .repository_status import is_git_repository
 
 
@@ -58,7 +58,7 @@ def remote_branch_exists(project_dir: Path, branch_name: str) -> bool:
         return False
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Check if origin remote exists
             if "origin" not in [remote.name for remote in repo.remotes]:
                 logger.debug("No origin remote found in %s", project_dir)
@@ -108,7 +108,7 @@ def branch_exists(project_dir: Path, branch_name: str) -> bool:
         return False
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Get list of local branch names
             existing_branches = [branch.name for branch in repo.branches]
             exists = branch_name in existing_branches
@@ -190,7 +190,7 @@ def get_default_branch_name(project_dir: Path) -> Optional[str]:
         return None
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Check if origin remote exists
             if "origin" not in [remote.name for remote in repo.remotes]:
                 logger.debug("No origin remote found in %s", project_dir)
@@ -255,7 +255,7 @@ def get_current_branch_name(project_dir: Path) -> Optional[str]:
         return None
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Use repo.active_branch to get current branch
             # This will raise TypeError if in detached HEAD state
             current_branch = repo.active_branch.name
@@ -292,7 +292,7 @@ def has_remote_tracking_branch(project_dir: Path) -> bool:
         return False
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             tracking = repo.active_branch.tracking_branch()
             has_tracking = tracking is not None
             logger.debug("Has remote tracking branch: %s", has_tracking)

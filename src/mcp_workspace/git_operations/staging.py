@@ -4,7 +4,7 @@ from pathlib import Path
 
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
-from .core import _normalize_git_path, _safe_repo_context, logger
+from .core import _normalize_git_path, safe_repo_context, logger
 from .repository_status import get_unstaged_changes, is_git_repository
 
 
@@ -36,7 +36,7 @@ def stage_specific_files(files: list[Path], project_dir: Path) -> bool:
         return True
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Validate and convert all file paths first
             relative_paths = []
             for file_path in files:
@@ -113,7 +113,7 @@ def stage_all_changes(project_dir: Path) -> bool:
 
         # Use git add --all to stage everything including deletions
         # This is more robust than trying to handle individual files
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             logger.debug(
                 "Staging %d unstaged files using git add --all: %s",
                 len(all_unstaged_files),
