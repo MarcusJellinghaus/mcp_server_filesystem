@@ -152,7 +152,11 @@ class CIResultsManager(BaseGitHubManager):
             github_token: Optional explicit token — overrides config lookup when provided.
 
         """
-        super().__init__(project_dir=project_dir, repo_url=repo_url, github_token=github_token)
+        super().__init__(
+            project_dir=project_dir,
+            repo_url=repo_url,
+            github_token=github_token,
+        )
 
     def _validate_branch_name(self, branch: str) -> bool:
         """Validate branch name using git naming rules.

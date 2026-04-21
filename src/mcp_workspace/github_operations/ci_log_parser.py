@@ -328,9 +328,7 @@ def build_ci_error_details(
                     log_lines = extracted.split("\n")
                     if len(log_lines) > lines_per_job:
                         extracted = "\n".join(log_lines[:lines_per_job])
-                        extracted += (
-                            f"\n[... truncated to {lines_per_job} lines ...]"
-                        )
+                        extracted += f"\n[... truncated to {lines_per_job} lines ...]"
                     output_parts.append(extracted)
                     lines_used += extracted.count("\n") + 1
                 else:

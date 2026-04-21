@@ -1,14 +1,15 @@
-fix: restore branch_status recommendations and output formats
+fix: apply black formatting to pass CI check
 
-- Port _generate_recommendations to accept report_data dict parameter,
-  restoring NOT_CONFIGURED, ci_details, task blocking, and positive
-  "Ready to merge"/"Continue with current work" recommendations
-- Restore format_for_human with icon-based output, "Branch Status Report"
-  heading, "CI Status:", "Rebase Status:", "Task Tracker:", "GitHub Status:"
-  labels, and "No PR found" state
-- Restore format_for_llm compact single-line format
-  ("Branch: X | Base: Y", "Branch Status: CI=..., Rebase=..., Tasks=...")
-- Add outer try/except safety net to collect_branch_status
-- Update create_empty_report defaults: base_branch="unknown",
-  rebase_reason="Unknown", tasks_reason="Unknown"
-- Update all affected tests including PR fields format assertions
+Run black formatting on files flagged by CI pipeline:
+- src/mcp_workspace/checks/branch_status.py
+- src/mcp_workspace/github_operations/ci_log_parser.py
+- src/mcp_workspace/github_operations/ci_results_manager.py
+- tests/checks/test_branch_status.py
+- tests/github_operations/test_ci_log_parser.py
+
+Formatting changes include:
+- Break long lines (super().__init__, function args)
+- Collapse single-exception except clauses
+- Collapse unnecessary multi-line expressions
+- Fix dict-in-function-call formatting
+- Remove extra blank lines between methods

@@ -99,10 +99,7 @@ class BranchStatusReport:
             TaskTrackerStatus.N_A: "\u2796",
         }
         task_icon = task_icons.get(self.tasks_status, "\u2753")
-        if (
-            self.tasks_status == TaskTrackerStatus.N_A
-            and self.tasks_is_blocking
-        ):
+        if self.tasks_status == TaskTrackerStatus.N_A and self.tasks_is_blocking:
             task_icon = "\u26a0\ufe0f"
         lines.append(
             f"Task Tracker: {task_icon} {self.tasks_status.value}"
@@ -209,7 +206,9 @@ def get_failed_jobs_summary(
 
     # Extract log excerpt for the failed job
     log_content = _find_log_content(
-        logs, job_name, step_number if step_number is not None else 0,
+        logs,
+        job_name,
+        step_number if step_number is not None else 0,
         step_name if step_name is not None else "",
     )
     log_excerpt: Optional[str] = None
@@ -455,9 +454,7 @@ def collect_branch_status(
         )
 
         # 5. Check rebase status
-        rebase_needed, rebase_reason = _collect_rebase_status(
-            project_dir, base_branch
-        )
+        rebase_needed, rebase_reason = _collect_rebase_status(project_dir, base_branch)
 
         # 6. Check task tracker
         tasks_status, tasks_reason, tasks_is_blocking = _collect_task_status(

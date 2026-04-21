@@ -390,9 +390,7 @@ class TestBuildCiErrorDetails:
                 "name": f"job-{i}",
                 "id": i + 100,
                 "run_id": 1,
-                "steps": [
-                    {"name": "step", "number": 1, "conclusion": "failure"}
-                ],
+                "steps": [{"name": "step", "number": 1, "conclusion": "failure"}],
             }
             for i in range(20)
         ]
