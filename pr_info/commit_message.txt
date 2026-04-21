@@ -1,0 +1,13 @@
+fix: reverse merge-base distance direction and remove early-exit
+
+- Reverse iter_commits range from merge-base→branch to merge-base→current HEAD
+  so distance reflects how far the current branch has diverged, not how far
+  the candidate has moved
+- Remove early-exit on distance=0; candidates now flow through the normal
+  sorting path
+- Add default-branch tiebreaker to sort key so main/master wins when two
+  candidates have equal distance
+- Update test mocks: use reusable list instead of one-shot iterator in
+  test_simple_branch_from_main, fix rev_range check in
+  test_multiple_candidates_pick_smallest to match on merge-base hexsha
+- Add autouse fixture to patch get_default_branch_name across all tests

@@ -23,9 +23,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ### Step 1: Fix algorithm + update existing tests
 
-- [ ] Implementation: reverse distance direction, remove early-exit, add default-branch tiebreaker, update 2 existing test mocks ([step_1.md](./steps/step_1.md))
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: reverse distance direction, remove early-exit, add default-branch tiebreaker, update 2 existing test mocks ([step_1.md](./steps/step_1.md))
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 2: Add 4 new regression tests
 

@@ -9,6 +9,7 @@ from typing import Optional
 
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
+from .branch_queries import get_default_branch_name
 from .core import logger, safe_repo_context
 from .repository_status import is_git_repository
 
@@ -23,8 +24,8 @@ def detect_parent_branch_via_merge_base(
     """Detect parent branch using git merge-base.
 
     For each local and remote branch (candidate), find the merge-base with
-    current branch. The parent is the branch whose HEAD is closest to the
-    merge-base (smallest distance).
+    current branch. The parent is the branch whose merge-base is closest to
+    the current HEAD (smallest distance).
 
     Args:
         project_dir: Path to git repository
@@ -57,6 +58,8 @@ def detect_parent_branch_via_merge_base(
                 )
                 return None
 
+            default_branch = get_default_branch_name(project_dir)
+
             candidates_passing: list[tuple[str, int]] = []
             checked_branch_names: set[str] = set()
 
@@ -74,11 +77,11 @@ def detect_parent_branch_via_merge_base(
                         continue
 
                     merge_base = merge_base_list[0]
-                    # Count commits from merge-base to branch HEAD
+                    # Count commits from merge-base to current HEAD
                     distance = sum(
                         1
                         for _ in repo.iter_commits(
-                            f"{merge_base.hexsha}..{branch.commit.hexsha}"
+                            f"{merge_base.hexsha}..{current_commit.hexsha}"
                         )
                     )
                     logger.debug(
@@ -86,14 +89,6 @@ def detect_parent_branch_via_merge_base(
                         branch.name,
                         distance,
                     )
-
-                    # Early exit: distance=0 means ideal parent (branch HEAD is merge-base)
-                    if distance == 0:
-                        logger.debug(
-                            "Detected parent branch from merge-base: '%s' (distance=0)",
-                            branch.name,
-                        )
-                        return branch.name
 
                     if distance <= distance_threshold:
                         candidates_passing.append((branch.name, distance))
@@ -130,11 +125,11 @@ def detect_parent_branch_via_merge_base(
                                 continue
 
                             merge_base = merge_base_list[0]
-                            # Count commits from merge-base to remote branch HEAD
+                            # Count commits from merge-base to current HEAD
                             distance = sum(
                                 1
                                 for _ in repo.iter_commits(
-                                    f"{merge_base.hexsha}..{ref.commit.hexsha}"
+                                    f"{merge_base.hexsha}..{current_commit.hexsha}"
                                 )
                             )
                             logger.debug(
@@ -142,14 +137,6 @@ def detect_parent_branch_via_merge_base(
                                 branch_name,
                                 distance,
                             )
-
-                            # Early exit: distance=0 means ideal parent
-                            if distance == 0:
-                                logger.debug(
-                                    "Detected parent branch from merge-base: '%s' (distance=0)",
-                                    branch_name,
-                                )
-                                return branch_name
 
                             if distance <= distance_threshold:
                                 candidates_passing.append((branch_name, distance))
@@ -169,7 +156,7 @@ def detect_parent_branch_via_merge_base(
 
             # Return smallest distance candidate
             if candidates_passing:
-                candidates_passing.sort(key=lambda x: x[1])
+                candidates_passing.sort(key=lambda x: (x[1], 0 if x[0] == default_branch else 1))
                 winner = candidates_passing[0]
                 logger.debug(
                     "Detected parent branch from merge-base: '%s' (distance=%d)",

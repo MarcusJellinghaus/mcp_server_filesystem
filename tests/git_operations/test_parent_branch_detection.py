@@ -15,6 +15,14 @@ from mcp_workspace.git_operations.parent_branch_detection import (
 class TestDetectParentBranchViaMergeBase:
     """Tests for git merge-base parent branch detection."""
 
+    @pytest.fixture(autouse=True)
+    def _patch_get_default_branch(self) -> Generator[MagicMock, None, None]:
+        with patch(
+            "mcp_workspace.git_operations.parent_branch_detection.get_default_branch_name",
+            return_value=None,
+        ) as mock_default:
+            yield mock_default
+
     @pytest.fixture
     def mock_repo(self) -> Generator[MagicMock, None, None]:
         """Mock GitPython Repo for merge-base tests."""
@@ -91,7 +99,7 @@ class TestDetectParentBranchViaMergeBase:
         mock_repo.merge_base.return_value = [merge_base_commit]
 
         # Distance = 0 (main HEAD is the merge-base)
-        mock_repo.iter_commits.return_value = iter([])  # 0 commits
+        mock_repo.iter_commits.return_value = []  # 0 commits
 
         result = detect_parent_branch_via_merge_base(project_dir, current_branch)
 
@@ -236,11 +244,8 @@ class TestDetectParentBranchViaMergeBase:
         mock_repo.merge_base.side_effect = mock_merge_base
 
         # Distances: feature-A=3, develop=8 (both within threshold)
-        call_count = [0]
-
         def mock_iter_commits(rev_range: str) -> list[MagicMock]:
-            call_count[0] += 1
-            if "featureA456" in rev_range:
+            if "mbA" in rev_range:
                 return [MagicMock() for _ in range(3)]  # 3 commits
             return [MagicMock() for _ in range(8)]  # 8 commits
 
