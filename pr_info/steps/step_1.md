@@ -68,21 +68,12 @@ reference to see the exact `groups[-1]` update logic. Note that existing test
 **Fix**: Restore 3-tier matching: exact match → prefix match → contains match.
 Add `##[error]` fallback. Return only error lines (not full log) when no group matches.
 
-```python
-# Pseudocode:
-for group_name, lines in groups:
-    if group_name.lower() == step_name.lower():       # exact
-        return "\n".join(lines)
-for group_name, lines in groups:
-    if group_name.lower().startswith(step_name.lower()):  # prefix
-        return "\n".join(lines)
-for group_name, lines in groups:
-    if step_name.lower() in group_name.lower():        # contains
-        return "\n".join(lines)
-# Fallback: return only ##[error] lines (NEVER the full log)
-error_lines = [l for l in log_content.split("\n") if "##[error]" in l]
-return "\n".join(error_lines)  # empty string when no error lines
-```
+Port back the exact logic from p_coder reference project
+`src/mcp_coder/checks/ci_log_parser.py` function `_extract_failed_step_log` using
+`mcp__workspace__read_reference_file`. Key differences from current pseudocode:
+1. Guard `if step_name and step_name.lower() != "unknown":` before name-based matching
+2. Error fallback collects entire group sections containing `##[error]` lines (not individual lines)
+3. Returns empty string when no matches and no error groups found
 
 **Tests to add**:
 - Exact match preferred over contains match

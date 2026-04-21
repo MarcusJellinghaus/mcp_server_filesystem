@@ -31,45 +31,38 @@ in p_coder). Current code uses loose substring matching which can match wrong fi
 **Fix**: Add `_{job_name}.txt` suffix matching as first strategy, keep existing matching
 as fallback tiers.
 
-```python
-# Pseudocode:
-# Tier 1: GitHub's native format — filename ends with "_{job_name}.txt"
-for filename, content in logs.items():
-    if filename.endswith(f"_{job_name}.txt"):
-        # then match step within this content
-        return _extract_failed_step_log(content, step_name)
-
-# Tier 2: existing job_name + step_number match (keep current)
-# Tier 3: existing job_name + step_name match (keep current)
-# Tier 4: existing job_name only match (keep current)
-# Tier 5: return ""
-```
+Port back the exact logic from p_coder reference project
+`src/mcp_coder/checks/ci_log_parser.py` function `_find_log_content` using
+`mcp__workspace__read_reference_file`. Key difference from current pseudocode:
+Tier 1 returns raw content directly (`return logs[matching_file]`), not the result
+of `_extract_failed_step_log`. Extraction happens in the caller.
 
 **Test to add**: Log dict with `"some_path/0_Job Name.txt"` key — verify `_{job_name}.txt`
 suffix match works.
 
 ### 2. `build_ci_error_details(ci_manager, status_result, max_lines) -> str`
 
-**Critical behavioral change**: Must NEVER return `None`. p_coder always produces a report
-even without log content (shows job names, step names, GitHub URLs).
+**Critical behavioral change**: p_coder always produces a report even without log content
+(shows job names, step names, GitHub URLs with "(logs not available)" fallback per job).
 
 **Fix**: Port back the exact logic from p_coder reference project
 `src/mcp_coder/checks/ci_log_parser.py` function `_build_ci_error_details`. Keep the
 public name `build_ci_error_details` per Decision #3. The function must include: run URL
 in output, per-job line budget tracking, job URL links, summary header,
-`jobs_fetch_warning` handling, and "truncated jobs" section. Never return None — return
-`""` for no failed jobs.
+`jobs_fetch_warning` handling, and "truncated jobs" section.
 
 Use `mcp__workspace__read_reference_file` with the p_coder project to read the exact
 implementation (~100 lines). Do NOT rely on the pseudocode skeleton that was previously
 here — it was far too vague for this complex function.
 
-**Return type change**: `Optional[str]` → `str` (never None).
+**Return type**: Keep `Optional[str]` matching p_coder. Returns `None` only when no failed
+jobs (edge case). The critical fix is removing the mcp-workspace-specific
+`if not all_logs: return None` early exit — p_coder does NOT have this and instead provides
+fallback text '(logs not available)' per job when logs can't be fetched.
 
 **Tests to update**:
-- `test_returns_none_for_no_jobs` → returns `""` not `None`
-- `test_returns_none_for_no_failed_jobs` → returns `""` not `None`
-- `test_returns_none_when_no_logs_available` → returns string with job names/URLs (not None)
+- `test_returns_none_for_no_failed_jobs` → keep returning `None` (p_coder returns `None` when no failed jobs)
+- `test_returns_none_when_no_logs_available` → must return a string with job names and '(logs not available)' fallback text, NOT None
 - `test_handles_log_fetch_failure` → returns string with job info (not None)
 - Add test: run URL is included in output
 - Add test: per-job line budget — verify truncation message for excess jobs
@@ -97,11 +90,7 @@ and no extra blank lines around marker.
 
 ## DATA
 
-- `build_ci_error_details` return type: `Optional[str]` → `str`
+- `build_ci_error_details` return type: stays `Optional[str]` — remove `if not all_logs: return None` early exit
 - `__all__` export list: unchanged
 - `truncate_ci_details`: same signature, format change (square brackets)
 
-**Return type safety note**: Changing `build_ci_error_details` return type from
-`Optional[str]` to `str` is safe for existing callers — `str` is a subtype of
-`Optional[str]`, so mypy won't break in Steps 3-4 before the caller is updated in
-later steps.

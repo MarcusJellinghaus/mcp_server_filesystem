@@ -40,6 +40,10 @@ from mcp_workspace.github_operations.ci_log_parser import (
     build_ci_error_details,
     truncate_ci_details,
 )
+# NOTE: build_ci_error_details and truncate_ci_details are already imported
+# at the top of the current file — no need to re-add them in this import block.
+# Only the private functions (_find_log_content, _strip_timestamps,
+# _extract_failed_step_log) are new additions.
 
 DEFAULT_LABEL = "unknown"
 EMPTY_RECOMMENDATIONS: List[str] = []
