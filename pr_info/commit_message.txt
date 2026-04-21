@@ -1,11 +1,16 @@
-fix: add github_token passthrough to CIResultsManager
+fix: restore branch_status collection functions
 
-Add the github_token parameter to CIResultsManager.__init__ so it is
-forwarded to BaseGitHubManager, which already supports it. This allows
-callers to provide an explicit token instead of relying solely on config
-file lookup.
-
-- Add github_token optional parameter to __init__ signature
-- Pass github_token through to super().__init__
-- Update docstring Args section
-- Add test_github_token_passthrough test
+- Add _find_log_content, _strip_timestamps, _extract_failed_step_log to
+  ci_log_parser __all__ for cross-package internal use
+- Add DEFAULT_LABEL and EMPTY_RECOMMENDATIONS constants
+- Fix _collect_ci_status: inner try/except around build_ci_error_details
+  so log fetch failure still returns FAILED (not NOT_CONFIGURED); use
+  conclusion-or-status fallback chain
+- Fix _collect_task_status: add pr_info directory pre-check, total==0
+  is now blocking, steps-exist-without-tracker is blocking, general
+  exception is blocking
+- Fix _collect_github_label: return "unknown" instead of "" as default
+- Fix get_failed_jobs_summary: return p_coder structure with job_name,
+  step_name, step_number, log_excerpt, other_failed_jobs instead of
+  failed_count/failed_jobs
+- Update all tests to match new behavior and return structures

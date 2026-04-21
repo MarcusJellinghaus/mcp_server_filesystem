@@ -24,7 +24,7 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] [Step 1](steps/step_1.md): Restore ci_log_parser internal parsing functions
 - [x] [Step 2](steps/step_2.md): Restore ci_log_parser report building logic
 - [x] [Step 3](steps/step_3.md): Add github_token passthrough to CIResultsManager
-- [ ] [Step 4](steps/step_4.md): Restore branch_status collection functions
+- [x] [Step 4](steps/step_4.md): Restore branch_status collection functions
 - [ ] [Step 5](steps/step_5.md): Restore branch_status recommendations and output formats
 
 ## Pull Request

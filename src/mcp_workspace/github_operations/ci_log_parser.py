@@ -19,6 +19,9 @@ _TIMESTAMP_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s?")
 __all__ = [
     "build_ci_error_details",
     "truncate_ci_details",
+    "_find_log_content",
+    "_strip_timestamps",
+    "_extract_failed_step_log",
 ]
 
 

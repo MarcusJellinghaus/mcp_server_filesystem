@@ -140,7 +140,11 @@ class TestGetFailedJobsSummary:
     def test_no_failed_jobs(self) -> None:
         jobs = [{"name": "test", "conclusion": "success", "steps": []}]
         result = get_failed_jobs_summary(jobs, {})
-        assert result["failed_count"] == 0
+        assert result["job_name"] is None
+        assert result["step_name"] is None
+        assert result["step_number"] is None
+        assert result["log_excerpt"] is None
+        assert result["other_failed_jobs"] == []
 
     def test_with_failed_jobs(self) -> None:
         jobs = [
@@ -148,15 +152,57 @@ class TestGetFailedJobsSummary:
                 "name": "test",
                 "conclusion": "failure",
                 "steps": [
-                    {"name": "Run tests", "conclusion": "failure"},
                     {"name": "Setup", "conclusion": "success"},
+                    {"name": "Run tests", "conclusion": "failure", "number": 2},
                 ],
             }
         ]
         result = get_failed_jobs_summary(jobs, {})
-        assert result["failed_count"] == 1
-        assert result["failed_jobs"][0]["name"] == "test"
-        assert "Run tests" in result["failed_jobs"][0]["steps"]
+        assert result["job_name"] == "test"
+        assert result["step_name"] == "Run tests"
+        assert result["step_number"] == 2
+        assert result["other_failed_jobs"] == []
+
+    def test_multiple_failed_jobs(self) -> None:
+        jobs: list[dict[str, object]] = [
+            {
+                "name": "test",
+                "conclusion": "failure",
+                "steps": [
+                    {"name": "Run tests", "conclusion": "failure", "number": 1},
+                ],
+            },
+            {
+                "name": "lint",
+                "conclusion": "failure",
+                "steps": [],
+            },
+        ]
+        result = get_failed_jobs_summary(jobs, {})
+        assert result["job_name"] == "test"
+        assert result["other_failed_jobs"] == ["lint"]
+
+    def test_with_log_content(self) -> None:
+        jobs = [
+            {
+                "name": "test",
+                "conclusion": "failure",
+                "steps": [
+                    {"name": "Run tests", "conclusion": "failure", "number": 1},
+                ],
+            },
+        ]
+        log_text = (
+            "##[group]Run tests\n"
+            "FAILED test_example.py\n"
+            "##[error]Process completed with exit code 1\n"
+            "##[endgroup]\n"
+        )
+        logs = {"0_test.txt": log_text}
+        result = get_failed_jobs_summary(jobs, logs)
+        assert result["job_name"] == "test"
+        assert result["log_excerpt"] is not None
+        assert "FAILED" in result["log_excerpt"]
 
 
 class TestCollectCIStatus:
@@ -207,6 +253,36 @@ class TestCollectCIStatus:
         status, _ = _collect_ci_status(Path("/tmp"), "main", 300)
         assert status == CIStatus.NOT_CONFIGURED
 
+    @patch("mcp_workspace.checks.branch_status.build_ci_error_details")
+    @patch("mcp_workspace.checks.branch_status.CIResultsManager")
+    def test_failed_with_details_exception(
+        self, mock_ci_cls: MagicMock, mock_build: MagicMock
+    ) -> None:
+        """build_ci_error_details raising still returns FAILED, not NOT_CONFIGURED."""
+        mock_ci = MagicMock()
+        mock_ci.get_latest_ci_status.return_value = {
+            "run": {"conclusion": "failure", "status": "completed"},
+            "jobs": [],
+        }
+        mock_ci_cls.return_value = mock_ci
+        mock_build.side_effect = Exception("log fetch failed")
+        status, details = _collect_ci_status(Path("/tmp"), "main", 300)
+        assert status == CIStatus.FAILED
+        assert details is None
+
+    @patch("mcp_workspace.checks.branch_status.CIResultsManager")
+    def test_pending_via_status_fallback(self, mock_ci_cls: MagicMock) -> None:
+        """conclusion=None, status='in_progress' should return PENDING."""
+        mock_ci = MagicMock()
+        mock_ci.get_latest_ci_status.return_value = {
+            "run": {"conclusion": None, "status": "in_progress"},
+            "jobs": [],
+        }
+        mock_ci_cls.return_value = mock_ci
+        status, details = _collect_ci_status(Path("/tmp"), "main", 300)
+        assert status == CIStatus.PENDING
+        assert details is None
+
     @patch("mcp_workspace.checks.branch_status.CIResultsManager")
     def test_exception_returns_not_configured(self, mock_ci_cls: MagicMock) -> None:
         mock_ci_cls.side_effect = Exception("fail")
@@ -243,37 +319,80 @@ class TestCollectTaskStatus:
     """Tests for _collect_task_status."""
 
     @patch("mcp_workspace.checks.branch_status.get_task_counts")
-    def test_complete(self, mock_counts: MagicMock) -> None:
+    def test_complete(self, mock_counts: MagicMock, tmp_path: Path) -> None:
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
         mock_counts.return_value = (5, 5)
-        status, reason, blocking = _collect_task_status(Path("/tmp"))
+        status, reason, blocking = _collect_task_status(tmp_path)
         assert status == TaskTrackerStatus.COMPLETE
         assert not blocking
 
     @patch("mcp_workspace.checks.branch_status.get_task_counts")
-    def test_incomplete(self, mock_counts: MagicMock) -> None:
+    def test_incomplete(self, mock_counts: MagicMock, tmp_path: Path) -> None:
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
         mock_counts.return_value = (5, 3)
-        status, reason, blocking = _collect_task_status(Path("/tmp"))
+        status, reason, blocking = _collect_task_status(tmp_path)
         assert status == TaskTrackerStatus.INCOMPLETE
         assert blocking
         assert "3 of 5" in reason
 
     @patch("mcp_workspace.checks.branch_status.get_task_counts")
-    def test_no_tasks(self, mock_counts: MagicMock) -> None:
+    def test_no_tasks_is_blocking(self, mock_counts: MagicMock, tmp_path: Path) -> None:
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
         mock_counts.return_value = (0, 0)
-        status, reason, blocking = _collect_task_status(Path("/tmp"))
+        status, reason, blocking = _collect_task_status(tmp_path)
+        assert status == TaskTrackerStatus.N_A
+        assert blocking
+        assert reason == "Task tracker is empty"
+
+    def test_no_pr_info_dir(self, tmp_path: Path) -> None:
+        """Missing pr_info directory returns N_A without calling get_task_counts."""
+        status, reason, blocking = _collect_task_status(tmp_path)
         assert status == TaskTrackerStatus.N_A
         assert not blocking
+        assert "No pr_info" in reason
 
     @patch("mcp_workspace.checks.branch_status.get_task_counts")
-    def test_file_not_found(self, mock_counts: MagicMock) -> None:
+    def test_file_not_found_no_steps(self, mock_counts: MagicMock, tmp_path: Path) -> None:
         from mcp_workspace.workflows.task_tracker import (
             TaskTrackerFileNotFoundError,
         )
 
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
         mock_counts.side_effect = TaskTrackerFileNotFoundError("not found")
-        status, _, blocking = _collect_task_status(Path("/tmp"))
+        status, _, blocking = _collect_task_status(tmp_path)
         assert status == TaskTrackerStatus.N_A
         assert not blocking
+
+    @patch("mcp_workspace.checks.branch_status.get_task_counts")
+    def test_file_not_found_with_steps(self, mock_counts: MagicMock, tmp_path: Path) -> None:
+        """Steps files exist but no tracker -> blocking."""
+        from mcp_workspace.workflows.task_tracker import (
+            TaskTrackerFileNotFoundError,
+        )
+
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
+        steps_dir = pr_info / "steps"
+        steps_dir.mkdir()
+        (steps_dir / "step_1.md").write_text("step")
+        mock_counts.side_effect = TaskTrackerFileNotFoundError("not found")
+        status, reason, blocking = _collect_task_status(tmp_path)
+        assert status == TaskTrackerStatus.N_A
+        assert blocking
+        assert "create TASK_TRACKER.md" in reason
+
+    @patch("mcp_workspace.checks.branch_status.get_task_counts")
+    def test_general_exception_is_blocking(self, mock_counts: MagicMock, tmp_path: Path) -> None:
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
+        mock_counts.side_effect = RuntimeError("unexpected")
+        status, _, blocking = _collect_task_status(tmp_path)
+        assert status == TaskTrackerStatus.ERROR
+        assert blocking
 
 
 class TestCollectGithubLabel:
@@ -309,10 +428,10 @@ class TestCollectGithubLabel:
             "url": "",
             "locked": False,
         }
-        assert _collect_github_label(issue_data) == ""
+        assert _collect_github_label(issue_data) == "unknown"
 
     def test_none_issue_data(self) -> None:
-        assert _collect_github_label(None) == ""
+        assert _collect_github_label(None) == "unknown"
 
 
 class TestCollectPRInfo:

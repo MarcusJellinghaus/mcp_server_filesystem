@@ -18,6 +18,9 @@ from mcp_workspace.git_operations.branch_queries import (
 )
 from mcp_workspace.git_operations.workflows import needs_rebase
 from mcp_workspace.github_operations.ci_log_parser import (
+    _extract_failed_step_log,
+    _find_log_content,
+    _strip_timestamps,
     build_ci_error_details,
     truncate_ci_details,
 )
@@ -32,6 +35,9 @@ from mcp_workspace.workflows.task_tracker import (
 )
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_LABEL = "unknown"
+EMPTY_RECOMMENDATIONS: List[str] = []
 
 
 class CIStatus(str, Enum):
@@ -125,8 +131,8 @@ def create_empty_report() -> BranchStatusReport:
         tasks_status=TaskTrackerStatus.N_A,
         tasks_reason="unknown",
         tasks_is_blocking=False,
-        current_github_label="",
-        recommendations=[],
+        current_github_label=DEFAULT_LABEL,
+        recommendations=EMPTY_RECOMMENDATIONS,
     )
 
 
@@ -140,23 +146,55 @@ def get_failed_jobs_summary(
         logs: Dictionary mapping log filenames to contents.
 
     Returns:
-        Dictionary with failed job names and log excerpts.
+        Dictionary with job_name, step_name, step_number, log_excerpt,
+        and other_failed_jobs list.
     """
     failed = [j for j in jobs if j.get("conclusion") == "failure"]
-    summary: Dict[str, Any] = {
-        "failed_count": len(failed),
-        "failed_jobs": [],
+    if not failed:
+        return {
+            "job_name": None,
+            "step_name": None,
+            "step_number": None,
+            "log_excerpt": None,
+            "other_failed_jobs": [],
+        }
+
+    primary = failed[0]
+    job_name = str(primary.get("name", "unknown"))
+
+    # Find the first failed step
+    step_name: Optional[str] = None
+    step_number: Optional[int] = None
+    raw_steps = primary.get("steps", [])
+    steps: Sequence[Mapping[str, Any]] = list(raw_steps) if raw_steps else []
+    for step in steps:
+        if step.get("conclusion") == "failure":
+            step_name = str(step.get("name", "unknown"))
+            step_number = step.get("number")
+            break
+
+    # Extract log excerpt for the failed job
+    log_content = _find_log_content(
+        logs, job_name, step_number if step_number is not None else 0,
+        step_name if step_name is not None else "",
+    )
+    log_excerpt: Optional[str] = None
+    if log_content and step_name:
+        excerpt = _extract_failed_step_log(log_content, step_name)
+        if excerpt:
+            log_excerpt = _strip_timestamps(excerpt)
+    elif log_content:
+        log_excerpt = _strip_timestamps(log_content)
+
+    other_failed_jobs = [str(j.get("name", "unknown")) for j in failed[1:]]
+
+    return {
+        "job_name": job_name,
+        "step_name": step_name,
+        "step_number": step_number,
+        "log_excerpt": log_excerpt,
+        "other_failed_jobs": other_failed_jobs,
     }
-    for job in failed:
-        job_name = str(job.get("name", "unknown"))
-        job_info: Dict[str, Any] = {"name": job_name, "steps": []}
-        raw_steps = job.get("steps", [])
-        steps: Sequence[Mapping[str, Any]] = list(raw_steps) if raw_steps else []
-        failed_steps = [s for s in steps if s.get("conclusion") == "failure"]
-        for step in failed_steps:
-            job_info["steps"].append(str(step.get("name", "unknown")))
-        summary["failed_jobs"].append(job_info)
-    return summary
 
 
 def _collect_ci_status(
@@ -175,17 +213,19 @@ def _collect_ci_status(
         if run_data is None or len(run_data) == 0:
             return CIStatus.NOT_CONFIGURED, None
 
-        conclusion = run_data.get("conclusion")
-        status = run_data.get("status", "")
+        ci_state = run_data.get("conclusion") or run_data.get("status", "")
 
-        if conclusion == "success":
+        if ci_state == "success":
             return CIStatus.PASSED, None
-        elif conclusion == "failure":
-            details = build_ci_error_details(
-                ci_manager, status_result, max_lines=max_log_lines
-            )
+        elif ci_state == "failure":
+            try:
+                details = build_ci_error_details(
+                    ci_manager, status_result, max_lines=max_log_lines
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                details = None
             return CIStatus.FAILED, details
-        elif status in ("in_progress", "queued", "pending"):
+        elif ci_state in ("in_progress", "queued", "pending"):
             return CIStatus.PENDING, None
         else:
             return CIStatus.NOT_CONFIGURED, None
@@ -217,11 +257,17 @@ def _collect_task_status(
     Returns:
         Tuple of (status, reason, is_blocking).
     """
+    pr_info_path = project_dir / "pr_info"
+    if not pr_info_path.exists():
+        return TaskTrackerStatus.N_A, "No pr_info directory", False
+
+    steps_dir = pr_info_path / "steps"
+    has_steps_files = steps_dir.exists() and any(steps_dir.iterdir())
+
     try:
-        pr_info_path = str(project_dir / "pr_info")
-        total, completed = get_task_counts(pr_info_path)
+        total, completed = get_task_counts(str(pr_info_path))
         if total == 0:
-            return TaskTrackerStatus.N_A, "No tasks found", False
+            return TaskTrackerStatus.N_A, "Task tracker is empty", True
         if completed >= total:
             return (
                 TaskTrackerStatus.COMPLETE,
@@ -234,27 +280,37 @@ def _collect_task_status(
             True,
         )
     except TaskTrackerFileNotFoundError:
+        if has_steps_files:
+            return (
+                TaskTrackerStatus.N_A,
+                "Steps files exist but no task tracker — create TASK_TRACKER.md",
+                True,
+            )
         return TaskTrackerStatus.N_A, "No task tracker file", False
     except TaskTrackerSectionNotFoundError:
-        return TaskTrackerStatus.N_A, "No tasks section in tracker", False
+        return (
+            TaskTrackerStatus.N_A,
+            "No tasks section in tracker",
+            has_steps_files,
+        )
     except Exception:  # pylint: disable=broad-exception-caught
         logger.debug("Task tracker check failed", exc_info=True)
-        return TaskTrackerStatus.ERROR, "Task tracker check failed", False
+        return TaskTrackerStatus.ERROR, "Task tracker check failed", True
 
 
 def _collect_github_label(issue_data: Optional[IssueData]) -> str:
     """Extract the current status label from issue data.
 
     Returns:
-        Current status label string, or empty string if not found.
+        Current status label string, or DEFAULT_LABEL if not found.
     """
     if issue_data is None:
-        return ""
+        return DEFAULT_LABEL
     labels = issue_data.get("labels", [])
     for label in labels:
         if isinstance(label, str) and label.startswith("status-"):
             return label
-    return ""
+    return DEFAULT_LABEL
 
 
 def _collect_pr_info(
