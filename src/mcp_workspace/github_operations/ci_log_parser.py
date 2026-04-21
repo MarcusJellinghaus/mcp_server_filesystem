@@ -100,7 +100,7 @@ def _parse_groups(log_content: str) -> List[Tuple[str, List[str]]]:
                 # Attach to preceding group
                 groups[-1] = (groups[-1][0], groups[-1][1] + current_lines)
             # Start new group - extract name after ##[group]
-            current_group = line.split("##[group]", 1)[1].strip()
+            current_group = line[len("##[group]"):]
             current_lines = []
         elif line.startswith("##[endgroup]"):
             # End current group
@@ -136,7 +136,13 @@ def _extract_failed_step_log(log_content: str, step_name: str) -> str:
         Log content for the matching step, error group content as fallback,
         or empty string if no matches found.
     """
+    if not log_content:
+        return ""
+
     groups = _parse_groups(log_content)
+
+    if not groups:
+        return ""
 
     if step_name and step_name.lower() != "unknown":
         step_lower = step_name.lower()

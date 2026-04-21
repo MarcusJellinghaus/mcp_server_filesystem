@@ -375,9 +375,9 @@ def _collect_task_status(
             "TASK_TRACKER.md has no Tasks section",
             has_steps_files,
         )
-    except Exception:  # pylint: disable=broad-exception-caught
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.debug("Task tracker check failed", exc_info=True)
-        return TaskTrackerStatus.ERROR, "Task tracker check failed", True
+        return TaskTrackerStatus.ERROR, f"Could not read task tracker: {e}", True
 
 
 def _collect_github_label(issue_data: Optional[IssueData]) -> str:
