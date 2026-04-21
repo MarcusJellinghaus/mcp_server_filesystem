@@ -1,9 +1,11 @@
-fix: restore ci_log_parser report building logic
+fix: add github_token passthrough to CIResultsManager
 
-- _find_log_content: add _{job_name}.txt suffix matching as primary
-  lookup strategy (Tier 1), keeping existing matching as fallback tiers
-- build_ci_error_details: always produce report even without log content,
-  include run URL and job URLs, per-job line budget tracking,
-  jobs_fetch_warning handling, "(logs not available)" fallback per job
-- truncate_ci_details: match p_coder marker format with square brackets,
-  add empty input guard
+Add the github_token parameter to CIResultsManager.__init__ so it is
+forwarded to BaseGitHubManager, which already supports it. This allows
+callers to provide an explicit token instead of relying solely on config
+file lookup.
+
+- Add github_token optional parameter to __init__ signature
+- Pass github_token through to super().__init__
+- Update docstring Args section
+- Add test_github_token_passthrough test
