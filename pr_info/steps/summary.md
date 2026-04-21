@@ -10,14 +10,14 @@ Three fixes in `_search_content()`, plus a key rename:
 
 1. **Per-line truncation** — cap every line in the context block to 500 chars, appending ` ... [truncated, line has {n} chars]` when hit.
 2. **Character budget** — replace newline-counting with `char_budget = max_result_lines * 120`. Track `chars_used`, stop adding detailed matches when budget is exceeded.
-3. **Compact fallback** — when truncated, include a `"files"` key with the complete map of all matching files and line numbers. `"files"` key is only present when `truncated=True`.
+3. **Compact fallback** — when truncated, include a `"matched_files"` key with the complete map of all matching files and line numbers. `"matched_files"` key is only present when `truncated=True`.
 4. **Key rename** — `"matches"` → `"details"` everywhere (clean break, no backwards compat).
 
 ## Architectural / Design Changes
 
 - **No new files, modules, classes, or parameters.** The change is entirely within `_search_content()` return structure.
 - **Response key rename:** `"matches"` → `"details"` in the content_search result dict. This is a breaking change to the internal API. Both `search_files` and `search_reference_files` use the same `_search_content` utility, so both are fixed automatically.
-- **New optional key:** `"files"` (list of `{"file": str, "lines": list[int]}`) appears only when `truncated=True`.
+- **New optional key:** `"matched_files"` (list of `{"file": str, "lines": list[int]}`) appears only when `truncated=True`.
 - **Volume measurement semantic change:** `max_result_lines` now measures character budget (`* 120`) instead of counting newlines. The parameter name and default value (200) are unchanged — only the internal interpretation changes.
 - **No server layer changes needed.** `server.py` and `server_reference_tools.py` pass through the dict from `search_files_util` transparently.
 

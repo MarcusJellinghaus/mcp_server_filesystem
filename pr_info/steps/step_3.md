@@ -10,8 +10,8 @@ See `pr_info/steps/summary.md` for full context. This step replaces newline-coun
 ## WHAT
 1. Replace `total_lines_so_far` with `chars_used` counter. Budget = `max_result_lines * 120`.
 2. Track all matches in a `files_map: Dict[str, List[int]]` for the compact fallback.
-3. When `truncated=True`, include `"files"` key in return dict (converted from files_map).
-4. When `truncated=False`, do NOT include `"files"` key.
+3. When `truncated=True`, include `"matched_files"` key in return dict (converted from files_map).
+4. When `truncated=False`, do NOT include `"matched_files"` key.
 
 ## ALGORITHM
 ```python
@@ -38,7 +38,7 @@ for each match found:
 # Return
 result = {"mode": "content_search", "details": details, "total_matches": total_matches, "truncated": truncated}
 if truncated:
-    result["files"] = [{"file": f, "lines": lns} for f, lns in files_map.items()]
+    result["matched_files"] = [{"file": f, "lines": lns} for f, lns in files_map.items()]
 return result
 ```
 
@@ -53,7 +53,7 @@ return result
 {
     "mode": "content_search",
     "details": [...],  # as many as fit in budget
-    "files": [{"file": "foo.py", "lines": [42, 87]}, ...],  # always complete
+    "matched_files": [{"file": "foo.py", "lines": [42, 87]}, ...],  # always complete
     "total_matches": N,
     "truncated": True,
 }
@@ -90,7 +90,7 @@ class TestSearchFilesCompactFallback:
     """Tests for compact fallback when results are truncated."""
 
     def test_files_key_present_when_truncated(self, project_dir: Path) -> None:
-        """When truncated, 'files' key contains complete file/line map."""
+        """When truncated, 'matched_files' key contains complete file/line map."""
         lines = [f"match_{i}" for i in range(50)]
         (project_dir / "big.txt").write_text("\n".join(lines) + "\n")
 
@@ -102,20 +102,20 @@ class TestSearchFilesCompactFallback:
         )
 
         assert result["truncated"] is True
-        assert "files" in result
-        files_entry = result["files"][0]
+        assert "matched_files" in result
+        files_entry = result["matched_files"][0]
         assert files_entry["file"].endswith("big.txt")
         # All 50 matches should be in the files map
         assert len(files_entry["lines"]) == 50
 
     def test_files_key_absent_when_not_truncated(self, project_dir: Path) -> None:
-        """When not truncated, 'files' key is not in the response."""
+        """When not truncated, 'matched_files' key is not in the response."""
         (project_dir / "small.txt").write_text("hello world\n")
 
         result = search_files(project_dir, pattern=r"hello")
 
         assert result["truncated"] is False
-        assert "files" not in result
+        assert "matched_files" not in result
 
     def test_compact_fallback_multiple_files(self, project_dir: Path) -> None:
         """Compact fallback tracks matches across multiple files."""
@@ -133,9 +133,26 @@ class TestSearchFilesCompactFallback:
 
         assert result["truncated"] is True
         assert result["total_matches"] == 3
-        file_names = {e["file"] for e in result["files"]}
+        file_names = {e["file"] for e in result["matched_files"]}
         assert any("a.py" in f for f in file_names)
         assert any("b.py" in f for f in file_names)
+
+    def test_empty_details_when_first_match_exceeds_budget(self, project_dir: Path) -> None:
+        """When even the first match exceeds char budget, details is empty but matched_files is populated."""
+        long_line = "x" * 200
+        (project_dir / "huge.txt").write_text(long_line + "\n")
+
+        result = search_files(
+            project_dir,
+            pattern=r"x+",
+            max_results=100,
+            max_result_lines=1,  # budget = 120 chars, truncated line ~236 chars
+        )
+
+        assert result["truncated"] is True
+        assert result["details"] == []
+        assert len(result["matched_files"]) == 1
+        assert result["total_matches"] == 1
 
     def test_long_line_char_budget(self, project_dir: Path) -> None:
         """A single long-line match can exhaust char budget on its own."""
@@ -155,6 +172,8 @@ class TestSearchFilesCompactFallback:
         # At least one match fits, but both may not
         assert len(result["details"]) >= 1
         assert result["total_matches"] == 2
+        assert result["truncated"] is True
+        assert "matched_files" in result
 ```
 
 ## Commit
@@ -175,7 +194,7 @@ test_search_files_char_budget_truncation.
 Key changes in _search_content():
 - Replace total_lines_so_far with chars_used, budget = max_result_lines * 120
 - Add files_map dict tracking all matches (file -> line numbers)
-- Include "files" key in return dict only when truncated=True
+- Include "matched_files" key in return dict only when truncated=True
 - Convert files_map to list-of-dicts format: [{"file": str, "lines": [int]}]
 
 Run all quality checks after.
