@@ -169,3 +169,43 @@ class TestSearchFilesContentSearch:
         assert result["mode"] == "content_search"
         assert len(result["details"]) == 1
         assert "text.py" in result["details"][0]["file"]
+
+
+class TestSearchFilesLineTruncation:
+    """Tests for per-line truncation of long lines."""
+
+    def test_long_line_truncated_at_500_chars(self, project_dir: Path) -> None:
+        """A line exceeding 500 chars is truncated with marker."""
+        long_line = "x" * 1000
+        (project_dir / "long.txt").write_text(long_line + "\n")
+
+        result = search_files(project_dir, pattern=r"x+")
+
+        detail = result["details"][0]
+        assert len(detail["text"]) < 1000
+        assert "... [truncated, line has 1000 chars]" in detail["text"]
+        assert detail["text"].startswith("x" * 500)
+
+    def test_short_line_not_truncated(self, project_dir: Path) -> None:
+        """A line under 500 chars is returned as-is."""
+        line = "y" * 499
+        (project_dir / "short.txt").write_text(line + "\n")
+
+        result = search_files(project_dir, pattern=r"y+")
+
+        assert result["details"][0]["text"] == line
+        assert "truncated" not in result["details"][0]["text"]
+
+    def test_context_lines_also_truncated(self, project_dir: Path) -> None:
+        """Context lines (not just match line) are truncated too."""
+        long_ctx = "a" * 800
+        (project_dir / "ctx.txt").write_text(f"{long_ctx}\nMATCH\nshort\n")
+
+        result = search_files(project_dir, pattern=r"MATCH", context_lines=1)
+
+        text = result["details"][0]["text"]
+        lines = text.split("\n")
+        # First line (context) should be truncated
+        assert "... [truncated, line has 800 chars]" in lines[0]
+        # Match line should be intact
+        assert lines[1] == "MATCH"

@@ -27,9 +27,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `refactor: rename "matches" key to "details" in search results`
 
 ### Step 2: Add per-line truncation (500 char cap)
-- [ ] Implementation: add `_MAX_LINE_CHARS` constant and truncation logic in `_search_content()`, add tests for long-line truncation
-- [ ] Quality checks pass: pylint, pytest, mypy
-- [ ] Commit: `feat: add per-line truncation to search content results`
+- [x] Implementation: add `_MAX_LINE_CHARS` constant and truncation logic in `_search_content()`, add tests for long-line truncation
+- [x] Quality checks pass: pylint, pytest, mypy
+- [x] Commit: `feat: add per-line truncation to search content results`
 
 ### Step 3: Add character budget and compact fallback
 - [ ] Implementation: replace line-counting with char budget (`max_result_lines * 120`), add `matched_files` compact fallback when truncated, add/update tests

@@ -9,6 +9,9 @@ from mcp_workspace.file_tools.directory_utils import list_files
 from mcp_workspace.file_tools.path_utils import normalize_path
 
 
+_MAX_LINE_CHARS = 500
+
+
 def _search_content(
     files: List[str],
     compiled: "re.Pattern[str]",
@@ -46,7 +49,17 @@ def _search_content(
 
             start = max(0, i - context_lines)
             end = min(len(file_lines), i + context_lines + 1)
-            context = "".join(file_lines[start:end]).rstrip("\n")
+            raw_lines = file_lines[start:end]
+            capped = []
+            for raw in raw_lines:
+                stripped = raw.rstrip("\n")
+                if len(stripped) > _MAX_LINE_CHARS:
+                    stripped = (
+                        stripped[:_MAX_LINE_CHARS]
+                        + f" ... [truncated, line has {len(stripped)} chars]"
+                    )
+                capped.append(stripped)
+            context = "\n".join(capped)
             match_lines = context.count("\n") + 1
 
             if (

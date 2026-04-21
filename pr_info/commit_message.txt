@@ -1,0 +1,12 @@
+feat: add per-line truncation to search content results
+
+Add _MAX_LINE_CHARS = 500 constant and truncation logic in
+_search_content() so that every line in context blocks is capped
+at 500 characters. Lines exceeding the limit get a truncation
+marker appended: " ... [truncated, line has {n} chars]".
+
+This prevents single very long lines (e.g. minified JSON) from
+dominating the search output budget.
+
+Includes tests for long-line truncation, short-line passthrough,
+and context-line truncation.
