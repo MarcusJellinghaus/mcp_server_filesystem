@@ -63,15 +63,40 @@ Issue: #128 — fix: check_branch_status reports failing CI — port back origin
 - F11 (Accept): `.strip()` on group names — verified already fixed in round 1
 - F12-F15 (Skip): Stricter typing, docstring wording — improvements or trivial
 
-**Decisions**: F7, F10, F11 accepted but already present in code from round 1. All others skipped as improvements or trivial.
+**Decisions**: F7, F10, F11 accepted — applied but missed from round 1 commit. R2 F5, F6 re-evaluated in round 3.
 
-**Changes**: None — all accepted findings were already fixed.
+**Changes**:
+- `src/mcp_workspace/checks/branch_status.py`: F7 (error reason with exception), applied
+- `src/mcp_workspace/github_operations/ci_log_parser.py`: F10 (early returns), F11 (group name parsing), applied
 
-**Status**: No changes needed
+**Status**: Committed as `b0c345d`
+
+## Round 3 — 2026-04-22
+
+**Findings**:
+- F2 (Accept): Reason text `"No pr_info directory"` → `"No pr_info folder found"` to match p_coder
+- F3 (Accept): `completed >= total` → `completed == total` to match p_coder
+- F4 (Accept): `logger.warning` → `logger.error` for branch detection failure, message text aligned
+- F5 (Accept): `logger.exception` → `logger.error(f"...")` to match p_coder's error format
+
+**Decisions**: All accepted — trivial one-line changes to minimize differences from p_coder per user guidance.
+
+**Changes**:
+- `src/mcp_workspace/checks/branch_status.py`: All 4 fixes applied
+
+**Status**: Committed as `173256c`
+
+## Round 4 — 2026-04-22
+
+**Findings**: Zero remaining behavioral differences beyond documented decisions.
+
+**Changes**: None needed.
+
+**Status**: Clean — review complete.
 
 ## Final Status
 
-- **Rounds**: 2 (1 with changes, 1 clean)
-- **Commits**: 1 (`7b9b129`)
-- **Remaining issues**: None — all critical and accept-level findings resolved
+- **Rounds**: 4 (rounds 1-3 with changes, round 4 clean)
+- **Commits**: 3 (`7b9b129`, `b0c345d`, `173256c`)
+- **Remaining issues**: None — all findings resolved, zero undocumented behavioral differences
 - **Checks**: All passing (pytest 1216/2 skipped, pylint clean, mypy clean)
