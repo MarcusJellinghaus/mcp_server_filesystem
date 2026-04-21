@@ -1,13 +1,11 @@
-fix: reverse merge-base distance direction and remove early-exit
+test: add 4 regression tests for merge-base parent detection
 
-- Reverse iter_commits range from merge-base→branch to merge-base→current HEAD
-  so distance reflects how far the current branch has diverged, not how far
-  the candidate has moved
-- Remove early-exit on distance=0; candidates now flow through the normal
-  sorting path
-- Add default-branch tiebreaker to sort key so main/master wins when two
-  candidates have equal distance
-- Update test mocks: use reusable list instead of one-shot iterator in
-  test_simple_branch_from_main, fix rev_range check in
-  test_multiple_candidates_pick_smallest to match on merge-base hexsha
-- Add autouse fixture to patch get_default_branch_name across all tests
+Add test cases validating corrected merge-base algorithm behavior:
+- test_selects_main_over_dormant_feature_branch: verifies distance
+  measured to current HEAD, not candidate HEAD (issue #803 regression)
+- test_prefers_default_branch_on_equal_distance: default branch wins
+  tiebreaker when distances are equal
+- test_includes_candidate_at_threshold: candidate at exactly the
+  distance threshold (20) is included via <= comparison
+- test_distance_zero_collects_all_candidates: no early-exit at
+  distance=0, all candidates collected before tiebreaker applied

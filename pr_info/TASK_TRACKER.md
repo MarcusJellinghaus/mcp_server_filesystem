@@ -29,9 +29,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ### Step 2: Add 4 new regression tests
 
-- [ ] Implementation: add `test_selects_main_over_dormant_feature_branch`, `test_prefers_default_branch_on_equal_distance`, `test_includes_candidate_at_threshold`, `test_distance_zero_collects_all_candidates` ([step_2.md](./steps/step_2.md))
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: add `test_selects_main_over_dormant_feature_branch`, `test_prefers_default_branch_on_equal_distance`, `test_includes_candidate_at_threshold`, `test_distance_zero_collects_all_candidates` ([step_2.md](./steps/step_2.md))
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ## Pull Request
 

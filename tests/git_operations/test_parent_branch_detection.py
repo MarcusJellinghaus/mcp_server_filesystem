@@ -345,6 +345,179 @@ class TestDetectParentBranchViaMergeBase:
 
         assert result is None
 
+    @patch(
+        "mcp_workspace.git_operations.parent_branch_detection.get_default_branch_name",
+        return_value="main",
+    )
+    def test_selects_main_over_dormant_feature_branch(
+        self, mock_get_default: MagicMock, mock_repo: MagicMock
+    ) -> None:
+        """Regression: current from main, dormant feature-old far away."""
+        project_dir = Path("/test/project")
+        current_branch = "current"
+
+        mock_current = self._create_mock_branch(current_branch, "cur1")
+        mock_main = self._create_mock_branch("main", "main1")
+        mock_old = self._create_mock_branch("feature-old", "old1")
+        branch_dict = {
+            current_branch: mock_current,
+            "main": mock_main,
+            "feature-old": mock_old,
+        }
+        mock_heads = MagicMock()
+        mock_heads.__iter__ = MagicMock(
+            return_value=iter([mock_current, mock_main, mock_old])
+        )
+        mock_heads.__getitem__ = lambda self, key: branch_dict[key]
+        mock_repo.heads = mock_heads
+
+        mb_main = MagicMock()
+        mb_main.hexsha = "mb_main"
+        mb_old = MagicMock()
+        mb_old.hexsha = "mb_old"
+
+        def mock_merge_base(
+            current_commit: MagicMock, target_commit: MagicMock
+        ) -> list[MagicMock]:
+            if target_commit.hexsha == "main1":
+                return [mb_main]
+            return [mb_old]
+
+        mock_repo.merge_base.side_effect = mock_merge_base
+
+        def mock_iter_commits(rev_range: str) -> list[MagicMock]:
+            if "mb_main" in rev_range:
+                return [MagicMock() for _ in range(2)]
+            return [MagicMock() for _ in range(18)]
+
+        mock_repo.iter_commits.side_effect = mock_iter_commits
+
+        result = detect_parent_branch_via_merge_base(project_dir, current_branch)
+
+        assert result == "main"
+
+    @patch(
+        "mcp_workspace.git_operations.parent_branch_detection.get_default_branch_name",
+        return_value="main",
+    )
+    def test_prefers_default_branch_on_equal_distance(
+        self, mock_get_default: MagicMock, mock_repo: MagicMock
+    ) -> None:
+        """Default branch wins when two candidates have equal distance."""
+        project_dir = Path("/test/project")
+        current_branch = "current"
+
+        mock_current = self._create_mock_branch(current_branch, "cur1")
+        mock_main = self._create_mock_branch("main", "main1")
+        mock_develop = self._create_mock_branch("develop", "dev1")
+        branch_dict = {
+            current_branch: mock_current,
+            "main": mock_main,
+            "develop": mock_develop,
+        }
+        mock_heads = MagicMock()
+        mock_heads.__iter__ = MagicMock(
+            return_value=iter([mock_current, mock_main, mock_develop])
+        )
+        mock_heads.__getitem__ = lambda self, key: branch_dict[key]
+        mock_repo.heads = mock_heads
+
+        mb_main = MagicMock()
+        mb_main.hexsha = "mb_main"
+        mb_dev = MagicMock()
+        mb_dev.hexsha = "mb_dev"
+
+        def mock_merge_base(
+            current_commit: MagicMock, target_commit: MagicMock
+        ) -> list[MagicMock]:
+            if target_commit.hexsha == "main1":
+                return [mb_main]
+            return [mb_dev]
+
+        mock_repo.merge_base.side_effect = mock_merge_base
+
+        def mock_iter_commits(rev_range: str) -> list[MagicMock]:
+            return [MagicMock() for _ in range(3)]
+
+        mock_repo.iter_commits.side_effect = mock_iter_commits
+
+        result = detect_parent_branch_via_merge_base(project_dir, current_branch)
+
+        assert result == "main"
+
+    def test_includes_candidate_at_threshold(
+        self, mock_repo: MagicMock
+    ) -> None:
+        """Candidate at exactly the distance threshold is included."""
+        project_dir = Path("/test/project")
+        current_branch = "current"
+
+        mock_current = self._create_mock_branch(current_branch, "cur1")
+        mock_main = self._create_mock_branch("main", "main1")
+        branch_dict = {current_branch: mock_current, "main": mock_main}
+        mock_heads = MagicMock()
+        mock_heads.__iter__ = MagicMock(
+            return_value=iter([mock_current, mock_main])
+        )
+        mock_heads.__getitem__ = lambda self, key: branch_dict[key]
+        mock_repo.heads = mock_heads
+
+        merge_base_commit = MagicMock()
+        merge_base_commit.hexsha = "mb1"
+        mock_repo.merge_base.return_value = [merge_base_commit]
+
+        mock_repo.iter_commits.return_value = [MagicMock() for _ in range(20)]
+
+        result = detect_parent_branch_via_merge_base(project_dir, current_branch)
+
+        assert result == "main"
+
+    @patch(
+        "mcp_workspace.git_operations.parent_branch_detection.get_default_branch_name",
+        return_value="main",
+    )
+    def test_distance_zero_collects_all_candidates(
+        self, mock_get_default: MagicMock, mock_repo: MagicMock
+    ) -> None:
+        """Both candidates at distance 0; tiebreaker picks default branch."""
+        project_dir = Path("/test/project")
+        current_branch = "current"
+
+        mock_current = self._create_mock_branch(current_branch, "cur1")
+        mock_develop = self._create_mock_branch("develop", "dev1")
+        mock_main = self._create_mock_branch("main", "main1")
+        branch_dict = {
+            current_branch: mock_current,
+            "develop": mock_develop,
+            "main": mock_main,
+        }
+        mock_heads = MagicMock()
+        mock_heads.__iter__ = MagicMock(
+            return_value=iter([mock_current, mock_develop, mock_main])
+        )
+        mock_heads.__getitem__ = lambda self, key: branch_dict[key]
+        mock_repo.heads = mock_heads
+
+        mb_dev = MagicMock()
+        mb_dev.hexsha = "mb_dev"
+        mb_main = MagicMock()
+        mb_main.hexsha = "mb_main"
+
+        def mock_merge_base(
+            current_commit: MagicMock, target_commit: MagicMock
+        ) -> list[MagicMock]:
+            if target_commit.hexsha == "dev1":
+                return [mb_dev]
+            return [mb_main]
+
+        mock_repo.merge_base.side_effect = mock_merge_base
+
+        mock_repo.iter_commits.return_value = []
+
+        result = detect_parent_branch_via_merge_base(project_dir, current_branch)
+
+        assert result == "main"
+
     def test_threshold_constant_value(self) -> None:
         """Verify MERGE_BASE_DISTANCE_THRESHOLD has expected value."""
         assert MERGE_BASE_DISTANCE_THRESHOLD == 20
