@@ -1,13 +1,9 @@
-fix: restore ci_log_parser internal parsing functions
+fix: restore ci_log_parser report building logic
 
-- _strip_timestamps: Remove ^ anchor from regex so timestamps after
-  ANSI codes are stripped. Extract pattern to module-level _TIMESTAMP_PATTERN.
-- _parse_groups: Use line.startswith() instead of 'in' check to avoid
-  false positives on mid-line ##[group] markers. Attach lines after
-  ##[endgroup] to the preceding group instead of creating empty groups.
-- _extract_failed_step_log: Implement 3-tier matching (exact, prefix,
-  contains) instead of simple substring match. Add ##[error] fallback
-  when no group matches. Return empty string instead of full log on
-  no match.
-- Update tests to verify new behaviors and fix test_truncates_long_output
-  to use grouped log content.
+- _find_log_content: add _{job_name}.txt suffix matching as primary
+  lookup strategy (Tier 1), keeping existing matching as fallback tiers
+- build_ci_error_details: always produce report even without log content,
+  include run URL and job URLs, per-job line budget tracking,
+  jobs_fetch_warning handling, "(logs not available)" fallback per job
+- truncate_ci_details: match p_coder marker format with square brackets,
+  add empty input guard

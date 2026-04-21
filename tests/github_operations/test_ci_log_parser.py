@@ -42,11 +42,24 @@ class TestTruncateCiDetails:
         assert "truncated" in result
 
     def test_truncation_marker_shows_count(self) -> None:
-        """Truncation marker shows the number of skipped lines."""
+        """Truncation marker uses square bracket format from p_coder."""
         lines = [f"line{i}" for i in range(30)]
         content = "\n".join(lines)
         result = truncate_ci_details(content, max_lines=10, head_lines=3)
-        assert "20 lines truncated" in result
+        assert "[... truncated 20 lines ...]" in result
+        # No extra blank lines around marker
+        result_lines = result.split("\n")
+        marker_idx = next(
+            i for i, line in enumerate(result_lines) if "truncated" in line
+        )
+        # Line before marker should not be blank
+        assert result_lines[marker_idx - 1] != ""
+        # Line after marker should not be blank
+        assert result_lines[marker_idx + 1] != ""
+
+    def test_empty_input_returns_empty(self) -> None:
+        """Empty string input returns empty string."""
+        assert truncate_ci_details("") == ""
 
 
 class TestStripTimestamps:
@@ -204,6 +217,21 @@ class TestFindLogContent:
         result = _find_log_content({}, "job", 1, "step")
         assert result == ""
 
+    def test_suffix_match_job_name_txt(self) -> None:
+        """Tier 1: _{job_name}.txt suffix match works."""
+        logs = {"some_path/0_Job Name.txt": "suffix matched content"}
+        result = _find_log_content(logs, "Job Name", 0, "some step")
+        assert result == "suffix matched content"
+
+    def test_suffix_match_preferred_over_substring(self) -> None:
+        """Suffix match takes priority over loose substring matching."""
+        logs = {
+            "Job Name/3_Run tests.txt": "substring match",
+            "other/0_Job Name.txt": "suffix match",
+        }
+        result = _find_log_content(logs, "Job Name", 3, "Run tests")
+        assert result == "suffix match"
+
 
 class TestBuildCiErrorDetails:
     """Tests for build_ci_error_details."""
@@ -221,24 +249,28 @@ class TestBuildCiErrorDetails:
         result = build_ci_error_details(ci_manager, status)
         assert result is None
 
-    def test_returns_none_when_no_logs_available(self) -> None:
-        """Returns None when log fetch returns empty."""
+    def test_returns_report_when_no_logs_available(self) -> None:
+        """Returns report with job info and fallback text when no logs."""
         ci_manager = MagicMock()
         ci_manager.get_run_logs.return_value = {}
         status = {
+            "run": {"url": "https://github.com/org/repo/actions/runs/123"},
             "jobs": [
                 {
                     "conclusion": "failure",
                     "name": "test-job",
+                    "id": 456,
                     "run_id": 123,
                     "steps": [
                         {"name": "Run tests", "number": 3, "conclusion": "failure"}
                     ],
                 }
-            ]
+            ],
         }
         result = build_ci_error_details(ci_manager, status)
-        assert result is None
+        assert result is not None
+        assert "test-job" in result
+        assert "(logs not available)" in result
 
     def test_builds_report_for_failed_job(self) -> None:
         """Builds error details report for a failed job with logs."""
@@ -247,16 +279,18 @@ class TestBuildCiErrorDetails:
             "test-job/3_Run tests.txt": "2024-01-15T10:30:45.1234567Z Error: test failed"
         }
         status = {
+            "run": {"url": "https://github.com/org/repo/actions/runs/123"},
             "jobs": [
                 {
                     "conclusion": "failure",
                     "name": "test-job",
+                    "id": 456,
                     "run_id": 123,
                     "steps": [
                         {"name": "Run tests", "number": 3, "conclusion": "failure"}
                     ],
                 }
-            ]
+            ],
         }
         result = build_ci_error_details(ci_manager, status)
         assert result is not None
@@ -268,30 +302,38 @@ class TestBuildCiErrorDetails:
         ci_manager = MagicMock()
         ci_manager.get_run_logs.return_value = {}
         jobs = [
-            {"conclusion": "failure", "name": f"job-{i}", "run_id": i, "steps": []}
+            {
+                "conclusion": "failure",
+                "name": f"job-{i}",
+                "id": i + 100,
+                "run_id": i,
+                "steps": [],
+            }
             for i in range(5)
         ]
-        status = {"jobs": jobs}
+        status = {"run": {"url": "https://example.com/runs/1"}, "jobs": jobs}
         build_ci_error_details(ci_manager, status)
         assert ci_manager.get_run_logs.call_count == 3
 
     def test_handles_log_fetch_failure(self) -> None:
-        """Continues gracefully when log fetch raises an exception."""
+        """Returns report with job info even when log fetch fails."""
         ci_manager = MagicMock()
         ci_manager.get_run_logs.side_effect = RuntimeError("API error")
         status = {
+            "run": {"url": "https://github.com/org/repo/actions/runs/123"},
             "jobs": [
                 {
                     "conclusion": "failure",
                     "name": "test-job",
+                    "id": 456,
                     "run_id": 123,
                     "steps": [],
                 }
-            ]
+            ],
         }
-        # Should not raise, returns None since no logs available
         result = build_ci_error_details(ci_manager, status)
-        assert result is None
+        assert result is not None
+        assert "test-job" in result
 
     def test_truncates_long_output(self) -> None:
         """Output is truncated when exceeding max_lines."""
@@ -301,17 +343,65 @@ class TestBuildCiErrorDetails:
         long_log = f"##[group]Run tests\n{inner_lines}\n##[endgroup]"
         ci_manager.get_run_logs.return_value = {"test-job/3_Run tests.txt": long_log}
         status = {
+            "run": {"url": "https://github.com/org/repo/actions/runs/123"},
             "jobs": [
                 {
                     "conclusion": "failure",
                     "name": "test-job",
+                    "id": 456,
                     "run_id": 123,
                     "steps": [
                         {"name": "Run tests", "number": 3, "conclusion": "failure"}
                     ],
                 }
-            ]
+            ],
         }
         result = build_ci_error_details(ci_manager, status, max_lines=20)
         assert result is not None
         assert "truncated" in result
+
+    def test_run_url_in_output(self) -> None:
+        """Run URL is included in the output report."""
+        ci_manager = MagicMock()
+        ci_manager.get_run_logs.return_value = {}
+        status = {
+            "run": {"url": "https://github.com/org/repo/actions/runs/789"},
+            "jobs": [
+                {
+                    "conclusion": "failure",
+                    "name": "lint",
+                    "id": 100,
+                    "run_id": 789,
+                    "steps": [],
+                }
+            ],
+        }
+        result = build_ci_error_details(ci_manager, status)
+        assert result is not None
+        assert "https://github.com/org/repo/actions/runs/789" in result
+
+    def test_per_job_line_budget_truncation(self) -> None:
+        """Jobs exceeding line budget show truncation message."""
+        ci_manager = MagicMock()
+        # Many failed jobs — some should be truncated
+        jobs = [
+            {
+                "conclusion": "failure",
+                "name": f"job-{i}",
+                "id": i + 100,
+                "run_id": 1,
+                "steps": [
+                    {"name": "step", "number": 1, "conclusion": "failure"}
+                ],
+            }
+            for i in range(20)
+        ]
+        ci_manager.get_run_logs.return_value = {}
+        status = {
+            "run": {"url": "https://example.com/runs/1"},
+            "jobs": jobs,
+        }
+        result = build_ci_error_details(ci_manager, status, max_lines=30)
+        assert result is not None
+        # Should show some jobs and indicate truncation
+        assert "job-0" in result

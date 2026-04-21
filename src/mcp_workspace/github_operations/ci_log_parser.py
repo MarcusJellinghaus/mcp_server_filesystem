@@ -39,6 +39,9 @@ def truncate_ci_details(
         The original string if within limits, or a truncated version
         with head + tail preservation and a marker showing skipped lines.
     """
+    if not details:
+        return ""
+
     lines = details.split("\n")
     if len(lines) <= max_lines:
         return details
@@ -46,9 +49,9 @@ def truncate_ci_details(
     tail_lines = max_lines - head_lines
     head = lines[:head_lines]
     tail = lines[-tail_lines:]
-    skipped = len(lines) - head_lines - tail_lines
+    truncated_count = len(lines) - head_lines - tail_lines
 
-    return "\n".join(head + [f"\n... ({skipped} lines truncated) ...\n"] + tail)
+    return "\n".join(head + [f"[... truncated {truncated_count} lines ...]"] + tail)
 
 
 def _strip_timestamps(log_content: str) -> str:
@@ -185,7 +188,13 @@ def _find_log_content(
     if not logs:
         return ""
 
-    # Try to find exact match by job name and step number
+    # Tier 1: GitHub's _{job_name}.txt suffix matching (primary strategy)
+    suffix = f"_{job_name}.txt"
+    for filename, content in logs.items():
+        if filename.endswith(suffix):
+            return content
+
+    # Tier 2: Try to find match by job name and step number
     for filename, content in logs.items():
         # Log files are like "job_name/1_Step Name.txt"
         if job_name.lower() in filename.lower():
@@ -193,13 +202,13 @@ def _find_log_content(
             if step_pattern in filename:
                 return content
 
-    # Try matching just by job name and step name
+    # Tier 3: Try matching just by job name and step name
     for filename, content in logs.items():
         if job_name.lower() in filename.lower():
             if step_name.lower() in filename.lower():
                 return content
 
-    # Try matching just by job name - return all content for that job
+    # Tier 4: Try matching just by job name - return all content for that job
     job_logs: List[str] = []
     for filename, content in logs.items():
         if job_name.lower() in filename.lower():
@@ -218,9 +227,8 @@ def build_ci_error_details(
 ) -> Optional[str]:
     """Build detailed CI error information from failed workflow runs.
 
-    Extracts failed jobs from the status result, fetches logs for up to 3
-    failed run IDs, and builds a structured report with job headers,
-    log content, and truncation as needed.
+    Always produces a report when there are failed jobs, even without log
+    content (shows job names, step names, GitHub URLs with fallback text).
 
     Args:
         ci_manager: CIResultsManager instance for fetching logs.
@@ -229,7 +237,7 @@ def build_ci_error_details(
 
     Returns:
         Structured multi-line string with failed job summaries and
-        log excerpts, or None if no logs are available.
+        log excerpts, or None if no failed jobs.
     """
     jobs: Sequence[Mapping[str, object]] = status_result.get("jobs", [])  # type: ignore[assignment]
     if not jobs:
@@ -239,6 +247,10 @@ def build_ci_error_details(
     failed_jobs = [j for j in jobs if j.get("conclusion") == "failure"]
     if not failed_jobs:
         return None
+
+    run_data: Mapping[str, object] = status_result.get("run", {})  # type: ignore[assignment]
+    run_url = str(run_data.get("url", ""))
+    jobs_fetch_warning = str(run_data.get("jobs_fetch_warning", ""))
 
     # Get unique run IDs from failed jobs (limit to 3)
     run_ids: List[int] = []
@@ -260,27 +272,48 @@ def build_ci_error_details(
         except Exception:  # noqa: BLE001
             logger.warning("Failed to fetch logs for run %d", run_id)
 
-    if not all_logs:
-        return None
-
-    # Build output for each failed job
+    # Build summary header
+    lines_used = 0
     output_parts: List[str] = []
+
+    summary = f"## CI Failure Details\nRun: {run_url}"
+    if jobs_fetch_warning:
+        summary += f"\nWarning: {jobs_fetch_warning}"
+    output_parts.append(summary)
+    lines_used += summary.count("\n") + 1
+
+    # Per-job line budget
+    lines_per_job = max(10, (max_lines - lines_used) // max(len(failed_jobs), 1))
+
+    shown_jobs = 0
     for job in failed_jobs:
+        if lines_used >= max_lines:
+            remaining = len(failed_jobs) - shown_jobs
+            output_parts.append(f"\n[... truncated {remaining} more failed jobs ...]")
+            break
+
         job_name = str(job.get("name", "unknown"))
+        job_id = job.get("id", "")
         steps: Sequence[Mapping[str, object]] = job.get("steps", [])  # type: ignore[assignment]
 
         # Find the failed step
         failed_steps = [s for s in steps if s.get("conclusion") == "failure"]
 
-        header = f"## Failed Job: {job_name}"
+        # Build job header with URL
+        job_url = f"{run_url}/job/{job_id}" if run_url and job_id else ""
+        header = f"### Failed Job: {job_name}"
+        if job_url:
+            header += f"\n{job_url}"
         output_parts.append(header)
+        lines_used += header.count("\n") + 1
 
         if failed_steps:
             for step in failed_steps:
                 step_name = str(step.get("name", "unknown"))
                 step_number = int(str(step.get("number", 0)))
 
-                output_parts.append(f"### Failed Step: {step_name}")
+                output_parts.append(f"**Failed Step: {step_name}**")
+                lines_used += 1
 
                 log_content = _find_log_content(
                     all_logs, job_name, step_number, step_name
@@ -288,11 +321,23 @@ def build_ci_error_details(
                 if log_content:
                     cleaned = _strip_timestamps(log_content)
                     extracted = _extract_failed_step_log(cleaned, step_name)
+                    # Apply per-job line budget
+                    log_lines = extracted.split("\n")
+                    if len(log_lines) > lines_per_job:
+                        extracted = "\n".join(log_lines[:lines_per_job])
+                        extracted += (
+                            f"\n[... truncated to {lines_per_job} lines ...]"
+                        )
                     output_parts.append(extracted)
+                    lines_used += extracted.count("\n") + 1
                 else:
-                    output_parts.append("(no log content available)")
+                    output_parts.append("(logs not available)")
+                    lines_used += 1
         else:
             output_parts.append("(no failed steps identified)")
+            lines_used += 1
+
+        shown_jobs += 1
 
     result = "\n\n".join(output_parts)
     return truncate_ci_details(result, max_lines=max_lines)
