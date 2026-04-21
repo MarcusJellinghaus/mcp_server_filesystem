@@ -493,7 +493,9 @@ def test_github_search_issue_vs_pr_indicator(mock_manager_cls: MagicMock) -> Non
 
     result = github_search(query="test")
 
-    result_lines = [line for line in result.strip().split("\n") if not line.startswith("(")]
+    result_lines = [
+        line for line in result.strip().split("\n") if not line.startswith("(")
+    ]
     assert "[Issue]" in result_lines[0]
     assert "[PR]" in result_lines[1]
 
