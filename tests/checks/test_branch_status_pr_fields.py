@@ -50,10 +50,10 @@ class TestPRFieldsInHumanFormat:
         output = report.format_for_human()
         assert "PR: #42" in output
 
-    def test_pr_not_found_hides_pr_line(self) -> None:
+    def test_pr_not_found_shows_no_pr(self) -> None:
         report = _make_report(pr_found=False)
         output = report.format_for_human()
-        assert "PR:" not in output
+        assert "PR: No PR found" in output
 
     def test_pr_none_hides_pr_line(self) -> None:
         report = _make_report(pr_found=None)
@@ -71,15 +71,14 @@ class TestPRFieldsInLLMFormat:
             pr_found=True,
         )
         output = report.format_for_llm()
-        assert "**PR**" in output
-        assert "#42" in output
+        assert "PR: #42" in output
 
-    def test_pr_not_found_hides_pr_section(self) -> None:
+    def test_pr_not_found_shows_no_pr(self) -> None:
         report = _make_report(pr_found=False)
         output = report.format_for_llm()
-        assert "**PR**" not in output
+        assert "PR: No PR found" in output
 
     def test_pr_none_hides_pr_section(self) -> None:
         report = _make_report(pr_found=None)
         output = report.format_for_llm()
-        assert "**PR**" not in output
+        assert "PR:" not in output

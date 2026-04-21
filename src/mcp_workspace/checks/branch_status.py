@@ -70,17 +70,52 @@ class BranchStatusReport:
 
     def format_for_human(self) -> str:
         """Format report for human-readable terminal output."""
+        ci_icons = {
+            CIStatus.PASSED: "\u2705",
+            CIStatus.FAILED: "\u274c",
+            CIStatus.PENDING: "\u23f3",
+            CIStatus.NOT_CONFIGURED: "\u2699\ufe0f",
+        }
+        ci_icon = ci_icons.get(self.ci_status, "\u2753")
+
         lines: List[str] = []
+        lines.append("=== Branch Status Report ===")
         lines.append(f"Branch: {self.branch_name}")
         lines.append(f"Base: {self.base_branch}")
-        lines.append(f"CI: {self.ci_status.value}")
+        lines.append(f"CI Status: {ci_icon} {self.ci_status.value}")
         if self.ci_details:
             lines.append(f"CI Details:\n{self.ci_details}")
-        lines.append(f"Rebase needed: {self.rebase_needed} ({self.rebase_reason})")
-        lines.append(f"Tasks: {self.tasks_status.value} ({self.tasks_reason})")
-        lines.append(f"Label: {self.current_github_label}")
+
+        rebase_text = "BEHIND" if self.rebase_needed else "UP TO DATE"
+        rebase_icon = "\u274c" if self.rebase_needed else "\u2705"
+        lines.append(
+            f"Rebase Status: {rebase_icon} {rebase_text} ({self.rebase_reason})"
+        )
+
+        task_icons = {
+            TaskTrackerStatus.COMPLETE: "\u2705",
+            TaskTrackerStatus.INCOMPLETE: "\u23f3",
+            TaskTrackerStatus.ERROR: "\u274c",
+            TaskTrackerStatus.N_A: "\u2796",
+        }
+        task_icon = task_icons.get(self.tasks_status, "\u2753")
+        if (
+            self.tasks_status == TaskTrackerStatus.N_A
+            and self.tasks_is_blocking
+        ):
+            task_icon = "\u26a0\ufe0f"
+        lines.append(
+            f"Task Tracker: {task_icon} {self.tasks_status.value}"
+            f" ({self.tasks_reason})"
+        )
+
+        lines.append(f"GitHub Status: {self.current_github_label}")
+
         if self.pr_found:
             lines.append(f"PR: #{self.pr_number} ({self.pr_url})")
+        elif self.pr_found is False:
+            lines.append("PR: No PR found")
+
         if self.recommendations:
             lines.append("Recommendations:")
             for rec in self.recommendations:
@@ -89,30 +124,29 @@ class BranchStatusReport:
 
     def format_for_llm(self, max_lines: int = 300) -> str:
         """Format report for LLM context window consumption."""
+        rebase_text = "NEEDED" if self.rebase_needed else "OK"
+        tasks_text = self.tasks_status.value
+
         lines: List[str] = []
-        lines.append("## Branch Status Report")
-        lines.append(f"- **Branch**: `{self.branch_name}`")
-        lines.append(f"- **Base**: `{self.base_branch}`")
-        lines.append(f"- **CI**: {self.ci_status.value}")
+        lines.append(f"Branch: {self.branch_name} | Base: {self.base_branch}")
         lines.append(
-            f"- **Rebase**: {'NEEDED' if self.rebase_needed else 'OK'}"
-            f" — {self.rebase_reason}"
+            f"Branch Status: CI={self.ci_status.value},"
+            f" Rebase={rebase_text},"
+            f" Tasks={tasks_text},"
+            f" Label={self.current_github_label}"
         )
-        lines.append(f"- **Tasks**: {self.tasks_status.value} — {self.tasks_reason}")
-        lines.append(f"- **Label**: {self.current_github_label}")
 
         if self.pr_found:
-            lines.append(f"- **PR**: #{self.pr_number} ({self.pr_url})")
+            lines.append(f"PR: #{self.pr_number} ({self.pr_url})")
+        elif self.pr_found is False:
+            lines.append("PR: No PR found")
 
         if self.recommendations:
-            lines.append("")
-            lines.append("### Recommendations")
-            for rec in self.recommendations:
-                lines.append(f"- {rec}")
+            lines.append("Recommendations: " + "; ".join(self.recommendations))
 
         if self.ci_details:
             lines.append("")
-            lines.append("### CI Details")
+            lines.append("CI Details:")
             lines.append(self.ci_details)
 
         result = "\n".join(lines)
@@ -123,13 +157,13 @@ def create_empty_report() -> BranchStatusReport:
     """Create an empty/default report for error cases."""
     return BranchStatusReport(
         branch_name="unknown",
-        base_branch="main",
+        base_branch="unknown",
         ci_status=CIStatus.NOT_CONFIGURED,
         ci_details=None,
         rebase_needed=False,
-        rebase_reason="unknown",
+        rebase_reason="Unknown",
         tasks_status=TaskTrackerStatus.N_A,
-        tasks_reason="unknown",
+        tasks_reason="Unknown",
         tasks_is_blocking=False,
         current_github_label=DEFAULT_LABEL,
         recommendations=EMPTY_RECOMMENDATIONS,
@@ -332,24 +366,38 @@ def _collect_pr_info(
         return None, None, None
 
 
-def _generate_recommendations(
-    ci_status: CIStatus,
-    rebase_needed: bool,
-    tasks_status: TaskTrackerStatus,
-    tasks_reason: str,
-) -> List[str]:
+def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
     """Generate actionable recommendations based on status."""
+    ci_status = report_data.get("ci_status", CIStatus.NOT_CONFIGURED)
+    ci_details = report_data.get("ci_details")
+    rebase_needed = report_data.get("rebase_needed", False)
+    tasks_status = report_data.get("tasks_status", TaskTrackerStatus.N_A)
+    tasks_reason = report_data.get("tasks_reason", "")
+    tasks_is_blocking = report_data.get("tasks_is_blocking", False)
+
     recs: List[str] = []
+    if ci_status == CIStatus.NOT_CONFIGURED:
+        recs.append("Configure CI pipeline")
     if ci_status == CIStatus.FAILED:
         recs.append("Fix CI failures before merging")
+        if ci_details:
+            recs.append("Check CI error details above")
     if ci_status == CIStatus.PENDING:
         recs.append("Wait for CI to complete")
-    if rebase_needed:
+    if rebase_needed and not tasks_is_blocking:
         recs.append("Rebase onto base branch")
     if tasks_status == TaskTrackerStatus.INCOMPLETE:
         recs.append(f"Complete remaining tasks ({tasks_reason})")
     if tasks_status == TaskTrackerStatus.ERROR:
         recs.append("Fix task tracker errors")
+
+    # Positive recommendations
+    if not recs:
+        if tasks_status == TaskTrackerStatus.N_A:
+            recs.append("Continue with current work")
+        else:
+            recs.append("Ready to merge")
+
     return recs
 
 
@@ -365,76 +413,94 @@ def collect_branch_status(
     Returns:
         A BranchStatusReport dataclass (not a dict).
     """
-    # 1. Get current branch
-    branch_name = get_current_branch_name(project_dir)
-    if branch_name is None:
-        logger.warning("Could not detect current branch")
-        return create_empty_report()
-
-    # 2. Fetch issue data once for sharing
-    issue_data: Optional[IssueData] = None
-    issue_manager: Optional[IssueManager] = None
-    pr_manager: Optional[PullRequestManager] = None
-
     try:
-        issue_manager = IssueManager(project_dir=project_dir)
-        pr_manager = PullRequestManager(project_dir)
-        issue_number = extract_issue_number_from_branch(branch_name)
-        if issue_number is not None and issue_manager is not None:
-            try:
-                fetched = issue_manager.get_issue(issue_number)
-                if fetched and fetched.get("number", 0) > 0:
-                    issue_data = fetched
-            except Exception:  # pylint: disable=broad-exception-caught
-                logger.debug("Failed to fetch issue data", exc_info=True)
+        # 1. Get current branch
+        branch_name = get_current_branch_name(project_dir)
+        if branch_name is None:
+            logger.warning("Could not detect current branch")
+            return create_empty_report()
+
+        # 2. Fetch issue data once for sharing
+        issue_data: Optional[IssueData] = None
+        issue_manager: Optional[IssueManager] = None
+        pr_manager: Optional[PullRequestManager] = None
+
+        try:
+            issue_manager = IssueManager(project_dir=project_dir)
+            pr_manager = PullRequestManager(project_dir)
+            issue_number = extract_issue_number_from_branch(branch_name)
+            if issue_number is not None and issue_manager is not None:
+                try:
+                    fetched = issue_manager.get_issue(issue_number)
+                    if fetched and fetched.get("number", 0) > 0:
+                        issue_data = fetched
+                except Exception:  # pylint: disable=broad-exception-caught
+                    logger.debug("Failed to fetch issue data", exc_info=True)
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("GitHub manager initialization failed", exc_info=True)
+
+        # 3. Detect base branch (DI: pass managers)
+        base_branch_result = detect_base_branch(
+            project_dir,
+            current_branch=branch_name,
+            issue_data=issue_data,
+            issue_manager=issue_manager,
+            pr_manager=pr_manager,
+        )
+        base_branch = base_branch_result if base_branch_result else "unknown"
+
+        # 4. Collect CI status
+        ci_status, ci_details = _collect_ci_status(
+            project_dir, branch_name, max_log_lines
+        )
+
+        # 5. Check rebase status
+        rebase_needed, rebase_reason = _collect_rebase_status(
+            project_dir, base_branch
+        )
+
+        # 6. Check task tracker
+        tasks_status, tasks_reason, tasks_is_blocking = _collect_task_status(
+            project_dir
+        )
+
+        # 7. Collect GitHub label
+        current_github_label = _collect_github_label(issue_data)
+
+        # 8. Collect PR info
+        pr_number, pr_url, pr_found = (
+            _collect_pr_info(pr_manager, branch_name)
+            if pr_manager
+            else (None, None, None)
+        )
+
+        # 9. Generate recommendations
+        report_data: Dict[str, Any] = {
+            "ci_status": ci_status,
+            "ci_details": ci_details,
+            "rebase_needed": rebase_needed,
+            "tasks_status": tasks_status,
+            "tasks_reason": tasks_reason,
+            "tasks_is_blocking": tasks_is_blocking,
+        }
+        recommendations = _generate_recommendations(report_data)
+
+        return BranchStatusReport(
+            branch_name=branch_name,
+            base_branch=base_branch,
+            ci_status=ci_status,
+            ci_details=ci_details,
+            rebase_needed=rebase_needed,
+            rebase_reason=rebase_reason,
+            tasks_status=tasks_status,
+            tasks_reason=tasks_reason,
+            tasks_is_blocking=tasks_is_blocking,
+            current_github_label=current_github_label,
+            recommendations=recommendations,
+            pr_number=pr_number,
+            pr_url=pr_url,
+            pr_found=pr_found,
+        )
     except Exception:  # pylint: disable=broad-exception-caught
-        logger.debug("GitHub manager initialization failed", exc_info=True)
-
-    # 3. Detect base branch (DI: pass managers)
-    base_branch_result = detect_base_branch(
-        project_dir,
-        current_branch=branch_name,
-        issue_data=issue_data,
-        issue_manager=issue_manager,
-        pr_manager=pr_manager,
-    )
-    base_branch = base_branch_result if base_branch_result else "main"
-
-    # 4. Collect CI status
-    ci_status, ci_details = _collect_ci_status(project_dir, branch_name, max_log_lines)
-
-    # 5. Check rebase status
-    rebase_needed, rebase_reason = _collect_rebase_status(project_dir, base_branch)
-
-    # 6. Check task tracker
-    tasks_status, tasks_reason, tasks_is_blocking = _collect_task_status(project_dir)
-
-    # 7. Collect GitHub label
-    current_github_label = _collect_github_label(issue_data)
-
-    # 8. Collect PR info
-    pr_number, pr_url, pr_found = (
-        _collect_pr_info(pr_manager, branch_name) if pr_manager else (None, None, None)
-    )
-
-    # 9. Generate recommendations
-    recommendations = _generate_recommendations(
-        ci_status, rebase_needed, tasks_status, tasks_reason
-    )
-
-    return BranchStatusReport(
-        branch_name=branch_name,
-        base_branch=base_branch,
-        ci_status=ci_status,
-        ci_details=ci_details,
-        rebase_needed=rebase_needed,
-        rebase_reason=rebase_reason,
-        tasks_status=tasks_status,
-        tasks_reason=tasks_reason,
-        tasks_is_blocking=tasks_is_blocking,
-        current_github_label=current_github_label,
-        recommendations=recommendations,
-        pr_number=pr_number,
-        pr_url=pr_url,
-        pr_found=pr_found,
-    )
+        logger.exception("collect_branch_status failed")
+        return create_empty_report()
