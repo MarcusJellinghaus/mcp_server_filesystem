@@ -17,7 +17,7 @@ Expand `mcp_workspace/git_operations/__init__.py` to re-export all 19 missing sy
 - The package's dependency chain remains unchanged: `mcp_coder → mcp_workspace → mcp_coder_utils`
 
 ### Design Decisions
-- The rename is a mechanical find-and-replace across 10 submodule files (import line + call sites)
+- The rename is a mechanical find-and-replace across 11 submodule files (import line + call sites)
 - All 19 "missing" symbols already exist in submodules — only `__init__.py` wiring is needed
 - No circular dependency risk — git_operations has zero imports from path_utils or other domains
 
@@ -35,13 +35,18 @@ Expand `mcp_workspace/git_operations/__init__.py` to re-export all 19 missing sy
 | `src/mcp_workspace/git_operations/remotes.py` | Update import + usages |
 | `src/mcp_workspace/git_operations/repository_status.py` | Update import + usages |
 | `src/mcp_workspace/git_operations/staging.py` | Update import + usages |
+| `src/mcp_workspace/git_operations/read_operations.py` | Update import + usages |
 | `src/mcp_workspace/git_operations/workflows.py` | Update import + usages |
 | `src/mcp_workspace/git_operations/__init__.py` | Add 19 new re-exports to imports + `__all__` |
+| `tests/git_operations/test_read_operations.py` | Update mock patch strings |
+| `tests/git_operations/test_parent_branch_detection.py` | Update mock patch strings |
 | `vulture_whitelist.py` | Add newly-exported symbols that are unused internally |
 
 ## Files Created
 
-None.
+| File | Change |
+|------|--------|
+| `tests/git_operations/test_init_exports.py` | Verify all 33 symbols are importable |
 
 ## Implementation Steps
 
