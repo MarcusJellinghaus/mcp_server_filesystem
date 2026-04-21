@@ -100,7 +100,7 @@ def _parse_groups(log_content: str) -> List[Tuple[str, List[str]]]:
                 # Attach to preceding group
                 groups[-1] = (groups[-1][0], groups[-1][1] + current_lines)
             # Start new group - extract name after ##[group]
-            current_group = line[len("##[group]"):]
+            current_group = line[len("##[group]") :]
             current_lines = []
         elif line.startswith("##[endgroup]"):
             # End current group
