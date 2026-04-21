@@ -71,6 +71,17 @@ to:
 candidates_passing.sort(key=lambda x: (x[1], 0 if x[0] == default_branch else 1))
 ```
 
+### 6. Update code comments
+
+Update the distance-counting comments to reflect the new direction:
+- Line ~77: `# Count commits from merge-base to branch HEAD` → `# Count commits from merge-base to current HEAD`
+- Line ~133: `# Count commits from merge-base to remote branch HEAD` → `# Count commits from merge-base to current HEAD`
+
+### 7. Update function docstring
+
+The docstring (around lines 24-35) describes the old algorithm direction. Change:
+- `"The parent is the branch whose HEAD is closest to the merge-base (smallest distance)."` → `"The parent is the branch whose merge-base is closest to the current HEAD (smallest distance)."`
+
 ## ALGORITHM (pseudocode)
 
 ```
@@ -87,20 +98,13 @@ return first candidate or None
 
 Only 2 tests need changes — those using `side_effect` on `iter_commits` that inspect the rev_range string:
 
+### `test_simple_branch_from_main` (line ~72)
+
+Change `mock_repo.iter_commits.return_value = iter([])` to `mock_repo.iter_commits.return_value = []`. The `iter([])` creates a one-shot iterator that can only be consumed once — after removing early-exit, using a reusable list is safer.
+
 ### `test_branch_from_feature_branch` (line ~100)
 
-The `mock_iter_commits` currently checks `"featureA456" in rev_range` (candidate hexsha). After the fix, the range always ends with `current123` (current branch hexsha). Fix: distinguish by **merge-base hexsha** instead.
-
-```python
-def mock_iter_commits(rev_range: str) -> list[MagicMock]:
-    if "featureA456" in rev_range:  # merge-base for feature-A = featureA456
-        return []  # 0 commits from merge-base to current
-    return [MagicMock() for _ in range(15)]  # 15 commits
-```
-
-This still works because `merge_base_feature_a.hexsha = "featureA456"` and `merge_base_main.hexsha = "oldmain000"`. The range becomes `"featureA456..current123"` vs `"oldmain000..current123"` — so checking for `"featureA456"` still matches correctly. **No change needed to this test's mock.**
-
-Actually — re-checking: the rev_range was `merge_base..candidate` before, now it's `merge_base..current`. The `"featureA456" in rev_range` check matches the merge-base hexsha (which is `"featureA456"`), so it still matches. **This test needs no mock changes**, only the semantic comment update.
+This test's mock needs no changes — `featureA456` is the merge-base hexsha which appears in both old and new rev_range formats.
 
 ### `test_multiple_candidates_pick_smallest` (line ~196)
 
@@ -114,17 +118,21 @@ def mock_iter_commits(rev_range: str) -> list[MagicMock]:
     return [MagicMock() for _ in range(8)]  # merge-base for develop
 ```
 
-Also add a `get_default_branch_name` patch (returning `None`) to both tests that have multiple candidates, since the function now calls it. Or better: patch it once at the class level with a default return of `None`.
-
 ### Patch `get_default_branch_name`
 
-Add a class-level patch so the production code doesn't call the real function during tests:
+Add a class-scoped autouse fixture inside `TestDetectParentBranchViaMergeBase` that patches `get_default_branch_name` with `return_value=None`. This applies to all test methods without changing their signatures.
 
 ```python
-@patch("mcp_workspace.git_operations.parent_branch_detection.get_default_branch_name", return_value=None)
+@pytest.fixture(autouse=True)
+def _patch_get_default_branch(self) -> Generator[MagicMock, None, None]:
+    with patch(
+        "mcp_workspace.git_operations.parent_branch_detection.get_default_branch_name",
+        return_value=None,
+    ) as mock_default:
+        yield mock_default
 ```
 
-This can go on each test method that needs it, or as a class-level autouse fixture. Per the issue constraints: **do not add to the shared `mock_repo` fixture**. A class-level `@patch` decorator is the simplest approach — it applies to all methods but doesn't touch the fixture.
+Per-test `@patch` decorators in step 2 override this default where tiebreaker behavior matters.
 
 ## DATA
 

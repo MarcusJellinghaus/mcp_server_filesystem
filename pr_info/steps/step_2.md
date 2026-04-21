@@ -64,7 +64,9 @@ All tests go inside the existing `TestDetectParentBranchViaMergeBase` class, usi
 
 ## HOW — Mock strategy
 
-Tests 1, 2, and 4 need `get_default_branch_name` patched. Use `@patch` decorator on each individual test method:
+Tests 1, 2, and 4 use per-test `@patch` with `return_value="main"`, which overrides the class-level autouse fixture from step 1 (which defaults to `return_value=None`). Test 3 has a single candidate and no tiebreaker, so the autouse fixture's `None` default is sufficient.
+
+Use `@patch` decorator on each individual test method:
 
 ```python
 @patch(
@@ -76,7 +78,7 @@ def test_selects_main_over_dormant_feature_branch(
 ) -> None:
 ```
 
-Test 3 does not need the patch (single candidate, no tiebreaker needed). But since step 1 adds a class-level patch with `return_value=None`, it's already covered.
+Since step 1 adds a class-scoped autouse fixture with `return_value=None`, all tests already have the patch active. The per-test `@patch` decorators above override the default value to `"main"` where tiebreaker behavior matters.
 
 ## DATA
 
