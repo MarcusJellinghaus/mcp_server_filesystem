@@ -65,20 +65,8 @@ if "!VIRTUAL_ENV!"=="" (
 )
 
 REM === Step 4: Editable install verification ===
-set "EDITABLE_OK=0"
-for /f "delims=" %%L in ('pip show mcp-workspace 2^>nul') do (
-    echo %%L | findstr /i /c:"Editable project location" >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo %%L | findstr /i /c:"%CD%" >nul 2>&1
-        if !errorlevel! equ 0 set "EDITABLE_OK=1"
-    )
-    echo %%L | findstr /i /c:"Location:" >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo %%L | findstr /i /c:"%CD%" >nul 2>&1
-        if !errorlevel! equ 0 set "EDITABLE_OK=1"
-    )
-)
-if "!EDITABLE_OK!"=="0" (
+"%CD%\.venv\Scripts\python.exe" -c "from importlib.metadata import distribution as D; u=D('mcp-workspace').read_text('direct_url.json') or ''; exit(0 if 'dir_info' in u and 'editable' in u else 1)" 2>nul
+if !errorlevel! NEQ 0 (
     echo WARNING: mcp-workspace does not appear to be editable-installed from %CD%
     echo   For development, run: pip install -e .
     echo   Continuing anyway...
