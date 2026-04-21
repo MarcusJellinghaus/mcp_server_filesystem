@@ -23,28 +23,36 @@ See pr_info/steps/summary.md and pr_info/steps/step_1.md for full details.
 ### WHERE
 `tests/github_operations/test_github_read_tools.py` — append to the existing `github_search` test section at the end of the file.
 
-### WHAT — New test functions
+### UPDATE EXISTING TESTS
 
-| Test | Asserts |
-|------|---------|
-| `test_github_search_auto_injects_qualifiers` | When query has no `is:` qualifier, the query passed to `search_issues` contains `is:issue is:pull-request`, and result contains `"(auto-added: is:issue is:pull-request)"` |
-| `test_github_search_preserves_explicit_is_issue` | When query contains `is:issue`, no injection occurs, no note in result |
-| `test_github_search_preserves_explicit_is_pull_request` | When query contains `is:pull-request`, no injection occurs, no note in result |
-| `test_github_search_case_insensitive_detection` | When query contains `Is:Issue` (mixed case), no injection occurs |
-| `test_github_search_no_false_positive_on_substring` | When query contains `"this:issue"` (not a real qualifier), injection DOES occur |
+The following existing tests pass queries without `is:` qualifiers and will be affected by auto-injection. Update each to either add an explicit qualifier to the query or update assertions to expect injection:
+
+- `test_github_search_basic` — passes `query="fix"` with no `is:` qualifier; update `call_args` assertion to expect injected qualifiers in the query, and result assertions to tolerate the appended note
+- `test_github_search_empty` — passes `query="nonexistent"`; uses strict `assert result == "No results found."` which will break because the note is appended even to empty results; must change to `in` check or update expected string
+- `test_github_search_with_qualifiers` — passes `query="bug"` (no `is:` qualifier despite the test name — it tests state/labels/sort params); update `call_kwargs["query"]` assertion to expect injected qualifiers
+- `test_github_search_issue_vs_pr_indicator` — passes `query="test"`; the appended note adds an extra line that could affect `lines` indexing; verify assertions still hold or filter out the note line
+- `test_github_search_max_results_cap` — passes `query="test"`; filters lines starting with `#` so the note line won't break the `len(lines)` check, but the query sent to `search_issues` will include injected qualifiers; likely no change needed but verify
+
+The following tests are **not affected** (they error out before reaching injection logic):
+- `test_github_search_error` — raises `RuntimeError` at `IssueManager()` construction, before any query processing
+- `test_github_search_no_repo` — returns error when `_get_repository()` returns `None`, before query building
+
+### WHAT — New parametrized test
+
+Add a single `@pytest.mark.parametrize` test named `test_github_search_qualifier_injection` with columns `(query, should_inject, description)`:
+
+| `query` | `should_inject` | `description` |
+|---------|-----------------|---------------|
+| `"MCP migration"` | `True` | `"no qualifier → injects"` |
+| `"MCP migration is:issue"` | `False` | `"explicit is:issue → no inject"` |
+| `"fix is:pull-request"` | `False` | `"explicit is:pull-request → no inject"` |
+| `"fix Is:Issue"` | `False` | `"mixed case → no inject"` |
+| `"basis:issue problem"` | `True` | `"substring containing is:issue → injects"` |
+
+When `should_inject` is `True`, assert that the query passed to `search_issues` contains `is:issue is:pull-request` and the result contains `"(auto-added: is:issue is:pull-request)"`. When `False`, assert no injection and no note.
 
 ### HOW
-Each test follows the same pattern as existing `test_github_search_*` tests: mock `IssueManager`, set up `mock_repo.full_name`, call `github_search()`, inspect `call_args` on `search_issues` and the returned result string.
-
-### DATA — Test inputs and expected behavior
-
-```
-"MCP migration"           → injects, note present
-"MCP migration is:issue"  → no inject, no note
-"fix is:pull-request"     → no inject, no note
-"fix Is:Issue"            → no inject, no note (case-insensitive)
-"this:issue problem"      → injects (substring, not real qualifier)
-```
+The test follows the same pattern as existing `test_github_search_*` tests: mock `IssueManager`, set up `mock_repo.full_name`, call `github_search()`, inspect `call_args` on `search_issues` and the returned result string.
 
 ---
 
@@ -55,7 +63,7 @@ Each test follows the same pattern as existing `test_github_search_*` tests: moc
 
 ### WHAT — Changes
 
-1. Add `import re` to the imports at the top of the file (line 1 area).
+1. Add `import re` after `import logging` (alphabetical order among stdlib imports).
 2. Add qualifier detection + injection before line 656 (`full_query = ...`).
 3. Append note to result after line 684 (`return format_search_results(...)`).
 
@@ -67,7 +75,7 @@ has_qualifier = re.search(r'(?:^|\s)is:(issue|pull-request)', query, re.IGNORECA
 if not has_qualifier:
     query = query + " is:issue is:pull-request"
 
-# After format_search_results (line 684):
+# Replace the direct return on line 684 with:
 result = format_search_results(items, max_results)
 if not has_qualifier:
     result += "\n(auto-added: is:issue is:pull-request)"

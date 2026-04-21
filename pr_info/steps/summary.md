@@ -30,7 +30,7 @@ No new modules, classes, helpers, or abstractions are introduced. The formatter 
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/mcp_workspace/server.py` | Modify | Add `import re`, add qualifier detection + injection logic in `github_search()` (~line 656), append note to result (~line 684) |
-| `tests/github_operations/test_github_read_tools.py` | Modify | Add test cases for qualifier auto-injection, explicit qualifier passthrough, case-insensitivity, substring safety, and note presence |
+| `tests/github_operations/test_github_read_tools.py` | Modify | Update existing tests for new injection behavior; add parametrized test for qualifier auto-injection |
 
 ## Implementation Steps
 
