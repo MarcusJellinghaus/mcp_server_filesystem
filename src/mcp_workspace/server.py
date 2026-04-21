@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -653,6 +654,11 @@ def github_search(
         repo = manager._get_repository()  # pylint: disable=protected-access
         if not repo:
             return "Error: Could not access repository"
+        has_qualifier = re.search(
+            r"(?:^|\s)is:(issue|pull-request)", query, re.IGNORECASE
+        )
+        if not has_qualifier:
+            query = query + " is:issue is:pull-request"
         full_query = f"repo:{repo.full_name} {query}"
         qualifiers: Dict[str, str] = {"query": full_query}
         if state:
@@ -681,7 +687,10 @@ def github_search(
                     "pull_request": item.pull_request is not None,
                 }
             )
-        return format_search_results(items, max_results)
+        result = format_search_results(items, max_results)
+        if not has_qualifier:
+            result += "\n(auto-added: is:issue is:pull-request)"
+        return result
     except Exception as e:
         return f"Error: {e}"
 

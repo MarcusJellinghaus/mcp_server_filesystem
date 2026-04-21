@@ -414,9 +414,11 @@ def test_github_search_basic(mock_manager_cls: MagicMock) -> None:
     assert "Bug fix" in result
     assert "#2" in result
     assert "Feature PR" in result
+    assert "(auto-added: is:issue is:pull-request)" in result
     mock_mgr._github_client.search_issues.assert_called_once()
     call_args = mock_mgr._github_client.search_issues.call_args
     assert "repo:owner/repo" in call_args[1]["query"]
+    assert "is:issue is:pull-request" in call_args[1]["query"]
 
 
 @patch("mcp_workspace.server.IssueManager")
@@ -432,7 +434,8 @@ def test_github_search_empty(mock_manager_cls: MagicMock) -> None:
 
     result = github_search(query="nonexistent")
 
-    assert result == "No results found."
+    assert "No results found." in result
+    assert "(auto-added: is:issue is:pull-request)" in result
 
 
 @patch("mcp_workspace.server.IssueManager")
@@ -457,6 +460,7 @@ def test_github_search_with_qualifiers(mock_manager_cls: MagicMock) -> None:
 
     call_kwargs = mock_mgr._github_client.search_issues.call_args[1]
     assert "repo:owner/repo" in call_kwargs["query"]
+    assert "is:issue is:pull-request" in call_kwargs["query"]
     assert call_kwargs.get("state") == "open"
     assert call_kwargs.get("sort") == "created"
     assert call_kwargs.get("order") == "desc"
@@ -489,9 +493,9 @@ def test_github_search_issue_vs_pr_indicator(mock_manager_cls: MagicMock) -> Non
 
     result = github_search(query="test")
 
-    lines = result.strip().split("\n")
-    assert "[Issue]" in lines[0]
-    assert "[PR]" in lines[1]
+    result_lines = [line for line in result.strip().split("\n") if not line.startswith("(")]
+    assert "[Issue]" in result_lines[0]
+    assert "[PR]" in result_lines[1]
 
 
 @patch("mcp_workspace.server.IssueManager")
@@ -546,3 +550,49 @@ def test_github_search_no_repo(mock_manager_cls: MagicMock) -> None:
 
     assert "Error" in result
     assert "repository" in result.lower()
+
+
+@pytest.mark.parametrize(
+    ("query", "should_inject", "description"),
+    [
+        ("MCP migration", True, "no qualifier → injects"),
+        ("MCP migration is:issue", False, "explicit is:issue → no inject"),
+        ("fix is:pull-request", False, "explicit is:pull-request → no inject"),
+        ("fix Is:Issue", False, "mixed case → no inject"),
+        ("basis:issue problem", True, "substring containing is:issue → injects"),
+    ],
+    ids=lambda val: val if isinstance(val, str) and "→" in val else "",
+)
+@patch("mcp_workspace.server.IssueManager")
+def test_github_search_qualifier_injection(
+    mock_manager_cls: MagicMock,
+    query: str,
+    should_inject: bool,
+    description: str,
+) -> None:
+    """Qualifier auto-injection depending on query content."""
+    mock_repo = MagicMock()
+    mock_repo.full_name = "owner/repo"
+
+    item = MagicMock()
+    item.number = 1
+    item.title = "Result"
+    item.state = "open"
+    item.labels = []
+    item.pull_request = None
+
+    mock_mgr = MagicMock()
+    mock_manager_cls.return_value = mock_mgr
+    mock_mgr._get_repository.return_value = mock_repo
+    mock_mgr._github_client.search_issues.return_value = [item]
+
+    result = github_search(query=query)
+
+    call_kwargs = mock_mgr._github_client.search_issues.call_args[1]
+    sent_query = call_kwargs["query"]
+
+    if should_inject:
+        assert "is:issue is:pull-request" in sent_query
+        assert "(auto-added: is:issue is:pull-request)" in result
+    else:
+        assert "(auto-added: is:issue is:pull-request)" not in result
