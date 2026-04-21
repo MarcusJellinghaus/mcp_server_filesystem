@@ -336,7 +336,7 @@ def _collect_task_status(
     """
     pr_info_path = project_dir / "pr_info"
     if not pr_info_path.exists():
-        return TaskTrackerStatus.N_A, "No pr_info directory", False
+        return TaskTrackerStatus.N_A, "No pr_info folder found", False
 
     steps_dir = pr_info_path / "steps"
     has_steps_files = (
@@ -350,7 +350,7 @@ def _collect_task_status(
         total, completed = get_task_counts(str(pr_info_path))
         if total == 0:
             return TaskTrackerStatus.N_A, "Task tracker is empty", True
-        if completed >= total:
+        if completed == total:
             return (
                 TaskTrackerStatus.COMPLETE,
                 f"All {total} tasks complete",
@@ -477,7 +477,7 @@ def collect_branch_status(
         # 1. Get current branch
         branch_name = get_current_branch_name(project_dir)
         if branch_name is None:
-            logger.warning("Could not detect current branch")
+            logger.error("Could not determine current branch name")
             return create_empty_report()
 
         # 2. Fetch issue data once for sharing
@@ -559,6 +559,6 @@ def collect_branch_status(
             pr_url=pr_url,
             pr_found=pr_found,
         )
-    except Exception:  # pylint: disable=broad-exception-caught
-        logger.exception("collect_branch_status failed")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error(f"Error collecting branch status: {e}")
         return create_empty_report()
