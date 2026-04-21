@@ -597,4 +597,5 @@ def test_github_search_qualifier_injection(
         assert "is:issue is:pull-request" in sent_query
         assert "(auto-added: is:issue is:pull-request)" in result
     else:
+        assert "is:issue is:pull-request" not in sent_query
         assert "(auto-added: is:issue is:pull-request)" not in result
