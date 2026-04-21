@@ -8,6 +8,8 @@ from typing import Any, Dict, List, Optional
 from mcp_workspace.file_tools.directory_utils import list_files
 from mcp_workspace.file_tools.path_utils import normalize_path
 
+_MAX_LINE_CHARS = 500
+
 
 def _search_content(
     files: List[str],
@@ -23,8 +25,10 @@ def _search_content(
     """
     matches: List[Dict[str, Any]] = []
     total_matches = 0
-    total_lines_so_far = 0
+    char_budget = max_result_lines * 120
+    chars_used = 0
     truncated = False
+    files_map: Dict[str, List[int]] = {}
 
     for rel_path in files:
         abs_path, _ = normalize_path(rel_path, project_dir)
@@ -39,6 +43,7 @@ def _search_content(
                 continue
 
             total_matches += 1
+            files_map.setdefault(rel_path, []).append(i + 1)
 
             # Check if we've already hit the caps for returned matches
             if truncated:
@@ -46,25 +51,36 @@ def _search_content(
 
             start = max(0, i - context_lines)
             end = min(len(file_lines), i + context_lines + 1)
-            context = "".join(file_lines[start:end]).rstrip("\n")
-            match_lines = context.count("\n") + 1
+            raw_lines = file_lines[start:end]
+            capped = []
+            for raw in raw_lines:
+                stripped = raw.rstrip("\n")
+                if len(stripped) > _MAX_LINE_CHARS:
+                    stripped = (
+                        stripped[:_MAX_LINE_CHARS]
+                        + f" ... [truncated, line has {len(stripped)} chars]"
+                    )
+                capped.append(stripped)
+            context = "\n".join(capped)
 
-            if (
-                len(matches) >= max_results
-                or total_lines_so_far + match_lines > max_result_lines
-            ):
+            if len(matches) >= max_results or chars_used + len(context) > char_budget:
                 truncated = True
                 continue
 
             matches.append({"file": rel_path, "line": i + 1, "text": context})
-            total_lines_so_far += match_lines
+            chars_used += len(context)
 
-    return {
+    result: Dict[str, Any] = {
         "mode": "content_search",
-        "matches": matches,
+        "details": matches,
         "total_matches": total_matches,
         "truncated": truncated,
     }
+    if truncated:
+        result["matched_files"] = [
+            {"file": f, "lines": lns} for f, lns in files_map.items()
+        ]
+    return result
 
 
 def search_files(
