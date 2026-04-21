@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional
 from mcp_workspace.file_tools.directory_utils import list_files
 from mcp_workspace.file_tools.path_utils import normalize_path
 
-
 _MAX_LINE_CHARS = 500
 
 
@@ -64,10 +63,7 @@ def _search_content(
                 capped.append(stripped)
             context = "\n".join(capped)
 
-            if (
-                len(matches) >= max_results
-                or chars_used + len(context) > char_budget
-            ):
+            if len(matches) >= max_results or chars_used + len(context) > char_budget:
                 truncated = True
                 continue
 

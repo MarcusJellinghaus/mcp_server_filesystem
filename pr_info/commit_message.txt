@@ -1,15 +1,7 @@
-feat: add char budget and compact fallback for large search results
+style: fix formatting in search.py and test_search.py for CI compliance
 
-Replace newline-counting with character budget (max_result_lines * 120)
-in _search_content() for more accurate volume control, especially with
-long lines.
+Reformat search module and its tests to satisfy isort and black CI
+checks. The files were modified during the search_files improvement
+plan but committed without running the project formatting tools.
 
-When results are truncated, include a "matched_files" key with the
-complete file/line map so callers always know every match location.
-
-Changes:
-- Replace total_lines_so_far with chars_used / char_budget
-- Track all matches in files_map dict for compact fallback
-- Add "matched_files" key to response only when truncated=True
-- Update truncation test to verify char-budget semantics
-- Add TestSearchFilesCompactFallback with 5 new tests
+No logic or functional changes — formatting only.
