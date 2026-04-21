@@ -24,97 +24,62 @@ safety net to `collect_branch_status`. This is the final step.
 
 ## WHAT
 
-### 1. `_generate_recommendations(ci_status, rebase_needed, tasks_status, tasks_reason, tasks_is_blocking, ci_details) -> List[str]`
+### 1. `_generate_recommendations(report_data) -> List[str]`
 
 **Bug**: Lost `tasks_is_blocking` and `ci_details` parameters. Lost "Ready to merge" /
 "Continue with current work" recommendations. Lost gating of rebase recommendation on task status.
+Also, the proposed individual-kwargs signature doesn't match p_coder.
 
-**Fix**: Restore full signature and logic.
+**Fix**: Port back the exact logic from p_coder reference project
+`src/mcp_coder/checks/branch_status.py` function `_generate_recommendations`. It takes
+a single `report_data: Dict[str, Any]` parameter and extracts values from the dict.
+Port back all recommendation cases including: `NOT_CONFIGURED` → "Configure CI pipeline",
+`ci_details` → "Check CI error details above", task blocking logic, and positive
+"Ready to merge"/"Continue with current work" recommendations.
 
-```python
-def _generate_recommendations(
-    ci_status: CIStatus,
-    rebase_needed: bool,
-    tasks_status: TaskTrackerStatus,
-    tasks_reason: str,
-    tasks_is_blocking: bool = False,
-    ci_details: Optional[str] = None,
-) -> List[str]:
-    recs: List[str] = []
-    if ci_status == CIStatus.FAILED:
-        recs.append("Fix CI failures before merging")
-    if ci_status == CIStatus.PENDING:
-        recs.append("Wait for CI to complete")
-    if rebase_needed and not tasks_is_blocking:
-        recs.append("Rebase onto base branch")
-    if tasks_status == TaskTrackerStatus.INCOMPLETE:
-        recs.append(f"Complete remaining tasks ({tasks_reason})")
-    if tasks_status == TaskTrackerStatus.ERROR:
-        recs.append("Fix task tracker errors")
-    # Positive recommendations
-    if not recs:
-        if tasks_status == TaskTrackerStatus.COMPLETE:
-            recs.append("Ready to merge")
-        else:
-            recs.append("Continue with current work")
-    return recs
-```
+Use `mcp__workspace__read_reference_file` to read the exact implementation.
 
-**Update caller** in `collect_branch_status` to pass the two new args:
-
-```python
-recommendations = _generate_recommendations(
-    ci_status, rebase_needed, tasks_status, tasks_reason,
-    tasks_is_blocking=tasks_is_blocking,
-    ci_details=ci_details,
-)
-```
+**Update caller** in `collect_branch_status` to pass the report data dict.
 
 **Tests to update**:
 - `test_all_good` → now expects `["Ready to merge"]` (not `[]`)
 - Add test: all good with N_A tasks → expects `["Continue with current work"]`
 - Add test: rebase needed but tasks blocking → rebase NOT recommended
-- Update `test_multiple_issues` for new param count
+- Add test: `NOT_CONFIGURED` CI → "Configure CI pipeline"
+- Update `test_multiple_issues` for new signature
 
 ### 2. `format_for_human()` — restore icon-based output
 
-**Fix**: Use icons for status lines, matching p_coder format.
+**Fix**: Port back the exact logic from p_coder reference project
+`src/mcp_coder/checks/branch_status.py` method `format_for_human`. Key structural
+differences from the current mcp-workspace implementation:
 
-```python
-def format_for_human(self) -> str:
-    lines: List[str] = []
-    lines.append(f"🌿 Branch: {self.branch_name}")
-    lines.append(f"🎯 Base: {self.base_branch}")
-    ci_icon = {"PASSED": "✅", "FAILED": "❌", "PENDING": "⏳"}.get(self.ci_status.value, "⚪")
-    lines.append(f"{ci_icon} CI: {self.ci_status.value}")
-    if self.ci_details:
-        lines.append(f"   CI Details:\n{self.ci_details}")
-    rebase_icon = "⚠️" if self.rebase_needed else "✅"
-    lines.append(f"{rebase_icon} Rebase: {'NEEDED' if self.rebase_needed else 'OK'} — {self.rebase_reason}")
-    task_icon = {"COMPLETE": "✅", "INCOMPLETE": "⚠️", "ERROR": "❌"}.get(self.tasks_status.value, "⚪")
-    lines.append(f"{task_icon} Tasks: {self.tasks_status.value} — {self.tasks_reason}")
-    lines.append(f"🏷️ Label: {self.current_github_label}")
-    if self.pr_found:
-        lines.append(f"🔗 PR: #{self.pr_number} ({self.pr_url})")
-    if self.recommendations:
-        lines.append("\n📋 Recommendations:")
-        for rec in self.recommendations:
-            lines.append(f"  • {rec}")
-    return "\n".join(lines)
-```
+- Includes "Branch Status Report" heading
+- Uses "CI Status:" (not "CI:")
+- Uses "Rebase Status:" with "UP TO DATE"/"BEHIND" text
+- Uses "Task Tracker:" with status text
+- Uses "GitHub Status:" label
+- Includes PR found/not-found states (p_coder shows "No PR found", not absent)
+- Check the p_coder reference for exact icon mappings (e.g., `NOT_CONFIGURED` maps to
+  gear icon, `N_A` tasks have conditional blocking logic)
+
+Use `mcp__workspace__read_reference_file` to read the exact implementation. Do NOT use
+the simplified pseudocode that was previously here.
 
 **Tests to update**: Assertions in `test_format_for_human` and `test_branch_status_pr_fields.py`
-to check for icon characters and new format.
+to check for p_coder format.
 
 ### 3. `format_for_llm()` — restore compact format
 
-**Fix**: Keep the existing markdown structure but ensure CI details section comes right
-after CI status line (not at the bottom), and use the truncation function.
+**Fix**: Port back the exact logic from p_coder reference project
+`src/mcp_coder/checks/branch_status.py` method `format_for_llm`. P_coder uses a compact
+single-line summary format (`"Branch: X | Base: Y"`, `"Branch Status: CI=..., Rebase=...,
+Tasks=..."`), NOT the markdown bullet format currently in mcp-workspace.
 
-The current format is already close to p_coder's. Main change: move CI details to appear
-right after CI status rather than at the end. Keep using `truncate_ci_details`.
+Use `mcp__workspace__read_reference_file` to read the exact implementation.
 
-**Tests to update**: Verify CI details position in output.
+**Tests to update**: All LLM format tests must be rewritten for compact format. Tests
+asserting `"**PR**"` need updating for compact format.
 
 ### 4. `collect_branch_status()` — outer try/except safety net
 
@@ -133,15 +98,28 @@ def collect_branch_status(project_dir: Path, max_log_lines: int = 300) -> Branch
         return create_empty_report()
 ```
 
-Also update `create_empty_report` to use `base_branch="unknown"`.
+Also update `create_empty_report` to match p_coder defaults. All field differences:
+
+- `base_branch`: `"main"` → `"unknown"`
+- `current_github_label`: `""` → `"unknown"` (uses `DEFAULT_LABEL`)
+- `rebase_reason`: `"unknown"` → `"Unknown"` (capital U)
+- `tasks_reason`: `"unknown"` → `"Unknown"` (capital U)
+- `recommendations`: `[]` → `EMPTY_RECOMMENDATIONS` (module constant)
 
 **Tests to add**:
 - Unexpected exception during collection → returns `create_empty_report()`
-- `create_empty_report()` has `base_branch="unknown"`
+- `create_empty_report()` field values match p_coder defaults above
 
 ## DATA
 
-- `_generate_recommendations` signature gains 2 optional params: `tasks_is_blocking`, `ci_details`
-- `format_for_human` output uses icon characters (🌿, ✅, ❌, etc.)
-- `create_empty_report().base_branch` changes from `"main"` to `"unknown"`
+- `_generate_recommendations` signature changes to single `report_data: Dict[str, Any]` param
+- `format_for_human` output uses p_coder icon-based format with headings
+- `format_for_llm` output changes to compact single-line format
+- `create_empty_report()` field defaults updated per p_coder
 - No changes to `BranchStatusReport` dataclass fields
+
+**PR fields test updates**: `tests/checks/test_branch_status_pr_fields.py` assertions
+need updating:
+- `test_pr_found_shows_in_output`: p_coder format shows PR differently
+- `test_pr_not_found_hides_pr_line`: p_coder shows "No PR found" (not absent)
+- LLM format tests asserting `"**PR**"` need updating for compact format

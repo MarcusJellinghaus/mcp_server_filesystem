@@ -22,6 +22,12 @@ that call out to CI, git, task tracker, and GitHub to collect status data.
 
 ## WHAT
 
+**Step dependency**: This step depends on Steps 1-2 being complete (ci_log_parser functions
+must have correct behavior before branch_status imports them).
+
+**Decision #4 note**: `_collect_rebase_status` is intentionally left unchanged (keeps
+`base_branch` param) per Decision #4. Do NOT port it back.
+
 ### 0. Module-level additions
 
 Add constants and private imports from ci_log_parser:
@@ -38,6 +44,12 @@ from mcp_workspace.github_operations.ci_log_parser import (
 DEFAULT_LABEL = "unknown"
 EMPTY_RECOMMENDATIONS: List[str] = []
 ```
+
+**Private imports lint guidance**: `_find_log_content`, `_strip_timestamps`, and
+`_extract_failed_step_log` are private functions imported cross-package. To avoid pylint
+warnings, add these 3 functions to ci_log_parser's `__all__` list (preferred approach,
+since branch_status needs them as part of the package's internal API). This is better
+than scattering pylint disable comments.
 
 ### 1. `_collect_ci_status(project_dir, branch_name, max_log_lines) -> tuple[CIStatus, Optional[str]]`
 
@@ -77,23 +89,21 @@ else:
 
 ### 2. `_collect_task_status(project_dir) -> tuple[TaskTrackerStatus, str, bool]`
 
-**Bug**: Missing pr_info directory pre-checks (folder existence, steps files).
+**Bug**: Missing pr_info directory pre-checks (folder existence, steps files). Also
+missing several behavioral differences from p_coder.
 
-**Fix**: Check `pr_info_path.exists()` and steps dir before calling `get_task_counts`.
+**Fix**: Port back the exact logic from p_coder. Key behavioral differences to implement:
 
-```python
-# Pseudocode:
-pr_info_path = project_dir / "pr_info"
-if not pr_info_path.exists():
-    return N_A, "No task tracker file", False
-steps_dir = pr_info_path / "steps"
-if not steps_dir.exists() or not any(steps_dir.iterdir()):
-    return N_A, "No task tracker file", False
-total, completed = get_task_counts(str(pr_info_path))
-# ... rest unchanged
-```
+- `total == 0` → blocking changes from `False` to `True`, reason becomes `"Task tracker is empty"`
+- `TaskTrackerFileNotFoundError` with steps files present → `is_blocking=True`, message about creating task tracker
+- `TaskTrackerSectionNotFoundError` → blocking is conditional on `has_steps_files`
+- General `Exception` → `is_blocking=True`
+
+Read the p_coder reference at `src/mcp_coder/checks/branch_status.py` for the exact
+implementation including pre-checks for `pr_info_path.exists()` and steps dir.
 
 **Test to add**: pr_info dir missing → returns N_A without calling get_task_counts.
+**Tests to add**: `total == 0` → blocking; exception cases per above.
 
 ### 3. `_collect_github_label(issue_data) -> str`
 
@@ -108,26 +118,25 @@ if issue_data is None:
 return DEFAULT_LABEL  # was: return ""
 ```
 
-**Tests to update**: `test_no_status_label` and `test_none_issue_data` now expect `"unknown"`.
+**Tests to update**: Update `TestCollectGithubLabel.test_no_status_label` and
+`TestCollectGithubLabel.test_none_issue_data` in `tests/checks/test_branch_status.py`
+to expect `"unknown"` instead of `""`. Note the function signature stays as
+`(issue_data)` per Decision #6.
 
 ### 4. `get_failed_jobs_summary(jobs, logs) -> Dict[str, Any]`
 
-**Bug**: Lost all log excerpt functionality.
+**Bug**: Returns completely different structure than p_coder. mcp-workspace returns
+`{"failed_count": N, "failed_jobs": [...]}` while p_coder returns
+`{"job_name": ..., "step_name": ..., "step_number": ..., "log_excerpt": ..., "other_failed_jobs": []}`.
 
-**Fix**: Add log excerpts per failed step using `_find_log_content`, `_strip_timestamps`,
-and `_extract_failed_step_log`.
+**Fix**: Port back the exact return structure from p_coder reference project
+`src/mcp_coder/checks/branch_status.py` function `get_failed_jobs_summary`. Use
+`mcp__workspace__read_reference_file` to read the p_coder implementation. The return
+value is a dict with keys `job_name`, `step_name`, `step_number`, `log_excerpt`, and
+`other_failed_jobs`. Per Decision #15 ("port back with full log excerpt functionality").
 
-```python
-# Pseudocode per failed step:
-step_number = step.get("number", 0)
-log_content = _find_log_content(logs, job_name, step_number, step_name)
-if log_content:
-    cleaned = _strip_timestamps(log_content)
-    excerpt = _extract_failed_step_log(cleaned, step_name)
-    step_info["log_excerpt"] = excerpt
-```
-
-**Test to add**: Failed job with matching log → verify `log_excerpt` key in step info.
+**Tests to rewrite**: Existing tests asserting `result["failed_count"]` and
+`result["failed_jobs"]` must be rewritten to match the p_coder return structure.
 
 ## DATA
 

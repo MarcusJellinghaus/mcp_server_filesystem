@@ -53,36 +53,16 @@ suffix match works.
 **Critical behavioral change**: Must NEVER return `None`. p_coder always produces a report
 even without log content (shows job names, step names, GitHub URLs).
 
-**Fix**:
+**Fix**: Port back the exact logic from p_coder reference project
+`src/mcp_coder/checks/ci_log_parser.py` function `_build_ci_error_details`. Keep the
+public name `build_ci_error_details` per Decision #3. The function must include: run URL
+in output, per-job line budget tracking, job URL links, summary header,
+`jobs_fetch_warning` handling, and "truncated jobs" section. Never return None — return
+`""` for no failed jobs.
 
-```python
-# Pseudocode:
-run_data = status_result.get("run", {})
-run_url = run_data.get("url", "")
-jobs = status_result.get("jobs", [])
-failed_jobs = [j for j in jobs if j.get("conclusion") == "failure"]
-if not failed_jobs:
-    return ""  # not None
-
-# Fetch logs (existing logic)
-all_logs = _fetch_logs_for_runs(ci_manager, failed_jobs)
-
-# Build report — even if all_logs is empty
-output_parts = []
-if run_url:
-    output_parts.append(f"Run: {run_url}")
-
-lines_remaining = max_lines
-for job in failed_jobs:
-    if lines_remaining <= 0:
-        output_parts.append(f"... ({len(failed_jobs) - shown} more failed jobs truncated)")
-        break
-    # Build per-job section with name, step names, log excerpts
-    # Track lines_remaining per job
-    ...
-
-return "\n\n".join(output_parts)
-```
+Use `mcp__workspace__read_reference_file` with the p_coder project to read the exact
+implementation (~100 lines). Do NOT rely on the pseudocode skeleton that was previously
+here — it was far too vague for this complex function.
 
 **Return type change**: `Optional[str]` → `str` (never None).
 
@@ -98,21 +78,30 @@ return "\n\n".join(output_parts)
 
 **Bug**: Truncation marker format differs from p_coder.
 
-**Fix**: Match p_coder's marker format exactly.
+**Fix**: Match p_coder's marker format exactly. P_coder uses square brackets and
+different word order:
 
 ```python
-# BEFORE:
-return "\n".join(head + [f"\n... ({skipped} lines truncated) ...\n"] + tail)
-# AFTER (p_coder format):
-return "\n".join(head + [f"... ({skipped} lines truncated) ..."] + tail)
+# BEFORE (mcp-workspace):
+f"\n... ({skipped} lines truncated) ...\n"
+# AFTER (match p_coder):
+f"[... truncated {truncated_count} lines ...]"
 ```
 
-(Remove the extra `\n` wrapping the marker line.)
+Note the variable name change: `skipped` → `truncated_count` to match p_coder.
 
-**Test to update**: `test_truncation_marker_shows_count` — verify no extra blank lines around marker.
+Also add p_coder's early guard: `if not details: return ""`.
+
+**Test to update**: `test_truncation_marker_shows_count` — verify square bracket format
+and no extra blank lines around marker.
 
 ## DATA
 
 - `build_ci_error_details` return type: `Optional[str]` → `str`
 - `__all__` export list: unchanged
-- `truncate_ci_details`: same signature, minor format change
+- `truncate_ci_details`: same signature, format change (square brackets)
+
+**Return type safety note**: Changing `build_ci_error_details` return type from
+`Optional[str]` to `str` is safe for existing callers — `str` is a subtype of
+`Optional[str]`, so mypy won't break in Steps 3-4 before the caller is updated in
+later steps.

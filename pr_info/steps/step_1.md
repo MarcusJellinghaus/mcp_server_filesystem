@@ -26,13 +26,14 @@ GitHub Actions log output. These are dependencies for step 2.
 
 **Bug**: Regex anchored with `^` — fails to strip timestamps after ANSI codes.
 
-**Fix**: Remove `^` anchor from the regex pattern.
+**Fix**: Remove `^` anchor from the regex pattern. Extract the pattern to a module-level
+constant `_TIMESTAMP_PATTERN = re.compile(...)` to match p_coder's structure.
 
 ```python
 # BEFORE (broken):
 timestamp_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s?")
-# AFTER (correct):
-timestamp_pattern = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s?")
+# AFTER (correct — module-level constant):
+_TIMESTAMP_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s?")
 ```
 
 **Test to add**: Line with ANSI prefix then timestamp — verify timestamp is stripped.
@@ -51,6 +52,12 @@ if line.startswith("##[group]"):
 ```
 
 Same for `##[endgroup]`.
+
+**Attach-to-preceding-group behavior**: Lines that appear after `##[endgroup]` but before
+the next `##[group]` must be attached to the preceding group (by updating `groups[-1]`),
+NOT collected under an empty group name as mcp-workspace currently does. Read the p_coder
+reference to see the exact `groups[-1]` update logic. Note that existing test
+`test_handles_content_outside_groups` must be updated to expect this behavior.
 
 **Test to add**: Line containing `##[group]` mid-line — verify it's NOT treated as group start.
 
@@ -72,16 +79,19 @@ for group_name, lines in groups:
 for group_name, lines in groups:
     if step_name.lower() in group_name.lower():        # contains
         return "\n".join(lines)
-# Fallback: return only ##[error] lines
+# Fallback: return only ##[error] lines (NEVER the full log)
 error_lines = [l for l in log_content.split("\n") if "##[error]" in l]
-return "\n".join(error_lines) if error_lines else log_content
+return "\n".join(error_lines)  # empty string when no error lines
 ```
 
 **Tests to add**:
 - Exact match preferred over contains match
 - Prefix match preferred over contains match
 - `##[error]` fallback when no group matches
-- Returns full log only when no `##[error]` lines exist either
+- Returns empty string when no group matches AND no `##[error]` lines exist
+
+**Existing test to rewrite**: `test_returns_full_log_if_no_match` must be rewritten —
+p_coder returns only `##[error]` lines (or empty string when none exist), NOT the full log.
 
 ## DATA
 
