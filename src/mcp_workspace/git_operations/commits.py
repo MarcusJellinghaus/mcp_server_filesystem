@@ -6,7 +6,7 @@ from typing import Optional
 from git.exc import GitCommandError, InvalidGitRepositoryError
 from mcp_coder_utils.subprocess_runner import execute_command
 
-from .core import GIT_SHORT_HASH_LENGTH, CommitResult, _safe_repo_context, logger
+from .core import GIT_SHORT_HASH_LENGTH, CommitResult, logger, safe_repo_context
 from .repository_status import get_staged_changes, is_git_repository
 
 
@@ -53,7 +53,7 @@ def commit_staged_files(message: str, project_dir: Path) -> CommitResult:
             return {"success": False, "commit_hash": None, "error": error_msg}
 
         # Create the commit
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             commit = repo.index.commit(message.strip())
 
             # Get short commit hash

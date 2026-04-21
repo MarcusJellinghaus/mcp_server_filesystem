@@ -7,7 +7,7 @@ from git import Repo
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
 from .branch_queries import branch_exists, get_current_branch_name, remote_branch_exists
-from .core import PLACEHOLDER_HASH, _safe_repo_context, logger
+from .core import PLACEHOLDER_HASH, logger, safe_repo_context
 from .repository_status import is_git_repository
 
 
@@ -47,7 +47,7 @@ def get_git_diff_for_commit(project_dir: Path) -> Optional[str]:
         return None
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Simple check for empty repository (KISS approach)
             has_commits = True
             try:
@@ -137,7 +137,7 @@ def get_branch_diff(
         return ""
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Get current branch for validation
             current_branch = get_current_branch_name(project_dir)
             if current_branch is None:

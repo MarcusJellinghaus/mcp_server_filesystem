@@ -23,7 +23,7 @@ class TestDetectParentBranchViaMergeBase:
                 "mcp_workspace.git_operations.parent_branch_detection.is_git_repository"
             ) as mock_is_repo,
             patch(
-                "mcp_workspace.git_operations.parent_branch_detection._safe_repo_context"
+                "mcp_workspace.git_operations.parent_branch_detection.safe_repo_context"
             ) as mock_context,
         ):
             # is_git_repository returns True by default

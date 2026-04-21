@@ -4,7 +4,7 @@ from pathlib import Path
 
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
-from .core import _normalize_git_path, _safe_repo_context, logger
+from .core import _normalize_git_path, logger, safe_repo_context
 from .repository_status import is_git_repository
 
 
@@ -22,7 +22,7 @@ def is_file_tracked(file_path: Path, project_dir: Path) -> bool:
         return False
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Get git-compatible path
             try:
                 git_path = _normalize_git_path(file_path, project_dir)
@@ -72,7 +72,7 @@ def git_move(source_path: Path, dest_path: Path, project_dir: Path) -> bool:
         return False
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Get git-compatible paths
             try:
                 source_git = _normalize_git_path(source_path, project_dir)

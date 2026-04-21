@@ -6,7 +6,7 @@ from typing import Optional
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
 from .branch_queries import validate_branch_name
-from .core import _safe_repo_context, logger
+from .core import logger, safe_repo_context
 from .repository_status import is_git_repository
 
 
@@ -38,7 +38,7 @@ def create_branch(
         return False
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Check if branch already exists
             existing_branches = [branch.name for branch in repo.branches]
             if branch_name in existing_branches:
@@ -102,7 +102,7 @@ def checkout_branch(branch_name: str, project_dir: Path) -> bool:
         return False
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Check if we're already on the target branch
             try:
                 current_branch = repo.active_branch.name
@@ -218,7 +218,7 @@ def delete_branch(
         return False
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Check if branch exists
             existing_branches = [branch.name for branch in repo.branches]
             if branch_name not in existing_branches:

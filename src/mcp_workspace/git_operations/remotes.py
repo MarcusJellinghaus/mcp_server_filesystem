@@ -8,7 +8,7 @@ import git
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
 from .branch_queries import branch_exists
-from .core import _safe_repo_context, logger
+from .core import logger, safe_repo_context
 from .repository_status import is_git_repository
 
 
@@ -29,7 +29,7 @@ def get_remote_url(project_dir: Path) -> Optional[str]:
         return None
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             if "origin" not in [remote.name for remote in repo.remotes]:
                 return None
             return str(repo.remotes.origin.url)
@@ -81,7 +81,7 @@ def git_push(project_dir: Path, force_with_lease: bool = False) -> dict[str, Any
         return {"success": False, "error": error_msg}
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Get current branch name
             current_branch = repo.active_branch.name
             logger.debug("Current branch: %s", current_branch)
@@ -135,7 +135,7 @@ def push_branch(branch_name: str, project_dir: Path, set_upstream: bool = True) 
         return False
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Check if branch exists locally
             if not branch_exists(project_dir, branch_name):
                 logger.error("Branch '%s' does not exist locally", branch_name)
@@ -198,7 +198,7 @@ def fetch_remote(project_dir: Path, remote: str = "origin") -> bool:
         return False
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Check if remote exists
             if remote not in [r.name for r in repo.remotes]:
                 logger.error("Remote '%s' not found", remote)
@@ -249,7 +249,7 @@ def get_github_repository_url(project_dir: Path) -> Optional[str]:
         return None
 
     try:
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Check if origin remote exists
             if "origin" not in [remote.name for remote in repo.remotes]:
                 logger.debug("No origin remote found in %s", project_dir)
@@ -344,7 +344,7 @@ def rebase_onto_branch(project_dir: Path, target_branch: str) -> bool:
             logger.warning("Skipping rebase: failed to fetch from origin")
             return False
 
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Attempt rebase onto origin/<target_branch>
             try:
                 repo.git.rebase(f"origin/{target_branch}")

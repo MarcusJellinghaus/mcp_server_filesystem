@@ -18,7 +18,7 @@ from git.exc import GitCommandError, InvalidGitRepositoryError
 
 from .branch_queries import get_current_branch_name, get_default_branch_name
 from .commits import commit_staged_files
-from .core import CommitResult, _safe_repo_context
+from .core import CommitResult, safe_repo_context
 from .remotes import fetch_remote
 from .repository_status import get_full_status, is_git_repository
 from .staging import stage_all_changes
@@ -134,7 +134,7 @@ def needs_rebase(
             logger.warning("Failed to fetch from remote for rebase check")
             return False, f"error: {error_msg}"
 
-        with _safe_repo_context(project_dir) as repo:
+        with safe_repo_context(project_dir) as repo:
             # Get current branch
             current_branch = get_current_branch_name(project_dir)
             if not current_branch:
