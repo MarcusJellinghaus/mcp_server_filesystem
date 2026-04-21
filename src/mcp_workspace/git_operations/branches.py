@@ -6,7 +6,7 @@ from typing import Optional
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
 from .branch_queries import validate_branch_name
-from .core import safe_repo_context, logger
+from .core import logger, safe_repo_context
 from .repository_status import is_git_repository
 
 

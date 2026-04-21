@@ -4,7 +4,7 @@ from pathlib import Path
 
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
-from .core import _normalize_git_path, safe_repo_context, logger
+from .core import _normalize_git_path, logger, safe_repo_context
 from .repository_status import is_git_repository
 
 

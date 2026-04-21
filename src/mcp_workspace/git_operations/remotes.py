@@ -8,7 +8,7 @@ import git
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
 from .branch_queries import branch_exists
-from .core import safe_repo_context, logger
+from .core import logger, safe_repo_context
 from .repository_status import is_git_repository
 
 

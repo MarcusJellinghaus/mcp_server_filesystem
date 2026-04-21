@@ -7,7 +7,7 @@ from typing import Optional
 from git import Repo
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
-from .core import safe_repo_context, logger
+from .core import logger, safe_repo_context
 from .repository_status import is_git_repository
 
 

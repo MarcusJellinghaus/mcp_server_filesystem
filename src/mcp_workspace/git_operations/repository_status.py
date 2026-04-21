@@ -4,7 +4,7 @@ from pathlib import Path
 
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
-from .core import safe_repo_context, logger
+from .core import logger, safe_repo_context
 
 
 def is_working_directory_clean(

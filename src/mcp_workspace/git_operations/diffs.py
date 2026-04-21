@@ -7,7 +7,7 @@ from git import Repo
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
 from .branch_queries import branch_exists, get_current_branch_name, remote_branch_exists
-from .core import PLACEHOLDER_HASH, safe_repo_context, logger
+from .core import PLACEHOLDER_HASH, logger, safe_repo_context
 from .repository_status import is_git_repository
 
 

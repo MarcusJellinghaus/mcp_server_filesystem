@@ -6,7 +6,7 @@ from typing import Optional
 from git.exc import GitCommandError, InvalidGitRepositoryError
 from mcp_coder_utils.subprocess_runner import execute_command
 
-from .core import GIT_SHORT_HASH_LENGTH, CommitResult, safe_repo_context, logger
+from .core import GIT_SHORT_HASH_LENGTH, CommitResult, logger, safe_repo_context
 from .repository_status import get_staged_changes, is_git_repository
 
 
