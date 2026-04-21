@@ -37,5 +37,5 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `feat: add char budget and compact fallback for large search results`
 
 ## Pull Request
-- [ ] PR review: all steps complete, all checks green
+- [x] PR review: all steps complete, all checks green
 - [ ] PR summary prepared
