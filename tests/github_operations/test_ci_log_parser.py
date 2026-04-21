@@ -175,6 +175,7 @@ class TestExtractFailedStepLog:
             "##[group]Build\n##[error]build failed\ndetail line\n##[endgroup]"
         )
         result = _extract_failed_step_log(log, "nonexistent step")
+        assert "--- Build ---" in result
         assert "build failed" in result
         assert "detail line" in result
 
@@ -188,27 +189,21 @@ class TestExtractFailedStepLog:
 class TestFindLogContent:
     """Tests for _find_log_content."""
 
-    def test_finds_by_job_and_step_number(self) -> None:
-        """Finds log by job name and step number."""
+    def test_finds_by_suffix_match(self) -> None:
+        """Tier 1: _{job_name}.txt suffix match works."""
+        logs = {"0_test-job.txt": "test output"}
+        result = _find_log_content(logs, "test-job", 3, "Run tests")
+        assert result == "test output"
+
+    def test_finds_by_old_format(self) -> None:
+        """Tier 2: {job_name}/{step_number}_{step_name}.txt exact path."""
         logs = {"test-job/3_Run tests.txt": "test output"}
         result = _find_log_content(logs, "test-job", 3, "Run tests")
         assert result == "test output"
 
-    def test_finds_by_job_and_step_name(self) -> None:
-        """Falls back to job name + step name matching."""
-        logs = {"test-job/run_tests.txt": "test output"}
-        result = _find_log_content(logs, "test-job", 99, "run_tests")
-        assert result == "test output"
-
-    def test_finds_by_job_name_only(self) -> None:
-        """Falls back to collecting all job logs."""
-        logs = {"test-job/setup.txt": "setup log", "other-job/1.txt": "other"}
-        result = _find_log_content(logs, "test-job", 99, "nonexistent")
-        assert "setup log" in result
-
     def test_returns_empty_for_no_match(self) -> None:
         """Returns empty string when no logs match."""
-        logs = {"other-job/1.txt": "content"}
+        logs = {"other-job/1_step.txt": "content"}
         result = _find_log_content(logs, "nonexistent-job", 1, "step")
         assert result == ""
 
@@ -217,16 +212,10 @@ class TestFindLogContent:
         result = _find_log_content({}, "job", 1, "step")
         assert result == ""
 
-    def test_suffix_match_job_name_txt(self) -> None:
-        """Tier 1: _{job_name}.txt suffix match works."""
-        logs = {"some_path/0_Job Name.txt": "suffix matched content"}
-        result = _find_log_content(logs, "Job Name", 0, "some step")
-        assert result == "suffix matched content"
-
-    def test_suffix_match_preferred_over_substring(self) -> None:
-        """Suffix match takes priority over loose substring matching."""
+    def test_suffix_match_preferred_over_old_format(self) -> None:
+        """Suffix match takes priority over old format matching."""
         logs = {
-            "Job Name/3_Run tests.txt": "substring match",
+            "Job Name/3_Run tests.txt": "old format match",
             "other/0_Job Name.txt": "suffix match",
         }
         result = _find_log_content(logs, "Job Name", 3, "Run tests")
@@ -270,13 +259,13 @@ class TestBuildCiErrorDetails:
         result = build_ci_error_details(ci_manager, status)
         assert result is not None
         assert "test-job" in result
-        assert "(logs not available)" in result
+        assert "(logs not available locally)" in result
 
     def test_builds_report_for_failed_job(self) -> None:
         """Builds error details report for a failed job with logs."""
         ci_manager = MagicMock()
         ci_manager.get_run_logs.return_value = {
-            "test-job/3_Run tests.txt": "2024-01-15T10:30:45.1234567Z Error: test failed"
+            "0_test-job.txt": "2024-01-15T10:30:45.1234567Z Error: test failed"
         }
         status = {
             "run": {"url": "https://github.com/org/repo/actions/runs/123"},
@@ -296,6 +285,7 @@ class TestBuildCiErrorDetails:
         assert result is not None
         assert "test-job" in result
         assert "Run tests" in result
+        assert "## CI Failure Summary" in result
 
     def test_limits_run_ids_to_three(self) -> None:
         """Only fetches logs for up to 3 unique run IDs."""
@@ -341,7 +331,7 @@ class TestBuildCiErrorDetails:
         # Create a large log with a matching group
         inner_lines = "\n".join([f"line {i}" for i in range(500)])
         long_log = f"##[group]Run tests\n{inner_lines}\n##[endgroup]"
-        ci_manager.get_run_logs.return_value = {"test-job/3_Run tests.txt": long_log}
+        ci_manager.get_run_logs.return_value = {"0_test-job.txt": long_log}
         status = {
             "run": {"url": "https://github.com/org/repo/actions/runs/123"},
             "jobs": [

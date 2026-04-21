@@ -6,7 +6,7 @@ check_branch_status MCP tool.
 """
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -69,85 +69,129 @@ class BranchStatusReport:
     pr_found: Optional[bool] = None
 
     def format_for_human(self) -> str:
-        """Format report for human-readable terminal output."""
-        ci_icons = {
+        """Format report for human consumption.
+
+        Returns:
+            Formatted string with status icons and recommendations.
+        """
+        # Determine status icons
+        ci_icon_map: Dict[CIStatus, str] = {
             CIStatus.PASSED: "\u2705",
             CIStatus.FAILED: "\u274c",
             CIStatus.PENDING: "\u23f3",
             CIStatus.NOT_CONFIGURED: "\u2699\ufe0f",
         }
-        ci_icon = ci_icons.get(self.ci_status, "\u2753")
+        ci_icon = ci_icon_map.get(self.ci_status, "\u2753")
 
-        lines: List[str] = []
-        lines.append("=== Branch Status Report ===")
-        lines.append(f"Branch: {self.branch_name}")
-        lines.append(f"Base: {self.base_branch}")
-        lines.append(f"CI Status: {ci_icon} {self.ci_status.value}")
-        if self.ci_details:
-            lines.append(f"CI Details:\n{self.ci_details}")
+        rebase_icon = "\u2705" if not self.rebase_needed else "\u26a0\ufe0f"
+        rebase_status_text = "UP TO DATE" if not self.rebase_needed else "BEHIND"
 
-        rebase_text = "BEHIND" if self.rebase_needed else "UP TO DATE"
-        rebase_icon = "\u274c" if self.rebase_needed else "\u2705"
-        lines.append(
-            f"Rebase Status: {rebase_icon} {rebase_text} ({self.rebase_reason})"
-        )
-
-        task_icons = {
+        tasks_icon_map = {
             TaskTrackerStatus.COMPLETE: "\u2705",
-            TaskTrackerStatus.INCOMPLETE: "\u23f3",
-            TaskTrackerStatus.ERROR: "\u274c",
-            TaskTrackerStatus.N_A: "\u2796",
+            TaskTrackerStatus.INCOMPLETE: "\u274c",
+            TaskTrackerStatus.ERROR: "\u26a0\ufe0f",
         }
-        task_icon = task_icons.get(self.tasks_status, "\u2753")
-        if self.tasks_status == TaskTrackerStatus.N_A and self.tasks_is_blocking:
-            task_icon = "\u26a0\ufe0f"
-        lines.append(
-            f"Task Tracker: {task_icon} {self.tasks_status.value}"
-            f" ({self.tasks_reason})"
+        if self.tasks_status == TaskTrackerStatus.N_A:
+            tasks_icon = "\u26a0\ufe0f" if self.tasks_is_blocking else "\u2796"
+        else:
+            tasks_icon = tasks_icon_map.get(self.tasks_status, "\u2753")
+        tasks_status_text = self.tasks_status.value
+
+        # Build the report sections - Branch info first
+        lines: List[str] = [
+            f"Branch: {self.branch_name}",
+            f"Base Branch: {self.base_branch}",
+            "",
+            "Branch Status Report",
+            "",
+        ]
+
+        # PR section (only when pr_found is not None)
+        if self.pr_found is not None:
+            if self.pr_found:
+                lines.append(f"PR: \u2705 #{self.pr_number} ({self.pr_url})")
+            else:
+                lines.append("PR: \u274c No PR found")
+            lines.append("")
+
+        lines.append(f"CI Status: {ci_icon} {self.ci_status.value}")
+
+        # Add CI details if they exist
+        if self.ci_details:
+            lines.extend(
+                [
+                    "",
+                    "CI Error Details:",
+                    self.ci_details,
+                ]
+            )
+
+        lines.extend(
+            [
+                "",
+                f"Rebase Status: {rebase_icon} {rebase_status_text}",
+                f"- {self.rebase_reason}",
+                "",
+                f"Task Tracker: {tasks_icon} {tasks_status_text} ({self.tasks_reason})",
+                "",
+                f"GitHub Status: {self.current_github_label}",
+                "",
+                "Recommendations:",
+            ]
         )
 
-        lines.append(f"GitHub Status: {self.current_github_label}")
+        # Add recommendations
+        for recommendation in self.recommendations:
+            lines.append(f"- {recommendation}")
 
-        if self.pr_found:
-            lines.append(f"PR: #{self.pr_number} ({self.pr_url})")
-        elif self.pr_found is False:
-            lines.append("PR: No PR found")
-
-        if self.recommendations:
-            lines.append("Recommendations:")
-            for rec in self.recommendations:
-                lines.append(f"  - {rec}")
         return "\n".join(lines)
 
     def format_for_llm(self, max_lines: int = 300) -> str:
-        """Format report for LLM context window consumption."""
-        rebase_text = "NEEDED" if self.rebase_needed else "OK"
-        tasks_text = self.tasks_status.value
+        """Format report for LLM consumption with truncation.
 
-        lines: List[str] = []
-        lines.append(f"Branch: {self.branch_name} | Base: {self.base_branch}")
-        lines.append(
-            f"Branch Status: CI={self.ci_status.value},"
-            f" Rebase={rebase_text},"
-            f" Tasks={tasks_text},"
-            f" Label={self.current_github_label}"
+        Args:
+            max_lines: Maximum number of lines for CI error details.
+
+        Returns:
+            Compact formatted string optimized for LLM context windows.
+        """
+        # Convert rebase_needed to status string
+        rebase_status = "BEHIND" if self.rebase_needed else "UP_TO_DATE"
+
+        # Build status summary line
+        status_summary = (
+            f"Branch Status: CI={self.ci_status.value}, Rebase={rebase_status}, "
+            f"Tasks={self.tasks_status.value} ({self.tasks_reason})"
         )
-
-        if self.pr_found:
-            lines.append(f"PR: #{self.pr_number} ({self.pr_url})")
+        if self.pr_found is True:
+            status_summary += f", PR=#{self.pr_number}"
         elif self.pr_found is False:
-            lines.append("PR: No PR found")
+            status_summary += ", PR=NOT_FOUND"
+        recommendations_text = ", ".join(self.recommendations)
 
-        if self.recommendations:
-            lines.append("Recommendations: " + "; ".join(self.recommendations))
+        # Branch info on first line
+        lines: List[str] = [
+            f"Branch: {self.branch_name} | Base: {self.base_branch}",
+            status_summary,
+            f"GitHub Label: {self.current_github_label}",
+            f"Recommendations: {recommendations_text}",
+        ]
 
+        # Add CI details if they exist, with truncation and footer
         if self.ci_details:
-            lines.append("")
-            lines.append("CI Details:")
-            lines.append(self.ci_details)
+            truncated_details = truncate_ci_details(self.ci_details, max_lines)
+            lines.extend(
+                [
+                    "",
+                    "CI Errors:",
+                    truncated_details,
+                    "",
+                    "---",
+                    f"Summary: {status_summary} | Action: {recommendations_text}",
+                ]
+            )
 
-        result = "\n".join(lines)
-        return truncate_ci_details(result, max_lines=max_lines)
+        return "\n".join(lines)
 
 
 def create_empty_report() -> BranchStatusReport:
@@ -183,43 +227,43 @@ def get_failed_jobs_summary(
     failed = [j for j in jobs if j.get("conclusion") == "failure"]
     if not failed:
         return {
-            "job_name": None,
-            "step_name": None,
-            "step_number": None,
-            "log_excerpt": None,
+            "job_name": "",
+            "step_name": "",
+            "step_number": 0,
+            "log_excerpt": "",
             "other_failed_jobs": [],
         }
 
-    primary = failed[0]
-    job_name = str(primary.get("name", "unknown"))
+    # Get first failed job
+    first_failed = failed[0]
+    job_name = str(first_failed.get("name", ""))
 
-    # Find the first failed step
-    step_name: Optional[str] = None
-    step_number: Optional[int] = None
-    raw_steps = primary.get("steps", [])
-    steps: Sequence[Mapping[str, Any]] = list(raw_steps) if raw_steps else []
+    # Find first step with conclusion == "failure"
+    step_name = ""
+    step_number = 0
+    steps = first_failed.get("steps", [])
     for step in steps:
         if step.get("conclusion") == "failure":
-            step_name = str(step.get("name", "unknown"))
-            step_number = step.get("number")
+            step_name = str(step.get("name", ""))
+            step_number = step.get("number", 0)
             break
 
-    # Extract log excerpt for the failed job
-    log_content = _find_log_content(
-        logs,
-        job_name,
-        step_number if step_number is not None else 0,
-        step_name if step_name is not None else "",
-    )
-    log_excerpt: Optional[str] = None
-    if log_content and step_name:
-        excerpt = _extract_failed_step_log(log_content, step_name)
-        if excerpt:
-            log_excerpt = _strip_timestamps(excerpt)
-    elif log_content:
-        log_excerpt = _strip_timestamps(log_content)
+    log_content = _find_log_content(logs, job_name, step_number, step_name)
 
-    other_failed_jobs = [str(j.get("name", "unknown")) for j in failed[1:]]
+    # Strip timestamps first so ##[group] markers are parseable
+    if log_content:
+        log_content = _strip_timestamps(log_content)
+
+    # Extract just the failed step's section from the full job log
+    if log_content:
+        extracted = _extract_failed_step_log(log_content, step_name)
+        if extracted:
+            log_content = extracted
+
+    log_excerpt = truncate_ci_details(log_content)
+
+    # Other failed jobs
+    other_failed_jobs = [str(j.get("name", "")) for j in failed[1:]]
 
     return {
         "job_name": job_name,
@@ -277,9 +321,9 @@ def _collect_rebase_status(project_dir: Path, base_branch: str) -> tuple[bool, s
     try:
         rebase_needed, reason = needs_rebase(project_dir, target_branch=base_branch)
         return rebase_needed, reason
-    except Exception:  # pylint: disable=broad-exception-caught
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.debug("Rebase check failed", exc_info=True)
-        return False, "error: rebase check failed"
+        return False, f"Error checking rebase status: {e}"
 
 
 def _collect_task_status(
@@ -295,7 +339,12 @@ def _collect_task_status(
         return TaskTrackerStatus.N_A, "No pr_info directory", False
 
     steps_dir = pr_info_path / "steps"
-    has_steps_files = steps_dir.exists() and any(steps_dir.iterdir())
+    has_steps_files = (
+        any(p.is_file() for p in steps_dir.iterdir()) if steps_dir.exists() else False
+    )
+
+    if not has_steps_files:
+        return TaskTrackerStatus.N_A, "No implementation plan found", False
 
     try:
         total, completed = get_task_counts(str(pr_info_path))
@@ -313,17 +362,17 @@ def _collect_task_status(
             True,
         )
     except TaskTrackerFileNotFoundError:
-        if has_steps_files:
-            return (
-                TaskTrackerStatus.N_A,
-                "Steps files exist but no task tracker — create TASK_TRACKER.md",
-                True,
-            )
-        return TaskTrackerStatus.N_A, "No task tracker file", False
-    except TaskTrackerSectionNotFoundError:
+        logger.info("No TASK_TRACKER.md but steps files exist — blocking")
         return (
             TaskTrackerStatus.N_A,
-            "No tasks section in tracker",
+            "Create task tracker \u2014 implementation plan exists but no TASK_TRACKER.md",
+            True,
+        )
+    except TaskTrackerSectionNotFoundError:
+        logger.info("No Tasks section in tracker — blocking=%s", has_steps_files)
+        return (
+            TaskTrackerStatus.N_A,
+            "TASK_TRACKER.md has no Tasks section",
             has_steps_files,
         )
     except Exception:  # pylint: disable=broad-exception-caught
@@ -366,38 +415,50 @@ def _collect_pr_info(
 
 
 def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
-    """Generate actionable recommendations based on status."""
-    ci_status = report_data.get("ci_status", CIStatus.NOT_CONFIGURED)
-    ci_details = report_data.get("ci_details")
+    """Generate actionable recommendations based on status.
+
+    Returns:
+        List of recommendation strings prioritized by importance.
+    """
+    recommendations: List[str] = []
+
+    ci_status = report_data.get("ci_status")
     rebase_needed = report_data.get("rebase_needed", False)
     tasks_status = report_data.get("tasks_status", TaskTrackerStatus.N_A)
     tasks_reason = report_data.get("tasks_reason", "")
     tasks_is_blocking = report_data.get("tasks_is_blocking", False)
+    tasks_ok = not tasks_is_blocking
 
-    recs: List[str] = []
-    if ci_status == CIStatus.NOT_CONFIGURED:
-        recs.append("Configure CI pipeline")
     if ci_status == CIStatus.FAILED:
-        recs.append("Fix CI failures before merging")
-        if ci_details:
-            recs.append("Check CI error details above")
-    if ci_status == CIStatus.PENDING:
-        recs.append("Wait for CI to complete")
-    if rebase_needed and not tasks_is_blocking:
-        recs.append("Rebase onto base branch")
+        recommendations.append("Fix CI test failures")
+        if report_data.get("ci_details"):
+            recommendations.append("Check CI error details above")
+    elif ci_status == CIStatus.PENDING:
+        recommendations.append("Wait for CI to complete")
+    elif ci_status == CIStatus.NOT_CONFIGURED:
+        recommendations.append("Configure CI pipeline")
+
     if tasks_status == TaskTrackerStatus.INCOMPLETE:
-        recs.append(f"Complete remaining tasks ({tasks_reason})")
-    if tasks_status == TaskTrackerStatus.ERROR:
-        recs.append("Fix task tracker errors")
+        recommendations.append(f"Complete remaining tasks ({tasks_reason})")
+    elif tasks_status == TaskTrackerStatus.N_A and tasks_is_blocking:
+        recommendations.append(f"Fix task tracker: {tasks_reason}")
+    elif tasks_status == TaskTrackerStatus.ERROR:
+        recommendations.append(f"Fix task tracker error: {tasks_reason}")
 
-    # Positive recommendations
-    if not recs:
-        if tasks_status == TaskTrackerStatus.N_A:
-            recs.append("Continue with current work")
-        else:
-            recs.append("Ready to merge")
+    if rebase_needed and tasks_ok and ci_status != CIStatus.FAILED:
+        recommendations.append("Rebase onto origin/main")
 
-    return recs
+    if (
+        ci_status in [CIStatus.PASSED, CIStatus.NOT_CONFIGURED]
+        and tasks_ok
+        and not rebase_needed
+    ):
+        recommendations.append("Ready to merge")
+
+    if not recommendations:
+        recommendations.append("Continue with current work")
+
+    return recommendations
 
 
 def collect_branch_status(
