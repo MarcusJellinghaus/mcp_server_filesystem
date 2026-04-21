@@ -68,6 +68,13 @@ class TestStripTimestamps:
         """Empty string input returns empty string."""
         assert _strip_timestamps("") == ""
 
+    def test_strips_timestamp_after_ansi_codes(self) -> None:
+        """Timestamps after ANSI escape codes are stripped."""
+        log = "\x1b[36m2024-01-15T10:30:45.1234567Z some content"
+        result = _strip_timestamps(log)
+        assert "2024-01-15T10:30:45" not in result
+        assert "some content" in result
+
 
 class TestParseGroups:
     """Tests for _parse_groups."""
@@ -89,16 +96,28 @@ class TestParseGroups:
         assert "Test" in group_names
 
     def test_handles_content_outside_groups(self) -> None:
-        """Content outside groups is collected."""
-        log = "before\n##[group]Inside\ncontent\n##[endgroup]\nafter"
+        """Content after endgroup is attached to preceding group."""
+        log = "##[group]Inside\ncontent\n##[endgroup]\nafter"
         groups = _parse_groups(log)
-        assert len(groups) >= 1
+        # "after" should be attached to the preceding "Inside" group
+        inside_group = [g for g in groups if g[0] == "Inside"]
+        assert len(inside_group) == 1
+        assert "after" in inside_group[0][1]
 
     def test_handles_empty_string(self) -> None:
         """Empty string returns minimal result."""
         groups = _parse_groups("")
         # Should return at least one group with empty content
         assert isinstance(groups, list)
+
+    def test_mid_line_group_marker_not_treated_as_group(self) -> None:
+        """Line containing ##[group] mid-line is NOT treated as group start."""
+        log = "##[group]Real Group\ncontent\n##[endgroup]\nsee ##[group] docs for info"
+        groups = _parse_groups(log)
+        group_names = [g[0] for g in groups]
+        assert "Real Group" in group_names
+        # The mid-line ##[group] should NOT create a new group
+        assert " docs for info" not in group_names
 
 
 class TestExtractFailedStepLog:
@@ -116,11 +135,41 @@ class TestExtractFailedStepLog:
         result = _extract_failed_step_log(log, "run tests")
         assert "error line" in result
 
-    def test_returns_full_log_if_no_match(self) -> None:
-        """Full log is returned when no matching group found."""
-        log = "some log content\nmore content"
+    def test_exact_match_preferred_over_contains(self) -> None:
+        """Exact match is preferred over contains match."""
+        log = (
+            "##[group]Run tests\nexact match content\n##[endgroup]\n"
+            "##[group]Run tests and lint\ncontains match content\n##[endgroup]"
+        )
+        result = _extract_failed_step_log(log, "Run tests")
+        assert "exact match content" in result
+        assert "contains match content" not in result
+
+    def test_prefix_match_preferred_over_contains(self) -> None:
+        """Prefix match is preferred over contains match."""
+        log = (
+            "##[group]Run tests (ubuntu)\nprefix match content\n##[endgroup]\n"
+            "##[group]Setup Run tests\ncontains match content\n##[endgroup]"
+        )
+        result = _extract_failed_step_log(log, "Run tests")
+        assert "prefix match content" in result
+        assert "contains match content" not in result
+
+    def test_error_fallback_when_no_group_matches(self) -> None:
+        """Returns error group content when no group name matches."""
+        log = (
+            "##[group]Setup\nsetup line\n##[endgroup]\n"
+            "##[group]Build\n##[error]build failed\ndetail line\n##[endgroup]"
+        )
         result = _extract_failed_step_log(log, "nonexistent step")
-        assert result == log
+        assert "build failed" in result
+        assert "detail line" in result
+
+    def test_returns_empty_when_no_match_and_no_errors(self) -> None:
+        """Returns empty string when no group matches AND no ##[error] lines."""
+        log = "##[group]Setup\nsetup line\n##[endgroup]\n##[group]Build\nbuild line\n##[endgroup]"
+        result = _extract_failed_step_log(log, "nonexistent step")
+        assert result == ""
 
 
 class TestFindLogContent:
@@ -247,8 +296,9 @@ class TestBuildCiErrorDetails:
     def test_truncates_long_output(self) -> None:
         """Output is truncated when exceeding max_lines."""
         ci_manager = MagicMock()
-        # Create a large log
-        long_log = "\n".join([f"line {i}" for i in range(500)])
+        # Create a large log with a matching group
+        inner_lines = "\n".join([f"line {i}" for i in range(500)])
+        long_log = f"##[group]Run tests\n{inner_lines}\n##[endgroup]"
         ci_manager.get_run_logs.return_value = {"test-job/3_Run tests.txt": long_log}
         status = {
             "jobs": [

@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_TIMESTAMP_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s?")
+
 __all__ = [
     "build_ci_error_details",
     "truncate_ci_details",
@@ -61,9 +63,8 @@ def _strip_timestamps(log_content: str) -> str:
     Returns:
         Log content with timestamps stripped from each line.
     """
-    timestamp_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s?")
     lines = log_content.split("\n")
-    stripped = [timestamp_pattern.sub("", line) for line in lines]
+    stripped = [_TIMESTAMP_PATTERN.sub("", line) for line in lines]
     return "\n".join(stripped)
 
 
@@ -81,29 +82,35 @@ def _parse_groups(log_content: str) -> List[Tuple[str, List[str]]]:
         collected under an empty group name.
     """
     groups: List[Tuple[str, List[str]]] = []
-    current_group = ""
+    current_group: Optional[str] = None
     current_lines: List[str] = []
 
     for line in log_content.split("\n"):
-        if "##[group]" in line:
+        if line.startswith("##[group]"):
             # Save previous group if it has content
-            if current_lines:
+            if current_lines and current_group is not None:
                 groups.append((current_group, current_lines))
+            elif current_lines and groups:
+                # Attach to preceding group
+                groups[-1] = (groups[-1][0], groups[-1][1] + current_lines)
             # Start new group - extract name after ##[group]
             current_group = line.split("##[group]", 1)[1].strip()
             current_lines = []
-        elif "##[endgroup]" in line:
+        elif line.startswith("##[endgroup]"):
             # End current group
-            if current_lines or current_group:
+            if current_group is not None:
                 groups.append((current_group, current_lines))
-            current_group = ""
+            current_group = None
             current_lines = []
         else:
             current_lines.append(line)
 
-    # Don't forget remaining lines
+    # Don't forget remaining lines - attach to preceding group
     if current_lines:
-        groups.append((current_group, current_lines))
+        if current_group is not None:
+            groups.append((current_group, current_lines))
+        elif groups:
+            groups[-1] = (groups[-1][0], groups[-1][1] + current_lines)
 
     return groups
 
@@ -112,24 +119,47 @@ def _extract_failed_step_log(log_content: str, step_name: str) -> str:
     """Extract log content for a specific failed step.
 
     Searches through log groups for a section matching the step name
-    and returns its content.
+    using 3-tier matching: exact → prefix → contains. Falls back to
+    groups containing ##[error] lines when no name match is found.
 
     Args:
         log_content: Full log content for a job.
         step_name: Name of the failed step to extract.
 
     Returns:
-        Log content for the matching step, or the full log if no
-        matching group is found.
+        Log content for the matching step, error group content as fallback,
+        or empty string if no matches found.
     """
     groups = _parse_groups(log_content)
 
-    for group_name, lines in groups:
-        if step_name.lower() in group_name.lower():
-            return "\n".join(lines)
+    if step_name and step_name.lower() != "unknown":
+        step_lower = step_name.lower()
 
-    # If no matching group found, return full content
-    return log_content
+        # Tier 1: Exact match
+        for group_name, lines in groups:
+            if group_name.lower() == step_lower:
+                return "\n".join(lines)
+
+        # Tier 2: Prefix match
+        for group_name, lines in groups:
+            if group_name.lower().startswith(step_lower):
+                return "\n".join(lines)
+
+        # Tier 3: Contains match
+        for group_name, lines in groups:
+            if step_lower in group_name.lower():
+                return "\n".join(lines)
+
+    # Fallback: collect entire group sections containing ##[error] lines
+    error_groups: List[str] = []
+    for _group_name, lines in groups:
+        if any("##[error]" in line for line in lines):
+            error_groups.append("\n".join(lines))
+
+    if error_groups:
+        return "\n".join(error_groups)
+
+    return ""
 
 
 def _find_log_content(
