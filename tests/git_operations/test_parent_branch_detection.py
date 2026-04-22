@@ -174,7 +174,7 @@ class TestDetectParentBranchViaMergeBase:
         merge_base_commit.hexsha = "mergebase000"
         mock_repo.merge_base.return_value = [merge_base_commit]
 
-        # Distance = 5 (feature-A moved 5 commits ahead of merge-base)
+        # Distance = 5 (current HEAD is 5 commits ahead of merge-base)
         mock_repo.iter_commits.return_value = [MagicMock() for _ in range(5)]
 
         result = detect_parent_branch_via_merge_base(project_dir, current_branch)
@@ -200,7 +200,7 @@ class TestDetectParentBranchViaMergeBase:
         merge_base_commit.hexsha = "mergebase000"
         mock_repo.merge_base.return_value = [merge_base_commit]
 
-        # Distance = 25 (exceeds MERGE_BASE_DISTANCE_THRESHOLD of 20)
+        # Distance = 25 (current HEAD is 25 commits beyond merge-base, exceeds threshold of 20)
         mock_repo.iter_commits.return_value = [MagicMock() for _ in range(25)]
 
         result = detect_parent_branch_via_merge_base(project_dir, current_branch)

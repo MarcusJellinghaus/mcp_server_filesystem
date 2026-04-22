@@ -21,3 +21,21 @@
 - `tests/git_operations/test_parent_branch_detection.py`: Reordered iteration in `test_prefers_default_branch_on_equal_distance` so `develop` comes before `main`, exercising the tiebreaker
 
 **Status:** committed
+
+## Round 2 — 2026-04-22
+
+**Findings:**
+- (Accept) Stale comment in `test_parent_moved_forward` — says "feature-A moved 5 commits" but algorithm now measures merge-base to current HEAD
+- (Accept) Stale comment in `test_parent_moved_too_far` — misleading about what distance is measured
+- (Skip) Terse comment in `test_remote_branch_only` — not wrong, just brief
+- (Skip) Repeated mock boilerplate — pre-existing, out of scope
+- (Skip) Broad `except Exception` blocks — pre-existing, already has TODO
+
+**Decisions:**
+- Accept fixes 1-2: same class of stale comment fixed in round 1, bounded effort
+- Skip fixes 3-5: pre-existing or not misleading
+
+**Changes:**
+- `tests/git_operations/test_parent_branch_detection.py`: Updated distance comments in `test_parent_moved_forward` and `test_parent_moved_too_far` to reflect merge-base-to-current-HEAD direction
+
+**Status:** committed
