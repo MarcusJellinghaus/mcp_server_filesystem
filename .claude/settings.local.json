@@ -86,7 +86,8 @@
       "mcp__obsidian-wiki__search-vault",
       "Bash(git checkout:*)",
       "Bash(git pull:*)",
-      "mcp__workspace__git"
+      "mcp__workspace__git",
+      "mcp__workspace__search_reference_files"
     ]
   },
   "enableAllProjectMcpServers": true,

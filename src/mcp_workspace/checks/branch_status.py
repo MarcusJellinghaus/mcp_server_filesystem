@@ -6,7 +6,7 @@ check_branch_status MCP tool.
 """
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -18,6 +18,9 @@ from mcp_workspace.git_operations.branch_queries import (
 )
 from mcp_workspace.git_operations.workflows import needs_rebase
 from mcp_workspace.github_operations.ci_log_parser import (
+    _extract_failed_step_log,
+    _find_log_content,
+    _strip_timestamps,
     build_ci_error_details,
     truncate_ci_details,
 )
@@ -32,6 +35,9 @@ from mcp_workspace.workflows.task_tracker import (
 )
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_LABEL = "unknown"
+EMPTY_RECOMMENDATIONS: List[str] = []
 
 
 class CIStatus(str, Enum):
@@ -63,70 +69,145 @@ class BranchStatusReport:
     pr_found: Optional[bool] = None
 
     def format_for_human(self) -> str:
-        """Format report for human-readable terminal output."""
-        lines: List[str] = []
-        lines.append(f"Branch: {self.branch_name}")
-        lines.append(f"Base: {self.base_branch}")
-        lines.append(f"CI: {self.ci_status.value}")
+        """Format report for human consumption.
+
+        Returns:
+            Formatted string with status icons and recommendations.
+        """
+        # Determine status icons
+        ci_icon_map: Dict[CIStatus, str] = {
+            CIStatus.PASSED: "\u2705",
+            CIStatus.FAILED: "\u274c",
+            CIStatus.PENDING: "\u23f3",
+            CIStatus.NOT_CONFIGURED: "\u2699\ufe0f",
+        }
+        ci_icon = ci_icon_map.get(self.ci_status, "\u2753")
+
+        rebase_icon = "\u2705" if not self.rebase_needed else "\u26a0\ufe0f"
+        rebase_status_text = "UP TO DATE" if not self.rebase_needed else "BEHIND"
+
+        tasks_icon_map = {
+            TaskTrackerStatus.COMPLETE: "\u2705",
+            TaskTrackerStatus.INCOMPLETE: "\u274c",
+            TaskTrackerStatus.ERROR: "\u26a0\ufe0f",
+        }
+        if self.tasks_status == TaskTrackerStatus.N_A:
+            tasks_icon = "\u26a0\ufe0f" if self.tasks_is_blocking else "\u2796"
+        else:
+            tasks_icon = tasks_icon_map.get(self.tasks_status, "\u2753")
+        tasks_status_text = self.tasks_status.value
+
+        # Build the report sections - Branch info first
+        lines: List[str] = [
+            f"Branch: {self.branch_name}",
+            f"Base Branch: {self.base_branch}",
+            "",
+            "Branch Status Report",
+            "",
+        ]
+
+        # PR section (only when pr_found is not None)
+        if self.pr_found is not None:
+            if self.pr_found:
+                lines.append(f"PR: \u2705 #{self.pr_number} ({self.pr_url})")
+            else:
+                lines.append("PR: \u274c No PR found")
+            lines.append("")
+
+        lines.append(f"CI Status: {ci_icon} {self.ci_status.value}")
+
+        # Add CI details if they exist
         if self.ci_details:
-            lines.append(f"CI Details:\n{self.ci_details}")
-        lines.append(f"Rebase needed: {self.rebase_needed} ({self.rebase_reason})")
-        lines.append(f"Tasks: {self.tasks_status.value} ({self.tasks_reason})")
-        lines.append(f"Label: {self.current_github_label}")
-        if self.pr_found:
-            lines.append(f"PR: #{self.pr_number} ({self.pr_url})")
-        if self.recommendations:
-            lines.append("Recommendations:")
-            for rec in self.recommendations:
-                lines.append(f"  - {rec}")
+            lines.extend(
+                [
+                    "",
+                    "CI Error Details:",
+                    self.ci_details,
+                ]
+            )
+
+        lines.extend(
+            [
+                "",
+                f"Rebase Status: {rebase_icon} {rebase_status_text}",
+                f"- {self.rebase_reason}",
+                "",
+                f"Task Tracker: {tasks_icon} {tasks_status_text} ({self.tasks_reason})",
+                "",
+                f"GitHub Status: {self.current_github_label}",
+                "",
+                "Recommendations:",
+            ]
+        )
+
+        # Add recommendations
+        for recommendation in self.recommendations:
+            lines.append(f"- {recommendation}")
+
         return "\n".join(lines)
 
     def format_for_llm(self, max_lines: int = 300) -> str:
-        """Format report for LLM context window consumption."""
-        lines: List[str] = []
-        lines.append("## Branch Status Report")
-        lines.append(f"- **Branch**: `{self.branch_name}`")
-        lines.append(f"- **Base**: `{self.base_branch}`")
-        lines.append(f"- **CI**: {self.ci_status.value}")
-        lines.append(
-            f"- **Rebase**: {'NEEDED' if self.rebase_needed else 'OK'}"
-            f" — {self.rebase_reason}"
+        """Format report for LLM consumption with truncation.
+
+        Args:
+            max_lines: Maximum number of lines for CI error details.
+
+        Returns:
+            Compact formatted string optimized for LLM context windows.
+        """
+        # Convert rebase_needed to status string
+        rebase_status = "BEHIND" if self.rebase_needed else "UP_TO_DATE"
+
+        # Build status summary line
+        status_summary = (
+            f"Branch Status: CI={self.ci_status.value}, Rebase={rebase_status}, "
+            f"Tasks={self.tasks_status.value} ({self.tasks_reason})"
         )
-        lines.append(f"- **Tasks**: {self.tasks_status.value} — {self.tasks_reason}")
-        lines.append(f"- **Label**: {self.current_github_label}")
+        if self.pr_found is True:
+            status_summary += f", PR=#{self.pr_number}"
+        elif self.pr_found is False:
+            status_summary += ", PR=NOT_FOUND"
+        recommendations_text = ", ".join(self.recommendations)
 
-        if self.pr_found:
-            lines.append(f"- **PR**: #{self.pr_number} ({self.pr_url})")
+        # Branch info on first line
+        lines: List[str] = [
+            f"Branch: {self.branch_name} | Base: {self.base_branch}",
+            status_summary,
+            f"GitHub Label: {self.current_github_label}",
+            f"Recommendations: {recommendations_text}",
+        ]
 
-        if self.recommendations:
-            lines.append("")
-            lines.append("### Recommendations")
-            for rec in self.recommendations:
-                lines.append(f"- {rec}")
-
+        # Add CI details if they exist, with truncation and footer
         if self.ci_details:
-            lines.append("")
-            lines.append("### CI Details")
-            lines.append(self.ci_details)
+            truncated_details = truncate_ci_details(self.ci_details, max_lines)
+            lines.extend(
+                [
+                    "",
+                    "CI Errors:",
+                    truncated_details,
+                    "",
+                    "---",
+                    f"Summary: {status_summary} | Action: {recommendations_text}",
+                ]
+            )
 
-        result = "\n".join(lines)
-        return truncate_ci_details(result, max_lines=max_lines)
+        return "\n".join(lines)
 
 
 def create_empty_report() -> BranchStatusReport:
     """Create an empty/default report for error cases."""
     return BranchStatusReport(
         branch_name="unknown",
-        base_branch="main",
+        base_branch="unknown",
         ci_status=CIStatus.NOT_CONFIGURED,
         ci_details=None,
         rebase_needed=False,
-        rebase_reason="unknown",
+        rebase_reason="Unknown",
         tasks_status=TaskTrackerStatus.N_A,
-        tasks_reason="unknown",
+        tasks_reason="Unknown",
         tasks_is_blocking=False,
-        current_github_label="",
-        recommendations=[],
+        current_github_label=DEFAULT_LABEL,
+        recommendations=EMPTY_RECOMMENDATIONS,
     )
 
 
@@ -140,23 +221,57 @@ def get_failed_jobs_summary(
         logs: Dictionary mapping log filenames to contents.
 
     Returns:
-        Dictionary with failed job names and log excerpts.
+        Dictionary with job_name, step_name, step_number, log_excerpt,
+        and other_failed_jobs list.
     """
     failed = [j for j in jobs if j.get("conclusion") == "failure"]
-    summary: Dict[str, Any] = {
-        "failed_count": len(failed),
-        "failed_jobs": [],
+    if not failed:
+        return {
+            "job_name": "",
+            "step_name": "",
+            "step_number": 0,
+            "log_excerpt": "",
+            "other_failed_jobs": [],
+        }
+
+    # Get first failed job
+    first_failed = failed[0]
+    job_name = str(first_failed.get("name", ""))
+
+    # Find first step with conclusion == "failure"
+    step_name = ""
+    step_number = 0
+    steps = first_failed.get("steps", [])
+    for step in steps:
+        if step.get("conclusion") == "failure":
+            step_name = str(step.get("name", ""))
+            step_number = step.get("number", 0)
+            break
+
+    log_content = _find_log_content(logs, job_name, step_number, step_name)
+
+    # Strip timestamps first so ##[group] markers are parseable
+    if log_content:
+        log_content = _strip_timestamps(log_content)
+
+    # Extract just the failed step's section from the full job log
+    if log_content:
+        extracted = _extract_failed_step_log(log_content, step_name)
+        if extracted:
+            log_content = extracted
+
+    log_excerpt = truncate_ci_details(log_content)
+
+    # Other failed jobs
+    other_failed_jobs = [str(j.get("name", "")) for j in failed[1:]]
+
+    return {
+        "job_name": job_name,
+        "step_name": step_name,
+        "step_number": step_number,
+        "log_excerpt": log_excerpt,
+        "other_failed_jobs": other_failed_jobs,
     }
-    for job in failed:
-        job_name = str(job.get("name", "unknown"))
-        job_info: Dict[str, Any] = {"name": job_name, "steps": []}
-        raw_steps = job.get("steps", [])
-        steps: Sequence[Mapping[str, Any]] = list(raw_steps) if raw_steps else []
-        failed_steps = [s for s in steps if s.get("conclusion") == "failure"]
-        for step in failed_steps:
-            job_info["steps"].append(str(step.get("name", "unknown")))
-        summary["failed_jobs"].append(job_info)
-    return summary
 
 
 def _collect_ci_status(
@@ -175,17 +290,19 @@ def _collect_ci_status(
         if run_data is None or len(run_data) == 0:
             return CIStatus.NOT_CONFIGURED, None
 
-        conclusion = run_data.get("conclusion")
-        status = run_data.get("status", "")
+        ci_state = run_data.get("conclusion") or run_data.get("status", "")
 
-        if conclusion == "success":
+        if ci_state == "success":
             return CIStatus.PASSED, None
-        elif conclusion == "failure":
-            details = build_ci_error_details(
-                ci_manager, status_result, max_lines=max_log_lines
-            )
+        elif ci_state == "failure":
+            try:
+                details = build_ci_error_details(
+                    ci_manager, status_result, max_lines=max_log_lines
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                details = None
             return CIStatus.FAILED, details
-        elif status in ("in_progress", "queued", "pending"):
+        elif ci_state in ("in_progress", "queued", "pending"):
             return CIStatus.PENDING, None
         else:
             return CIStatus.NOT_CONFIGURED, None
@@ -204,9 +321,9 @@ def _collect_rebase_status(project_dir: Path, base_branch: str) -> tuple[bool, s
     try:
         rebase_needed, reason = needs_rebase(project_dir, target_branch=base_branch)
         return rebase_needed, reason
-    except Exception:  # pylint: disable=broad-exception-caught
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.debug("Rebase check failed", exc_info=True)
-        return False, "error: rebase check failed"
+        return False, f"Error checking rebase status: {e}"
 
 
 def _collect_task_status(
@@ -217,12 +334,23 @@ def _collect_task_status(
     Returns:
         Tuple of (status, reason, is_blocking).
     """
+    pr_info_path = project_dir / "pr_info"
+    if not pr_info_path.exists():
+        return TaskTrackerStatus.N_A, "No pr_info folder found", False
+
+    steps_dir = pr_info_path / "steps"
+    has_steps_files = (
+        any(p.is_file() for p in steps_dir.iterdir()) if steps_dir.exists() else False
+    )
+
+    if not has_steps_files:
+        return TaskTrackerStatus.N_A, "No implementation plan found", False
+
     try:
-        pr_info_path = str(project_dir / "pr_info")
-        total, completed = get_task_counts(pr_info_path)
+        total, completed = get_task_counts(str(pr_info_path))
         if total == 0:
-            return TaskTrackerStatus.N_A, "No tasks found", False
-        if completed >= total:
+            return TaskTrackerStatus.N_A, "Task tracker is empty", True
+        if completed == total:
             return (
                 TaskTrackerStatus.COMPLETE,
                 f"All {total} tasks complete",
@@ -234,27 +362,37 @@ def _collect_task_status(
             True,
         )
     except TaskTrackerFileNotFoundError:
-        return TaskTrackerStatus.N_A, "No task tracker file", False
+        logger.info("No TASK_TRACKER.md but steps files exist — blocking")
+        return (
+            TaskTrackerStatus.N_A,
+            "Create task tracker \u2014 implementation plan exists but no TASK_TRACKER.md",
+            True,
+        )
     except TaskTrackerSectionNotFoundError:
-        return TaskTrackerStatus.N_A, "No tasks section in tracker", False
-    except Exception:  # pylint: disable=broad-exception-caught
+        logger.info("No Tasks section in tracker — blocking=%s", has_steps_files)
+        return (
+            TaskTrackerStatus.N_A,
+            "TASK_TRACKER.md has no Tasks section",
+            has_steps_files,
+        )
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.debug("Task tracker check failed", exc_info=True)
-        return TaskTrackerStatus.ERROR, "Task tracker check failed", False
+        return TaskTrackerStatus.ERROR, f"Could not read task tracker: {e}", True
 
 
 def _collect_github_label(issue_data: Optional[IssueData]) -> str:
     """Extract the current status label from issue data.
 
     Returns:
-        Current status label string, or empty string if not found.
+        Current status label string, or DEFAULT_LABEL if not found.
     """
     if issue_data is None:
-        return ""
+        return DEFAULT_LABEL
     labels = issue_data.get("labels", [])
     for label in labels:
         if isinstance(label, str) and label.startswith("status-"):
             return label
-    return ""
+    return DEFAULT_LABEL
 
 
 def _collect_pr_info(
@@ -276,25 +414,51 @@ def _collect_pr_info(
         return None, None, None
 
 
-def _generate_recommendations(
-    ci_status: CIStatus,
-    rebase_needed: bool,
-    tasks_status: TaskTrackerStatus,
-    tasks_reason: str,
-) -> List[str]:
-    """Generate actionable recommendations based on status."""
-    recs: List[str] = []
+def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
+    """Generate actionable recommendations based on status.
+
+    Returns:
+        List of recommendation strings prioritized by importance.
+    """
+    recommendations: List[str] = []
+
+    ci_status = report_data.get("ci_status")
+    rebase_needed = report_data.get("rebase_needed", False)
+    tasks_status = report_data.get("tasks_status", TaskTrackerStatus.N_A)
+    tasks_reason = report_data.get("tasks_reason", "")
+    tasks_is_blocking = report_data.get("tasks_is_blocking", False)
+    tasks_ok = not tasks_is_blocking
+
     if ci_status == CIStatus.FAILED:
-        recs.append("Fix CI failures before merging")
-    if ci_status == CIStatus.PENDING:
-        recs.append("Wait for CI to complete")
-    if rebase_needed:
-        recs.append("Rebase onto base branch")
+        recommendations.append("Fix CI test failures")
+        if report_data.get("ci_details"):
+            recommendations.append("Check CI error details above")
+    elif ci_status == CIStatus.PENDING:
+        recommendations.append("Wait for CI to complete")
+    elif ci_status == CIStatus.NOT_CONFIGURED:
+        recommendations.append("Configure CI pipeline")
+
     if tasks_status == TaskTrackerStatus.INCOMPLETE:
-        recs.append(f"Complete remaining tasks ({tasks_reason})")
-    if tasks_status == TaskTrackerStatus.ERROR:
-        recs.append("Fix task tracker errors")
-    return recs
+        recommendations.append(f"Complete remaining tasks ({tasks_reason})")
+    elif tasks_status == TaskTrackerStatus.N_A and tasks_is_blocking:
+        recommendations.append(f"Fix task tracker: {tasks_reason}")
+    elif tasks_status == TaskTrackerStatus.ERROR:
+        recommendations.append(f"Fix task tracker error: {tasks_reason}")
+
+    if rebase_needed and tasks_ok and ci_status != CIStatus.FAILED:
+        recommendations.append("Rebase onto origin/main")
+
+    if (
+        ci_status in [CIStatus.PASSED, CIStatus.NOT_CONFIGURED]
+        and tasks_ok
+        and not rebase_needed
+    ):
+        recommendations.append("Ready to merge")
+
+    if not recommendations:
+        recommendations.append("Continue with current work")
+
+    return recommendations
 
 
 def collect_branch_status(
@@ -309,76 +473,92 @@ def collect_branch_status(
     Returns:
         A BranchStatusReport dataclass (not a dict).
     """
-    # 1. Get current branch
-    branch_name = get_current_branch_name(project_dir)
-    if branch_name is None:
-        logger.warning("Could not detect current branch")
-        return create_empty_report()
-
-    # 2. Fetch issue data once for sharing
-    issue_data: Optional[IssueData] = None
-    issue_manager: Optional[IssueManager] = None
-    pr_manager: Optional[PullRequestManager] = None
-
     try:
-        issue_manager = IssueManager(project_dir=project_dir)
-        pr_manager = PullRequestManager(project_dir)
-        issue_number = extract_issue_number_from_branch(branch_name)
-        if issue_number is not None and issue_manager is not None:
-            try:
-                fetched = issue_manager.get_issue(issue_number)
-                if fetched and fetched.get("number", 0) > 0:
-                    issue_data = fetched
-            except Exception:  # pylint: disable=broad-exception-caught
-                logger.debug("Failed to fetch issue data", exc_info=True)
-    except Exception:  # pylint: disable=broad-exception-caught
-        logger.debug("GitHub manager initialization failed", exc_info=True)
+        # 1. Get current branch
+        branch_name = get_current_branch_name(project_dir)
+        if branch_name is None:
+            logger.error("Could not determine current branch name")
+            return create_empty_report()
 
-    # 3. Detect base branch (DI: pass managers)
-    base_branch_result = detect_base_branch(
-        project_dir,
-        current_branch=branch_name,
-        issue_data=issue_data,
-        issue_manager=issue_manager,
-        pr_manager=pr_manager,
-    )
-    base_branch = base_branch_result if base_branch_result else "main"
+        # 2. Fetch issue data once for sharing
+        issue_data: Optional[IssueData] = None
+        issue_manager: Optional[IssueManager] = None
+        pr_manager: Optional[PullRequestManager] = None
 
-    # 4. Collect CI status
-    ci_status, ci_details = _collect_ci_status(project_dir, branch_name, max_log_lines)
+        try:
+            issue_manager = IssueManager(project_dir=project_dir)
+            pr_manager = PullRequestManager(project_dir)
+            issue_number = extract_issue_number_from_branch(branch_name)
+            if issue_number is not None and issue_manager is not None:
+                try:
+                    fetched = issue_manager.get_issue(issue_number)
+                    if fetched and fetched.get("number", 0) > 0:
+                        issue_data = fetched
+                except Exception:  # pylint: disable=broad-exception-caught
+                    logger.debug("Failed to fetch issue data", exc_info=True)
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("GitHub manager initialization failed", exc_info=True)
 
-    # 5. Check rebase status
-    rebase_needed, rebase_reason = _collect_rebase_status(project_dir, base_branch)
+        # 3. Detect base branch (DI: pass managers)
+        base_branch_result = detect_base_branch(
+            project_dir,
+            current_branch=branch_name,
+            issue_data=issue_data,
+            issue_manager=issue_manager,
+            pr_manager=pr_manager,
+        )
+        base_branch = base_branch_result if base_branch_result else "unknown"
 
-    # 6. Check task tracker
-    tasks_status, tasks_reason, tasks_is_blocking = _collect_task_status(project_dir)
+        # 4. Collect CI status
+        ci_status, ci_details = _collect_ci_status(
+            project_dir, branch_name, max_log_lines
+        )
 
-    # 7. Collect GitHub label
-    current_github_label = _collect_github_label(issue_data)
+        # 5. Check rebase status
+        rebase_needed, rebase_reason = _collect_rebase_status(project_dir, base_branch)
 
-    # 8. Collect PR info
-    pr_number, pr_url, pr_found = (
-        _collect_pr_info(pr_manager, branch_name) if pr_manager else (None, None, None)
-    )
+        # 6. Check task tracker
+        tasks_status, tasks_reason, tasks_is_blocking = _collect_task_status(
+            project_dir
+        )
 
-    # 9. Generate recommendations
-    recommendations = _generate_recommendations(
-        ci_status, rebase_needed, tasks_status, tasks_reason
-    )
+        # 7. Collect GitHub label
+        current_github_label = _collect_github_label(issue_data)
 
-    return BranchStatusReport(
-        branch_name=branch_name,
-        base_branch=base_branch,
-        ci_status=ci_status,
-        ci_details=ci_details,
-        rebase_needed=rebase_needed,
-        rebase_reason=rebase_reason,
-        tasks_status=tasks_status,
-        tasks_reason=tasks_reason,
-        tasks_is_blocking=tasks_is_blocking,
-        current_github_label=current_github_label,
-        recommendations=recommendations,
-        pr_number=pr_number,
-        pr_url=pr_url,
-        pr_found=pr_found,
-    )
+        # 8. Collect PR info
+        pr_number, pr_url, pr_found = (
+            _collect_pr_info(pr_manager, branch_name)
+            if pr_manager
+            else (None, None, None)
+        )
+
+        # 9. Generate recommendations
+        report_data: Dict[str, Any] = {
+            "ci_status": ci_status,
+            "ci_details": ci_details,
+            "rebase_needed": rebase_needed,
+            "tasks_status": tasks_status,
+            "tasks_reason": tasks_reason,
+            "tasks_is_blocking": tasks_is_blocking,
+        }
+        recommendations = _generate_recommendations(report_data)
+
+        return BranchStatusReport(
+            branch_name=branch_name,
+            base_branch=base_branch,
+            ci_status=ci_status,
+            ci_details=ci_details,
+            rebase_needed=rebase_needed,
+            rebase_reason=rebase_reason,
+            tasks_status=tasks_status,
+            tasks_reason=tasks_reason,
+            tasks_is_blocking=tasks_is_blocking,
+            current_github_label=current_github_label,
+            recommendations=recommendations,
+            pr_number=pr_number,
+            pr_url=pr_url,
+            pr_found=pr_found,
+        )
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error(f"Error collecting branch status: {e}")
+        return create_empty_report()

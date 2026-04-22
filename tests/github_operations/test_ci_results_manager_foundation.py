@@ -165,6 +165,13 @@ class TestCIResultsManagerFoundation:
         assert test_data["jobs"][0]["name"] == "test"
         assert len(test_data["jobs"]) == 1
 
+    def test_github_token_passthrough(self) -> None:
+        """Test that github_token is forwarded to BaseGitHubManager."""
+        repo_url = "https://github.com/test/repo.git"
+        with patch("github.Github"):
+            manager = CIResultsManager(repo_url=repo_url, github_token="explicit-token")
+            assert manager.github_token == "explicit-token"
+
     def test_manager_inheritance(self) -> None:
         """Test that CIResultsManager properly extends BaseGitHubManager."""
         repo_url = "https://github.com/test/repo.git"

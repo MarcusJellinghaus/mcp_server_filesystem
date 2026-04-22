@@ -139,16 +139,24 @@ class CIResultsManager(BaseGitHubManager):
     DEFAULT_REQUEST_TIMEOUT: int = 60  # seconds
 
     def __init__(
-        self, project_dir: Optional[Path] = None, repo_url: Optional[str] = None
+        self,
+        project_dir: Optional[Path] = None,
+        repo_url: Optional[str] = None,
+        github_token: Optional[str] = None,
     ) -> None:
         """Initialize the CIResultsManager.
 
         Args:
             project_dir: Path to the project directory containing git repository
             repo_url: GitHub repository URL (e.g., "https://github.com/user/repo.git")
+            github_token: Optional explicit token — overrides config lookup when provided.
 
         """
-        super().__init__(project_dir=project_dir, repo_url=repo_url)
+        super().__init__(
+            project_dir=project_dir,
+            repo_url=repo_url,
+            github_token=github_token,
+        )
 
     def _validate_branch_name(self, branch: str) -> bool:
         """Validate branch name using git naming rules.

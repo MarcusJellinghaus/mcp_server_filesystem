@@ -74,10 +74,19 @@ class TestBranchStatusReport:
             pr_found=True,
         )
         output = report.format_for_human()
+        assert "Branch Status Report" in output
         assert "Branch: 123-feature" in output
-        assert "CI: PASSED" in output
-        assert "PR: #45" in output
-        assert "Do something" in output
+        assert "Base Branch: main" in output
+        assert "CI Status:" in output
+        assert "PASSED" in output
+        assert "Rebase Status:" in output
+        assert "UP TO DATE" in output
+        assert "Task Tracker:" in output
+        assert "GitHub Status:" in output
+        assert "PR:" in output
+        assert "#45" in output
+        assert "- Do something" in output
+        assert "Recommendations:" in output
 
     def test_format_for_llm(self) -> None:
         report = BranchStatusReport(
@@ -97,11 +106,13 @@ class TestBranchStatusReport:
             pr_found=True,
         )
         output = report.format_for_llm()
-        assert "## Branch Status Report" in output
-        assert "FAILED" in output
-        assert "NEEDED" in output
-        assert "### Recommendations" in output
-        assert "### CI Details" in output
+        assert "Branch: 123-feature | Base: main" in output
+        assert "Branch Status: CI=FAILED" in output
+        assert "Rebase=BEHIND" in output
+        assert "Recommendations:" in output
+        assert "CI Errors:" in output
+        assert "GitHub Label:" in output
+        assert "Summary:" in output
 
     def test_format_for_llm_no_pr(self) -> None:
         report = BranchStatusReport(
@@ -118,8 +129,9 @@ class TestBranchStatusReport:
             recommendations=[],
         )
         output = report.format_for_llm()
-        assert "**PR**" not in output
-        assert "Recommendations" not in output
+        assert "PR=" not in output
+        # Recommendations line is always present (may be empty)
+        assert "Recommendations:" in output
 
 
 class TestCreateEmptyReport:
@@ -128,10 +140,13 @@ class TestCreateEmptyReport:
     def test_returns_defaults(self) -> None:
         report = create_empty_report()
         assert report.branch_name == "unknown"
-        assert report.base_branch == "main"
+        assert report.base_branch == "unknown"
         assert report.ci_status == CIStatus.NOT_CONFIGURED
         assert report.tasks_status == TaskTrackerStatus.N_A
         assert report.recommendations == []
+        assert report.current_github_label == "unknown"
+        assert report.rebase_reason == "Unknown"
+        assert report.tasks_reason == "Unknown"
 
 
 class TestGetFailedJobsSummary:
@@ -140,7 +155,11 @@ class TestGetFailedJobsSummary:
     def test_no_failed_jobs(self) -> None:
         jobs = [{"name": "test", "conclusion": "success", "steps": []}]
         result = get_failed_jobs_summary(jobs, {})
-        assert result["failed_count"] == 0
+        assert result["job_name"] == ""
+        assert result["step_name"] == ""
+        assert result["step_number"] == 0
+        assert result["log_excerpt"] == ""
+        assert result["other_failed_jobs"] == []
 
     def test_with_failed_jobs(self) -> None:
         jobs = [
@@ -148,15 +167,57 @@ class TestGetFailedJobsSummary:
                 "name": "test",
                 "conclusion": "failure",
                 "steps": [
-                    {"name": "Run tests", "conclusion": "failure"},
                     {"name": "Setup", "conclusion": "success"},
+                    {"name": "Run tests", "conclusion": "failure", "number": 2},
                 ],
             }
         ]
         result = get_failed_jobs_summary(jobs, {})
-        assert result["failed_count"] == 1
-        assert result["failed_jobs"][0]["name"] == "test"
-        assert "Run tests" in result["failed_jobs"][0]["steps"]
+        assert result["job_name"] == "test"
+        assert result["step_name"] == "Run tests"
+        assert result["step_number"] == 2
+        assert result["other_failed_jobs"] == []
+
+    def test_multiple_failed_jobs(self) -> None:
+        jobs: list[dict[str, object]] = [
+            {
+                "name": "test",
+                "conclusion": "failure",
+                "steps": [
+                    {"name": "Run tests", "conclusion": "failure", "number": 1},
+                ],
+            },
+            {
+                "name": "lint",
+                "conclusion": "failure",
+                "steps": [],
+            },
+        ]
+        result = get_failed_jobs_summary(jobs, {})
+        assert result["job_name"] == "test"
+        assert result["other_failed_jobs"] == ["lint"]
+
+    def test_with_log_content(self) -> None:
+        jobs = [
+            {
+                "name": "test",
+                "conclusion": "failure",
+                "steps": [
+                    {"name": "Run tests", "conclusion": "failure", "number": 1},
+                ],
+            },
+        ]
+        log_text = (
+            "##[group]Run tests\n"
+            "FAILED test_example.py\n"
+            "##[error]Process completed with exit code 1\n"
+            "##[endgroup]\n"
+        )
+        logs = {"0_test.txt": log_text}
+        result = get_failed_jobs_summary(jobs, logs)
+        assert result["job_name"] == "test"
+        assert result["log_excerpt"] is not None
+        assert "FAILED" in result["log_excerpt"]
 
 
 class TestCollectCIStatus:
@@ -207,6 +268,36 @@ class TestCollectCIStatus:
         status, _ = _collect_ci_status(Path("/tmp"), "main", 300)
         assert status == CIStatus.NOT_CONFIGURED
 
+    @patch("mcp_workspace.checks.branch_status.build_ci_error_details")
+    @patch("mcp_workspace.checks.branch_status.CIResultsManager")
+    def test_failed_with_details_exception(
+        self, mock_ci_cls: MagicMock, mock_build: MagicMock
+    ) -> None:
+        """build_ci_error_details raising still returns FAILED, not NOT_CONFIGURED."""
+        mock_ci = MagicMock()
+        mock_ci.get_latest_ci_status.return_value = {
+            "run": {"conclusion": "failure", "status": "completed"},
+            "jobs": [],
+        }
+        mock_ci_cls.return_value = mock_ci
+        mock_build.side_effect = Exception("log fetch failed")
+        status, details = _collect_ci_status(Path("/tmp"), "main", 300)
+        assert status == CIStatus.FAILED
+        assert details is None
+
+    @patch("mcp_workspace.checks.branch_status.CIResultsManager")
+    def test_pending_via_status_fallback(self, mock_ci_cls: MagicMock) -> None:
+        """conclusion=None, status='in_progress' should return PENDING."""
+        mock_ci = MagicMock()
+        mock_ci.get_latest_ci_status.return_value = {
+            "run": {"conclusion": None, "status": "in_progress"},
+            "jobs": [],
+        }
+        mock_ci_cls.return_value = mock_ci
+        status, details = _collect_ci_status(Path("/tmp"), "main", 300)
+        assert status == CIStatus.PENDING
+        assert details is None
+
     @patch("mcp_workspace.checks.branch_status.CIResultsManager")
     def test_exception_returns_not_configured(self, mock_ci_cls: MagicMock) -> None:
         mock_ci_cls.side_effect = Exception("fail")
@@ -236,44 +327,100 @@ class TestCollectRebaseStatus:
         mock_rebase.side_effect = Exception("fail")
         needed, reason = _collect_rebase_status(Path("/tmp"), "main")
         assert not needed
-        assert "error" in reason
+        assert "Error checking rebase status" in reason
+        assert "fail" in reason
 
 
 class TestCollectTaskStatus:
     """Tests for _collect_task_status."""
 
     @patch("mcp_workspace.checks.branch_status.get_task_counts")
-    def test_complete(self, mock_counts: MagicMock) -> None:
+    def test_complete(self, mock_counts: MagicMock, tmp_path: Path) -> None:
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
+        steps_dir = pr_info / "steps"
+        steps_dir.mkdir()
+        (steps_dir / "step_1.md").write_text("step")
         mock_counts.return_value = (5, 5)
-        status, reason, blocking = _collect_task_status(Path("/tmp"))
+        status, reason, blocking = _collect_task_status(tmp_path)
         assert status == TaskTrackerStatus.COMPLETE
         assert not blocking
 
     @patch("mcp_workspace.checks.branch_status.get_task_counts")
-    def test_incomplete(self, mock_counts: MagicMock) -> None:
+    def test_incomplete(self, mock_counts: MagicMock, tmp_path: Path) -> None:
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
+        steps_dir = pr_info / "steps"
+        steps_dir.mkdir()
+        (steps_dir / "step_1.md").write_text("step")
         mock_counts.return_value = (5, 3)
-        status, reason, blocking = _collect_task_status(Path("/tmp"))
+        status, reason, blocking = _collect_task_status(tmp_path)
         assert status == TaskTrackerStatus.INCOMPLETE
         assert blocking
         assert "3 of 5" in reason
 
     @patch("mcp_workspace.checks.branch_status.get_task_counts")
-    def test_no_tasks(self, mock_counts: MagicMock) -> None:
+    def test_no_tasks_is_blocking(self, mock_counts: MagicMock, tmp_path: Path) -> None:
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
+        steps_dir = pr_info / "steps"
+        steps_dir.mkdir()
+        (steps_dir / "step_1.md").write_text("step")
         mock_counts.return_value = (0, 0)
-        status, reason, blocking = _collect_task_status(Path("/tmp"))
+        status, reason, blocking = _collect_task_status(tmp_path)
+        assert status == TaskTrackerStatus.N_A
+        assert blocking
+        assert reason == "Task tracker is empty"
+
+    def test_no_pr_info_dir(self, tmp_path: Path) -> None:
+        """Missing pr_info directory returns N_A without calling get_task_counts."""
+        status, reason, blocking = _collect_task_status(tmp_path)
         assert status == TaskTrackerStatus.N_A
         assert not blocking
+        assert "No pr_info" in reason
+
+    def test_no_steps_files_returns_early(self, tmp_path: Path) -> None:
+        """pr_info exists but no steps files -> early return N_A."""
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
+        status, reason, blocking = _collect_task_status(tmp_path)
+        assert status == TaskTrackerStatus.N_A
+        assert not blocking
+        assert "No implementation plan found" in reason
 
     @patch("mcp_workspace.checks.branch_status.get_task_counts")
-    def test_file_not_found(self, mock_counts: MagicMock) -> None:
+    def test_file_not_found_with_steps(
+        self, mock_counts: MagicMock, tmp_path: Path
+    ) -> None:
+        """Steps files exist but no tracker -> blocking."""
         from mcp_workspace.workflows.task_tracker import (
             TaskTrackerFileNotFoundError,
         )
 
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
+        steps_dir = pr_info / "steps"
+        steps_dir.mkdir()
+        (steps_dir / "step_1.md").write_text("step")
         mock_counts.side_effect = TaskTrackerFileNotFoundError("not found")
-        status, _, blocking = _collect_task_status(Path("/tmp"))
+        status, reason, blocking = _collect_task_status(tmp_path)
         assert status == TaskTrackerStatus.N_A
-        assert not blocking
+        assert blocking
+        assert "TASK_TRACKER.md" in reason
+
+    @patch("mcp_workspace.checks.branch_status.get_task_counts")
+    def test_general_exception_is_blocking(
+        self, mock_counts: MagicMock, tmp_path: Path
+    ) -> None:
+        pr_info = tmp_path / "pr_info"
+        pr_info.mkdir()
+        steps_dir = pr_info / "steps"
+        steps_dir.mkdir()
+        (steps_dir / "step_1.md").write_text("step")
+        mock_counts.side_effect = RuntimeError("unexpected")
+        status, _, blocking = _collect_task_status(tmp_path)
+        assert status == TaskTrackerStatus.ERROR
+        assert blocking
 
 
 class TestCollectGithubLabel:
@@ -309,10 +456,10 @@ class TestCollectGithubLabel:
             "url": "",
             "locked": False,
         }
-        assert _collect_github_label(issue_data) == ""
+        assert _collect_github_label(issue_data) == "unknown"
 
     def test_none_issue_data(self) -> None:
-        assert _collect_github_label(None) == ""
+        assert _collect_github_label(None) == "unknown"
 
 
 class TestCollectPRInfo:
@@ -346,39 +493,145 @@ class TestGenerateRecommendations:
 
     def test_all_good(self) -> None:
         recs = _generate_recommendations(
-            CIStatus.PASSED, False, TaskTrackerStatus.COMPLETE, "All done"
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+            }
         )
-        assert recs == []
+        assert "Ready to merge" in recs
+
+    def test_all_good_na_tasks(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.N_A,
+                "tasks_reason": "No tasks",
+                "tasks_is_blocking": False,
+            }
+        )
+        assert "Ready to merge" in recs
 
     def test_ci_failed(self) -> None:
         recs = _generate_recommendations(
-            CIStatus.FAILED, False, TaskTrackerStatus.COMPLETE, "All done"
+            {
+                "ci_status": CIStatus.FAILED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+            }
         )
-        assert any("CI" in r for r in recs)
+        assert "Fix CI test failures" in recs
+
+    def test_ci_failed_with_details(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.FAILED,
+                "ci_details": "Some error log",
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+            }
+        )
+        assert "Check CI error details above" in recs
+
+    def test_not_configured(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.NOT_CONFIGURED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+            }
+        )
+        assert "Configure CI pipeline" in recs
 
     def test_rebase_needed(self) -> None:
         recs = _generate_recommendations(
-            CIStatus.PASSED, True, TaskTrackerStatus.COMPLETE, "All done"
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": True,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+            }
         )
-        assert any("Rebase" in r for r in recs)
+        assert "Rebase onto origin/main" in recs
+
+    def test_rebase_needed_but_tasks_blocking(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": True,
+                "tasks_status": TaskTrackerStatus.INCOMPLETE,
+                "tasks_reason": "2 of 5",
+                "tasks_is_blocking": True,
+            }
+        )
+        assert not any("Rebase" in r for r in recs)
+        assert any("remaining tasks" in r.lower() for r in recs)
 
     def test_tasks_incomplete(self) -> None:
         recs = _generate_recommendations(
-            CIStatus.PASSED,
-            False,
-            TaskTrackerStatus.INCOMPLETE,
-            "3 of 5 tasks complete",
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.INCOMPLETE,
+                "tasks_reason": "3 of 5 tasks complete",
+                "tasks_is_blocking": True,
+            }
         )
         assert any("remaining tasks" in r.lower() for r in recs)
 
+    def test_rebase_suppressed_when_ci_failed(self) -> None:
+        """Rebase recommendation is suppressed when CI is failed."""
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.FAILED,
+                "rebase_needed": True,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+            }
+        )
+        assert "Fix CI test failures" in recs
+        assert not any("Rebase" in r for r in recs)
+
+    def test_na_blocking_recommends_fix_tracker(self) -> None:
+        """N_A + blocking recommends fixing tracker."""
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.N_A,
+                "tasks_reason": "Task tracker is empty",
+                "tasks_is_blocking": True,
+            }
+        )
+        assert any("Fix task tracker" in r for r in recs)
+        assert "Task tracker is empty" in recs[0] or any(
+            "Task tracker is empty" in r for r in recs
+        )
+
     def test_multiple_issues(self) -> None:
         recs = _generate_recommendations(
-            CIStatus.FAILED,
-            True,
-            TaskTrackerStatus.INCOMPLETE,
-            "3 of 5",
+            {
+                "ci_status": CIStatus.FAILED,
+                "rebase_needed": True,
+                "tasks_status": TaskTrackerStatus.INCOMPLETE,
+                "tasks_reason": "3 of 5",
+                "tasks_is_blocking": False,
+            }
         )
-        assert len(recs) == 3
+        # CI failed + incomplete tasks; rebase suppressed because CI failed
+        assert "Fix CI test failures" in recs
+        assert any("remaining tasks" in r.lower() for r in recs)
 
 
 class TestCollectBranchStatus:
@@ -475,3 +728,16 @@ class TestCollectBranchStatus:
             assert report.branch_name == "feature"
             # pr_manager is None when init fails, so pr fields should be None
             assert report.pr_found is None
+
+    @patch("mcp_workspace.checks.branch_status.get_current_branch_name")
+    def test_unexpected_exception_returns_empty_report(
+        self, mock_branch: MagicMock
+    ) -> None:
+        """Outer try/except catches unexpected exceptions."""
+        mock_branch.side_effect = RuntimeError("totally unexpected")
+        report = collect_branch_status(Path("/tmp"))
+        assert report.branch_name == "unknown"
+        assert report.base_branch == "unknown"
+        assert report.rebase_reason == "Unknown"
+        assert report.tasks_reason == "Unknown"
+        assert report.recommendations == []
