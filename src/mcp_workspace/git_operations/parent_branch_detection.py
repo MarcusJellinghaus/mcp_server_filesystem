@@ -1,6 +1,6 @@
 """Parent branch detection via merge-base analysis."""
 
-# Maximum commits between merge-base and candidate branch HEAD to consider
+# Maximum commits between merge-base and current HEAD to consider
 # the candidate as the parent branch. Higher values are more permissive but
 # risk selecting wrong branches; lower values may miss valid parents that
 # have moved forward since branching.
@@ -30,8 +30,8 @@ def detect_parent_branch_via_merge_base(
     Args:
         project_dir: Path to git repository
         current_branch: Current branch name
-        distance_threshold: Maximum commits between merge-base and candidate
-            branch HEAD to consider the candidate as the parent branch.
+        distance_threshold: Maximum commits between merge-base and current
+            HEAD to consider the candidate as the parent branch.
             Defaults to MERGE_BASE_DISTANCE_THRESHOLD (20).
 
     Returns:

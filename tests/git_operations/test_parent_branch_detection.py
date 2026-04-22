@@ -408,16 +408,16 @@ class TestDetectParentBranchViaMergeBase:
         current_branch = "current"
 
         mock_current = self._create_mock_branch(current_branch, "cur1")
-        mock_main = self._create_mock_branch("main", "main1")
         mock_develop = self._create_mock_branch("develop", "dev1")
+        mock_main = self._create_mock_branch("main", "main1")
         branch_dict = {
             current_branch: mock_current,
-            "main": mock_main,
             "develop": mock_develop,
+            "main": mock_main,
         }
         mock_heads = MagicMock()
         mock_heads.__iter__ = MagicMock(
-            return_value=iter([mock_current, mock_main, mock_develop])
+            return_value=iter([mock_current, mock_develop, mock_main])
         )
         mock_heads.__getitem__ = lambda self, key: branch_dict[key]
         mock_repo.heads = mock_heads
