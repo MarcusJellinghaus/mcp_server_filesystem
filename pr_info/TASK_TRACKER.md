@@ -35,5 +35,5 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Pull Request
 
-- [ ] PR review complete
+- [x] PR review complete
 - [ ] PR summary prepared
