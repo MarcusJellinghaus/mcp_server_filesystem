@@ -192,3 +192,77 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             content = f.read()
 
         self.assertEqual(content, "def modified_function():\n    return 'test'\n")
+
+    def test_prefix_match_does_not_create_duplicates(self) -> None:
+        """Reproduces the exact bug: substring old_text should not duplicate suffix."""
+        with open(self.test_file, "w", encoding="utf-8") as f:
+            f.write(
+                "def mock_config_path(self, tmp_path) -> None:  # type: ignore[misc]\n"
+            )
+
+        edits = [
+            {
+                "old_text": "def mock_config_path(self, tmp_path) -> None:",
+                "new_text": "def mock_config_path(self, tmp_path) -> None:  # type: ignore[misc]",
+            }
+        ]
+
+        result = edit_file(str(self.test_file), edits)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["match_results"][0]["match_type"], "skipped")
+
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        # Must NOT have duplicated suffix
+        self.assertNotIn("# type: ignore[misc]  # type: ignore[misc]", content)
+
+    def test_legitimate_prefix_replacement_proceeds(self) -> None:
+        """Ensures the guard doesn't block valid edits."""
+        with open(self.test_file, "w", encoding="utf-8") as f:
+            f.write("foo = 1\n")
+
+        edits = [{"old_text": "foo", "new_text": "foobar"}]
+
+        result = edit_file(str(self.test_file), edits)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["match_results"][0]["match_type"], "exact")
+
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("foobar = 1", content)
+
+    def test_prefix_match_skipped_with_preserve_indentation(self) -> None:
+        """Verifies the duplicate check works when preserve_indentation is enabled."""
+        with open(self.test_file, "w", encoding="utf-8") as f:
+            f.write("    return value  # validated\n")
+
+        edits = [
+            {
+                "old_text": "    return value",
+                "new_text": "return value  # validated",
+            }
+        ]
+        options = {"preserve_indentation": True}
+
+        result = edit_file(str(self.test_file), edits, options=options)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["match_results"][0]["match_type"], "skipped")
+
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertEqual(content, "    return value  # validated\n")
+
+    def test_new_text_longer_than_remaining_content_proceeds(self) -> None:
+        """Ensures no false skip when new_text extends beyond end of file."""
+        with open(self.test_file, "w", encoding="utf-8") as f:
+            f.write("short")
+
+        edits = [{"old_text": "short", "new_text": "short_with_much_longer_suffix"}]
+
+        result = edit_file(str(self.test_file), edits)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["match_results"][0]["match_type"], "exact")
+
+        with open(self.test_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertEqual(content, "short_with_much_longer_suffix")

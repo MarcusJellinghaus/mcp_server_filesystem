@@ -129,6 +129,33 @@ def edit_file(
 
             # Apply replacement (only first occurrence)
             old_text_position = current_content.find(old_text)
+
+            # Position-aware already-applied check: only when new_text is
+            # longer than old_text (the substring-prefix duplication scenario).
+            # When new_text is shorter/equal, content[pos:] starts with old_text
+            # so a prefix match would be a false positive.
+            if (
+                len(final_new_text) > len(old_text)
+                and current_content[
+                    old_text_position : old_text_position + len(final_new_text)
+                ]
+                == final_new_text
+            ) or (
+                len(new_text) > len(old_text)
+                and current_content[
+                    old_text_position : old_text_position + len(new_text)
+                ]
+                == new_text
+            ):
+                match_results.append(
+                    {
+                        "edit_index": i,
+                        "match_type": "skipped",
+                        "details": "Edit already applied - content already in desired state",
+                    }
+                )
+                continue
+
             line_index = current_content[:old_text_position].count("\n")
             current_content = current_content.replace(old_text, final_new_text, 1)
             match_result = {
