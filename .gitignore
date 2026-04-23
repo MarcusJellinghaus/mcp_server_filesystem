@@ -33,6 +33,8 @@ dist/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.import_linter_cache/
+.grimp_cache/
 
 # Platform-specific MCP configurations
 .mcp.linux.json

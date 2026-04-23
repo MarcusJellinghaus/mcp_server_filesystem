@@ -2,11 +2,7 @@
 description: Rebase feature branch onto base branch with conflict resolution
 disable-model-invocation: true
 allowed-tools:
-  - "Bash(git status *)"
-  - "Bash(git log *)"
-  - "Bash(git branch *)"
-  - "Bash(git ls-files *)"
-  - "Bash(git fetch *)"
+  - mcp__workspace__git
   - "Bash(git rebase *)"
   - "Bash(git add *)"
   - "Bash(git rm *)"
@@ -17,10 +13,6 @@ allowed-tools:
   - "Bash(git restore *)"
   - "Bash(git stash *)"
   - "Bash(git push --force-with-lease *)"
-  - "Bash(git diff *)"
-  - "Bash(git rev-parse *)"
-  - "Bash(gh run view *)"
-  - "Bash(gh issue view *)"
   - mcp__tools-py__run_format_code
   - "Bash(mcp-coder gh-tool get-base-branch *)"
   - mcp__tools-py__run_pylint_check
@@ -38,9 +30,11 @@ allowed-tools:
   - mcp__workspace__move_file
 ---
 
-!`git status`
-
 # Rebase Branch onto Base Branch
+
+## First Step
+
+Call `mcp__workspace__git` with command `"status"` before doing anything else.
 
 Rebase the current feature branch onto its base branch and resolve conflicts.
 
@@ -72,7 +66,7 @@ If the base branch is not `main` or `master`, ask the user to confirm before pro
 
 ## Workflow
 
-1. `git fetch origin`
+1. Call `mcp__workspace__git` with command `"fetch"` and args `["origin"]`
 2. `git rebase origin/${BASE_BRANCH}`
 3. For each conflict:
    - If file is under `pr_info/`: auto-resolve with `git checkout --theirs <file>` (keep feature branch version), then `git add <file>` — no user input needed
