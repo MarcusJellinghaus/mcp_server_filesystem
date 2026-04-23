@@ -89,6 +89,7 @@ async def get_reference_project_path(name: str) -> Path:
     return project.path
 
 
+@log_function_call
 async def read_reference_file(
     reference_name: str,
     file_path: str,
@@ -111,14 +112,6 @@ async def read_reference_file(
     """
     ref_path = await get_reference_project_path(reference_name)
 
-    # Log operation at DEBUG level
-    logger.debug(
-        "Reading file '%s' from reference project '%s' at path: %s",
-        file_path,
-        reference_name,
-        ref_path,
-    )
-
     # Call read_file_util with the reference project directory
     # The utility function handles all parameter validation and security checks
     return read_file_util(
@@ -130,6 +123,7 @@ async def read_reference_file(
     )
 
 
+@log_function_call
 async def list_reference_directory(reference_name: str) -> List[str]:
     """List files and directories in a reference project directory.
 
@@ -141,18 +135,12 @@ async def list_reference_directory(reference_name: str) -> List[str]:
     """
     ref_path = await get_reference_project_path(reference_name)
 
-    # Log operation at DEBUG level
-    logger.debug(
-        "Listing files in reference project '%s' at path: %s",
-        reference_name,
-        ref_path,
-    )
-
     # Call list_files_util with gitignore filtering enabled
     # The utility function handles all parameter validation
     return list_files_util(".", project_dir=ref_path, use_gitignore=True)
 
 
+@log_function_call
 async def search_reference_files(
     reference_name: str,
     glob: Optional[str] = None,

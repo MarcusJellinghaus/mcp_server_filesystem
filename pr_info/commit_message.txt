@@ -1,1 +1,14 @@
-feat(logging): add @log_function_call to git() async wrapper (#142)
+feat(logging): add @log_function_call to async reference tools (#142)
+
+Add @log_function_call decorator to read_reference_file(),
+list_reference_directory(), and search_reference_files() in
+server_reference_tools.py for consistent entry/exit logging.
+
+Remove 2 redundant manual logger.debug() calls from
+read_reference_file and list_reference_directory, now handled
+by the decorator.
+
+Rename test_log_function_call_removed to
+test_async_handlers_are_coroutines to reflect that the decorator
+is now present. Update assertion to check __wrapped__ since the
+decorator wraps the async functions.

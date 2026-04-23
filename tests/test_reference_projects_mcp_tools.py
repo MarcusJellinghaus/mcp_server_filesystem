@@ -477,8 +477,12 @@ class TestReferenceProjectMCPTools:
             with pytest.raises(ValueError, match="Clone previously failed"):
                 await list_reference_directory("test_proj")
 
-    def test_log_function_call_removed(self) -> None:
-        """Verify async reference handlers are coroutine functions."""
+    def test_async_handlers_are_coroutines(self) -> None:
+        """Verify async reference handlers are coroutine functions.
+
+        The @log_function_call decorator wraps async functions;
+        check the underlying __wrapped__ function is a coroutine.
+        """
         import asyncio
 
         from mcp_workspace.server_reference_tools import (
@@ -487,9 +491,11 @@ class TestReferenceProjectMCPTools:
             search_reference_files,
         )
 
-        assert asyncio.iscoroutinefunction(read_reference_file)
-        assert asyncio.iscoroutinefunction(list_reference_directory)
-        assert asyncio.iscoroutinefunction(search_reference_files)
+        for fn in (read_reference_file, list_reference_directory, search_reference_files):
+            wrapped = getattr(fn, "__wrapped__", fn)
+            assert asyncio.iscoroutinefunction(wrapped), (
+                f"{fn.__name__} should wrap a coroutine function"
+            )
 
 
 class TestGetReferenceProjectPath:
