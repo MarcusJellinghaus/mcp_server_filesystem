@@ -462,11 +462,14 @@ def test_rejects_non_string_content(
 class TestGitTool:
     """Tests for the unified git server wrapper."""
 
+    @pytest.mark.asyncio
     @patch("mcp_workspace.server.git_impl")
-    def test_delegates_to_impl(self, mock_impl: MagicMock, project_dir: Path) -> None:
+    async def test_delegates_to_impl(
+        self, mock_impl: MagicMock, project_dir: Path
+    ) -> None:
         """Verify git() delegates all params to git_impl."""
         mock_impl.return_value = "output"
-        result = git(
+        result = await git(
             command="log",
             args=["--oneline"],
             pathspec=["src/"],
@@ -487,7 +490,8 @@ class TestGitTool:
             compact=False,
         )
 
-    def test_raises_without_project_dir(self) -> None:
+    @pytest.mark.asyncio
+    async def test_raises_without_project_dir(self) -> None:
         """git() raises ValueError when _project_dir is None."""
         import mcp_workspace.server as srv
 
@@ -495,6 +499,6 @@ class TestGitTool:
         try:
             srv._project_dir = None
             with pytest.raises(ValueError, match="Project directory has not been set"):
-                git(command="log")
+                await git(command="log")
         finally:
             srv._project_dir = original

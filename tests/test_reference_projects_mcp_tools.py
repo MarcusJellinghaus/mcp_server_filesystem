@@ -1,8 +1,7 @@
 """Tests for reference project MCP tools and search functionality."""
 
-import asyncio
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -56,7 +55,7 @@ class TestReferenceProjectMCPTools:
                 {"name": "beta", "url": None},
                 {"name": "zebra", "url": None},
             ],
-            "usage": "Use these 3 projects with list_reference_directory(), read_reference_file(), and search_reference_files()",
+            "usage": "Use these 3 projects with list_reference_directory(), read_reference_file(), search_reference_files(), and git()",
         }
         assert result == expected
         assert isinstance(result, dict)
@@ -84,7 +83,7 @@ class TestReferenceProjectMCPTools:
             expected = {
                 "count": 1,
                 "projects": [{"name": "proj1", "url": None}],
-                "usage": "Use these 1 projects with list_reference_directory(), read_reference_file(), and search_reference_files()",
+                "usage": "Use these 1 projects with list_reference_directory(), read_reference_file(), search_reference_files(), and git()",
             }
             assert result == expected
 
@@ -491,6 +490,62 @@ class TestReferenceProjectMCPTools:
         assert asyncio.iscoroutinefunction(read_reference_file)
         assert asyncio.iscoroutinefunction(list_reference_directory)
         assert asyncio.iscoroutinefunction(search_reference_files)
+
+
+class TestGetReferenceProjectPath:
+    """Tests for get_reference_project_path helper."""
+
+    @pytest.mark.asyncio
+    async def test_get_reference_project_path_success(self) -> None:
+        """Valid name returns correct Path, ensure_available awaited."""
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import get_reference_project_path
+
+        ref_path = Path("/tmp/test_project").resolve()
+        proj = ReferenceProject(name="test_proj", path=ref_path)
+        server_module._reference_projects = {"test_proj": proj}
+
+        with patch(
+            "mcp_workspace.server_reference_tools.ensure_available",
+            new_callable=AsyncMock,
+            return_value=None,
+        ) as mock_ensure:
+            result = await get_reference_project_path("test_proj")
+
+            assert result == ref_path
+            assert isinstance(result, Path)
+            mock_ensure.assert_awaited_once_with(proj)
+
+    @pytest.mark.asyncio
+    async def test_get_reference_project_path_not_found(self) -> None:
+        """Invalid name raises ValueError."""
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import get_reference_project_path
+
+        server_module._reference_projects = {}
+
+        with pytest.raises(
+            ValueError, match="Reference project 'nonexistent' not found"
+        ):
+            await get_reference_project_path("nonexistent")
+
+    @pytest.mark.asyncio
+    async def test_get_reference_project_path_ensure_failure_propagates(self) -> None:
+        """ensure_available raises -> propagates."""
+        import mcp_workspace.server_reference_tools as server_module
+        from mcp_workspace.server_reference_tools import get_reference_project_path
+
+        ref_path = Path("/tmp/test_project").resolve()
+        proj = ReferenceProject(name="test_proj", path=ref_path)
+        server_module._reference_projects = {"test_proj": proj}
+
+        with patch(
+            "mcp_workspace.server_reference_tools.ensure_available",
+            new_callable=AsyncMock,
+            side_effect=ValueError("Clone previously failed"),
+        ):
+            with pytest.raises(ValueError, match="Clone previously failed"):
+                await get_reference_project_path("test_proj")
 
 
 class TestSearchReferenceFiles:

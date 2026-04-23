@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 from datetime import datetime
@@ -37,8 +38,13 @@ from mcp_workspace.github_operations.issues import IssueManager
 from mcp_workspace.github_operations.issues.types import CommentData
 from mcp_workspace.github_operations.pr_manager import PullRequestManager
 from mcp_workspace.reference_projects import ReferenceProject
+from mcp_workspace.server_reference_tools import (
+    get_reference_project_path,
+)
 from mcp_workspace.server_reference_tools import register as register_reference_tools
-from mcp_workspace.server_reference_tools import set_reference_projects
+from mcp_workspace.server_reference_tools import (
+    set_reference_projects,
+)
 
 # Initialize loggers
 logger = logging.getLogger(__name__)
@@ -450,8 +456,7 @@ def edit_file(
 
 
 @mcp.tool()
-@log_function_call
-def git(
+async def git(
     command: str,
     args: Optional[List[str]] = None,
     pathspec: Optional[List[str]] = None,
@@ -459,6 +464,7 @@ def git(
     context: int = 3,
     max_lines: Optional[int] = None,
     compact: bool = True,
+    reference_name: Optional[str] = None,
 ) -> str:
     """Run a read-only git command.
 
@@ -471,15 +477,22 @@ def git(
         context: Lines of context around search matches (default 3).
         max_lines: Maximum output lines. Per-command defaults: log=50, diff=100, status=200, others=100.
         compact: If True, apply compact diff rendering (diff, show only).
+        reference_name: Optional reference project name. When set, runs git against
+            that project instead of the workspace.
 
     Returns:
         Command output, optionally filtered/truncated.
     """
-    if _project_dir is None:
-        raise ValueError("Project directory has not been set")
-    return git_impl(
+    if reference_name is not None:
+        project_dir = await get_reference_project_path(reference_name)
+    else:
+        if _project_dir is None:
+            raise ValueError("Project directory has not been set")
+        project_dir = _project_dir
+    return await asyncio.to_thread(
+        git_impl,
         command=command,
-        project_dir=_project_dir,
+        project_dir=project_dir,
         args=args,
         pathspec=pathspec,
         search=search,
