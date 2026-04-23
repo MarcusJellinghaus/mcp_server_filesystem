@@ -108,7 +108,8 @@ def search_files(
 
     Args:
         glob: File path pattern (e.g. "**/*.py", "tests/**/test_*.py")
-        pattern: Regex to match file contents (e.g. "def foo", "TODO.*fix")
+        pattern: Python regex to match file contents. Invalid regex patterns are
+            automatically treated as literal text. (e.g. "def foo", "TODO.*fix")
         context_lines: Lines of context around each match (0 = match line only)
         max_results: Maximum number of matches or files returned (default 50)
         max_result_lines: Hard cap on total output lines (default 200)

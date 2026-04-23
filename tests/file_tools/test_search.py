@@ -104,10 +104,35 @@ class TestSearchFilesContentSearch:
         assert result["total_matches"] == 0
         assert result["truncated"] is False
 
-    def test_search_files_invalid_regex_raises(self, project_dir: Path) -> None:
-        """Bad regex pattern raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid regex"):
-            search_files(project_dir, pattern=r"[invalid")
+    def test_search_files_invalid_regex_falls_back_to_literal(
+        self, project_dir: Path
+    ) -> None:
+        """Invalid regex pattern falls back to literal search with note."""
+        (project_dir / "code.py").write_text("def hello(world):\n    pass\n")
+        result = search_files(project_dir, pattern="hello(")
+        assert result["mode"] == "content_search"
+        assert result["total_matches"] == 1
+        assert "hello(" in result["details"][0]["text"]
+        assert "note" in result
+        assert "literal" in result["note"].lower()
+
+    def test_search_files_valid_regex_no_note(self, project_dir: Path) -> None:
+        """Valid regex pattern does not produce a note field."""
+        (project_dir / "code.py").write_text("def hello():\n    pass\n")
+        result = search_files(project_dir, pattern=r"def \w+")
+        assert result["mode"] == "content_search"
+        assert "note" not in result
+
+    def test_search_files_invalid_regex_no_matches_still_has_note(
+        self, project_dir: Path
+    ) -> None:
+        """Invalid regex with zero matches still returns note field."""
+        (project_dir / "code.py").write_text("nothing relevant here\n")
+        result = search_files(project_dir, pattern="[invalid")
+        assert result["mode"] == "content_search"
+        assert result["total_matches"] == 0
+        assert "note" in result
+        assert "literal" in result["note"].lower()
 
     def test_search_files_combined_mode(self, project_dir: Path) -> None:
         """Glob + pattern filters both file paths and content."""

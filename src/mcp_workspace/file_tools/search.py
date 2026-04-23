@@ -96,7 +96,9 @@ def search_files(
     Args:
         project_dir: Project root directory.
         glob: Glob pattern for file name matching (e.g. ``**/*.py``).
-        pattern: Regex pattern for content searching.
+        pattern: Python regex to match file contents. Invalid regex patterns
+            are automatically treated as literal text.
+            (e.g. "def foo", "TODO.*fix")
         context_lines: Number of context lines around matches.
         max_results: Maximum number of results to return.
         max_result_lines: Maximum total lines in result output.
@@ -105,8 +107,7 @@ def search_files(
         Dictionary with search results.
 
     Raises:
-        ValueError: If neither glob nor pattern is provided, or if
-            pattern is an invalid regex.
+        ValueError: If neither glob nor pattern is provided.
     """
     if glob is None and pattern is None:
         raise ValueError("At least one of 'glob' or 'pattern' must be provided")
@@ -122,10 +123,15 @@ def search_files(
     if pattern is not None:
         try:
             compiled = re.compile(pattern)
-        except re.error as exc:
-            raise ValueError(f"Invalid regex pattern: {exc}") from exc
+            note = None
+        except re.error:
+            compiled = re.compile(re.escape(pattern))
+            note = (
+                "Pattern treated as literal text (invalid regex). "
+                "Use Python re syntax for regex search."
+            )
 
-        return _search_content(
+        result = _search_content(
             matched,
             compiled,
             project_dir,
@@ -133,6 +139,11 @@ def search_files(
             max_results,
             max_result_lines,
         )
+
+        if note is not None:
+            result["note"] = note
+
+        return result
 
     # File search mode: glob only
     total = len(matched)
