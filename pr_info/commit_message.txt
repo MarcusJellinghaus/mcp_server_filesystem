@@ -1,4 +1,0 @@
-fix: format test_edit_file_issues.py to comply with black
-
-Collapse multi-line assertNotIn call to single line since it fits
-within the 88-character line limit configured for black.
