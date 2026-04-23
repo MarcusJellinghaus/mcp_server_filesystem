@@ -1,13 +1,8 @@
-feat(git): support reference_name in git tool
+refactor: extract git reference project tests to fix file-size CI check
 
-Add optional reference_name parameter to git() MCP tool. When set,
-resolves the reference project path via get_reference_project_path()
-and runs the git command there instead of the workspace repo.
+Split TestGitReferenceProject from test_reference_projects_mcp_tools.py
+(825 lines) into test_reference_projects_git.py, bringing the original
+file to 718 lines (under the 750-line limit).
 
-- Make git() async, drop @log_function_call decorator
-- Wrap git_impl in asyncio.to_thread() to avoid blocking event loop
-- Add reference_name: Optional[str] = None parameter
-- Add 4 tests for git with reference projects
-- Update existing git tests for async
-
-Closes #140
+Also removed unused top-level imports (asyncio, MagicMock) from the
+original test file.

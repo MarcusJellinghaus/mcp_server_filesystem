@@ -40,7 +40,9 @@ from mcp_workspace.github_operations.pr_manager import PullRequestManager
 from mcp_workspace.reference_projects import ReferenceProject
 from mcp_workspace.server_reference_tools import (
     get_reference_project_path,
-    register as register_reference_tools,
+)
+from mcp_workspace.server_reference_tools import register as register_reference_tools
+from mcp_workspace.server_reference_tools import (
     set_reference_projects,
 )
 
