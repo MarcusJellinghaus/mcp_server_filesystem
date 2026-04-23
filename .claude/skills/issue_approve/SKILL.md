@@ -3,7 +3,7 @@ description: Approve issue to transition to next workflow status
 disable-model-invocation: true
 argument-hint: "<issue-number>"
 allowed-tools:
-  - "Bash(gh issue view *)"
+  - mcp__workspace__github_issue_view
   - "Bash(gh issue comment *)"
   - "Bash(MSYS_NO_PATHCONV=1 gh issue comment *)"
   - mcp__workspace__read_file
@@ -23,10 +23,7 @@ If no issue number is provided:
 
 ## Instructions
 
-1. Fetch the issue to confirm it exists:
-   ```bash
-   gh issue view <issue_number>
-   ```
+1. Fetch the issue to confirm it exists using `mcp__workspace__github_issue_view`.
 
 2. Validate that the issue is ready for approval:
    - Issue has been analyzed/discussed

@@ -3,8 +3,8 @@ description: Analyse GitHub issue requirements, feasibility, and implementation 
 disable-model-invocation: true
 argument-hint: "<issue-number>"
 allowed-tools:
-  - "Bash(gh issue view *)"
-  - "Bash(git ls-remote *)"
+  - mcp__workspace__github_issue_view
+  - mcp__workspace__git
   - mcp__workspace__read_file
   - mcp__workspace__list_directory
 ---
@@ -20,10 +20,7 @@ If no issue number is provided:
 1. Read `.vscodeclaude_status.txt` and extract the issue number from the `Issue #NNN` line
 2. If the file doesn't exist or has no issue number, ask the user
 
-Fetch the issue:
-```bash
-gh issue view <issue_number>
-```
+Fetch the issue using `mcp__workspace__github_issue_view`.
 
 ## Instructions
 
@@ -46,7 +43,7 @@ During the discussion, actively identify constraints and rationale — the "why"
 **Base Branch Handling:**
 If the issue contains a `### Base Branch` section:
 - Display the specified base branch prominently
-- Verify the branch exists using: `git ls-remote --heads origin <branch-name>`
+- Verify the branch exists using `mcp__workspace__git` with command `"ls_remote"` and args `["--heads", "origin", "<branch-name>"]`
 - If the branch does NOT exist, show a clear warning:
   "⚠️ Warning: Base branch 'X' does not exist on remote. Branch creation will fail."
 - Continue with the analysis (non-blocking error)

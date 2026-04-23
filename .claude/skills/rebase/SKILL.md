@@ -14,7 +14,7 @@ allowed-tools:
   - "Bash(git stash *)"
   - "Bash(git push --force-with-lease *)"
   - mcp__tools-py__run_format_code
-  - "Bash(mcp-coder gh-tool get-base-branch *)"
+  - mcp__workspace__get_base_branch
   - mcp__tools-py__run_pylint_check
   - mcp__tools-py__run_pytest_check
   - mcp__tools-py__run_mypy_check
@@ -46,11 +46,7 @@ If the rebase becomes complex, suggest switching to cherry-picking as an alterna
 
 ## Determine Base Branch
 
-First, detect the correct base branch:
-```bash
-BASE_BRANCH=$(mcp-coder gh-tool get-base-branch)
-echo "Rebasing onto: $BASE_BRANCH"
-```
+First, detect the correct base branch using `mcp__workspace__get_base_branch`.
 
 ## Base Branch Confirmation
 

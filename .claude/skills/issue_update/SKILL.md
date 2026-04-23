@@ -4,12 +4,12 @@ disable-model-invocation: true
 argument-hint: "<issue-number>"
 allowed-tools:
   - "Bash(gh issue edit *)"
-  - "Bash(gh issue view *)"
+  - mcp__workspace__github_issue_view
   - mcp__workspace__save_file
   - mcp__workspace__delete_this_file
-  - Read
-  - Glob
-  - Grep
+  - mcp__workspace__read_file
+  - mcp__workspace__list_directory
+  - mcp__workspace__search_files
 ---
 
 # Update GitHub Issue
@@ -19,10 +19,7 @@ Based on our prior `/issue_analyse` discussion, update the GitHub issue with ref
 **Instructions:**
 1. If no issue context is found from prior analysis, respond: "No issue context found. Please run `/issue_analyse <number>` first."
 
-2. First, fetch the current issue content:
-```bash
-gh issue view <issue_number> --json title,body
-```
+2. First, fetch the current issue content using `mcp__workspace__github_issue_view`.
 
 3. Draft updated issue text with:
    - Clear, concise title

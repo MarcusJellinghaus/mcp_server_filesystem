@@ -3,7 +3,7 @@ name: implement-direct
 disable-model-invocation: true
 argument-hint: [issue-number]
 allowed-tools:
-  - "Bash(gh issue view *)"
+  - mcp__workspace__github_issue_view
   - "Bash(mcp-coder gh-tool *)"
   - mcp__workspace__read_file
   - mcp__tools-py__run_format_code
@@ -23,9 +23,7 @@ If no issue number is provided:
 ## Steps
 
 1. **Fetch issue details**
-   ```bash
-   gh issue view <issue_number>
-   ```
+   Use `mcp__workspace__github_issue_view` to fetch the issue details.
    Read the issue title, description, and acceptance criteria carefully.
 
 2. **Checkout/create issue branch**
