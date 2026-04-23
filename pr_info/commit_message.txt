@@ -1,9 +1,0 @@
-docs: update pattern param docstrings to document regex fallback behavior
-
-Update the `pattern` parameter descriptions in search_files() and
-search_reference_files() MCP tool docstrings to document that invalid
-regex patterns are automatically treated as literal text.
-
-Files changed:
-- src/mcp_workspace/server.py
-- src/mcp_workspace/server_reference_tools.py
