@@ -1,7 +1,13 @@
-refactor(ref): use get_reference_project_path in existing tools
+feat(git): support reference_name in git tool
 
-Replace inlined lookup+ensure_available pattern with shared helper
-in read_reference_file, list_reference_directory, and
-search_reference_files. Pure DRY refactor — no behavior change.
+Add optional reference_name parameter to git() MCP tool. When set,
+resolves the reference project path via get_reference_project_path()
+and runs the git command there instead of the workspace repo.
 
-Refs #140
+- Make git() async, drop @log_function_call decorator
+- Wrap git_impl in asyncio.to_thread() to avoid blocking event loop
+- Add reference_name: Optional[str] = None parameter
+- Add 4 tests for git with reference projects
+- Update existing git tests for async
+
+Closes #140
