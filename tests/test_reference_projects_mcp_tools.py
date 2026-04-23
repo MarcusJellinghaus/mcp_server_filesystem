@@ -491,11 +491,15 @@ class TestReferenceProjectMCPTools:
             search_reference_files,
         )
 
-        for fn in (read_reference_file, list_reference_directory, search_reference_files):
+        for fn in (
+            read_reference_file,
+            list_reference_directory,
+            search_reference_files,
+        ):
             wrapped = getattr(fn, "__wrapped__", fn)
-            assert asyncio.iscoroutinefunction(wrapped), (
-                f"{fn.__name__} should wrap a coroutine function"
-            )
+            assert asyncio.iscoroutinefunction(
+                wrapped
+            ), f"{fn.__name__} should wrap a coroutine function"
 
 
 class TestGetReferenceProjectPath:
