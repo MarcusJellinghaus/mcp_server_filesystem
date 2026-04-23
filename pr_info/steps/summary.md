@@ -20,7 +20,7 @@ if (current_content[pos:pos + len(final_new_text)] == final_new_text
     # skip — desired state already present at this position
 ```
 
-The second `or` clause covers `preserve_indentation` mode where `final_new_text` may differ from raw `new_text`. When indentation is off, `final_new_text is new_text` so the second clause is never reached.
+When `preserve_indentation` is off, `final_new_text` equals `new_text` so the first clause handles all cases. When indentation is on, `final_new_text` (with adjusted indentation) typically matches at the position — the second clause is a defensive fallback for edge cases where indentation adjustment produces unexpected results.
 
 **No changes to matching semantics** — substring matching remains intentional. The fix only adds a pre-replacement guard.
 
@@ -35,5 +35,4 @@ The second `or` clause covers `preserve_indentation` mode where `final_new_text`
 
 | Step | Description | Commit |
 |------|-------------|--------|
-| [Step 1](step_1.md) | Add tests for position-aware duplicate prevention | Tests + production fix in one commit |
-| [Step 2](step_2.md) | Add tests for edge cases (indentation + bounds) | Tests + verify existing code handles them |
+| [Step 1](step_1.md) | Position-aware duplicate prevention — core fix + all tests | Tests + production fix in one commit |
