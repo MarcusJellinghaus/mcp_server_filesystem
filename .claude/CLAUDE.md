@@ -18,6 +18,7 @@ Use MCP tools for **all** operations. Never use `Read`, `Write`, `Edit`, or `Bas
 | Move file | `mcp__workspace__move_file` |
 | List directory | `mcp__workspace__list_directory` |
 | Search files | `mcp__workspace__search_files` |
+| Search reference files | `mcp__workspace__search_reference_files` |
 | Read reference project | `mcp__workspace__read_reference_file` |
 | List reference dir | `mcp__workspace__list_reference_directory` |
 | Get reference projects | `mcp__workspace__get_reference_projects` |
@@ -33,6 +34,9 @@ Use MCP tools for **all** operations. Never use `Read`, `Write`, `Edit`, or `Bas
 | Get library source | `mcp__tools-py__get_library_source` |
 | Refactoring | `mcp__tools-py__move_symbol`, `move_module`, `rename_symbol`, `list_symbols`, `find_references` |
 | Git (read-only) | `mcp__workspace__git` |
+| Get base branch | `mcp__workspace__get_base_branch` |
+| Check file size | `mcp__workspace__check_file_size` |
+| Check branch status | `mcp__workspace__check_branch_status` |
 
 ## Code quality checks
 
@@ -54,15 +58,13 @@ When debugging test failures, add `"-v", "-s", "--tb=short"` to extra_args.
 
 **Prefer MCP tools** for read-only git operations: use `mcp__workspace__git` with the `command` parameter (log, diff, status, merge_base, show, branch, fetch, rev_parse, ls_tree, ls_files, ls_remote). These run without permission prompts.
 
-**`git(command="diff")` includes compact diff by default** — detects moved code, collapses unchanged blocks. Use `compact=False` for raw output.
+**Compact diff:** `mcp__workspace__git` with command `"diff"` includes compact diff by default — detects moved code, collapses unchanged blocks. Use `compact=False` for raw output.
 
 **Bash commands** for git operations that have no MCP equivalent:
 
 ```
 git commit / git add
-gh issue view / gh pr view / gh run view
-mcp-coder check branch-status
-mcp-coder check file-size --max-lines 750
+gh run view
 mcp-coder gh-tool set-status <label>
 ```
 
