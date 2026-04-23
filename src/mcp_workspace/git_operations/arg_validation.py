@@ -49,6 +49,7 @@ LOG_ALLOWED_FLAGS: frozenset[str] = frozenset(
         "-U",
         "--no-ext-diff",
         "--no-textconv",
+        "-<int>",
     }
 )
 
@@ -87,6 +88,7 @@ DIFF_ALLOWED_FLAGS: frozenset[str] = frozenset(
         "--find-renames",
         "--find-copies",
         "--relative",
+        "-<int>",
     }
 )
 
@@ -174,6 +176,7 @@ SHOW_ALLOWED_FLAGS: frozenset[str] = frozenset(
         "--find-copies",
         "--color-words",
         "--word-diff",
+        "-<int>",
     }
 )
 
@@ -347,6 +350,10 @@ def validate_args(command: str, args: list[str]) -> None:
             short_prefix = arg[:2]
             if short_prefix in allowlist:
                 continue
+
+        # Bare numeric flag (e.g. -10): allowed if command opts in via "-<int>"
+        if not arg.startswith("--") and arg[1:].isdigit() and "-<int>" in allowlist:
+            continue
 
         msg = (
             f"Flag '{arg}' is not in the security allowlist for git_{command}. "
