@@ -21,6 +21,21 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Add `get_reference_project_path()` helper + tests
+- [ ] Implementation: TDD tests + helper function in `server_reference_tools.py`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 2: Refactor existing reference tools to use helper
+- [ ] Implementation: replace inlined lookup+ensure pattern in 3 tools with helper call
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 3: Add `reference_name` to `git()` + tests
+- [ ] Implementation: make `git()` async, add parameter, wrap `git_impl` in `asyncio.to_thread()`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
 
 ## Pull Request
+- [ ] PR review completed
+- [ ] PR summary prepared
