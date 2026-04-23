@@ -1,0 +1,1 @@
+feat(logging): add @log_function_call to git() async wrapper (#142)

@@ -457,6 +457,7 @@ def edit_file(
 
 
 @mcp.tool()
+@log_function_call
 async def git(
     command: str,
     args: Optional[List[str]] = None,
