@@ -15,7 +15,7 @@ Apply `@log_function_call` to the 4 async MCP tool wrappers that currently lack 
 - `server.py`: `@mcp.tool()` → `@log_function_call` → `def/async def`
 - `server_reference_tools.py`: `@log_function_call` on function definition; registration via `mcp.tool()(func)` in `register()`
 
-**Logging consolidation:** The `@log_function_call` decorator handles entry/exit logging, making manual `logger.debug` calls in the 3 reference tool functions redundant. The removed debug calls only logged an intermediate value (resolved path) of little diagnostic value.
+**Logging consolidation:** The `@log_function_call` decorator handles entry/exit logging, making manual `logger.debug` calls in the 2 reference tool functions redundant. The removed debug calls only logged an intermediate value (resolved path) of little diagnostic value.
 
 ## Files Modified
 
