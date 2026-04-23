@@ -214,9 +214,7 @@ class TestEditFileIndentationIssues(unittest.TestCase):
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
         # Must NOT have duplicated suffix
-        self.assertNotIn(
-            "# type: ignore[misc]  # type: ignore[misc]", content
-        )
+        self.assertNotIn("# type: ignore[misc]  # type: ignore[misc]", content)
 
     def test_legitimate_prefix_replacement_proceeds(self) -> None:
         """Ensures the guard doesn't block valid edits."""
