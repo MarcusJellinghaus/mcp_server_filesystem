@@ -5,7 +5,7 @@
 
 ## Goal
 
-Apply `@log_function_call` to the 4 async MCP tool wrappers that currently lack it, and remove redundant manual `logger.debug` calls from 3 reference tool functions.
+Apply `@log_function_call` to the 4 async MCP tool wrappers that currently lack it, and remove redundant manual `logger.debug` calls from 2 reference tool functions.
 
 ## Architectural / Design Changes
 
