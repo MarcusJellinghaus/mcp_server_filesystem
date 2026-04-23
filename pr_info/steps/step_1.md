@@ -28,6 +28,9 @@ class TestValidateArgsNumericFlags:
     def test_diff_numeric_flag(self) -> None:
         validate_args("diff", ["-5"])
 
+    def test_log_numeric_zero(self) -> None:
+        validate_args("log", ["-0"])
+
     def test_status_rejects_numeric_flag(self) -> None:
         with pytest.raises(ValueError, match="-10"):
             validate_args("status", ["-10"])
@@ -39,6 +42,10 @@ class TestValidateArgsNumericFlags:
     def test_non_numeric_flag_still_rejected(self) -> None:
         with pytest.raises(ValueError, match="-abc"):
             validate_args("log", ["-abc"])
+
+    def test_mixed_alphanumeric_flag_rejected(self) -> None:
+        with pytest.raises(ValueError, match="-12abc"):
+            validate_args("log", ["-12abc"])
 ```
 
 ### Production code changes
