@@ -123,6 +123,17 @@ class TestSearchFilesContentSearch:
         assert result["mode"] == "content_search"
         assert "note" not in result
 
+    def test_search_files_invalid_regex_no_matches_still_has_note(
+        self, project_dir: Path
+    ) -> None:
+        """Invalid regex with zero matches still returns note field."""
+        (project_dir / "code.py").write_text("nothing relevant here\n")
+        result = search_files(project_dir, pattern="[invalid")
+        assert result["mode"] == "content_search"
+        assert result["total_matches"] == 0
+        assert "note" in result
+        assert "literal" in result["note"].lower()
+
     def test_search_files_combined_mode(self, project_dir: Path) -> None:
         """Glob + pattern filters both file paths and content."""
         d = project_dir / "combo"
