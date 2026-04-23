@@ -4,7 +4,7 @@ disable-model-invocation: true
 argument-hint: "<title>"
 allowed-tools:
   - "Bash(gh issue create *)"
-  - "Bash(git ls-remote *)"
+  - mcp__workspace__git
 ---
 
 # Create GitHub Issue
@@ -31,10 +31,7 @@ Use cases:
 - Features building on existing work
 - Long-running feature branches
 
-**Important:** Before specifying a base branch, verify it exists:
-```bash
-git ls-remote --heads origin <branch-name>
-```
+**Important:** Before specifying a base branch, verify it exists using `mcp__workspace__git` with command `"ls_remote"` and args `["--heads", "origin", "<branch-name>"]`.
 
 If no base branch is needed, omit this section entirely.
 

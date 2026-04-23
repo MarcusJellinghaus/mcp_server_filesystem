@@ -6,8 +6,7 @@ allowed-tools:
   - mcp__workspace__check_branch_status
   - mcp__workspace__read_file
   - mcp__workspace__list_directory
-  - Glob
-  - Grep
+  - mcp__workspace__search_files
 ---
 
 # Implementation Review (Code Review)

@@ -7,9 +7,9 @@ allowed-tools:
   - "Bash(git commit *)"
   - "Bash(git push *)"
   - mcp__tools-py__run_format_code
-  - Read
-  - Glob
-  - Grep
+  - mcp__workspace__read_file
+  - mcp__workspace__list_directory
+  - mcp__workspace__search_files
 ---
 
 # Commit and Push Changes

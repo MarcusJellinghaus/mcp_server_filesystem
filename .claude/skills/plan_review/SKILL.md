@@ -5,8 +5,7 @@ allowed-tools:
   - mcp__workspace__git
   - mcp__workspace__read_file
   - mcp__workspace__list_directory
-  - Glob
-  - Grep
+  - mcp__workspace__search_files
 ---
 
 # Review Implementation Plan

@@ -4,7 +4,7 @@
 
 ## MCP Tools — mandatory
 
-Use MCP tools for **all** operations. Never use `Read`, `Write`, `Edit`, or `Bash` for tasks that have an MCP equivalent.
+**Do NOT use native Claude Code file tools** (`Read`, `Write`, `Edit`, `Glob`, `Grep`, `Bash`) for any operation that has an MCP equivalent. Always use the `mcp__workspace__*` tools instead. This applies to all file reading, writing, editing, searching, listing, and git operations.
 
 ### Tool mapping
 
@@ -37,6 +37,10 @@ Use MCP tools for **all** operations. Never use `Read`, `Write`, `Edit`, or `Bas
 | Get base branch | `mcp__workspace__get_base_branch` |
 | Check file size | `mcp__workspace__check_file_size` |
 | Check branch status | `mcp__workspace__check_branch_status` |
+| List GitHub issues | `mcp__workspace__github_issue_list` |
+| View GitHub issue | `mcp__workspace__github_issue_view` |
+| View GitHub PR | `mcp__workspace__github_pr_view` |
+| Search GitHub | `mcp__workspace__github_search` |
 
 ## Code quality checks
 

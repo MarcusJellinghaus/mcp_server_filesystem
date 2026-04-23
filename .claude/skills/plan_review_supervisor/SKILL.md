@@ -2,7 +2,7 @@
 description: Autonomous plan review — supervisor delegates to engineer subagents
 disable-model-invocation: true
 allowed-tools:
-  - "Bash(gh issue view *)"
+  - mcp__workspace__github_issue_view
   - mcp__workspace__read_file
   - mcp__workspace__save_file
   - mcp__workspace__edit_file
@@ -18,7 +18,7 @@ You are a technical lead supervising a software engineer (subagent). You do not 
 
 **Setup:**
 
-1. Read the GitHub issue (`gh issue view` using the branch name), `pr_info/steps/summary.md`, and `pr_info/steps/Decisions.md` (if it exists) to understand requirements and design decisions.
+1. Read the GitHub issue (using `mcp__workspace__github_issue_view`), `pr_info/steps/summary.md`, and `pr_info/steps/Decisions.md` (if it exists) to understand requirements and design decisions.
 2. Read the knowledge base files:
    - `.claude/knowledge_base/software_engineering_principles.md`
    - `.claude/knowledge_base/planning_principles.md`
