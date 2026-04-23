@@ -72,7 +72,7 @@ def get_reference_projects() -> Dict[str, Any]:
         return {
             "count": len(projects),
             "projects": projects,
-            "usage": f"Use these {len(projects)} projects with list_reference_directory(), read_reference_file(), and search_reference_files()",
+            "usage": f"Use these {len(projects)} projects with list_reference_directory(), read_reference_file(), search_reference_files(), and git()",
         }
 
     except Exception as e:
