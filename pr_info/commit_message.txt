@@ -1,0 +1,11 @@
+fix(edit): position-aware duplicate prevention for substring matches
+
+Add a guard in edit_file() that detects when new_text is already present
+at the exact match position, preventing duplicate content when old_text
+is a prefix/substring of the actual file content.
+
+The check only activates when new_text is longer than old_text (the
+substring-prefix scenario), avoiding false positives when new_text is
+shorter (e.g., renaming "process_data" to "process").
+
+Closes #43
