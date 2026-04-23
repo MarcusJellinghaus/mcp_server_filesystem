@@ -1,8 +1,0 @@
-refactor: extract git reference project tests to fix file-size CI check
-
-Split TestGitReferenceProject from test_reference_projects_mcp_tools.py
-(825 lines) into test_reference_projects_git.py, bringing the original
-file to 718 lines (under the 750-line limit).
-
-Also removed unused top-level imports (asyncio, MagicMock) from the
-original test file.
