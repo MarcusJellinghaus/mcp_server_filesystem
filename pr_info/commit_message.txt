@@ -1,7 +1,0 @@
-feat: support bare numeric flags (-10) in git log/show/diff
-
-Add sentinel marker "-<int>" to log, show, and diff allowlists.
-Detect bare numeric flags in validate_args() and allow them
-when the command opts in via the sentinel.
-
-Closes #133
