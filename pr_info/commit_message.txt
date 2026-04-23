@@ -1,0 +1,8 @@
+feat: auto-fallback to literal search when regex is invalid
+
+Replace ValueError on invalid regex patterns with graceful fallback:
+- Retry with re.escape(pattern) for literal matching
+- Add optional "note" field to result dict explaining the fallback
+- Update search_files() docstring to document the behavior
+
+Closes #139

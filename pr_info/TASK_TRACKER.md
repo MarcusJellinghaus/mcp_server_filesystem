@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Core Fallback Logic + Tests
-- [ ] Implementation: replace error test with fallback tests, implement fallback in `search.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: replace error test with fallback tests, implement fallback in `search.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 2: Docstring Updates in Server Wrappers
 - [ ] Implementation: update `pattern` param docstrings in `server.py` and `server_reference_tools.py`
