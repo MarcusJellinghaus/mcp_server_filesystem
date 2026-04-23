@@ -7,6 +7,7 @@ allowed-tools:
   - mcp__workspace__git
   - mcp__workspace__read_file
   - mcp__workspace__list_directory
+  - mcp__tools-py__sleep
 ---
 
 # Analyse GitHub Issue
@@ -19,6 +20,8 @@ The user may provide an issue number as the argument (available as `$ARGUMENTS`)
 If no issue number is provided:
 1. Read `.vscodeclaude_status.txt` and extract the issue number from the `Issue #NNN` line
 2. If the file doesn't exist or has no issue number, ask the user
+
+Wait one second using `mcp__tools-py__sleep` with `seconds: 1`
 
 Fetch the issue using `mcp__workspace__github_issue_view`.
 
