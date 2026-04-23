@@ -21,6 +21,16 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Add `@log_function_call` to `git()` in server.py
+- [ ] Implementation: add decorator to `git()` async function
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `feat(logging): add @log_function_call to git() async wrapper (#142)`
+
+### Step 2: Add `@log_function_call` to 3 async reference tools, remove manual debug logging
+- [ ] Implementation: add decorator to `read_reference_file()`, `list_reference_directory()`, `search_reference_files()`; remove 2 manual `logger.debug` calls; rename test `test_log_function_call_removed` → `test_async_handlers_are_coroutines`
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `feat(logging): add @log_function_call to async reference tools (#142)`
 
 ## Pull Request
+- [ ] PR review: verify all steps complete, diff looks correct
+- [ ] PR summary prepared
