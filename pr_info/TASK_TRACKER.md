@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Add `get_reference_project_path()` helper + tests
-- [ ] Implementation: TDD tests + helper function in `server_reference_tools.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: TDD tests + helper function in `server_reference_tools.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 2: Refactor existing reference tools to use helper
 - [ ] Implementation: replace inlined lookup+ensure pattern in 3 tools with helper call

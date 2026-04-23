@@ -80,6 +80,15 @@ def get_reference_projects() -> Dict[str, Any]:
         raise
 
 
+async def get_reference_project_path(name: str) -> Path:
+    """Resolve a reference project name to its local path, ensuring availability."""
+    if name not in _reference_projects:
+        raise ValueError(f"Reference project '{name}' not found")
+    project = _reference_projects[name]
+    await ensure_available(project)
+    return project.path
+
+
 async def read_reference_file(
     reference_name: str,
     file_path: str,
