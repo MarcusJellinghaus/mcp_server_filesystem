@@ -63,11 +63,12 @@ async def git(
 
 ## TESTS (add to `tests/test_reference_projects_mcp_tools.py`)
 
-New class `TestGitReferenceProject` with 3 tests:
+New class `TestGitReferenceProject` with 4 tests:
 
 1. `test_git_valid_reference_project` — mock `get_reference_project_path` returning a Path and `git_impl`; verify `git_impl` called with reference project path as `project_dir`, verify correct return value
 2. `test_git_invalid_reference_project` — mock `get_reference_project_path` raising `ValueError`; verify error propagates
 3. `test_git_ensure_available_before_git_runs` — mock `get_reference_project_path` and `git_impl`; verify helper is awaited (i.e., `ensure_available` runs) before `git_impl` executes
+4. `test_git_without_reference_name_uses_project_dir` — no `reference_name` passed; verify `git_impl` is called with `_project_dir` as `project_dir` (regression test for async conversion)
 
 ## COMMIT
 

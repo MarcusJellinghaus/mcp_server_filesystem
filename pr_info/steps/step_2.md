@@ -42,7 +42,6 @@ ref_path = await get_reference_project_path(reference_name)
 
 - `get_reference_project_path` is in the same module — no new imports needed
 - Remove the now-unused per-function validation/lookup code
-- Remove per-function debug logging about reference project path (the helper handles the resolution)
 - Keep all other function logic unchanged
 
 ## FUNCTIONS AFFECTED

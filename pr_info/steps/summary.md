@@ -29,7 +29,7 @@ Add an optional `reference_name` parameter to the `git()` MCP tool so it can run
 |------|--------|
 | `src/mcp_workspace/server_reference_tools.py` | Add `get_reference_project_path()` helper; refactor 3 existing tools to use it |
 | `src/mcp_workspace/server.py` | Modify `git()` — async, `reference_name` param, `asyncio.to_thread`, drop `@log_function_call` |
-| `tests/test_reference_projects_mcp_tools.py` | Add tests for helper; add 3 tests for git with reference projects |
+| `tests/test_reference_projects_mcp_tools.py` | Add tests for helper; add 4 tests for git with reference projects |
 
 No new files created. No files deleted.
 
@@ -37,4 +37,4 @@ No new files created. No files deleted.
 
 1. **Add `get_reference_project_path()` helper + tests** — new helper in `server_reference_tools.py` with unit tests
 2. **Refactor existing reference tools** — replace inlined lookup+ensure pattern with helper call; existing tests validate
-3. **Add `reference_name` to `git()` + tests** — make `git()` async, add parameter, wrap `git_impl`, add 3 test cases
+3. **Add `reference_name` to `git()` + tests** — make `git()` async, add parameter, wrap `git_impl`, add 4 test cases
