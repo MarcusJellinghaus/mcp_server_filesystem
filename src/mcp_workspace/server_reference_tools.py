@@ -109,15 +109,7 @@ async def read_reference_file(
     Returns:
         The contents of the file as a string
     """
-    # Check if reference project exists
-    if reference_name not in _reference_projects:
-        logger.error("Reference project '%s' not found", reference_name)
-        raise ValueError(f"Reference project '{reference_name}' not found")
-
-    # Get reference project and ensure it's available (may trigger clone)
-    project = _reference_projects[reference_name]
-    await ensure_available(project)
-    ref_path = project.path
+    ref_path = await get_reference_project_path(reference_name)
 
     # Log operation at DEBUG level
     logger.debug(
@@ -147,15 +139,7 @@ async def list_reference_directory(reference_name: str) -> List[str]:
     Returns:
         A list of filenames in the reference project directory
     """
-    # Check if reference project exists
-    if reference_name not in _reference_projects:
-        logger.error("Reference project '%s' not found", reference_name)
-        raise ValueError(f"Reference project '{reference_name}' not found")
-
-    # Get reference project and ensure it's available (may trigger clone)
-    project = _reference_projects[reference_name]
-    await ensure_available(project)
-    ref_path = project.path
+    ref_path = await get_reference_project_path(reference_name)
 
     # Log operation at DEBUG level
     logger.debug(
@@ -196,17 +180,10 @@ async def search_reference_files(
         Dict with matches (content search) or file list (file search),
         plus truncated flag if results were capped.
     """
-    # Check if reference project exists
-    if reference_name not in _reference_projects:
-        logger.error("Reference project '%s' not found", reference_name)
-        raise ValueError(f"Reference project '{reference_name}' not found")
-
-    # Get reference project and ensure it's available (may trigger clone)
-    project = _reference_projects[reference_name]
-    await ensure_available(project)
+    ref_path = await get_reference_project_path(reference_name)
 
     return search_files_util(
-        project_dir=project.path,
+        project_dir=ref_path,
         glob=glob,
         pattern=pattern,
         context_lines=context_lines,

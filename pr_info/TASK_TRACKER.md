@@ -27,9 +27,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit message prepared
 
 ### Step 2: Refactor existing reference tools to use helper
-- [ ] Implementation: replace inlined lookup+ensure pattern in 3 tools with helper call
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: replace inlined lookup+ensure pattern in 3 tools with helper call
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 3: Add `reference_name` to `git()` + tests
 - [ ] Implementation: make `git()` async, add parameter, wrap `git_impl` in `asyncio.to_thread()`

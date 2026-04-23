@@ -1,7 +1,7 @@
-feat(ref): add get_reference_project_path helper
+refactor(ref): use get_reference_project_path in existing tools
 
-Encapsulates lookup + validation + ensure_available + return path
-for reference project resolution. Will be used by git() and to
-DRY up existing reference tools.
+Replace inlined lookup+ensure_available pattern with shared helper
+in read_reference_file, list_reference_directory, and
+search_reference_files. Pure DRY refactor — no behavior change.
 
 Refs #140
