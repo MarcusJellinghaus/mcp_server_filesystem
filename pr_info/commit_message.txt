@@ -1,0 +1,15 @@
+refactor: rewrite edit_file utility with new single-edit interface
+
+Replace batch edit_file(edits=[...]) with single-edit
+edit_file(old_string, new_string, replace_all) signature matching
+Claude Code's built-in Edit tool interface.
+
+Changes:
+- New signature: edit_file(file_path, old_string, new_string, replace_all, project_dir)
+- Returns diff string on success, message on already-applied, raises on error
+- Empty old_string inserts at beginning of file
+- replace_all=True replaces all occurrences; False raises on multiple matches
+- Remove _error_result, _preserve_basic_indentation, create_unified_diff
+- Keep _create_diff, _truncate, _is_edit_already_applied helpers
+- Add _is_position_aware_already_applied and _write_file helpers
+- Rewrite test_edit_file.py with 14 tests covering new interface
