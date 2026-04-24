@@ -1,7 +1,5 @@
 """Tests for branch_status recommendation and PR merge override logic."""
 
-from unittest.mock import MagicMock
-
 from mcp_workspace.checks.branch_status import (
     CIStatus,
     _apply_pr_merge_override,
