@@ -172,8 +172,8 @@ def list_directory_tree(
 ) -> List[str]:
     """Build tree from file paths and render back to flat list.
 
-    Builds an internal tree, auto-collapses directories with only one child,
-    then truncates if the result still exceeds 250 lines.
+    Builds an internal tree, auto-collapses large deep directories when the
+    listing exceeds 250 lines, then truncates if still too long.
 
     Args:
         file_paths: List of project-relative file paths.
