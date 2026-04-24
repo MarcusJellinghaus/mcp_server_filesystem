@@ -1,4 +1,0 @@
-fix: reformat test_markdown_indentation.py to pass black check
-
-Break long string literals into implicit concatenation to comply
-with the project's 88-character line length limit.
