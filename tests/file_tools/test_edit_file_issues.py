@@ -74,7 +74,7 @@ class TestEditFileIndentationIssues(unittest.TestCase):
         self.assertIn("No changes needed", result2)
 
     def test_false_positive_already_applied_bug_fix(self) -> None:
-        """Test fix for false positive in already-applied detection where new_text appears elsewhere."""
+        """Test fix for false positive in already-applied detection where new_string appears elsewhere."""
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write('function_name = "test"\nprint("test")\n')
 
@@ -109,7 +109,7 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             )
 
     def test_prefix_match_does_not_create_duplicates(self) -> None:
-        """Reproduces the exact bug: substring old_text should not duplicate suffix."""
+        """Reproduces the exact bug: substring old_string should not duplicate suffix."""
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write(
                 "def mock_config_path(self, tmp_path) -> None:  # type: ignore[misc]\n"
@@ -146,8 +146,8 @@ class TestEditFileIndentationIssues(unittest.TestCase):
             content = f.read()
         self.assertIn("foobar = 1", content)
 
-    def test_new_text_longer_than_remaining_content_proceeds(self) -> None:
-        """Ensures no false skip when new_text extends beyond end of file."""
+    def test_new_string_longer_than_remaining_content_proceeds(self) -> None:
+        """Ensures no false skip when new_string extends beyond end of file."""
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write("short")
 

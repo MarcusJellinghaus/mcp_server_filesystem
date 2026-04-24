@@ -145,9 +145,9 @@ def _create_diff(original: str, modified: str, filename: str) -> str:
     )
 
 
-def _is_edit_already_applied(content: str, old_text: str, new_text: str) -> bool:
+def _is_edit_already_applied(content: str, old_string: str, new_string: str) -> bool:
     """Check if an edit has already been applied by verifying contextual conditions.
 
-    Returns True if old_text is NOT found in content AND new_text IS found.
+    Returns True if old_string is NOT found in content AND new_string IS found.
     """
-    return old_text not in content and new_text in content
+    return old_string not in content and new_string in content
