@@ -1,0 +1,10 @@
+feat: add tree_listing module with _TreeNode, _build_tree, _render
+
+Implement Step 1 of the list_directory tree enhancement (#46):
+
+- Add _TreeNode dataclass for internal tree representation
+- Add _build_tree to construct tree from flat file paths
+- Add _render to convert tree back to flat path list
+- Add list_directory_tree as public API entry point
+- Export list_directory_tree from file_tools package
+- Add comprehensive tests for round-trip correctness

@@ -12,6 +12,7 @@ from mcp_workspace.file_tools.file_operations import (
 )
 from mcp_workspace.file_tools.path_utils import normalize_path
 from mcp_workspace.file_tools.search import search_files
+from mcp_workspace.file_tools.tree_listing import list_directory_tree
 
 # Define what functions are exposed when importing from this package
 __all__ = [
@@ -25,4 +26,5 @@ __all__ = [
     "list_files",
     "edit_file",
     "search_files",
+    "list_directory_tree",
 ]
