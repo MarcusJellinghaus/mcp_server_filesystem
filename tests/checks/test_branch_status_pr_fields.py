@@ -8,6 +8,7 @@ def _make_report(
     pr_number: int | None = None,
     pr_url: str | None = None,
     pr_found: bool | None = None,
+    pr_mergeable: bool | None = None,
 ) -> BranchStatusReport:
     """Helper to create a report with specific PR fields."""
     return BranchStatusReport(
@@ -25,6 +26,7 @@ def _make_report(
         pr_number=pr_number,
         pr_url=pr_url,
         pr_found=pr_found,
+        pr_mergeable=pr_mergeable,
     )
 
 
@@ -83,3 +85,86 @@ class TestPRFieldsInLLMFormat:
         report = _make_report(pr_found=None)
         output = report.format_for_llm()
         assert "PR=" not in output
+
+
+class TestMergeStatusInHumanFormat:
+    """Tests Merge Status line rendering in human format."""
+
+    def test_mergeable_true(self) -> None:
+        report = _make_report(
+            pr_number=42,
+            pr_url="https://github.com/owner/repo/pull/42",
+            pr_found=True,
+            pr_mergeable=True,
+        )
+        output = report.format_for_human()
+        assert "Mergeable (squash-merge safe)" in output
+
+    def test_mergeable_false(self) -> None:
+        report = _make_report(
+            pr_number=42,
+            pr_url="https://github.com/owner/repo/pull/42",
+            pr_found=True,
+            pr_mergeable=False,
+        )
+        output = report.format_for_human()
+        assert "Not mergeable (has conflicts)" in output
+
+    def test_mergeable_none(self) -> None:
+        report = _make_report(
+            pr_number=42,
+            pr_url="https://github.com/owner/repo/pull/42",
+            pr_found=True,
+            pr_mergeable=None,
+        )
+        output = report.format_for_human()
+        assert "Pending" in output
+
+    def test_no_pr_omits_merge_status(self) -> None:
+        report = _make_report(pr_found=False)
+        output = report.format_for_human()
+        assert "Merge Status" not in output
+
+    def test_pr_none_omits_merge_status(self) -> None:
+        report = _make_report(pr_found=None)
+        output = report.format_for_human()
+        assert "Merge Status" not in output
+
+
+class TestMergeStatusInLLMFormat:
+    """Tests Mergeable= token rendering in LLM format."""
+
+    def test_mergeable_true(self) -> None:
+        report = _make_report(
+            pr_number=42,
+            pr_url="https://github.com/owner/repo/pull/42",
+            pr_found=True,
+            pr_mergeable=True,
+        )
+        output = report.format_for_llm()
+        assert "Mergeable=True" in output
+
+    def test_mergeable_false(self) -> None:
+        report = _make_report(
+            pr_number=42,
+            pr_url="https://github.com/owner/repo/pull/42",
+            pr_found=True,
+            pr_mergeable=False,
+        )
+        output = report.format_for_llm()
+        assert "Mergeable=False" in output
+
+    def test_mergeable_none(self) -> None:
+        report = _make_report(
+            pr_number=42,
+            pr_url="https://github.com/owner/repo/pull/42",
+            pr_found=True,
+            pr_mergeable=None,
+        )
+        output = report.format_for_llm()
+        assert "Mergeable=None" in output
+
+    def test_no_pr_omits_mergeable(self) -> None:
+        report = _make_report(pr_found=False)
+        output = report.format_for_llm()
+        assert "Mergeable=" not in output

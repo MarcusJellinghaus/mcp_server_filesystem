@@ -1,8 +1,12 @@
-feat: add pr_mergeable to BranchStatusReport and wire override in orchestrator
+feat: add Merge Status line to human and LLM formatters
 
-- Add pr_mergeable field to BranchStatusReport dataclass
-- Wire _apply_pr_merge_override() into collect_branch_status() orchestrator
-  to override rebase status when PR is mergeable (squash-merge safe)
-- Update _generate_recommendations() to show "Ready to merge (squash-merge safe)"
-  when pr_mergeable is True
-- Add tests for orchestrator integration path and recommendation variants
+Add Merge Status display to format_for_human() showing mergeable,
+not mergeable (conflicts), or pending states after the PR line.
+
+Add Mergeable= token to format_for_llm() status summary line
+when a PR is found.
+
+Merge Status line is only shown when a PR exists (pr_found=True).
+
+Tests cover all merge status states for both formatters plus
+omission when no PR is found.

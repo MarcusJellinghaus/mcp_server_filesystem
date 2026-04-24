@@ -111,6 +111,16 @@ class BranchStatusReport:
         if self.pr_found is not None:
             if self.pr_found:
                 lines.append(f"PR: \u2705 #{self.pr_number} ({self.pr_url})")
+                if self.pr_mergeable is True:
+                    lines.append(
+                        "Merge Status: \u2705 Mergeable (squash-merge safe)"
+                    )
+                elif self.pr_mergeable is False:
+                    lines.append(
+                        "Merge Status: \u274c Not mergeable (has conflicts)"
+                    )
+                else:
+                    lines.append("Merge Status: \u23f3 Pending")
             else:
                 lines.append("PR: \u274c No PR found")
             lines.append("")
@@ -165,7 +175,14 @@ class BranchStatusReport:
             f"Tasks={self.tasks_status.value} ({self.tasks_reason})"
         )
         if self.pr_found is True:
-            status_summary += f", PR=#{self.pr_number}"
+            mergeable_str = (
+                str(self.pr_mergeable)
+                if self.pr_mergeable is not None
+                else "None"
+            )
+            status_summary += (
+                f", PR=#{self.pr_number}, Mergeable={mergeable_str}"
+            )
         elif self.pr_found is False:
             status_summary += ", PR=NOT_FOUND"
         recommendations_text = ", ".join(self.recommendations)
