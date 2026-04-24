@@ -10,6 +10,7 @@ from mcp_workspace.file_tools.tree_listing import (
     _find_collapsible,
     _recursive_file_count,
     _score,
+    _truncate,
     list_directory_tree,
 )
 
@@ -253,11 +254,12 @@ class TestCollapsing:
         assert _score(file_heavy, 2) > _score(subdir_heavy, 2)
 
     def test_root_with_only_files(self) -> None:
-        """Root with only files, no dirs → all files shown."""
+        """Root with only files, no dirs → truncated at 250."""
         paths = [f"file{i}.py" for i in range(300)]
         result = list_directory_tree(paths)
-        # No dirs to collapse, all files shown
-        assert len(result) == 300
+        # No dirs to collapse, but truncation applies
+        assert len(result) == 251
+        assert result[-1].startswith("... and")
 
     def test_collapsing_applies_to_dirs_only_mode(self) -> None:
         """Collapsing works in dirs_only=True mode."""
@@ -300,6 +302,72 @@ class TestCollapsing:
 
         score_after = _score(parent, 2)
         assert score_before == score_after
+
+
+class TestTruncation:
+    """Tests for truncation after collapsing."""
+
+    def test_no_truncation_under_limit(self) -> None:
+        """Lines <= 250 are returned unchanged."""
+        lines = [f"file{i}.py" for i in range(200)]
+        result = _truncate(lines)
+        assert result == lines
+
+    def test_no_truncation_at_limit(self) -> None:
+        """Exactly 250 lines are returned unchanged."""
+        lines = [f"file{i}.py" for i in range(250)]
+        result = _truncate(lines)
+        assert result == lines
+
+    def test_truncation_triggers(self) -> None:
+        """More than 250 lines produces exactly 251 entries (250 + summary)."""
+        lines = [f"file{i}.py" for i in range(300)]
+        result = _truncate(lines)
+        assert len(result) == 251
+
+    def test_summary_line_format(self) -> None:
+        """Summary line matches expected format."""
+        lines = [f"file{i}.py" for i in range(300)]
+        result = _truncate(lines)
+        summary = result[-1]
+        assert summary == "... and 50 more entries (0 dirs, 50 files) — 300 total"
+
+    def test_dir_file_counts_in_summary(self) -> None:
+        """Summary correctly distinguishes dirs vs files in truncated portion."""
+        # Put dirs first (sorted order), then files
+        lines = [f"dir{i}/" for i in range(240)] + [
+            f"dir{i}/ (5 files)" for i in range(20)
+        ] + [f"file{i}.py" for i in range(40)]
+        # Total = 300, kept = 250, truncated = 50
+        # Truncated: 10 collapsed dirs ("dir{10-19}/ (5 files)") + 40 files
+        result = _truncate(lines)
+        summary = result[-1]
+        assert "10 dirs" in summary
+        assert "40 files" in summary
+        assert "300 total" in summary
+
+    def test_truncation_preserves_order(self) -> None:
+        """First 250 entries are kept in original order."""
+        lines = [f"src/pkg{i}/" for i in range(130)] + [
+            f"file{i}.py" for i in range(130)
+        ]
+        result = _truncate(lines)
+        assert result[:250] == lines[:250]
+
+    def test_truncation_in_dirs_only_mode(self) -> None:
+        """In dirs_only mode, all truncated entries count as dirs."""
+        lines = [f"src/pkg{i}/" for i in range(300)]
+        result = _truncate(lines)
+        summary = result[-1]
+        assert "50 dirs" in summary
+        assert "0 files" in summary
+
+    def test_truncation_via_list_directory_tree(self) -> None:
+        """list_directory_tree applies truncation to root-level files."""
+        paths = [f"file{i}.py" for i in range(300)]
+        result = list_directory_tree(paths)
+        assert len(result) == 251
+        assert result[-1].startswith("... and")
 
 
 class TestCountLines:

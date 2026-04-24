@@ -147,6 +147,24 @@ def _render(node: _TreeNode, prefix: str, dirs_only: bool) -> List[str]:
     return results
 
 
+def _truncate(lines: List[str], limit: int = _COLLAPSE_THRESHOLD) -> List[str]:
+    """If lines exceed limit, keep first `limit` entries and append summary."""
+    if len(lines) <= limit:
+        return lines
+    kept = lines[:limit]
+    remaining = lines[limit:]
+    remaining_dirs = sum(
+        1 for line in remaining if line.endswith("/") or "/ (" in line
+    )
+    remaining_files = len(remaining) - remaining_dirs
+    total = len(lines)
+    summary = (
+        f"... and {len(remaining)} more entries "
+        f"({remaining_dirs} dirs, {remaining_files} files) \u2014 {total} total"
+    )
+    return kept + [summary]
+
+
 def list_directory_tree(
     file_paths: List[str],
     base_path: str = ".",
@@ -173,4 +191,5 @@ def list_directory_tree(
     render_prefix = ""
     if base_path not in (".", ""):
         render_prefix = base_path.rstrip("/") + "/"
-    return _render(tree, prefix=render_prefix, dirs_only=dirs_only)
+    lines = _render(tree, prefix=render_prefix, dirs_only=dirs_only)
+    return _truncate(lines)

@@ -1,11 +1,8 @@
-feat: add auto-collapsing for large directory trees
+feat: add truncation after collapsing in tree listing
 
-Implement greedy collapse algorithm that reduces trees exceeding 250
-lines by collapsing the highest-scoring directories first. Depth-1
-directories are protected and never collapsed.
+Add _truncate function that caps output at 250 entries plus a summary
+line when the rendered tree exceeds the threshold. The summary line
+reports remaining dirs, files, and total count.
 
-New functions: _count_lines, _recursive_file_count, _score,
-_find_collapsible, _collapse. Updated _render to display collapsed
-nodes as "dirname/ (N files)" format.
-
-Scoring formula: (direct_files + direct_subdirs * 0.3) * depth
+Update list_directory_tree to call _truncate after rendering.
+Update existing test for root-only files to expect truncation behavior.
