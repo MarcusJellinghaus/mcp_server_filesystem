@@ -147,9 +147,12 @@ def test_append_file_not_found() -> None:
         append_file(str(non_existent_file), "This should fail")
 
 
+@patch("mcp_workspace.server.list_directory_tree")
 @patch("mcp_workspace.server.list_files_util")
-def test_list_directory(mock_list_files: MagicMock, project_dir: Path) -> None:
-    """Test the list_directory tool."""
+def test_list_directory(
+    mock_list_files: MagicMock, mock_tree: MagicMock, project_dir: Path
+) -> None:
+    """Test the list_directory tool with default args (backward compatible)."""
     # Create absolute path for test file
     abs_file_path = project_dir / TEST_FILE
 
@@ -159,6 +162,7 @@ def test_list_directory(mock_list_files: MagicMock, project_dir: Path) -> None:
 
     # Mock the list_files function to return our test file
     mock_list_files.return_value = [str(TEST_FILE)]
+    mock_tree.return_value = [str(TEST_FILE)]
 
     files = list_directory()
 
@@ -166,6 +170,7 @@ def test_list_directory(mock_list_files: MagicMock, project_dir: Path) -> None:
     mock_list_files.assert_called_once_with(
         ".", project_dir=project_dir, use_gitignore=True
     )
+    mock_tree.assert_called_once_with([str(TEST_FILE)], base_path=".", dirs_only=False)
 
     assert str(TEST_FILE) in files
 
@@ -182,13 +187,18 @@ def test_list_directory_directory_not_found(
         list_directory()
 
 
+@patch("mcp_workspace.server.list_directory_tree")
 @patch("mcp_workspace.server.list_files_util")
 def test_list_directory_with_gitignore(
-    mock_list_files: MagicMock, project_dir: Path
+    mock_list_files: MagicMock, mock_tree: MagicMock, project_dir: Path
 ) -> None:
     """Test the list_directory tool with gitignore filtering."""
     # Mock list_files to return filtered files
     mock_list_files.return_value = [
+        str(TEST_DIR / "test_normal.txt"),
+        str(TEST_DIR / ".gitignore"),
+    ]
+    mock_tree.return_value = [
         str(TEST_DIR / "test_normal.txt"),
         str(TEST_DIR / ".gitignore"),
     ]
@@ -214,6 +224,139 @@ def test_list_directory_error_handling(
 
     with pytest.raises(Exception):
         list_directory()
+
+
+@patch("mcp_workspace.server.list_directory_tree")
+@patch("mcp_workspace.server.list_files_util")
+def test_list_directory_path_parameter(
+    mock_list_files: MagicMock, mock_tree: MagicMock, project_dir: Path
+) -> None:
+    """Test list_directory with path parameter scopes to subtree."""
+    # Create src directory
+    src_dir = project_dir / "src"
+    src_dir.mkdir(parents=True, exist_ok=True)
+    (src_dir / "app.py").write_text("# app")
+
+    mock_list_files.return_value = ["src/app.py"]
+    mock_tree.return_value = ["src/app.py"]
+
+    files = list_directory(path="src")
+
+    mock_list_files.assert_called_once_with(
+        "src", project_dir=project_dir, use_gitignore=True
+    )
+    mock_tree.assert_called_once_with(["src/app.py"], base_path="src", dirs_only=False)
+    assert "src/app.py" in files
+
+
+@patch("mcp_workspace.server.list_directory_tree")
+@patch("mcp_workspace.server.list_files_util")
+def test_list_directory_dirs_only(
+    mock_list_files: MagicMock, mock_tree: MagicMock, project_dir: Path
+) -> None:
+    """Test list_directory with dirs_only=True returns only directory paths."""
+    mock_list_files.return_value = ["src/app.py", "tests/test_app.py"]
+    mock_tree.return_value = ["src/", "tests/"]
+
+    files = list_directory(dirs_only=True)
+
+    mock_list_files.assert_called_once_with(
+        ".", project_dir=project_dir, use_gitignore=True
+    )
+    mock_tree.assert_called_once_with(
+        ["src/app.py", "tests/test_app.py"], base_path=".", dirs_only=True
+    )
+    assert files == ["src/", "tests/"]
+
+
+def test_list_directory_path_is_file(project_dir: Path) -> None:
+    """Test list_directory raises ValueError when path points to a file."""
+    # Create a file to point at
+    test_file = project_dir / "README.md"
+    test_file.write_text("# readme")
+
+    with pytest.raises(ValueError, match="is a file"):
+        list_directory(path="README.md")
+
+
+def test_list_directory_path_not_found(project_dir: Path) -> None:
+    """Test list_directory raises FileNotFoundError for non-existent path."""
+    with pytest.raises(FileNotFoundError):
+        list_directory(path="nonexistent_dir")
+
+
+def test_list_directory_path_traversal(project_dir: Path) -> None:
+    """Test list_directory blocks path traversal attacks."""
+    with pytest.raises(ValueError):
+        list_directory(path="../../etc")
+
+
+@patch("mcp_workspace.server.list_directory_tree")
+@patch("mcp_workspace.server.list_files_util")
+def test_list_directory_path_trailing_slash(
+    mock_list_files: MagicMock, mock_tree: MagicMock, project_dir: Path
+) -> None:
+    """Test list_directory with trailing slash behaves identically to without."""
+    # Create src directory
+    src_dir = project_dir / "src"
+    src_dir.mkdir(parents=True, exist_ok=True)
+    (src_dir / "app.py").write_text("# app")
+
+    mock_list_files.return_value = ["src/app.py"]
+    mock_tree.return_value = ["src/app.py"]
+
+    files = list_directory(path="src/")
+
+    mock_list_files.assert_called_once_with(
+        "src/", project_dir=project_dir, use_gitignore=True
+    )
+    assert "src/app.py" in files
+
+
+# --- Integration tests for list_directory path / dirs_only ---
+
+
+def test_list_directory_path_is_file_integration(project_dir: Path) -> None:
+    """Integration: list_directory(path=<file>) returns a clear error."""
+    f = project_dir / "some_file.py"
+    f.write_text("x = 1")
+    with pytest.raises(ValueError, match="is a file"):
+        list_directory(path="some_file.py")
+
+
+def test_list_directory_path_nonexistent_integration(project_dir: Path) -> None:
+    """Integration: list_directory(path=<missing>) returns file-not-found."""
+    with pytest.raises(FileNotFoundError):
+        list_directory(path="nonexistent")
+
+
+def test_list_directory_dirs_only_integration(project_dir: Path) -> None:
+    """Integration: list_directory(dirs_only=True) returns only directories."""
+    sub = project_dir / "mydir"
+    sub.mkdir()
+    (sub / "child.txt").write_text("hi")
+    (project_dir / "root.txt").write_text("root")
+
+    result = list_directory(dirs_only=True)
+
+    # Should contain directory entries but no plain file entries
+    assert any("mydir" in entry for entry in result)
+    assert not any(entry.endswith(".txt") for entry in result)
+
+
+def test_list_directory_path_subtree_integration(project_dir: Path) -> None:
+    """Integration: list_directory(path=<subdir>) scopes to that subtree."""
+    sub = project_dir / "sub"
+    sub.mkdir()
+    (sub / "a.py").write_text("a")
+    (project_dir / "root.py").write_text("root")
+
+    result = list_directory(path="sub")
+
+    # Subtree listing should contain the file inside sub
+    assert any("a.py" in entry for entry in result)
+    # Should NOT contain root.py
+    assert not any("root.py" in entry for entry in result)
 
 
 def test_move_file(project_dir: Path) -> None:

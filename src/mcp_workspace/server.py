@@ -17,6 +17,7 @@ from mcp_workspace.checks.file_sizes import (
 from mcp_workspace.file_tools import append_file as append_file_util
 from mcp_workspace.file_tools import delete_file as delete_file_util
 from mcp_workspace.file_tools import edit_file as edit_file_util
+from mcp_workspace.file_tools import list_directory_tree
 from mcp_workspace.file_tools import list_files as list_files_util
 from mcp_workspace.file_tools import move_file as move_file_util
 from mcp_workspace.file_tools import normalize_path
@@ -136,20 +137,42 @@ def search_files(
 
 @mcp.tool()
 @log_function_call
-def list_directory() -> List[str]:
+def list_directory(path: str = ".", dirs_only: bool = False) -> List[str]:
     """List files and directories in the project directory.
 
+    Args:
+        path: Scope listing to a subtree (relative to project root).
+            Defaults to "." (entire project).
+        dirs_only: Show only directories, each with trailing "/".
+
     Returns:
-        A list of filenames in the project directory
+        A list of path strings: files, directories (trailing ``/``),
+        collapsed summaries (``dir/ (N files)``), or a truncation line
+        when output exceeds the internal limit.
     """
     try:
         if _project_dir is None:
             raise ValueError("Project directory has not been set")
 
-        logger.info("Listing all files in project directory: %s", _project_dir)
+        # Validate path — normalize_path handles traversal attacks
+        abs_path, rel_path = normalize_path(path, _project_dir)
+
+        # If path points to a file, return error
+        if abs_path.is_file():
+            raise ValueError(
+                f"'{path}' is a file, not a directory. Use read_file() instead."
+            )
+
+        logger.info(
+            "Listing files in project directory: %s (path=%s)",
+            _project_dir,
+            path,
+        )
         # Explicitly pass project_dir to list_files_util
-        result = list_files_util(".", project_dir=_project_dir, use_gitignore=True)
-        return result
+        raw_files = list_files_util(path, project_dir=_project_dir, use_gitignore=True)
+
+        # Build tree, collapse, render, truncate
+        return list_directory_tree(raw_files, base_path=rel_path, dirs_only=dirs_only)
     except Exception as e:
         logger.error("Error listing project directory: %s", str(e))
         raise
