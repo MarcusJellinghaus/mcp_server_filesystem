@@ -1,19 +1,13 @@
-Migrate regression test files to new edit_file interface
+fix: migrate test_markdown_indentation to new edit_file interface
 
-Migrate three test files to the new edit_file(old_string, new_string)
-signature, replacing the old edits-array and dict-return-value patterns:
+Migrate test_markdown_indentation.py from the old edit_file interface
+(edits array, options dict, dict return) to the new interface
+(old_string/new_string params, str return).
 
-- test_edit_file_issues.py: Remove tests for deleted features
-  (preserve_indentation, snake_case options). Adapt first-occurrence
-  test to verify ValueError on multiple matches (new uniqueness check).
-  Keep all other regression scenarios with updated assertions.
+- Remove unused `import os`
+- Replace `edits` array with `old_string`/`new_string` parameters
+- Remove `options={"preserve_indentation": True}` (no longer supported)
+- Update assertions: check for str return and diff content
+- Simplify indentation assertions to direct string checks
 
-- test_edit_already_applied_fix.py: Remove preserve_indentation test.
-  Adapt all false-positive prevention tests to check string returns
-  (diff vs message) instead of dict fields. Keep _is_edit_already_applied
-  helper tests unchanged.
-
-- test_edit_file_backslash.py: Adapt to expect ValueError with
-  backslash hint instead of error dict.
-
-Part of #124: Redesign edit_file to match Claude Code Edit interface.
+All quality checks pass: pylint, mypy, pytest (965 passed).

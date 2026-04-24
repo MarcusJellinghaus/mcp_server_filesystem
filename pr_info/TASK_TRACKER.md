@@ -37,9 +37,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit message prepared
 
 ### Step 4: Final verification and cleanup
-- [ ] Implementation: verify `__init__.py` exports, vulture whitelist, run all checks, fix any remaining issues
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: verify `__init__.py` exports, vulture whitelist, run all checks, fix any remaining issues
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ## Pull Request
 - [ ] PR review: verify all steps complete, diff is clean

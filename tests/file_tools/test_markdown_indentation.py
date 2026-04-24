@@ -1,4 +1,3 @@
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -34,18 +33,14 @@ class TestMarkdownIndentation(unittest.TestCase):
         self.assertIn("- Available options:", content)
 
         # Edit to add indentation to nested bullet points
-        edits = [
-            {
-                "old_text": "- Available options:\n- option1: description\n- option2: description",
-                "new_text": "- Available options:\n  - option1: description\n  - option2: description",
-            }
-        ]
+        old_string = "- Available options:\n- option1: description\n- option2: description"
+        new_string = "- Available options:\n  - option1: description\n  - option2: description"
 
-        options = {"preserve_indentation": True}
-        result = edit_file(str(markdown_file), edits, options=options)
+        result = edit_file(str(markdown_file), old_string, new_string)
 
-        # Verify the edit was successful
-        self.assertTrue(result["success"])
+        # Verify the edit returned a diff string
+        self.assertIsInstance(result, str)
+        self.assertIn("---", result)  # diff header
 
         # Read the updated content
         with open(markdown_file, "r", encoding="utf-8") as f:
@@ -56,12 +51,6 @@ class TestMarkdownIndentation(unittest.TestCase):
         self.assertIn("option1: description", updated_content)
         self.assertIn("option2: description", updated_content)
 
-        # Check that the indentation changed (either format is acceptable)
-        non_indented_count = updated_content.count("\n- option")
-        indented_count = updated_content.count("\n  - option")
-
-        # At least some indentation should be applied
-        self.assertTrue(
-            non_indented_count < 2 or indented_count > 0,
-            "The indentation should have been improved in some way",
-        )
+        # Check that the indentation changed
+        self.assertIn("  - option1: description", updated_content)
+        self.assertIn("  - option2: description", updated_content)
