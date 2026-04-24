@@ -98,6 +98,7 @@ return list_directory_tree(raw_files, base_path=rel_path, dirs_only=dirs_only)
 4. **path points to file** — raises `ValueError` with "is a file" message
 5. **path does not exist** — raises `FileNotFoundError` (from `list_files`)
 6. **path traversal blocked** — `list_directory(path="../../etc")` raises `ValueError` (from `normalize_path`)
+7. **path with trailing slash** — `list_directory(path="src/")` behaves identically to `list_directory(path="src")`
 
 ## DONE WHEN
 

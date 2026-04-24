@@ -90,7 +90,7 @@ return results
 ```
 tree = _build_tree(file_paths, base_path)
 render_prefix = "" if base_path in (".", "") else base_path.rstrip("/") + "/"
-return _render(tree, prefix=render_prefix, dirs_only=False)
+return _render(tree, prefix=render_prefix, dirs_only=False)  # dirs_only plumbing added in Step 2
 ```
 
 ## DATA

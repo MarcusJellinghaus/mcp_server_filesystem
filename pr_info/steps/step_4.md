@@ -56,7 +56,8 @@ Everything else is a "file" entry.
 ```
 tree = _build_tree(file_paths, base_path)
 _collapse(tree, dirs_only)
-lines = _render(tree, prefix="", dirs_only=dirs_only)
+render_prefix = "" if base_path in (".", "") else base_path.rstrip("/") + "/"
+lines = _render(tree, prefix=render_prefix, dirs_only=dirs_only)
 return _truncate(lines)
 ```
 

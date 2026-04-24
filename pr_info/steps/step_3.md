@@ -29,7 +29,7 @@ def _recursive_file_count(node: _TreeNode) -> int:
 def _score(node: _TreeNode, depth: int) -> float:
     """Score = (len(files) + len(children) * 0.3) * depth"""
 
-def _find_collapsible(node: _TreeNode, depth: int) -> List[Tuple[float, _TreeNode]]:
+def _find_collapsible(node: _TreeNode, depth: int) -> List[Tuple[float, str, _TreeNode]]:
     """Find all collapsible directories (depth >= 2, not already collapsed)."""
 
 def _collapse(root: _TreeNode, dirs_only: bool) -> None:
@@ -73,7 +73,7 @@ return count
 results = []
 for child in node.children.values():
     if depth >= 2 and not child.collapsed:
-        results.append((score(child, depth), child))
+        results.append((score(child, depth), child.name, child))
     results.extend(_find_collapsible(child, depth + 1))
 return results
 ```
