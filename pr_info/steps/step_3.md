@@ -49,7 +49,7 @@ while _count_lines(root, dirs_only) > _COLLAPSE_THRESHOLD:
     candidates = _find_collapsible(root, depth=1)
     if not candidates:
         break  # nothing left to collapse (edge case: root has only files)
-    pick candidate with highest score (break ties by name for determinism)
+    pick candidate with highest score (break ties by name alphabetically ascending — earliest name collapsed first)
     candidate.collapsed = True
     candidate.collapsed_file_count = _recursive_file_count(candidate)
     candidate.children.clear()
@@ -128,6 +128,9 @@ Same format in both `dirs_only=False` and `dirs_only=True`.
 8. **Root with only files** — no dirs to collapse → all files shown regardless of count
 9. **Collapsing applies to dirs_only mode too** — same behavior with `dirs_only=True`
 10. **Collapsed file count is recursive** — collapsing a dir with nested subdirs counts all files
+11. **Parent score stability after child collapse** — a parent with 3 subdirs should have the same score before and after one of its children is collapsed (because collapsed children remain in `children` dict)
+
+Use a helper function (e.g., `_make_paths(dirs, files_per_dir, depth)`) to generate large file path lists for collapsing tests. This keeps test code clean and maintainable.
 
 ## DONE WHEN
 

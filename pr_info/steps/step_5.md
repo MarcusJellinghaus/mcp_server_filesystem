@@ -86,7 +86,7 @@ return list_directory_tree(raw_files, base_path=rel_path, dirs_only=dirs_only)
 ## DATA
 
 - `list_directory()` → same as today (backward compatible)
-- `list_directory(path="src")` → files under `src/`, paths relative to project root but with `src/` prefix stripped
+- `list_directory(path="src")` → files under `src/`, paths include the prefix like `["src/a.py", "src/utils/b.py"]` (directly usable with `read_file`)
 - `list_directory(dirs_only=True)` → directory paths with trailing `/`
 - `list_directory(path="README.md")` → `ValueError: 'README.md' is a file`
 

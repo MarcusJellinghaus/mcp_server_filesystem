@@ -49,9 +49,9 @@ class _TreeNode:
 
 ### Algorithm Summary
 
-1. Build tree from flat file paths
+1. Build tree from flat file paths (stripping `base_path` prefix internally for tree structure)
 2. While line count > 250: score all collapsible dirs (depth ≥ 2), collapse highest-scoring
-3. Render to `List[str]` (files + collapsed summaries, or dirs + collapsed summaries)
+3. Render to `List[str]` — output paths always include the full project-relative path (base_path is re-added during rendering, so `list_directory(path="src")` returns `["src/a.py", ...]`)
 4. If still > 250 entries at root level: truncate with summary line
 
 ### Scoring Formula

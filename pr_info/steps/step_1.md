@@ -40,10 +40,12 @@ def _build_tree(file_paths: List[str], base_path: str) -> _TreeNode:
     """Build tree from flat file paths. base_path is stripped from each path prefix."""
 
 def _render(node: _TreeNode, prefix: str, dirs_only: bool) -> List[str]:
-    """Render tree to flat list of path strings (no sorting yet)."""
+    """Render tree to flat list of path strings (no sorting yet).
+    prefix includes the base_path so output paths are project-relative."""
 
 def list_directory_tree(file_paths: List[str], base_path: str = ".", dirs_only: bool = False) -> List[str]:
-    """Public API: build tree, render to list. Collapsing/truncation added in later steps."""
+    """Public API: build tree, render to list. Collapsing/truncation added in later steps.
+    Output paths always include the base_path prefix (project-relative)."""
 ```
 
 ### `__init__.py` addition
@@ -61,7 +63,9 @@ Add `"list_directory_tree"` to `__all__`.
 ```
 create root node with name=""
 for each file_path in file_paths:
-    strip base_path prefix (if not ".")
+    strip base_path prefix:
+        - if base_path == "." or base_path == "": skip stripping (no-op)
+        - otherwise (e.g. base_path="src"): strip "src/" prefix from file_path
     split remaining path into parts
     walk/create child nodes for directory parts
     add filename to leaf node's files list
@@ -69,6 +73,8 @@ return root
 ```
 
 ### `_render` (basic, no collapsing logic yet)
+
+Note: `base_path` must be available during rendering so output paths include the full project-relative path. When `base_path` is `"."` or `""`, the render prefix starts at `""`. Otherwise (e.g. `base_path="src"`), the render prefix starts at `"src/"` so output paths are `"src/utils/a.py"`, not `"utils/a.py"`.
 
 ```
 results = []
@@ -83,7 +89,8 @@ return results
 
 ```
 tree = _build_tree(file_paths, base_path)
-return _render(tree, prefix="", dirs_only=False)
+render_prefix = "" if base_path in (".", "") else base_path.rstrip("/") + "/"
+return _render(tree, prefix=render_prefix, dirs_only=False)
 ```
 
 ## DATA
@@ -91,14 +98,16 @@ return _render(tree, prefix="", dirs_only=False)
 - **Input:** `["src/a.py", "src/b.py", "tests/test_a.py"]`
 - **Output (dirs_only=False):** `["src/a.py", "src/b.py", "tests/test_a.py"]`
 - The output is the same paths as input (just rebuilt through the tree). Order doesn't matter yet — sorting is Step 2.
+- **With base_path:** Input `["src/utils/a.py"]` with `base_path="src"` → Output: `["src/utils/a.py"]` (prefix preserved in output, only stripped internally for tree building then re-added during rendering)
 
 ## TESTS (`test_tree_listing.py`)
 
 1. **Empty input** → returns `[]`
 2. **Flat files only** (no subdirs) → returns same files
 3. **Nested structure** → all paths preserved through tree round-trip
-4. **base_path stripping** — input paths like `"src/utils/a.py"` with `base_path="src"` produce `"utils/a.py"`
+4. **base_path stripping** — input paths like `"src/utils/a.py"` with `base_path="src"` produce `"src/utils/a.py"` (prefix preserved in output)
 5. **Deeply nested** — `"a/b/c/d/file.txt"` round-trips correctly
+6. **base_path="."** — verify it works as a no-op (output matches input)
 
 ## DONE WHEN
 
