@@ -86,5 +86,6 @@ Rewrite the file with these test cases:
 ## Decisions
 
 - No `asyncio.to_thread` — the utility is fast (file read + string replace + file write)
+- Evaluate the existing try/except logging wrapper around the utility call — either keep for server-level logging or remove since the utility already logs via `@log_function_call` and the MCP framework handles exception propagation
 - Lock dict grows unbounded — acceptable for MCP server lifetime (bounded by unique files edited)
 - `_file_locks` is module-level, not class-level — matches existing server.py pattern (`_project_dir`)

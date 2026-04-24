@@ -41,10 +41,14 @@ def edit_file(
 ```
 resolve file_path, read content, normalize line endings
 if old_string is empty → prepend new_string, write, return diff
-if old_string not in content → check already-applied (both checks) → return message or raise ValueError (with backslash hint if applicable)
-if content.count(old_string) > 1 and not replace_all → raise ValueError("multiple matches")
-replace old_string with new_string (once or all based on replace_all)
-write file, return diff string
+if old_string in content:
+    if count > 1 and not replace_all → raise ValueError("multiple matches")
+    position-aware already-applied check → return message if matched
+    replace old_string with new_string (once or all based on replace_all)
+    write file, return diff string
+else:
+    contextual already-applied check → return message if matched
+    raise ValueError (with backslash hint if applicable)
 ```
 
 ## ALGORITHM — Already-applied detection
@@ -95,6 +99,7 @@ Rewrite the file with these test cases:
 12. **First occurrence only** — default behavior replaces only first match
 13. **CRLF normalization** — CRLF in old_string/new_string/file content handled
 14. **Backslash hint** — single backslash old_string triggers hint in ValueError message
+15. **Delete text (empty new_string)** — replaces old_string with empty string, removing it from the file
 
 ## Decisions
 
