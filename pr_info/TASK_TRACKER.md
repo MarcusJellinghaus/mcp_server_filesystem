@@ -27,9 +27,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit message prepared
 
 ### Step 2: Rewrite server tool and its tests
-- [ ] Implementation: rewrite `edit_file` MCP tool in `server.py` (async + locking), rewrite `test_edit_file_api.py` (TDD)
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: rewrite `edit_file` MCP tool in `server.py` (async + locking), rewrite `test_edit_file_api.py` (TDD)
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 3: Migrate remaining test files
 - [ ] Implementation: migrate `test_edit_file_issues.py`, `test_edit_already_applied_fix.py`, `test_edit_file_backslash.py` to new interface

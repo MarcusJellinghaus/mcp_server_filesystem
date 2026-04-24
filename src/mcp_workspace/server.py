@@ -56,6 +56,9 @@ register_reference_tools(mcp)
 # Store the project directory as a module-level variable
 _project_dir: Optional[Path] = None
 
+# Per-file locks for concurrent edit safety
+_file_locks: dict[str, asyncio.Lock] = {}
+
 
 def _check_not_gitignored(file_path: str) -> None:
     """Raise ValueError if path is excluded by .gitignore.
@@ -361,99 +364,43 @@ def move_file(source_path: str, destination_path: str) -> bool:
 
 @mcp.tool()
 @log_function_call
-def edit_file(
+async def edit_file(
     file_path: str,
-    edits: List[Dict[str, str]],
-    dry_run: bool = False,
-    options: Optional[Dict[str, bool]] = None,
-) -> Dict[str, Any]:
-    """Make selective edits to files using exact string matching.
+    old_string: str,
+    new_string: str,
+    replace_all: bool = False,
+) -> str:
+    """Make a selective edit to a file using exact string matching.
 
-    Features:
-        - Exact string matching (no fuzzy matching)
-        - Basic indentation preservation
-        - First occurrence replacement only
-        - Sequential edit processing
-        - Already-applied edit detection
-        - Git-style diff output with context
-        - Preview changes with dry run mode
+    Finds old_string in the file and replaces it with new_string.
+    Empty old_string inserts new_string at the beginning of the file.
+    Raises ValueError if old_string matches multiple locations
+    (use replace_all=True to replace all).
 
     Args:
         file_path: Path to the file to edit (relative to project directory)
-        edits: List of edit operations (each containing old_text and new_text)
-        dry_run: Preview changes without applying (default: False)
-        options: Optional formatting settings
-                            - preserve_indentation: Keep existing indentation (default: False)
+        old_string: Exact text to find and replace
+        new_string: Replacement text
+        replace_all: Replace all occurrences instead of requiring unique match
 
     Returns:
-        Dict containing:
-            - success: bool indicating if all edits succeeded
-            - diff: Git-style unified diff showing changes
-            - match_results: List of results for each edit operation
-            - file_path: Path of the edited file
-            - dry_run: Whether this was a dry run
-            - message: Optional status message
-            - error: Error message if any edits failed
+        Git-style unified diff showing the changes, or a message
+        if the edit was already applied.
     """
-    # Basic validation
     if not file_path or not isinstance(file_path, str):
-        logger.error("Invalid file path parameter: %s", file_path)
         raise ValueError(f"File path must be a non-empty string, got {type(file_path)}")
-
-    if not isinstance(edits, list) or not edits:
-        logger.error("Invalid edits parameter: %s", edits)
-        raise ValueError("Edits must be a non-empty list")
 
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
 
-    # Normalize edit operations (ensure proper format and required fields)
-    normalized_edits = []
-    for i, edit in enumerate(edits):
-        if not isinstance(edit, dict):
-            raise ValueError(f"Edit #{i} must be a dictionary, got {type(edit)}")
-
-        # Validate required fields
-        if "old_text" not in edit or "new_text" not in edit:
-            missing = ", ".join([f for f in ["old_text", "new_text"] if f not in edit])
-            raise ValueError(f"Edit #{i} is missing required field(s): {missing}")
-
-        # Create normalized edit with just the fields we need
-        normalized_edits.append(
-            {"old_text": edit["old_text"], "new_text": edit["new_text"]}
-        )
-
-    # Process options (validate and only extract supported fields)
-    normalized_options = {}
-    supported_options = {"preserve_indentation"}
-
-    if options:
-        for opt_name, opt_value in options.items():
-            if opt_name in supported_options:
-                normalized_options[opt_name] = opt_value
-            else:
-                logger.warning(
-                    "Unsupported option '%s' ignored. Supported options: %s",
-                    opt_name,
-                    supported_options,
-                )
-
     _check_not_gitignored(file_path)
 
-    logger.info("Editing file: %s, dry_run: %s", file_path, dry_run)
-
-    try:
-        # Call the implementation function
+    abs_path = str((_project_dir / file_path).resolve())
+    lock = _file_locks.setdefault(abs_path, asyncio.Lock())
+    async with lock:
         return edit_file_util(
-            file_path,  # Already normalized by path_utils in the utility function
-            normalized_edits,
-            dry_run=dry_run,
-            options=normalized_options,
-            project_dir=_project_dir,
+            file_path, old_string, new_string, replace_all, _project_dir
         )
-    except Exception as e:
-        logger.error("Error editing file %s: %s", file_path, str(e))
-        raise
 
 
 @mcp.tool()

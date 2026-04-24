@@ -1,15 +1,11 @@
-refactor: rewrite edit_file utility with new single-edit interface
+refactor: rewrite edit_file server tool with async + file locking
 
-Replace batch edit_file(edits=[...]) with single-edit
-edit_file(old_string, new_string, replace_all) signature matching
-Claude Code's built-in Edit tool interface.
-
-Changes:
-- New signature: edit_file(file_path, old_string, new_string, replace_all, project_dir)
-- Returns diff string on success, message on already-applied, raises on error
-- Empty old_string inserts at beginning of file
-- replace_all=True replaces all occurrences; False raises on multiple matches
-- Remove _error_result, _preserve_basic_indentation, create_unified_diff
-- Keep _create_diff, _truncate, _is_edit_already_applied helpers
-- Add _is_position_aware_already_applied and _write_file helpers
-- Rewrite test_edit_file.py with 14 tests covering new interface
+- Rewrite edit_file MCP tool in server.py: new signature with
+  old_string/new_string/replace_all params, async def, per-file
+  asyncio.Lock for concurrent edit safety
+- Remove old edits/dry_run/options parameters and normalization logic
+- Add module-level _file_locks dict keyed by resolved absolute path
+- Rewrite test_edit_file_api.py with 7 tests: basic edit, text not
+  found, replace_all, empty old_string, gitignore check, locking
+  serialization, different-file concurrency
+- Update test_server.py::test_edit_file_gitignored for async interface
