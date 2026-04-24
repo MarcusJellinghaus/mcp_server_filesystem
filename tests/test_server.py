@@ -337,10 +337,11 @@ def test_save_file_gitignored(gitignore_project: Path) -> None:
         save_file("output.log", "content")
 
 
-def test_edit_file_gitignored(gitignore_project: Path) -> None:
+@pytest.mark.asyncio
+async def test_edit_file_gitignored(gitignore_project: Path) -> None:
     """edit_file on gitignored file raises ValueError."""
     with pytest.raises(ValueError, match="excluded by .gitignore"):
-        edit_file("debug.log", [{"old_text": "a", "new_text": "b"}])
+        await edit_file("debug.log", old_string="a", new_string="b")
 
 
 def test_append_file_gitignored(gitignore_project: Path) -> None:
