@@ -70,12 +70,15 @@ def _render(node: _TreeNode, prefix: str, dirs_only: bool) -> List[str]:
     """
     results: List[str] = []
 
-    for child_name, child_node in node.children.items():
+    for child_name in sorted(node.children):
+        child_node = node.children[child_name]
         child_prefix = prefix + child_name + "/"
+        if dirs_only:
+            results.append(child_prefix)
         results.extend(_render(child_node, child_prefix, dirs_only))
 
     if not dirs_only:
-        for filename in node.files:
+        for filename in sorted(node.files):
             results.append(prefix + filename)
 
     return results

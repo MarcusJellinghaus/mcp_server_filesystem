@@ -1,10 +1,8 @@
-feat: add tree_listing module with _TreeNode, _build_tree, _render
+feat(tree-listing): add deterministic sorting and dirs_only mode
 
-Implement Step 1 of the list_directory tree enhancement (#46):
-
-- Add _TreeNode dataclass for internal tree representation
-- Add _build_tree to construct tree from flat file paths
-- Add _render to convert tree back to flat path list
-- Add list_directory_tree as public API entry point
-- Export list_directory_tree from file_tools package
-- Add comprehensive tests for round-trip correctness
+- Sort children dirs alphabetically, then files alphabetically at every
+  tree level (dirs always before files)
+- Add dirs_only=True rendering: emit directory paths with trailing /,
+  skip all file entries
+- Add tests for sort order, dirs_only basic/nested/no-files, and
+  base_path interaction
