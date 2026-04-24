@@ -1,8 +1,11 @@
-feat(tree-listing): add deterministic sorting and dirs_only mode
+feat: add auto-collapsing for large directory trees
 
-- Sort children dirs alphabetically, then files alphabetically at every
-  tree level (dirs always before files)
-- Add dirs_only=True rendering: emit directory paths with trailing /,
-  skip all file entries
-- Add tests for sort order, dirs_only basic/nested/no-files, and
-  base_path interaction
+Implement greedy collapse algorithm that reduces trees exceeding 250
+lines by collapsing the highest-scoring directories first. Depth-1
+directories are protected and never collapsed.
+
+New functions: _count_lines, _recursive_file_count, _score,
+_find_collapsible, _collapse. Updated _render to display collapsed
+nodes as "dirname/ (N files)" format.
+
+Scoring formula: (direct_files + direct_subdirs * 0.3) * depth

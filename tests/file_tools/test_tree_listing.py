@@ -1,6 +1,17 @@
 """Tests for tree_listing module."""
 
-from mcp_workspace.file_tools.tree_listing import list_directory_tree
+from typing import List
+
+from mcp_workspace.file_tools.tree_listing import (
+    _TreeNode,
+    _build_tree,
+    _collapse,
+    _count_lines,
+    _find_collapsible,
+    _recursive_file_count,
+    _score,
+    list_directory_tree,
+)
 
 
 class TestListDirectoryTree:
@@ -128,3 +139,191 @@ class TestDirsOnlyMode:
         paths = ["src/utils/a.py", "src/core/b.py"]
         result = list_directory_tree(paths, base_path="src", dirs_only=True)
         assert result == ["src/core/", "src/utils/"]
+
+
+def _make_paths(
+    dirs: List[str], files_per_dir: int, depth: int = 1
+) -> List[str]:
+    """Generate file paths for testing large trees.
+
+    Creates `files_per_dir` files in each directory at each nesting level
+    up to `depth`.
+    """
+    paths: List[str] = []
+    for d in dirs:
+        for level in range(depth):
+            if level == 0:
+                prefix = d
+            else:
+                prefix = d + "/" + "/".join(f"sub{i}" for i in range(level))
+            for i in range(files_per_dir):
+                paths.append(f"{prefix}/file{i}.py")
+    return paths
+
+
+class TestCollapsing:
+    """Tests for auto-collapsing behavior."""
+
+    def test_no_collapsing_needed(self) -> None:
+        """Tree with < 250 lines is unchanged."""
+        paths = ["src/a.py", "src/b.py", "tests/test_a.py"]
+        result = list_directory_tree(paths)
+        assert sorted(result) == sorted(paths)
+
+    def test_collapsing_triggers(self) -> None:
+        """Tree with > 250 lines is collapsed to <= 250."""
+        # Create many dirs at depth 2 with many files each
+        dirs = [f"src/pkg{i}" for i in range(30)]
+        paths = _make_paths(dirs, files_per_dir=10)
+        result = list_directory_tree(paths)
+        assert len(result) <= 250
+
+    def test_depth1_protection(self) -> None:
+        """Depth-1 dirs are never collapsed."""
+        dirs = [f"src/pkg{i}" for i in range(30)]
+        paths = _make_paths(dirs, files_per_dir=10)
+        result = list_directory_tree(paths)
+        # src/ is depth-1, should never be collapsed
+        # collapsed lines look like "dir/ (N files)", not like regular file paths
+        collapsed = [r for r in result if "(" in r and "files)" in r]
+        for line in collapsed:
+            # Collapsed entries should be at depth >= 2
+            parts = line.split("/")
+            assert len(parts) >= 2  # at least "src/pkgX/ (N files)"
+
+    def test_collapsed_line_format(self) -> None:
+        """Collapsed dirs show 'dirname/ (N files)' format."""
+        dirs = [f"src/pkg{i}" for i in range(30)]
+        paths = _make_paths(dirs, files_per_dir=10)
+        result = list_directory_tree(paths)
+        collapsed = [r for r in result if "files)" in r]
+        assert len(collapsed) > 0
+        for line in collapsed:
+            assert line.endswith(" files)")
+            # Format: "src/pkgN/ (10 files)"
+            assert "/ (" in line
+
+    def test_collapsed_format_zero_files(self) -> None:
+        """Collapsed dir with no files shows just 'dirname/'."""
+        node = _TreeNode(name="empty")
+        node.collapsed = True
+        node.collapsed_file_count = 0
+        # Build a tree with this empty collapsed node at depth 2
+        root = _TreeNode(name="")
+        parent = _TreeNode(name="src")
+        parent.children["empty"] = node
+        root.children["src"] = parent
+        from mcp_workspace.file_tools.tree_listing import _render
+
+        result = _render(root, "", dirs_only=False)
+        assert "src/empty/" in result
+        assert not any("files)" in r for r in result if "empty" in r)
+
+    def test_deeper_dirs_collapsed_first(self) -> None:
+        """Depth-3 dir collapses before depth-2 with same content."""
+        # depth-2 dir: src/shallow/ with 5 files
+        # depth-3 dir: src/mid/deep/ with 5 files
+        tree = _build_tree(
+            [
+                *[f"src/shallow/file{i}.py" for i in range(5)],
+                *[f"src/mid/deep/file{i}.py" for i in range(5)],
+                *[f"src/mid/file{i}.py" for i in range(2)],
+            ],
+            ".",
+        )
+        # Score for depth-3 (deep): (5 + 0*0.3) * 3 = 15
+        # Score for depth-2 (shallow): (5 + 0*0.3) * 2 = 10
+        # Score for depth-2 (mid): (2 + 1*0.3) * 2 = 4.6
+        candidates = _find_collapsible(tree, depth=1)
+        candidates.sort(key=lambda x: (-x[0], x[1]))
+        assert candidates[0][1] == "deep"  # depth-3 first
+
+    def test_scoring_prefers_file_heavy_dirs(self) -> None:
+        """Dir with 10 files scores higher than dir with 10 subdirs."""
+        # file-heavy: 10 files, 0 children
+        file_heavy = _TreeNode(name="files")
+        file_heavy.files = [f"f{i}.py" for i in range(10)]
+
+        # subdir-heavy: 0 files, 10 children
+        subdir_heavy = _TreeNode(name="subdirs")
+        for i in range(10):
+            subdir_heavy.children[f"child{i}"] = _TreeNode(name=f"child{i}")
+
+        # At same depth=2: file_heavy=10*2=20, subdir_heavy=3.0*2=6.0
+        assert _score(file_heavy, 2) > _score(subdir_heavy, 2)
+
+    def test_root_with_only_files(self) -> None:
+        """Root with only files, no dirs → all files shown."""
+        paths = [f"file{i}.py" for i in range(300)]
+        result = list_directory_tree(paths)
+        # No dirs to collapse, all files shown
+        assert len(result) == 300
+
+    def test_collapsing_applies_to_dirs_only_mode(self) -> None:
+        """Collapsing works in dirs_only=True mode."""
+        # Need > 250 directory lines
+        dirs = [f"src/pkg{i}/sub{j}" for i in range(30) for j in range(10)]
+        paths = _make_paths(dirs, files_per_dir=1)
+        result = list_directory_tree(paths, dirs_only=True)
+        assert len(result) <= 250
+
+    def test_collapsed_file_count_is_recursive(self) -> None:
+        """Collapsing a dir with nested subdirs counts all files."""
+        node = _TreeNode(name="top")
+        child = _TreeNode(name="child")
+        child.files = ["a.py", "b.py"]
+        grandchild = _TreeNode(name="grandchild")
+        grandchild.files = ["c.py", "d.py", "e.py"]
+        child.children["grandchild"] = grandchild
+        node.children["child"] = child
+        node.files = ["root.py"]
+        assert _recursive_file_count(node) == 6  # 1 + 2 + 3
+
+    def test_parent_score_stability_after_child_collapse(self) -> None:
+        """Parent score unchanged after child collapse."""
+        parent = _TreeNode(name="parent")
+        parent.files = ["a.py", "b.py"]
+        child1 = _TreeNode(name="c1")
+        child1.files = ["x.py"]
+        child2 = _TreeNode(name="c2")
+        child2.files = ["y.py"]
+        child3 = _TreeNode(name="c3")
+        child3.files = ["z.py"]
+        parent.children = {"c1": child1, "c2": child2, "c3": child3}
+
+        score_before = _score(parent, 2)
+
+        # Collapse one child
+        child1.collapsed = True
+        child1.collapsed_file_count = 1
+        child1.files.clear()
+
+        score_after = _score(parent, 2)
+        assert score_before == score_after
+
+
+class TestCountLines:
+    """Tests for _count_lines helper."""
+
+    def test_collapsed_node_is_one_line(self) -> None:
+        """A collapsed node counts as 1 line."""
+        node = _TreeNode(name="pkg")
+        node.collapsed = True
+        node.collapsed_file_count = 50
+        assert _count_lines(node, dirs_only=False) == 1
+
+    def test_files_counted(self) -> None:
+        """Each file is one line."""
+        node = _TreeNode(name="pkg")
+        node.files = ["a.py", "b.py", "c.py"]
+        assert _count_lines(node, dirs_only=False) == 3
+
+    def test_dirs_only_counts_dirs(self) -> None:
+        """In dirs_only mode, expanded child dirs are lines."""
+        root = _TreeNode(name="")
+        child1 = _TreeNode(name="a")
+        child2 = _TreeNode(name="b")
+        root.children = {"a": child1, "b": child2}
+        root.files = ["x.py"]
+        # dirs_only: 2 dir lines + recurse into children (0 each)
+        assert _count_lines(root, dirs_only=True) == 2

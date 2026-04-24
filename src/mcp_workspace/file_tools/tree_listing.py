@@ -5,7 +5,7 @@ directories, and renders back to a flat list of path strings.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 _COLLAPSE_THRESHOLD = 250
 
@@ -57,6 +57,62 @@ def _build_tree(file_paths: List[str], base_path: str) -> _TreeNode:
     return root
 
 
+def _count_lines(node: _TreeNode, dirs_only: bool) -> int:
+    """Count how many output lines the tree would produce."""
+    if node.collapsed:
+        return 1
+    count = 0
+    for child in node.children.values():
+        if child.collapsed:
+            count += 1
+        else:
+            if dirs_only:
+                count += 1  # the dir line itself
+            count += _count_lines(child, dirs_only)
+    if not dirs_only:
+        count += len(node.files)
+    return count
+
+
+def _recursive_file_count(node: _TreeNode) -> int:
+    """Count all files recursively under a node (post-collapse)."""
+    total = len(node.files)
+    for child in node.children.values():
+        total += _recursive_file_count(child)
+    return total
+
+
+def _score(node: _TreeNode, depth: int) -> float:
+    """Score = (len(files) + len(children) * 0.3) * depth."""
+    return (len(node.files) + len(node.children) * 0.3) * depth
+
+
+def _find_collapsible(
+    node: _TreeNode, depth: int
+) -> List[Tuple[float, str, _TreeNode]]:
+    """Find all collapsible directories (depth >= 2, not already collapsed)."""
+    results: List[Tuple[float, str, _TreeNode]] = []
+    for child in node.children.values():
+        if depth >= 2 and not child.collapsed:
+            results.append((_score(child, depth), child.name, child))
+        results.extend(_find_collapsible(child, depth + 1))
+    return results
+
+
+def _collapse(root: _TreeNode, dirs_only: bool) -> None:
+    """Greedy loop: while line_count > 250, collapse highest-scoring dir."""
+    while _count_lines(root, dirs_only) > _COLLAPSE_THRESHOLD:
+        candidates = _find_collapsible(root, depth=1)
+        if not candidates:
+            break
+        candidates.sort(key=lambda x: (-x[0], x[1]))
+        _, _, target = candidates[0]
+        target.collapsed = True
+        target.collapsed_file_count = _recursive_file_count(target)
+        target.children.clear()
+        target.files.clear()
+
+
 def _render(node: _TreeNode, prefix: str, dirs_only: bool) -> List[str]:
     """Render tree to flat list of path strings.
 
@@ -73,9 +129,16 @@ def _render(node: _TreeNode, prefix: str, dirs_only: bool) -> List[str]:
     for child_name in sorted(node.children):
         child_node = node.children[child_name]
         child_prefix = prefix + child_name + "/"
-        if dirs_only:
-            results.append(child_prefix)
-        results.extend(_render(child_node, child_prefix, dirs_only))
+        if child_node.collapsed:
+            if child_node.collapsed_file_count > 0:
+                count = child_node.collapsed_file_count
+                results.append(f"{child_prefix} ({count} files)")
+            else:
+                results.append(child_prefix)
+        else:
+            if dirs_only:
+                results.append(child_prefix)
+            results.extend(_render(child_node, child_prefix, dirs_only))
 
     if not dirs_only:
         for filename in sorted(node.files):
@@ -106,6 +169,7 @@ def list_directory_tree(
         return []
 
     tree = _build_tree(file_paths, base_path)
+    _collapse(tree, dirs_only)
     render_prefix = ""
     if base_path not in (".", ""):
         render_prefix = base_path.rstrip("/") + "/"

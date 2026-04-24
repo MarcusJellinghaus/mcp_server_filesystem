@@ -23,7 +23,7 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 - [x] [Step 1: _TreeNode + _build_tree + _render (basic listing)](steps/step_1.md)
 - [x] [Step 2: Sorting + dirs_only mode](steps/step_2.md)
-- [ ] [Step 3: Auto-collapsing — scoring + greedy collapse loop](steps/step_3.md)
+- [x] [Step 3: Auto-collapsing — scoring + greedy collapse loop](steps/step_3.md)
 - [ ] [Step 4: Truncation after collapsing](steps/step_4.md)
 - [ ] [Step 5: Wire into server.py — path and dirs_only parameters](steps/step_5.md)
 
