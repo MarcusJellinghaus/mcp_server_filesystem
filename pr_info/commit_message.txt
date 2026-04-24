@@ -1,0 +1,6 @@
+fix: harden normalize_path against OSError bypass (#152)
+
+When Path.resolve() raises OSError, the except block now checks for
+'..' in path parts and rejects traversal attempts instead of silently
+passing through. Added two tests covering the OSError fallback path
+for both malicious and clean inputs.
