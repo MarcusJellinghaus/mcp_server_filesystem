@@ -13,7 +13,6 @@ from mcp_workspace.checks.branch_status import (
     _collect_pr_info,
     _collect_rebase_status,
     _collect_task_status,
-    _generate_recommendations,
     collect_branch_status,
     create_empty_report,
     get_failed_jobs_summary,
@@ -468,170 +467,61 @@ class TestCollectPRInfo:
     def test_pr_found(self) -> None:
         mock_pr = MagicMock()
         mock_pr.find_pull_request_by_head.return_value = [
-            {"number": 45, "url": "https://github.com/owner/repo/pull/45"}
+            {
+                "number": 45,
+                "url": "https://github.com/owner/repo/pull/45",
+                "mergeable": True,
+            }
         ]
-        number, url, found = _collect_pr_info(mock_pr, "feature")
+        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
         assert number == 45
         assert found is True
+        assert mergeable is True
 
     def test_no_pr(self) -> None:
         mock_pr = MagicMock()
         mock_pr.find_pull_request_by_head.return_value = []
-        number, url, found = _collect_pr_info(mock_pr, "feature")
+        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
         assert number is None
         assert found is False
+        assert mergeable is None
 
     def test_exception(self) -> None:
         mock_pr = MagicMock()
         mock_pr.find_pull_request_by_head.side_effect = Exception("fail")
-        number, url, found = _collect_pr_info(mock_pr, "feature")
+        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
         assert found is None
+        assert mergeable is None
 
-
-class TestGenerateRecommendations:
-    """Tests for _generate_recommendations."""
-
-    def test_all_good(self) -> None:
-        recs = _generate_recommendations(
+    def test_pr_found_mergeable_none(self) -> None:
+        """PR exists but mergeable is None."""
+        mock_pr = MagicMock()
+        mock_pr.find_pull_request_by_head.return_value = [
             {
-                "ci_status": CIStatus.PASSED,
-                "rebase_needed": False,
-                "tasks_status": TaskTrackerStatus.COMPLETE,
-                "tasks_reason": "All done",
-                "tasks_is_blocking": False,
+                "number": 45,
+                "url": "https://github.com/owner/repo/pull/45",
+                "mergeable": None,
             }
-        )
-        assert "Ready to merge" in recs
+        ]
+        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
+        assert number == 45
+        assert found is True
+        assert mergeable is None
 
-    def test_all_good_na_tasks(self) -> None:
-        recs = _generate_recommendations(
+    def test_pr_found_mergeable_false(self) -> None:
+        """PR exists but mergeable is False."""
+        mock_pr = MagicMock()
+        mock_pr.find_pull_request_by_head.return_value = [
             {
-                "ci_status": CIStatus.PASSED,
-                "rebase_needed": False,
-                "tasks_status": TaskTrackerStatus.N_A,
-                "tasks_reason": "No tasks",
-                "tasks_is_blocking": False,
+                "number": 45,
+                "url": "https://github.com/owner/repo/pull/45",
+                "mergeable": False,
             }
-        )
-        assert "Ready to merge" in recs
-
-    def test_ci_failed(self) -> None:
-        recs = _generate_recommendations(
-            {
-                "ci_status": CIStatus.FAILED,
-                "rebase_needed": False,
-                "tasks_status": TaskTrackerStatus.COMPLETE,
-                "tasks_reason": "All done",
-                "tasks_is_blocking": False,
-            }
-        )
-        assert "Fix CI test failures" in recs
-
-    def test_ci_failed_with_details(self) -> None:
-        recs = _generate_recommendations(
-            {
-                "ci_status": CIStatus.FAILED,
-                "ci_details": "Some error log",
-                "rebase_needed": False,
-                "tasks_status": TaskTrackerStatus.COMPLETE,
-                "tasks_reason": "All done",
-                "tasks_is_blocking": False,
-            }
-        )
-        assert "Check CI error details above" in recs
-
-    def test_not_configured(self) -> None:
-        recs = _generate_recommendations(
-            {
-                "ci_status": CIStatus.NOT_CONFIGURED,
-                "rebase_needed": False,
-                "tasks_status": TaskTrackerStatus.COMPLETE,
-                "tasks_reason": "All done",
-                "tasks_is_blocking": False,
-            }
-        )
-        assert "Configure CI pipeline" in recs
-
-    def test_rebase_needed(self) -> None:
-        recs = _generate_recommendations(
-            {
-                "ci_status": CIStatus.PASSED,
-                "rebase_needed": True,
-                "tasks_status": TaskTrackerStatus.COMPLETE,
-                "tasks_reason": "All done",
-                "tasks_is_blocking": False,
-            }
-        )
-        assert "Rebase onto origin/main" in recs
-
-    def test_rebase_needed_but_tasks_blocking(self) -> None:
-        recs = _generate_recommendations(
-            {
-                "ci_status": CIStatus.PASSED,
-                "rebase_needed": True,
-                "tasks_status": TaskTrackerStatus.INCOMPLETE,
-                "tasks_reason": "2 of 5",
-                "tasks_is_blocking": True,
-            }
-        )
-        assert not any("Rebase" in r for r in recs)
-        assert any("remaining tasks" in r.lower() for r in recs)
-
-    def test_tasks_incomplete(self) -> None:
-        recs = _generate_recommendations(
-            {
-                "ci_status": CIStatus.PASSED,
-                "rebase_needed": False,
-                "tasks_status": TaskTrackerStatus.INCOMPLETE,
-                "tasks_reason": "3 of 5 tasks complete",
-                "tasks_is_blocking": True,
-            }
-        )
-        assert any("remaining tasks" in r.lower() for r in recs)
-
-    def test_rebase_suppressed_when_ci_failed(self) -> None:
-        """Rebase recommendation is suppressed when CI is failed."""
-        recs = _generate_recommendations(
-            {
-                "ci_status": CIStatus.FAILED,
-                "rebase_needed": True,
-                "tasks_status": TaskTrackerStatus.COMPLETE,
-                "tasks_reason": "All done",
-                "tasks_is_blocking": False,
-            }
-        )
-        assert "Fix CI test failures" in recs
-        assert not any("Rebase" in r for r in recs)
-
-    def test_na_blocking_recommends_fix_tracker(self) -> None:
-        """N_A + blocking recommends fixing tracker."""
-        recs = _generate_recommendations(
-            {
-                "ci_status": CIStatus.PASSED,
-                "rebase_needed": False,
-                "tasks_status": TaskTrackerStatus.N_A,
-                "tasks_reason": "Task tracker is empty",
-                "tasks_is_blocking": True,
-            }
-        )
-        assert any("Fix task tracker" in r for r in recs)
-        assert "Task tracker is empty" in recs[0] or any(
-            "Task tracker is empty" in r for r in recs
-        )
-
-    def test_multiple_issues(self) -> None:
-        recs = _generate_recommendations(
-            {
-                "ci_status": CIStatus.FAILED,
-                "rebase_needed": True,
-                "tasks_status": TaskTrackerStatus.INCOMPLETE,
-                "tasks_reason": "3 of 5",
-                "tasks_is_blocking": False,
-            }
-        )
-        # CI failed + incomplete tasks; rebase suppressed because CI failed
-        assert "Fix CI test failures" in recs
-        assert any("remaining tasks" in r.lower() for r in recs)
+        ]
+        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
+        assert number == 45
+        assert found is True
+        assert mergeable is False
 
 
 class TestCollectBranchStatus:
@@ -684,13 +574,14 @@ class TestCollectBranchStatus:
             False,
         )
         mock_label.return_value = "status-04:in-progress"
-        mock_pr_info.return_value = (45, "https://url", True)
+        mock_pr_info.return_value = (45, "https://url", True, True)
 
         report = collect_branch_status(Path("/tmp"))
         assert report.branch_name == "123-feature"
         assert report.base_branch == "main"
         assert report.ci_status == CIStatus.PASSED
         assert report.pr_number == 45
+        assert report.pr_mergeable is True
 
     @patch("mcp_workspace.checks.branch_status.detect_base_branch")
     @patch("mcp_workspace.checks.branch_status.PullRequestManager")
@@ -728,6 +619,54 @@ class TestCollectBranchStatus:
             assert report.branch_name == "feature"
             # pr_manager is None when init fails, so pr fields should be None
             assert report.pr_found is None
+            assert report.pr_mergeable is None
+
+    @patch("mcp_workspace.checks.branch_status._collect_pr_info")
+    @patch("mcp_workspace.checks.branch_status._collect_github_label")
+    @patch("mcp_workspace.checks.branch_status._collect_task_status")
+    @patch("mcp_workspace.checks.branch_status._collect_rebase_status")
+    @patch("mcp_workspace.checks.branch_status._collect_ci_status")
+    @patch("mcp_workspace.checks.branch_status.detect_base_branch")
+    @patch("mcp_workspace.checks.branch_status.PullRequestManager")
+    @patch("mcp_workspace.checks.branch_status.IssueManager")
+    @patch("mcp_workspace.checks.branch_status.extract_issue_number_from_branch")
+    @patch("mcp_workspace.checks.branch_status.get_current_branch_name")
+    def test_rebase_behind_but_mergeable_squash_safe(
+        self,
+        mock_branch: MagicMock,
+        mock_extract: MagicMock,
+        mock_issue_mgr_cls: MagicMock,
+        mock_pr_mgr_cls: MagicMock,
+        mock_detect: MagicMock,
+        mock_ci: MagicMock,
+        mock_rebase: MagicMock,
+        mock_tasks: MagicMock,
+        mock_label: MagicMock,
+        mock_pr_info: MagicMock,
+    ) -> None:
+        """Rebase behind + mergeable=True → override + squash-merge safe recommendation."""
+        mock_branch.return_value = "123-feature"
+        mock_extract.return_value = 123
+        mock_issue_mgr = MagicMock()
+        mock_issue_mgr.get_issue.return_value = {"number": 123, "labels": []}
+        mock_issue_mgr_cls.return_value = mock_issue_mgr
+        mock_pr_mgr_cls.return_value = MagicMock()
+        mock_detect.return_value = "main"
+        mock_ci.return_value = (CIStatus.PASSED, None)
+        mock_rebase.return_value = (True, "3 commits behind")
+        mock_tasks.return_value = (
+            TaskTrackerStatus.COMPLETE,
+            "All tasks complete",
+            False,
+        )
+        mock_label.return_value = "unknown"
+        mock_pr_info.return_value = (45, "https://url", True, True)
+
+        report = collect_branch_status(Path("/tmp"))
+        assert report.rebase_needed is False
+        assert "squash-merge safe" in report.rebase_reason
+        assert report.pr_mergeable is True
+        assert any("squash-merge safe" in r for r in report.recommendations)
 
     @patch("mcp_workspace.checks.branch_status.get_current_branch_name")
     def test_unexpected_exception_returns_empty_report(

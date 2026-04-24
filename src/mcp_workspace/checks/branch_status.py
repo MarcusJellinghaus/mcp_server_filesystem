@@ -67,6 +67,7 @@ class BranchStatusReport:
     pr_number: Optional[int] = None
     pr_url: Optional[str] = None
     pr_found: Optional[bool] = None
+    pr_mergeable: Optional[bool] = None
 
     def format_for_human(self) -> str:
         """Format report for human consumption.
@@ -110,6 +111,12 @@ class BranchStatusReport:
         if self.pr_found is not None:
             if self.pr_found:
                 lines.append(f"PR: \u2705 #{self.pr_number} ({self.pr_url})")
+                if self.pr_mergeable is True:
+                    lines.append("Merge Status: \u2705 Mergeable (squash-merge safe)")
+                elif self.pr_mergeable is False:
+                    lines.append("Merge Status: \u274c Not mergeable (has conflicts)")
+                else:
+                    lines.append("Merge Status: \u23f3 Pending")
             else:
                 lines.append("PR: \u274c No PR found")
             lines.append("")
@@ -164,7 +171,10 @@ class BranchStatusReport:
             f"Tasks={self.tasks_status.value} ({self.tasks_reason})"
         )
         if self.pr_found is True:
-            status_summary += f", PR=#{self.pr_number}"
+            mergeable_str = (
+                str(self.pr_mergeable) if self.pr_mergeable is not None else "None"
+            )
+            status_summary += f", PR=#{self.pr_number}, Mergeable={mergeable_str}"
         elif self.pr_found is False:
             status_summary += ", PR=NOT_FOUND"
         recommendations_text = ", ".join(self.recommendations)
@@ -397,21 +407,46 @@ def _collect_github_label(issue_data: Optional[IssueData]) -> str:
 
 def _collect_pr_info(
     pr_manager: PullRequestManager, branch_name: str
-) -> tuple[Optional[int], Optional[str], Optional[bool]]:
+) -> tuple[Optional[int], Optional[str], Optional[bool], Optional[bool]]:
     """Collect PR info for the branch.
 
     Returns:
-        Tuple of (pr_number, pr_url, pr_found).
+        Tuple of (pr_number, pr_url, pr_found, pr_mergeable).
     """
     try:
         prs = pr_manager.find_pull_request_by_head(branch_name)
         if prs:
             pr = prs[0]
-            return pr.get("number"), pr.get("url"), True
-        return None, None, False
+            return (pr["number"], pr["url"], True, pr.get("mergeable"))
+        return (None, None, False, None)
     except Exception:  # pylint: disable=broad-exception-caught
         logger.debug("PR lookup failed", exc_info=True)
-        return None, None, None
+        return (None, None, None, None)
+
+
+def _apply_pr_merge_override(
+    rebase_needed: bool,
+    rebase_reason: str,
+    pr_mergeable: Optional[bool],
+) -> tuple[bool, str]:
+    """Override rebase status when PR is mergeable on GitHub.
+
+    When the branch is behind but GitHub confirms the PR is mergeable
+    (e.g. squash-merge), the local rebase check is overridden.
+
+    Args:
+        rebase_needed: Whether local git says rebase is needed.
+        rebase_reason: Human-readable reason from local check.
+        pr_mergeable: GitHub's mergeable status (True/False/None).
+
+    Returns:
+        Tuple of (rebase_needed, rebase_reason), possibly overridden.
+    """
+    if not rebase_needed:
+        return (rebase_needed, rebase_reason)
+    if pr_mergeable is True:
+        return (False, "Behind base branch but PR is mergeable (squash-merge safe)")
+    return (rebase_needed, rebase_reason)
 
 
 def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
@@ -428,6 +463,7 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
     tasks_reason = report_data.get("tasks_reason", "")
     tasks_is_blocking = report_data.get("tasks_is_blocking", False)
     tasks_ok = not tasks_is_blocking
+    pr_mergeable = report_data.get("pr_mergeable")
 
     if ci_status == CIStatus.FAILED:
         recommendations.append("Fix CI test failures")
@@ -453,7 +489,10 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
         and tasks_ok
         and not rebase_needed
     ):
-        recommendations.append("Ready to merge")
+        if pr_mergeable is True:
+            recommendations.append("Ready to merge (squash-merge safe)")
+        else:
+            recommendations.append("Ready to merge")
 
     if not recommendations:
         recommendations.append("Continue with current work")
@@ -526,13 +565,18 @@ def collect_branch_status(
         current_github_label = _collect_github_label(issue_data)
 
         # 8. Collect PR info
-        pr_number, pr_url, pr_found = (
+        pr_number, pr_url, pr_found, pr_mergeable = (
             _collect_pr_info(pr_manager, branch_name)
             if pr_manager
-            else (None, None, None)
+            else (None, None, None, None)
         )
 
-        # 9. Generate recommendations
+        # 9. Apply PR merge override
+        rebase_needed, rebase_reason = _apply_pr_merge_override(
+            rebase_needed, rebase_reason, pr_mergeable if pr_found else None
+        )
+
+        # 10. Generate recommendations
         report_data: Dict[str, Any] = {
             "ci_status": ci_status,
             "ci_details": ci_details,
@@ -540,6 +584,7 @@ def collect_branch_status(
             "tasks_status": tasks_status,
             "tasks_reason": tasks_reason,
             "tasks_is_blocking": tasks_is_blocking,
+            "pr_mergeable": pr_mergeable,
         }
         recommendations = _generate_recommendations(report_data)
 
@@ -558,6 +603,7 @@ def collect_branch_status(
             pr_number=pr_number,
             pr_url=pr_url,
             pr_found=pr_found,
+            pr_mergeable=pr_mergeable,
         )
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Error collecting branch status: {e}")
