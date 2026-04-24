@@ -1,4 +1,0 @@
-fix: format long line in test_reference_projects_mcp_tools.py for black compliance
-
-Break the `for fn in (...)` line in test_async_handlers_are_coroutines
-that exceeded the 88-character line length limit configured for black.
