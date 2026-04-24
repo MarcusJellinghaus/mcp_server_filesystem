@@ -8,7 +8,7 @@ Fix a path traversal vulnerability in `normalize_path()` where an `OSError` from
 
 **No architectural changes.** This is a targeted security hardening of one function in one module. The fix:
 
-- Narrows the exception catch from `(FileNotFoundError, OSError)` to `OSError` only — `FileNotFoundError` is dead code on Python 3.6+ with `resolve(strict=False)`
+- Narrows the exception catch from `(FileNotFoundError, OSError)` to `OSError` only — `FileNotFoundError` is a subclass of `OSError` so it's still caught; the explicit listing was dead code since `resolve(strict=False)` never raises it on Python 3.6+
 - Adds a fallback `..` traversal check on `absolute_path.parts` when `resolve()` fails
 - Adds a `logger.warning()` call when the fallback path triggers (unusual condition, aids debugging)
 

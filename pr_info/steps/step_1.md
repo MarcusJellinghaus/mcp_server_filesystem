@@ -16,7 +16,7 @@ Implement the fix for issue #152. Read pr_info/steps/summary.md and pr_info/step
 ## WHERE
 
 - `tests/file_tools/test_path_utils.py` — add 2 test functions
-- `src/mcp_workspace/file_tools/path_utils.py` — modify `except` block (lines 58-60)
+- `src/mcp_workspace/file_tools/path_utils.py` — modify `except` block (lines 65-67)
 
 ## WHAT
 
@@ -37,7 +37,11 @@ Replace the `except` block at lines 58-60.
 ## HOW
 
 - Tests mock `Path.resolve` to raise `OSError` using `unittest.mock.patch.object`
+- Mocking `Path.resolve` globally is safe: `absolute_path.resolve()` (line 55) is called first, so the OSError is caught before `project_dir.resolve()` (line 56) is reached
+- Add `from unittest.mock import patch` to the test file imports (not currently imported)
 - Tests import `normalize_path` from `mcp_workspace.file_tools.path_utils` (already imported in test file)
+- For `project_dir` in mock tests, use `tmp_path` fixture or a hardcoded `Path("/fake/project")` — since `resolve()` is mocked, filesystem access doesn't matter
+- When asserting the returned relative path, compare using `Path` objects to avoid platform-specific separator issues (e.g., `Path(rel_path) == Path("subdir/file.txt")`)
 - Production code already has `logger = logging.getLogger(__name__)` — no new imports needed
 
 ## ALGORITHM
