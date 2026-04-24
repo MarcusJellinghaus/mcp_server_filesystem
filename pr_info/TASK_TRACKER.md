@@ -21,6 +21,11 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Harden normalize_path against OSError bypass
+- [ ] Implementation: add 2 tests + fix except block in normalize_path ([step_1.md](./steps/step_1.md))
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `fix: harden normalize_path against OSError bypass (#152)`
 
 ## Pull Request
+- [ ] PR review
+- [ ] PR summary
