@@ -1,13 +1,11 @@
-Add _apply_pr_merge_override() pure function + tests
+feat: extend _collect_pr_info() to return mergeable status
 
-Add a pure function that overrides local rebase status when GitHub
-confirms the PR is mergeable (squash-merge safe). This prevents
-misleading "rebase needed" recommendations when the PR can be
-merged directly.
+Update _collect_pr_info() return type from 3-tuple to 4-tuple,
+adding pr_mergeable as the 4th element sourced from
+PullRequestData["mergeable"].
 
-- Add _apply_pr_merge_override() to branch_status.py
-- Add TestApplyPrMergeOverride with 4 test cases covering:
-  - Passthrough when rebase not needed
-  - Override when rebase needed but PR is mergeable
-  - No override when PR is not mergeable (False)
-  - No override when PR mergeability is unknown (None)
+Changes:
+- _collect_pr_info() now returns (number, url, found, mergeable)
+- Updated caller in collect_branch_status() to unpack 4 elements
+- Updated existing tests for new tuple shape
+- Added test_pr_found_mergeable_none and test_pr_found_mergeable_false

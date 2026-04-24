@@ -397,21 +397,21 @@ def _collect_github_label(issue_data: Optional[IssueData]) -> str:
 
 def _collect_pr_info(
     pr_manager: PullRequestManager, branch_name: str
-) -> tuple[Optional[int], Optional[str], Optional[bool]]:
+) -> tuple[Optional[int], Optional[str], Optional[bool], Optional[bool]]:
     """Collect PR info for the branch.
 
     Returns:
-        Tuple of (pr_number, pr_url, pr_found).
+        Tuple of (pr_number, pr_url, pr_found, pr_mergeable).
     """
     try:
         prs = pr_manager.find_pull_request_by_head(branch_name)
         if prs:
             pr = prs[0]
-            return pr.get("number"), pr.get("url"), True
-        return None, None, False
+            return (pr["number"], pr["url"], True, pr.get("mergeable"))
+        return (None, None, False, None)
     except Exception:  # pylint: disable=broad-exception-caught
         logger.debug("PR lookup failed", exc_info=True)
-        return None, None, None
+        return (None, None, None, None)
 
 
 def _apply_pr_merge_override(
@@ -551,10 +551,10 @@ def collect_branch_status(
         current_github_label = _collect_github_label(issue_data)
 
         # 8. Collect PR info
-        pr_number, pr_url, pr_found = (
+        pr_number, pr_url, pr_found, _pr_mergeable = (
             _collect_pr_info(pr_manager, branch_name)
             if pr_manager
-            else (None, None, None)
+            else (None, None, None, None)
         )
 
         # 9. Generate recommendations

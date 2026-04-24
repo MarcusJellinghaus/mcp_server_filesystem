@@ -469,24 +469,61 @@ class TestCollectPRInfo:
     def test_pr_found(self) -> None:
         mock_pr = MagicMock()
         mock_pr.find_pull_request_by_head.return_value = [
-            {"number": 45, "url": "https://github.com/owner/repo/pull/45"}
+            {
+                "number": 45,
+                "url": "https://github.com/owner/repo/pull/45",
+                "mergeable": True,
+            }
         ]
-        number, url, found = _collect_pr_info(mock_pr, "feature")
+        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
         assert number == 45
         assert found is True
+        assert mergeable is True
 
     def test_no_pr(self) -> None:
         mock_pr = MagicMock()
         mock_pr.find_pull_request_by_head.return_value = []
-        number, url, found = _collect_pr_info(mock_pr, "feature")
+        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
         assert number is None
         assert found is False
+        assert mergeable is None
 
     def test_exception(self) -> None:
         mock_pr = MagicMock()
         mock_pr.find_pull_request_by_head.side_effect = Exception("fail")
-        number, url, found = _collect_pr_info(mock_pr, "feature")
+        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
         assert found is None
+        assert mergeable is None
+
+    def test_pr_found_mergeable_none(self) -> None:
+        """PR exists but mergeable is None."""
+        mock_pr = MagicMock()
+        mock_pr.find_pull_request_by_head.return_value = [
+            {
+                "number": 45,
+                "url": "https://github.com/owner/repo/pull/45",
+                "mergeable": None,
+            }
+        ]
+        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
+        assert number == 45
+        assert found is True
+        assert mergeable is None
+
+    def test_pr_found_mergeable_false(self) -> None:
+        """PR exists but mergeable is False."""
+        mock_pr = MagicMock()
+        mock_pr.find_pull_request_by_head.return_value = [
+            {
+                "number": 45,
+                "url": "https://github.com/owner/repo/pull/45",
+                "mergeable": False,
+            }
+        ]
+        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
+        assert number == 45
+        assert found is True
+        assert mergeable is False
 
 
 class TestGenerateRecommendations:
@@ -728,7 +765,7 @@ class TestCollectBranchStatus:
             False,
         )
         mock_label.return_value = "status-04:in-progress"
-        mock_pr_info.return_value = (45, "https://url", True)
+        mock_pr_info.return_value = (45, "https://url", True, True)
 
         report = collect_branch_status(Path("/tmp"))
         assert report.branch_name == "123-feature"
