@@ -32,9 +32,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit message prepared
 
 ### Step 3: Migrate remaining test files
-- [ ] Implementation: migrate `test_edit_file_issues.py`, `test_edit_already_applied_fix.py`, `test_edit_file_backslash.py` to new interface
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation: migrate `test_edit_file_issues.py`, `test_edit_already_applied_fix.py`, `test_edit_file_backslash.py` to new interface
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 4: Final verification and cleanup
 - [ ] Implementation: verify `__init__.py` exports, vulture whitelist, run all checks, fix any remaining issues

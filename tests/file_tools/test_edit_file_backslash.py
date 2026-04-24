@@ -2,6 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
 from mcp_workspace.file_tools.edit_file import edit_file
 
 
@@ -14,26 +16,10 @@ class TestEditFileBackslashHint(unittest.TestCase):
                 '{"path": "C:\\\\Users\\\\test\\\\file.json"}', encoding="utf-8"
             )
 
-            # LLM constructs old_text with single backslashes (decoded understanding)
-            result = edit_file(
-                str(test_file),
-                [
-                    {
-                        "old_text": '{"path": "C:\\Users\\test\\file.json"}',
-                        "new_text": '{"path": "C:\\Users\\test\\file_NEW.json"}',
-                    }
-                ],
-            )
-
-            self.assertFalse(result["success"])
-            self.assertEqual(result["match_results"][0]["match_type"], "failed")
-            self.assertIn(
-                "Hint: file may store backslashes as `\\\\` (double backslashes)",
-                result["match_results"][0]["details"],
-            )
-            self.assertEqual(
-                result["message"], "Failed to find exact match for 1 edit(s)"
-            )
-            self.assertEqual(
-                result["error"], "Failed to find exact match for 1 edit(s)"
-            )
+            # LLM constructs old_string with single backslashes (decoded understanding)
+            with pytest.raises(ValueError, match="double backslashes"):
+                edit_file(
+                    str(test_file),
+                    old_string='{"path": "C:\\Users\\test\\file.json"}',
+                    new_string='{"path": "C:\\Users\\test\\file_NEW.json"}',
+                )

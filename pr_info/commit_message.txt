@@ -1,11 +1,19 @@
-refactor: rewrite edit_file server tool with async + file locking
+Migrate regression test files to new edit_file interface
 
-- Rewrite edit_file MCP tool in server.py: new signature with
-  old_string/new_string/replace_all params, async def, per-file
-  asyncio.Lock for concurrent edit safety
-- Remove old edits/dry_run/options parameters and normalization logic
-- Add module-level _file_locks dict keyed by resolved absolute path
-- Rewrite test_edit_file_api.py with 7 tests: basic edit, text not
-  found, replace_all, empty old_string, gitignore check, locking
-  serialization, different-file concurrency
-- Update test_server.py::test_edit_file_gitignored for async interface
+Migrate three test files to the new edit_file(old_string, new_string)
+signature, replacing the old edits-array and dict-return-value patterns:
+
+- test_edit_file_issues.py: Remove tests for deleted features
+  (preserve_indentation, snake_case options). Adapt first-occurrence
+  test to verify ValueError on multiple matches (new uniqueness check).
+  Keep all other regression scenarios with updated assertions.
+
+- test_edit_already_applied_fix.py: Remove preserve_indentation test.
+  Adapt all false-positive prevention tests to check string returns
+  (diff vs message) instead of dict fields. Keep _is_edit_already_applied
+  helper tests unchanged.
+
+- test_edit_file_backslash.py: Adapt to expect ValueError with
+  backslash hint instead of error dict.
+
+Part of #124: Redesign edit_file to match Claude Code Edit interface.

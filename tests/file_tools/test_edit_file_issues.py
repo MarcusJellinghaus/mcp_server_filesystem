@@ -1,13 +1,10 @@
-import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-from mcp_workspace.file_tools.edit_file import (
-    create_unified_diff,
-    edit_file,
-)
+import pytest
+
+from mcp_workspace.file_tools.edit_file import edit_file
 from mcp_workspace.file_tools.path_utils import normalize_line_endings
 
 
@@ -33,22 +30,19 @@ class TestEditFileIndentationIssues(unittest.TestCase):
 
     def test_extreme_indentation_handling(self) -> None:
         """Test handling code with extreme indentation discrepancies."""
-        # Create a Python file with complex and inconsistent indentation
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write(
                 'def main():\n    input_file, output_dir, verbose = parse_arguments()\n\n    if verbose:\n        print(f"Verbose mode enabled")\n        print(f"Input file: {input_file}")\n\n    processor = DataProcessor(input_file, output_dir)\n\n    if processor.load_data():\n        print(f"Successfully loaded {len(processor.data)} lines")\n\n        results = processor.process_data()\n\n        if processor.save_results(results):\n            print(f"Results saved to {output_dir}")\n\n            if verbose and results[\'total_lines\'] > 0:\n                                                                            print(f"Summary:")\n                                                                            print(f"  - Processed {results[\'total_lines\']} lines")\n                                                                            print(f"  - Found {len(results[\'word_counts\'])} unique words")\n        else:\n            print("Failed to save results")\n    else:\n        print("Failed to load data")\n'
             )
 
-        # Attempt to fix the indentation issue
-        edits = [
-            {
-                "old_text": "            if verbose and results['total_lines'] > 0:\n                                                                            print(f\"Summary:\")\n                                                                            print(f\"  - Processed {results['total_lines']} lines\")\n                                                                            print(f\"  - Found {len(results['word_counts'])} unique words\")",
-                "new_text": "            if verbose and results['total_lines'] > 0:\n                print(f\"Summary:\")\n                print(f\"  - Processed {results['total_lines']} lines\")\n                print(f\"  - Found {len(results['word_counts'])} unique words\")",
-            }
-        ]
+        result = edit_file(
+            str(self.test_file),
+            old_string="            if verbose and results['total_lines'] > 0:\n                                                                            print(f\"Summary:\")\n                                                                            print(f\"  - Processed {results['total_lines']} lines\")\n                                                                            print(f\"  - Found {len(results['word_counts'])} unique words\")",
+            new_string="            if verbose and results['total_lines'] > 0:\n                print(f\"Summary:\")\n                print(f\"  - Processed {results['total_lines']} lines\")\n                print(f\"  - Found {len(results['word_counts'])} unique words\")",
+        )
 
-        result = edit_file(str(self.test_file), edits)
-        self.assertTrue(result["success"])
+        # Should succeed and return a diff
+        self.assertIn("---", result)
 
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
@@ -59,139 +53,60 @@ class TestEditFileIndentationIssues(unittest.TestCase):
 
     def test_optimization_edit_already_applied(self) -> None:
         """Test the optimization in edit_file that checks if edits are already applied."""
-        # Create a file
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write("def test_function():\n    return 'test'\n")
 
         # First apply an edit
-        edits = [{"old_text": "test_function", "new_text": "modified_function"}]
-        result1 = edit_file(str(self.test_file), edits)
-        self.assertTrue(result1["success"])
-        self.assertNotEqual(result1["diff"], "")
-
-        # Try to apply the same edit again
-        result2 = edit_file(str(self.test_file), edits)
-        self.assertTrue(result2["success"])
-        self.assertEqual(result2["diff"], "")
-        self.assertEqual(
-            result2["message"], "No changes needed - content already in desired state"
+        result1 = edit_file(
+            str(self.test_file),
+            old_string="test_function",
+            new_string="modified_function",
         )
+        self.assertIn("---", result1)
+
+        # Try to apply the same edit again — should return message, not raise
+        result2 = edit_file(
+            str(self.test_file),
+            old_string="test_function",
+            new_string="modified_function",
+        )
+        self.assertNotIn("---", result2)
+        self.assertIn("No changes needed", result2)
 
     def test_false_positive_already_applied_bug_fix(self) -> None:
         """Test fix for false positive in already-applied detection where new_text appears elsewhere."""
-        # Create a file where new_text appears elsewhere but edit should still be applied
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write('function_name = "test"\nprint("test")\n')
 
-        # This edit should be applied, not skipped due to "test" appearing in print statement
-        edits = [{"old_text": "function_name", "new_text": "test"}]
-        result = edit_file(str(self.test_file), edits)
-
-        # Should succeed and actually make the change
-        self.assertTrue(result["success"])
-        self.assertNotEqual(
-            result["diff"], "", "Edit should produce a diff, not be skipped"
+        # This edit should be applied, not skipped due to "test" appearing in print
+        result = edit_file(
+            str(self.test_file),
+            old_string="function_name",
+            new_string="test",
         )
 
-        # Verify the edit was applied correctly
+        # Should succeed and produce a diff
+        self.assertIn("---", result)
+
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn('test = "test"', content)
         self.assertNotIn('function_name = "test"', content)
-        # The print statement should remain unchanged
         self.assertIn('print("test")', content)
 
-    def test_first_occurrence_replacement(self) -> None:
-        """Test that only the first occurrence of a pattern is replaced."""
-        # Create a file with repeating identical patterns
+    def test_multiple_matches_raises_without_replace_all(self) -> None:
+        """Test that multiple matches raise ValueError without replace_all."""
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write(
                 'def process(data):\n    print("Processing data...")\n    return data\n\ndef analyze(data):\n    print("Processing data...")\n    return data * 2\n'
             )
 
-        # Try to edit a pattern that appears multiple times
-        edits = [
-            {
-                "old_text": '    print("Processing data...")',
-                "new_text": '    print("Data processing started...")',
-            }
-        ]
-
-        # The edit should only replace the first occurrence
-        result = edit_file(str(self.test_file), edits)
-        self.assertTrue(result["success"])
-
-        # Verify only the first occurrence was changed
-        with open(self.test_file, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # The first occurrence should be changed
-        self.assertIn('    print("Data processing started...")', content)
-
-        # Count occurrences of each pattern
-        original_pattern_count = content.count('    print("Processing data...")')
-        new_pattern_count = content.count('    print("Data processing started...")')
-
-        # There should be exactly one occurrence of each pattern
-        self.assertEqual(
-            original_pattern_count,
-            1,
-            "One occurrence of the original pattern should remain",
-        )
-        self.assertEqual(
-            new_pattern_count,
-            1,
-            "Only one occurrence should be replaced with the new pattern",
-        )
-
-    def test_basic_indentation_preservation(self) -> None:
-        """Test that basic indentation is preserved in file edits."""
-        # Create a test file with indented content
-        with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write("    def test_function():\n        return 'test'\n")
-
-        # Edit with different indentation in new_text
-        edits = [
-            {
-                "old_text": "    def test_function():\n        return 'test'",
-                "new_text": "def modified_function():\n    return 'modified'",
-            }
-        ]
-
-        # Explicitly enable preserve_indentation
-        options = {"preserve_indentation": True}
-        result = edit_file(str(self.test_file), edits, options=options)
-        self.assertTrue(result["success"])
-
-        # Check that indentation was preserved
-        with open(self.test_file, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # Should preserve the 4-space indentation from original
-        self.assertIn("    def modified_function():", content)
-        self.assertIn("        return 'modified'", content)
-
-    def test_snake_case_options(self) -> None:
-        """Test that only snake_case options are supported."""
-        # Create a test file
-        with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write("def test_function():\n    return 'test'\n")
-
-        # Define edit with snake_case options
-        edits = [{"old_text": "test_function", "new_text": "modified_function"}]
-        options = {"preserve_indentation": True, "normalize_whitespace": False}
-
-        # Apply the edit with options
-        result = edit_file(str(self.test_file), edits, options=options)
-
-        # Verify success
-        self.assertTrue(result["success"])
-
-        # Check the file was modified as expected
-        with open(self.test_file, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        self.assertEqual(content, "def modified_function():\n    return 'test'\n")
+        with pytest.raises(ValueError, match="Multiple matches"):
+            edit_file(
+                str(self.test_file),
+                old_string='    print("Processing data...")',
+                new_string='    print("Data processing started...")',
+            )
 
     def test_prefix_match_does_not_create_duplicates(self) -> None:
         """Reproduces the exact bug: substring old_text should not duplicate suffix."""
@@ -200,16 +115,14 @@ class TestEditFileIndentationIssues(unittest.TestCase):
                 "def mock_config_path(self, tmp_path) -> None:  # type: ignore[misc]\n"
             )
 
-        edits = [
-            {
-                "old_text": "def mock_config_path(self, tmp_path) -> None:",
-                "new_text": "def mock_config_path(self, tmp_path) -> None:  # type: ignore[misc]",
-            }
-        ]
+        result = edit_file(
+            str(self.test_file),
+            old_string="def mock_config_path(self, tmp_path) -> None:",
+            new_string="def mock_config_path(self, tmp_path) -> None:  # type: ignore[misc]",
+        )
 
-        result = edit_file(str(self.test_file), edits)
-        self.assertTrue(result["success"])
-        self.assertEqual(result["match_results"][0]["match_type"], "skipped")
+        # Should detect as already applied (returns message, not diff)
+        self.assertNotIn("---", result)
 
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
@@ -221,47 +134,30 @@ class TestEditFileIndentationIssues(unittest.TestCase):
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write("foo = 1\n")
 
-        edits = [{"old_text": "foo", "new_text": "foobar"}]
+        result = edit_file(
+            str(self.test_file),
+            old_string="foo",
+            new_string="foobar",
+        )
 
-        result = edit_file(str(self.test_file), edits)
-        self.assertTrue(result["success"])
-        self.assertEqual(result["match_results"][0]["match_type"], "exact")
+        self.assertIn("---", result)
 
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn("foobar = 1", content)
-
-    def test_prefix_match_skipped_with_preserve_indentation(self) -> None:
-        """Verifies the duplicate check works when preserve_indentation is enabled."""
-        with open(self.test_file, "w", encoding="utf-8") as f:
-            f.write("    return value  # validated\n")
-
-        edits = [
-            {
-                "old_text": "    return value",
-                "new_text": "return value  # validated",
-            }
-        ]
-        options = {"preserve_indentation": True}
-
-        result = edit_file(str(self.test_file), edits, options=options)
-        self.assertTrue(result["success"])
-        self.assertEqual(result["match_results"][0]["match_type"], "skipped")
-
-        with open(self.test_file, "r", encoding="utf-8") as f:
-            content = f.read()
-        self.assertEqual(content, "    return value  # validated\n")
 
     def test_new_text_longer_than_remaining_content_proceeds(self) -> None:
         """Ensures no false skip when new_text extends beyond end of file."""
         with open(self.test_file, "w", encoding="utf-8") as f:
             f.write("short")
 
-        edits = [{"old_text": "short", "new_text": "short_with_much_longer_suffix"}]
+        result = edit_file(
+            str(self.test_file),
+            old_string="short",
+            new_string="short_with_much_longer_suffix",
+        )
 
-        result = edit_file(str(self.test_file), edits)
-        self.assertTrue(result["success"])
-        self.assertEqual(result["match_results"][0]["match_type"], "exact")
+        self.assertIn("---", result)
 
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
