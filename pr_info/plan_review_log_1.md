@@ -20,3 +20,16 @@ Review of: edit_file redesign to match Claude Code Edit interface
 **User decisions**: None needed — all fixes were straightforward improvements
 **Changes**: Updated `pr_info/steps/step_1.md` (pseudocode + test case) and `pr_info/steps/step_2.md` (exception handling note)
 **Status**: Committing
+
+## Round 2 — 2026-04-24
+**Findings**:
+- (Critical) Step 1 test #12 "First occurrence only" contradicts uniqueness check algorithm — multiple matches must raise ValueError, not silently replace first
+- (Critical) Step 3 `test_first_occurrence_replacement` migration description misleading — implies first-occurrence behavior still exists
+
+**Decisions**:
+- Fix 1 (Critical): Accept — remove test #12, renumber remaining tests
+- Fix 2 (Critical): Accept — reword migration entry to clarify adaptation to ValueError test
+
+**User decisions**: None needed — straightforward corrections
+**Changes**: Updated `pr_info/steps/step_1.md` (removed test #12, renumbered) and `pr_info/steps/step_3.md` (reworded migration)
+**Status**: Committing

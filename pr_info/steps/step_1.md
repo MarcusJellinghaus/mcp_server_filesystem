@@ -96,10 +96,9 @@ Rewrite the file with these test cases:
 9. **Multiple matches without replace_all** — raises `ValueError`
 10. **Large block replacement** — multi-line edit works
 11. **Mixed indentation** — tabs and spaces preserved correctly
-12. **First occurrence only** — default behavior replaces only first match
-13. **CRLF normalization** — CRLF in old_string/new_string/file content handled
-14. **Backslash hint** — single backslash old_string triggers hint in ValueError message
-15. **Delete text (empty new_string)** — replaces old_string with empty string, removing it from the file
+12. **CRLF normalization** — CRLF in old_string/new_string/file content handled
+13. **Backslash hint** — single backslash old_string triggers hint in ValueError message
+14. **Delete text (empty new_string)** — replaces old_string with empty string, removing it from the file
 
 ## Decisions
 

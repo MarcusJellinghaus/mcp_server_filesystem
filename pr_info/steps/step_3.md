@@ -40,7 +40,7 @@ files to the new interface.
 - `test_extreme_indentation_handling` — indentation fix still works
 - `test_optimization_edit_already_applied` — already-applied detection
 - `test_false_positive_already_applied_bug_fix` — false positive prevention
-- `test_first_occurrence_replacement` — first occurrence only (now also test that multiple matches raise without `replace_all`)
+- `test_first_occurrence_replacement` — adapt to test that multiple matches raise `ValueError` without `replace_all` (no first-occurrence behavior in new design)
 - `test_prefix_match_does_not_create_duplicates` — position-aware already-applied check
 - `test_legitimate_prefix_replacement_proceeds` — valid edit goes through
 - `test_new_text_longer_than_remaining_content_proceeds` — edge case
