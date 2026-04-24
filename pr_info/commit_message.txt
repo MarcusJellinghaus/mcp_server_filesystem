@@ -1,11 +1,8 @@
-feat: extend _collect_pr_info() to return mergeable status
+feat: add pr_mergeable to BranchStatusReport and wire override in orchestrator
 
-Update _collect_pr_info() return type from 3-tuple to 4-tuple,
-adding pr_mergeable as the 4th element sourced from
-PullRequestData["mergeable"].
-
-Changes:
-- _collect_pr_info() now returns (number, url, found, mergeable)
-- Updated caller in collect_branch_status() to unpack 4 elements
-- Updated existing tests for new tuple shape
-- Added test_pr_found_mergeable_none and test_pr_found_mergeable_false
+- Add pr_mergeable field to BranchStatusReport dataclass
+- Wire _apply_pr_merge_override() into collect_branch_status() orchestrator
+  to override rebase status when PR is mergeable (squash-merge safe)
+- Update _generate_recommendations() to show "Ready to merge (squash-merge safe)"
+  when pr_mergeable is True
+- Add tests for orchestrator integration path and recommendation variants

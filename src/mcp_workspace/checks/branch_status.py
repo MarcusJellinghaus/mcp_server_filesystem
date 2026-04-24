@@ -67,6 +67,7 @@ class BranchStatusReport:
     pr_number: Optional[int] = None
     pr_url: Optional[str] = None
     pr_found: Optional[bool] = None
+    pr_mergeable: Optional[bool] = None
 
     def format_for_human(self) -> str:
         """Format report for human consumption.
@@ -453,6 +454,7 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
     tasks_reason = report_data.get("tasks_reason", "")
     tasks_is_blocking = report_data.get("tasks_is_blocking", False)
     tasks_ok = not tasks_is_blocking
+    pr_mergeable = report_data.get("pr_mergeable")
 
     if ci_status == CIStatus.FAILED:
         recommendations.append("Fix CI test failures")
@@ -478,7 +480,10 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
         and tasks_ok
         and not rebase_needed
     ):
-        recommendations.append("Ready to merge")
+        if pr_mergeable is True:
+            recommendations.append("Ready to merge (squash-merge safe)")
+        else:
+            recommendations.append("Ready to merge")
 
     if not recommendations:
         recommendations.append("Continue with current work")
@@ -551,13 +556,18 @@ def collect_branch_status(
         current_github_label = _collect_github_label(issue_data)
 
         # 8. Collect PR info
-        pr_number, pr_url, pr_found, _pr_mergeable = (
+        pr_number, pr_url, pr_found, pr_mergeable = (
             _collect_pr_info(pr_manager, branch_name)
             if pr_manager
             else (None, None, None, None)
         )
 
-        # 9. Generate recommendations
+        # 9. Apply PR merge override
+        rebase_needed, rebase_reason = _apply_pr_merge_override(
+            rebase_needed, rebase_reason, pr_mergeable if pr_found else None
+        )
+
+        # 10. Generate recommendations
         report_data: Dict[str, Any] = {
             "ci_status": ci_status,
             "ci_details": ci_details,
@@ -565,6 +575,7 @@ def collect_branch_status(
             "tasks_status": tasks_status,
             "tasks_reason": tasks_reason,
             "tasks_is_blocking": tasks_is_blocking,
+            "pr_mergeable": pr_mergeable,
         }
         recommendations = _generate_recommendations(report_data)
 
@@ -583,6 +594,7 @@ def collect_branch_status(
             pr_number=pr_number,
             pr_url=pr_url,
             pr_found=pr_found,
+            pr_mergeable=pr_mergeable,
         )
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Error collecting branch status: {e}")

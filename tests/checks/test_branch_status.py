@@ -627,6 +627,35 @@ class TestGenerateRecommendations:
         )
         assert any("remaining tasks" in r.lower() for r in recs)
 
+    def test_ready_to_merge_squash_merge_safe(self) -> None:
+        """When pr_mergeable=True and ready, recommend squash-merge safe."""
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_mergeable": True,
+            }
+        )
+        assert "Ready to merge (squash-merge safe)" in recs
+
+    def test_ready_to_merge_without_mergeable(self) -> None:
+        """When pr_mergeable is not True, recommend plain Ready to merge."""
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_mergeable": None,
+            }
+        )
+        assert "Ready to merge" in recs
+        assert "Ready to merge (squash-merge safe)" not in recs
+
     def test_rebase_suppressed_when_ci_failed(self) -> None:
         """Rebase recommendation is suppressed when CI is failed."""
         recs = _generate_recommendations(
@@ -772,6 +801,7 @@ class TestCollectBranchStatus:
         assert report.base_branch == "main"
         assert report.ci_status == CIStatus.PASSED
         assert report.pr_number == 45
+        assert report.pr_mergeable is True
 
     @patch("mcp_workspace.checks.branch_status.detect_base_branch")
     @patch("mcp_workspace.checks.branch_status.PullRequestManager")
@@ -809,6 +839,54 @@ class TestCollectBranchStatus:
             assert report.branch_name == "feature"
             # pr_manager is None when init fails, so pr fields should be None
             assert report.pr_found is None
+            assert report.pr_mergeable is None
+
+    @patch("mcp_workspace.checks.branch_status._collect_pr_info")
+    @patch("mcp_workspace.checks.branch_status._collect_github_label")
+    @patch("mcp_workspace.checks.branch_status._collect_task_status")
+    @patch("mcp_workspace.checks.branch_status._collect_rebase_status")
+    @patch("mcp_workspace.checks.branch_status._collect_ci_status")
+    @patch("mcp_workspace.checks.branch_status.detect_base_branch")
+    @patch("mcp_workspace.checks.branch_status.PullRequestManager")
+    @patch("mcp_workspace.checks.branch_status.IssueManager")
+    @patch("mcp_workspace.checks.branch_status.extract_issue_number_from_branch")
+    @patch("mcp_workspace.checks.branch_status.get_current_branch_name")
+    def test_rebase_behind_but_mergeable_squash_safe(
+        self,
+        mock_branch: MagicMock,
+        mock_extract: MagicMock,
+        mock_issue_mgr_cls: MagicMock,
+        mock_pr_mgr_cls: MagicMock,
+        mock_detect: MagicMock,
+        mock_ci: MagicMock,
+        mock_rebase: MagicMock,
+        mock_tasks: MagicMock,
+        mock_label: MagicMock,
+        mock_pr_info: MagicMock,
+    ) -> None:
+        """Rebase behind + mergeable=True → override + squash-merge safe recommendation."""
+        mock_branch.return_value = "123-feature"
+        mock_extract.return_value = 123
+        mock_issue_mgr = MagicMock()
+        mock_issue_mgr.get_issue.return_value = {"number": 123, "labels": []}
+        mock_issue_mgr_cls.return_value = mock_issue_mgr
+        mock_pr_mgr_cls.return_value = MagicMock()
+        mock_detect.return_value = "main"
+        mock_ci.return_value = (CIStatus.PASSED, None)
+        mock_rebase.return_value = (True, "3 commits behind")
+        mock_tasks.return_value = (
+            TaskTrackerStatus.COMPLETE,
+            "All tasks complete",
+            False,
+        )
+        mock_label.return_value = "unknown"
+        mock_pr_info.return_value = (45, "https://url", True, True)
+
+        report = collect_branch_status(Path("/tmp"))
+        assert report.rebase_needed is False
+        assert "squash-merge safe" in report.rebase_reason
+        assert report.pr_mergeable is True
+        assert any("squash-merge safe" in r for r in report.recommendations)
 
     @patch("mcp_workspace.checks.branch_status.get_current_branch_name")
     def test_unexpected_exception_returns_empty_report(
