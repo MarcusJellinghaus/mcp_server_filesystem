@@ -37,6 +37,8 @@ def _build_tree(file_paths: List[str], base_path: str) -> _TreeNode:
         strip_prefix = base_path.rstrip("/") + "/"
 
     for file_path in file_paths:
+        # Normalize separators so split("/") works on Windows
+        file_path = file_path.replace("\\", "/")
         # Strip base_path prefix for tree building
         rel_path = file_path
         if strip_prefix and file_path.startswith(strip_prefix):
@@ -170,8 +172,8 @@ def list_directory_tree(
 ) -> List[str]:
     """Build tree from file paths and render back to flat list.
 
-    Public API: build tree, render to list.
-    Collapsing and truncation will be added in later steps.
+    Builds an internal tree, auto-collapses directories with only one child,
+    then truncates if the result still exceeds 250 lines.
 
     Args:
         file_paths: List of project-relative file paths.

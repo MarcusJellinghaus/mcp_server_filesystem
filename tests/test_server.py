@@ -313,6 +313,52 @@ def test_list_directory_path_trailing_slash(
     assert "src/app.py" in files
 
 
+# --- Integration tests for list_directory path / dirs_only ---
+
+
+def test_list_directory_path_is_file_integration(project_dir: Path) -> None:
+    """Integration: list_directory(path=<file>) returns a clear error."""
+    f = project_dir / "some_file.py"
+    f.write_text("x = 1")
+    with pytest.raises(ValueError, match="is a file"):
+        list_directory(path="some_file.py")
+
+
+def test_list_directory_path_nonexistent_integration(project_dir: Path) -> None:
+    """Integration: list_directory(path=<missing>) returns file-not-found."""
+    with pytest.raises(FileNotFoundError):
+        list_directory(path="nonexistent")
+
+
+def test_list_directory_dirs_only_integration(project_dir: Path) -> None:
+    """Integration: list_directory(dirs_only=True) returns only directories."""
+    sub = project_dir / "mydir"
+    sub.mkdir()
+    (sub / "child.txt").write_text("hi")
+    (project_dir / "root.txt").write_text("root")
+
+    result = list_directory(dirs_only=True)
+
+    # Should contain directory entries but no plain file entries
+    assert any("mydir" in entry for entry in result)
+    assert not any(entry.endswith(".txt") for entry in result)
+
+
+def test_list_directory_path_subtree_integration(project_dir: Path) -> None:
+    """Integration: list_directory(path=<subdir>) scopes to that subtree."""
+    sub = project_dir / "sub"
+    sub.mkdir()
+    (sub / "a.py").write_text("a")
+    (project_dir / "root.py").write_text("root")
+
+    result = list_directory(path="sub")
+
+    # Subtree listing should contain the file inside sub
+    assert any("a.py" in entry for entry in result)
+    # Should NOT contain root.py
+    assert not any("root.py" in entry for entry in result)
+
+
 def test_move_file(project_dir: Path) -> None:
     """Test the move_file tool."""
     # Create source file

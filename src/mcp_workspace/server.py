@@ -146,7 +146,9 @@ def list_directory(path: str = ".", dirs_only: bool = False) -> List[str]:
         dirs_only: Show only directories, each with trailing "/".
 
     Returns:
-        A list of filenames in the project directory
+        A list of path strings: files, directories (trailing ``/``),
+        collapsed summaries (``dir/ (N files)``), or a truncation line
+        when output exceeds the internal limit.
     """
     try:
         if _project_dir is None:
