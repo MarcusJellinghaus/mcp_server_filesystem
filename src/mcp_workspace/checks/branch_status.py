@@ -414,6 +414,31 @@ def _collect_pr_info(
         return None, None, None
 
 
+def _apply_pr_merge_override(
+    rebase_needed: bool,
+    rebase_reason: str,
+    pr_mergeable: Optional[bool],
+) -> tuple[bool, str]:
+    """Override rebase status when PR is mergeable on GitHub.
+
+    When the branch is behind but GitHub confirms the PR is mergeable
+    (e.g. squash-merge), the local rebase check is overridden.
+
+    Args:
+        rebase_needed: Whether local git says rebase is needed.
+        rebase_reason: Human-readable reason from local check.
+        pr_mergeable: GitHub's mergeable status (True/False/None).
+
+    Returns:
+        Tuple of (rebase_needed, rebase_reason), possibly overridden.
+    """
+    if not rebase_needed:
+        return (rebase_needed, rebase_reason)
+    if pr_mergeable is True:
+        return (False, "Behind base branch but PR is mergeable (squash-merge safe)")
+    return (rebase_needed, rebase_reason)
+
+
 def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
     """Generate actionable recommendations based on status.
 

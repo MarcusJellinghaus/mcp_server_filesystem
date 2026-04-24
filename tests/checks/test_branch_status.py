@@ -8,6 +8,7 @@ import pytest
 from mcp_workspace.checks.branch_status import (
     BranchStatusReport,
     CIStatus,
+    _apply_pr_merge_override,
     _collect_ci_status,
     _collect_github_label,
     _collect_pr_info,
@@ -632,6 +633,49 @@ class TestGenerateRecommendations:
         # CI failed + incomplete tasks; rebase suppressed because CI failed
         assert "Fix CI test failures" in recs
         assert any("remaining tasks" in r.lower() for r in recs)
+
+
+class TestApplyPrMergeOverride:
+    """Tests for _apply_pr_merge_override."""
+
+    def test_rebase_not_needed_passthrough(self) -> None:
+        """When rebase is not needed, return unchanged (no override needed)."""
+        result = _apply_pr_merge_override(
+            rebase_needed=False,
+            rebase_reason="up-to-date",
+            pr_mergeable=True,
+        )
+        assert result == (False, "up-to-date")
+
+    def test_rebase_needed_and_mergeable_overrides(self) -> None:
+        """When rebase needed but PR is mergeable, override to not needed."""
+        result = _apply_pr_merge_override(
+            rebase_needed=True,
+            rebase_reason="3 commits behind",
+            pr_mergeable=True,
+        )
+        assert result == (
+            False,
+            "Behind base branch but PR is mergeable (squash-merge safe)",
+        )
+
+    def test_rebase_needed_and_not_mergeable_unchanged(self) -> None:
+        """When rebase needed and PR is not mergeable, keep original."""
+        result = _apply_pr_merge_override(
+            rebase_needed=True,
+            rebase_reason="3 commits behind",
+            pr_mergeable=False,
+        )
+        assert result == (True, "3 commits behind")
+
+    def test_rebase_needed_and_mergeable_none_unchanged(self) -> None:
+        """When rebase needed and mergeable is None, keep original."""
+        result = _apply_pr_merge_override(
+            rebase_needed=True,
+            rebase_reason="3 commits behind",
+            pr_mergeable=None,
+        )
+        assert result == (True, "3 commits behind")
 
 
 class TestCollectBranchStatus:
