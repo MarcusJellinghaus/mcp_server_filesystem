@@ -1,13 +1,4 @@
-fix: migrate test_markdown_indentation to new edit_file interface
+fix: reformat test_markdown_indentation.py to pass black check
 
-Migrate test_markdown_indentation.py from the old edit_file interface
-(edits array, options dict, dict return) to the new interface
-(old_string/new_string params, str return).
-
-- Remove unused `import os`
-- Replace `edits` array with `old_string`/`new_string` parameters
-- Remove `options={"preserve_indentation": True}` (no longer supported)
-- Update assertions: check for str return and diff content
-- Simplify indentation assertions to direct string checks
-
-All quality checks pass: pylint, mypy, pytest (965 passed).
+Break long string literals into implicit concatenation to comply
+with the project's 88-character line length limit.

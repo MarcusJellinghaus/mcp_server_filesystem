@@ -22,7 +22,13 @@ class TestMarkdownIndentation(unittest.TestCase):
         markdown_file = self.project_dir / "markdown_test_temp.md"
         with open(markdown_file, "w", encoding="utf-8") as f:
             f.write(
-                "# Documentation\n\n## Features\n\n- Top level feature\n- Available options:\n- option1: description\n- option2: description\n- Another top level feature"
+                "# Documentation\n\n"
+                "## Features\n\n"
+                "- Top level feature\n"
+                "- Available options:\n"
+                "- option1: description\n"
+                "- option2: description\n"
+                "- Another top level feature"
             )
 
         # Verify file was created
@@ -33,8 +39,14 @@ class TestMarkdownIndentation(unittest.TestCase):
         self.assertIn("- Available options:", content)
 
         # Edit to add indentation to nested bullet points
-        old_string = "- Available options:\n- option1: description\n- option2: description"
-        new_string = "- Available options:\n  - option1: description\n  - option2: description"
+        old_string = (
+            "- Available options:\n" "- option1: description\n" "- option2: description"
+        )
+        new_string = (
+            "- Available options:\n"
+            "  - option1: description\n"
+            "  - option2: description"
+        )
 
         result = edit_file(str(markdown_file), old_string, new_string)
 
