@@ -1,12 +1,6 @@
-feat: add Merge Status line to human and LLM formatters
+refactor: split branch status tests to fix file-size CI check
 
-Add Merge Status display to format_for_human() showing mergeable,
-not mergeable (conflicts), or pending states after the PR line.
-
-Add Mergeable= token to format_for_llm() status summary line
-when a PR is found.
-
-Merge Status line is only shown when a PR exists (pr_found=True).
-
-Tests cover all merge status states for both formatters plus
-omission when no PR is found.
+Extract TestGenerateRecommendations and TestApplyPrMergeOverride from
+tests/checks/test_branch_status.py (902 lines) into a new file
+tests/checks/test_branch_status_recommendations.py, bringing the main
+file under the 750-line limit.
