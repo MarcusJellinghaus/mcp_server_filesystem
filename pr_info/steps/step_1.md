@@ -32,7 +32,7 @@ def test_normalize_path_oserror_clean_path_passes() -> None:
 
 ### Production fix (modify `src/mcp_workspace/file_tools/path_utils.py`)
 
-Replace the `except` block at lines 58-60.
+Replace the `except` block at lines 65-67.
 
 ## HOW
 

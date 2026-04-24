@@ -24,4 +24,22 @@
 - `pr_info/steps/step_1.md`: corrected line numbers, added mocking/import/assertion/project_dir notes
 - `pr_info/steps/summary.md`: expanded FileNotFoundError subclass explanation
 
+**Status**: committed (f54164d)
+
+## Round 2 — 2026-04-24
+
+**Findings**:
+- (critical) Second line number reference in step_1.md Production fix section still said "lines 58-60" — missed in Round 1
+- (info) All Round 1 clarifications correctly applied and verified
+- (info) Existing tests confirmed unaffected by the change
+
+**Decisions**:
+- Accept: fix remaining line number reference
+- Skip: info findings (no action needed)
+
+**User decisions**: None needed
+
+**Changes**:
+- `pr_info/steps/step_1.md`: corrected Production fix section line reference from "lines 58-60" to "lines 65-67"
+
 **Status**: committing
