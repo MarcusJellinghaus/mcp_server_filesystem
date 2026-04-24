@@ -32,5 +32,5 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `feat(logging): add @log_function_call to async reference tools (#142)`
 
 ## Pull Request
-- [ ] PR review: verify all steps complete, diff looks correct
+- [x] PR review: verify all steps complete, diff looks correct
 - [ ] PR summary prepared
