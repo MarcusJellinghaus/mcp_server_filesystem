@@ -1,8 +1,13 @@
-feat: add truncation after collapsing in tree listing
+feat: add path and dirs_only parameters to list_directory MCP tool
 
-Add _truncate function that caps output at 250 entries plus a summary
-line when the rendered tree exceeds the threshold. The summary line
-reports remaining dirs, files, and total count.
+Wire tree listing logic into the public list_directory() API in server.py:
+- Add `path` parameter to scope listing to a subtree (default: ".")
+- Add `dirs_only` parameter to return only directory paths
+- Validate path with normalize_path for traversal protection
+- Return ValueError when path points to a file
+- Pass raw file list through list_directory_tree for tree rendering
+- Fully backward compatible: list_directory() with no args unchanged
 
-Update list_directory_tree to call _truncate after rendering.
-Update existing test for root-only files to expect truncation behavior.
+Add 7 new tests in test_server.py covering path scoping, dirs_only,
+file path error, non-existent path, traversal blocking, and trailing
+slash handling. Update existing tests to mock list_directory_tree.
