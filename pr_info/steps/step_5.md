@@ -50,6 +50,10 @@ Returns:
 from mcp_workspace.file_tools import list_directory_tree
 ```
 
+### Error handling
+
+The existing `list_directory` uses a try/except pattern. The implementation should preserve this error handling wrapper for consistency with the existing code pattern.
+
 ### Integration
 
 ```python
@@ -82,6 +86,8 @@ if abs_path.is_file(): raise ValueError("path is a file")
 raw_files = list_files_util(path, project_dir, use_gitignore=True)
 return list_directory_tree(raw_files, base_path=rel_path, dirs_only=dirs_only)
 ```
+
+**Note:** `normalize_path` is called both here (for the is_file check) and inside `list_files_util`. This is intentional — the first call enables the file-check before `list_files_util` is invoked.
 
 ## DATA
 

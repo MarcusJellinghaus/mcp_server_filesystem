@@ -49,7 +49,7 @@ while _count_lines(root, dirs_only) > _COLLAPSE_THRESHOLD:
     candidates = _find_collapsible(root, depth=1)
     if not candidates:
         break  # nothing left to collapse (edge case: root has only files)
-    pick candidate with highest score (break ties by name alphabetically ascending — earliest name collapsed first)
+    sort candidates by (-score, name); pick first
     candidate.collapsed = True
     candidate.collapsed_file_count = _recursive_file_count(candidate)
     candidate.children.clear()
@@ -62,8 +62,8 @@ while _count_lines(root, dirs_only) > _COLLAPSE_THRESHOLD:
 count = 0
 if node.collapsed: return 1
 for child in children: count += _count_lines(child, dirs_only)
-if dirs_only: count += len(children)  # each expanded dir is a line
-else: count += len(files)              # each file is a line
+if dirs_only: count += sum(1 for c in node.children.values() if not c.collapsed)  # expanded dir lines
+else: count += len(files)  # each file is a line
 return count
 ```
 
