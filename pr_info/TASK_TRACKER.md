@@ -21,6 +21,26 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Rewrite utility function and its tests
+- [ ] Implementation: rewrite `edit_file` in `edit_file.py` with new signature, rewrite `test_edit_file.py` (TDD)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 2: Rewrite server tool and its tests
+- [ ] Implementation: rewrite `edit_file` MCP tool in `server.py` (async + locking), rewrite `test_edit_file_api.py` (TDD)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 3: Migrate remaining test files
+- [ ] Implementation: migrate `test_edit_file_issues.py`, `test_edit_already_applied_fix.py`, `test_edit_file_backslash.py` to new interface
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 4: Final verification and cleanup
+- [ ] Implementation: verify `__init__.py` exports, vulture whitelist, run all checks, fix any remaining issues
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
 
 ## Pull Request
+- [ ] PR review: verify all steps complete, diff is clean
+- [ ] PR summary prepared
