@@ -149,7 +149,9 @@ def test_append_file_not_found() -> None:
 
 @patch("mcp_workspace.server.list_directory_tree")
 @patch("mcp_workspace.server.list_files_util")
-def test_list_directory(mock_list_files: MagicMock, mock_tree: MagicMock, project_dir: Path) -> None:
+def test_list_directory(
+    mock_list_files: MagicMock, mock_tree: MagicMock, project_dir: Path
+) -> None:
     """Test the list_directory tool with default args (backward compatible)."""
     # Create absolute path for test file
     abs_file_path = project_dir / TEST_FILE
@@ -168,9 +170,7 @@ def test_list_directory(mock_list_files: MagicMock, mock_tree: MagicMock, projec
     mock_list_files.assert_called_once_with(
         ".", project_dir=project_dir, use_gitignore=True
     )
-    mock_tree.assert_called_once_with(
-        [str(TEST_FILE)], base_path=".", dirs_only=False
-    )
+    mock_tree.assert_called_once_with([str(TEST_FILE)], base_path=".", dirs_only=False)
 
     assert str(TEST_FILE) in files
 
@@ -245,9 +245,7 @@ def test_list_directory_path_parameter(
     mock_list_files.assert_called_once_with(
         "src", project_dir=project_dir, use_gitignore=True
     )
-    mock_tree.assert_called_once_with(
-        ["src/app.py"], base_path="src", dirs_only=False
-    )
+    mock_tree.assert_called_once_with(["src/app.py"], base_path="src", dirs_only=False)
     assert "src/app.py" in files
 
 

@@ -3,13 +3,13 @@
 from typing import List
 
 from mcp_workspace.file_tools.tree_listing import (
-    _TreeNode,
     _build_tree,
     _collapse,
     _count_lines,
     _find_collapsible,
     _recursive_file_count,
     _score,
+    _TreeNode,
     _truncate,
     list_directory_tree,
 )
@@ -142,9 +142,7 @@ class TestDirsOnlyMode:
         assert result == ["src/core/", "src/utils/"]
 
 
-def _make_paths(
-    dirs: List[str], files_per_dir: int, depth: int = 1
-) -> List[str]:
+def _make_paths(dirs: List[str], files_per_dir: int, depth: int = 1) -> List[str]:
     """Generate file paths for testing large trees.
 
     Creates `files_per_dir` files in each directory at each nesting level
@@ -335,9 +333,11 @@ class TestTruncation:
     def test_dir_file_counts_in_summary(self) -> None:
         """Summary correctly distinguishes dirs vs files in truncated portion."""
         # Put dirs first (sorted order), then files
-        lines = [f"dir{i}/" for i in range(240)] + [
-            f"dir{i}/ (5 files)" for i in range(20)
-        ] + [f"file{i}.py" for i in range(40)]
+        lines = (
+            [f"dir{i}/" for i in range(240)]
+            + [f"dir{i}/ (5 files)" for i in range(20)]
+            + [f"file{i}.py" for i in range(40)]
+        )
         # Total = 300, kept = 250, truncated = 50
         # Truncated: 10 collapsed dirs ("dir{10-19}/ (5 files)") + 40 files
         result = _truncate(lines)

@@ -153,9 +153,7 @@ def _truncate(lines: List[str], limit: int = _COLLAPSE_THRESHOLD) -> List[str]:
         return lines
     kept = lines[:limit]
     remaining = lines[limit:]
-    remaining_dirs = sum(
-        1 for line in remaining if line.endswith("/") or "/ (" in line
-    )
+    remaining_dirs = sum(1 for line in remaining if line.endswith("/") or "/ (" in line)
     remaining_files = len(remaining) - remaining_dirs
     total = len(lines)
     summary = (

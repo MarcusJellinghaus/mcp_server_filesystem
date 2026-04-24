@@ -17,13 +17,13 @@ from mcp_workspace.checks.file_sizes import (
 from mcp_workspace.file_tools import append_file as append_file_util
 from mcp_workspace.file_tools import delete_file as delete_file_util
 from mcp_workspace.file_tools import edit_file as edit_file_util
+from mcp_workspace.file_tools import list_directory_tree
 from mcp_workspace.file_tools import list_files as list_files_util
 from mcp_workspace.file_tools import move_file as move_file_util
 from mcp_workspace.file_tools import normalize_path
 from mcp_workspace.file_tools import read_file as read_file_util
 from mcp_workspace.file_tools import save_file as save_file_util
 from mcp_workspace.file_tools import search_files as search_files_util
-from mcp_workspace.file_tools import list_directory_tree
 from mcp_workspace.file_tools.directory_utils import is_path_gitignored
 from mcp_workspace.git_operations.base_branch import detect_base_branch
 from mcp_workspace.git_operations.read_operations import git as git_impl
@@ -161,7 +161,11 @@ def list_directory(path: str = ".", dirs_only: bool = False) -> List[str]:
                 f"'{path}' is a file, not a directory. Use read_file() instead."
             )
 
-        logger.info("Listing files in project directory: %s (path=%s)", _project_dir, path)
+        logger.info(
+            "Listing files in project directory: %s (path=%s)",
+            _project_dir,
+            path,
+        )
         # Explicitly pass project_dir to list_files_util
         raw_files = list_files_util(path, project_dir=_project_dir, use_gitignore=True)
 
