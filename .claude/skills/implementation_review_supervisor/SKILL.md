@@ -73,6 +73,6 @@ You are a technical lead supervising a software engineer (subagent). You do not 
 **Status**: {committed / no changes needed}
 ```
 
-**Subagent instructions:** Remind subagents to follow CLAUDE.md (MCP tools, no `cd` prefix, approved commands only).
+**Subagent instructions:** When launching subagents, instruct them to follow CLAUDE.md — especially the MCP tool requirements (use `mcp__workspace__*` tools, not native file tools). Also remind them: no `cd` prefix, approved commands only.
 
 **Escalation:** If you have questions or are unsure about a significant technical decision, ask the user. For borderline Accept/Skip findings, default to better code quality rather than asking — only escalate when the fix has meaningful scope or risk, not for trivial changes in either direction. Import contract or architecture violations (from `run_lint_imports_check`): escalate to the user — fixes may require moving code between layers.

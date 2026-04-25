@@ -88,3 +88,16 @@
   4. Moved `tach.toml` update from Step 1 to Step 2 (correct timing)
   5. Added `tests/utils/__init__.py` to Step 1
   6. Fixed redundant exception handling in Step 4
+
+## Chore: MCP tool propagation in supervisor skills
+
+Strengthened the "Subagent instructions" line in both supervisor skills to explicitly reference CLAUDE.md MCP tool requirements, so subagents use `mcp__workspace__*` tools instead of native file tools.
+
+**Files changed:** `plan_review_supervisor/SKILL.md`, `implementation_review_supervisor/SKILL.md`
+
+**Chore propagated to:**
+- MarcusJellinghaus/mcp_coder#544 (canonical source, 3 supervisor skills)
+- MarcusJellinghaus/mcp-tools-py#107
+- MarcusJellinghaus/mcp-coder-utils#22
+- MarcusJellinghaus/mcp-tools-sql#13
+- MarcusJellinghaus/mcp-workspace#72 (marked as done)

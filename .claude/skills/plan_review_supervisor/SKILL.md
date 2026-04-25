@@ -65,7 +65,7 @@ You are a technical lead supervising a software engineer (subagent). You do not 
 **Status**: {committed / no changes needed}
 ```
 
-**Subagent instructions:** Remind subagents to follow CLAUDE.md (MCP tools, no `cd` prefix, approved commands only).
+**Subagent instructions:** When launching subagents, instruct them to follow CLAUDE.md — especially the MCP tool requirements (use `mcp__workspace__*` tools, not native file tools). Also remind them: no `cd` prefix, approved commands only.
 
 **Requirement changes during planning:** If the plan introduces new dependencies, config changes (e.g., `pyproject.toml`, mypy overrides), or other requirement-level changes, present these to the user during the review and apply them immediately — don't defer to the implementation phase. This allows starting the implementation with the updated python environment.
 
