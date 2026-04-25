@@ -18,10 +18,11 @@ Follow TDD — write tests first, then implement. Run all code quality checks af
 
 ### New files
 - `src/mcp_workspace/utils/repo_identifier.py`
+- `tests/utils/__init__.py` (empty file — required for pytest to discover tests in this directory)
 - `tests/utils/test_repo_identifier.py`
 
 ### Modified files
-- `tach.toml` — add `mcp_workspace.utils` to `git_operations.depends_on`
+(none)
 
 ## WHAT
 
@@ -124,10 +125,6 @@ def https_url(self) -> str:
 - `api_base_url` — github.com returns `https://api.github.com`, GHE returns `https://host/api/v3`
 - `hostname_to_api_base_url()` — standalone function tests
 - `from_full_name("owner/repo", hostname="ghe.corp.com")` — custom hostname
-
-### Architecture config
-- Update `tach.toml`: add `{ path = "mcp_workspace.utils" }` to `git_operations.depends_on`
-  (import-linter already allows this via the layer hierarchy)
 
 ## COMMIT
 ```

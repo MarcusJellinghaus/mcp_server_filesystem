@@ -56,6 +56,7 @@ github_operations/base_manager.py → lazy _github_client      uses RepoIdentifi
 | File | Purpose |
 |------|---------|
 | `src/mcp_workspace/utils/repo_identifier.py` | RepoIdentifier dataclass + hostname_to_api_base_url() |
+| `tests/utils/__init__.py` | Empty file for pytest test discovery |
 | `tests/utils/test_repo_identifier.py` | Tests for RepoIdentifier (moved + new GHE tests) |
 
 ## Files Modified
@@ -77,7 +78,6 @@ github_operations/base_manager.py → lazy _github_client      uses RepoIdentifi
 
 ## Implementation Steps Overview
 1. **Create `utils/repo_identifier.py`** — RepoIdentifier with hostname support + tests
-2. **Update `git_operations/remotes.py`** — rename function, return RepoIdentifier + tests
-3. **Remove old functions from `github_utils.py`** — delete parse_github_url, format_github_https_url, get_repo_full_name + update tests
-4. **Refactor `BaseGitHubManager`** — lazy _repo_identifier/_github_client, get_authenticated_username hostname param + tests
-5. **Refactor `PullRequestManager`** — repo_identifier replaces repository_url + tests
+2. **Integrate RepoIdentifier** — delete old URL-parsing functions, rename `get_github_repository_url` → `get_repository_identifier`, update all callers/exports/tests across `git_operations/`, `github_operations/`, and `tach.toml`
+3. **Refactor `BaseGitHubManager`** — lazy _repo_identifier/_github_client, get_authenticated_username hostname param + tests
+4. **Refactor `PullRequestManager`** — repo_identifier replaces repository_url + tests

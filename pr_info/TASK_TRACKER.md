@@ -22,9 +22,8 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 - [ ] [Step 1](./steps/step_1.md) — Create `utils/repo_identifier.py` with hostname support
-- [ ] [Step 2](./steps/step_2.md) — Update `git_operations/remotes.py` — rename function, return RepoIdentifier
-- [ ] [Step 3](./steps/step_3.md) — Remove old functions from `github_utils.py`
-- [ ] [Step 4](./steps/step_4.md) — Refactor `BaseGitHubManager` — lazy properties, unified RepoIdentifier
-- [ ] [Step 5](./steps/step_5.md) — Refactor `PullRequestManager` — repo_identifier replaces repository_url
+- [ ] [Step 2](./steps/step_2.md) — Integrate RepoIdentifier — delete old functions, rename, update all callers
+- [ ] [Step 3](./steps/step_3.md) — Refactor `BaseGitHubManager` — lazy properties, unified RepoIdentifier
+- [ ] [Step 4](./steps/step_4.md) — Refactor `PullRequestManager` — repo_identifier replaces repository_url
 
 ## Pull Request

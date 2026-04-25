@@ -1,14 +1,14 @@
-# Step 3: Remove old functions from `github_utils.py`
+# Step 3: Refactor `BaseGitHubManager` — lazy properties, unified RepoIdentifier
 
 > **Context**: See [summary.md](summary.md) for full issue context (#156: Support GHE URLs).
 
 ## Goal
-Remove `RepoIdentifier`, `parse_github_url()`, `format_github_https_url()`, and `get_repo_full_name()` from `github_utils.py`. Update `github_operations/__init__.py` to re-export `RepoIdentifier` from new location. Update all test imports.
+Refactor `BaseGitHubManager` to use lazy `_repo_identifier` and `_github_client` properties. Remove `_repo_owner`, `_repo_name`, `_repo_full_name`. Add `hostname` param to `get_authenticated_username()`. The `Github()` client is created lazily with the correct `base_url` from `RepoIdentifier.api_base_url`.
 
 ## LLM Prompt
 ```
 Read pr_info/steps/summary.md and pr_info/steps/step_3.md.
-Implement Step 3: Remove old functions from github_utils.py and update imports.
+Implement Step 3: Refactor BaseGitHubManager with lazy properties and GHE support.
 Follow TDD — update tests first, then implement. Run all code quality checks after.
 ```
 
@@ -17,94 +17,147 @@ Follow TDD — update tests first, then implement. Run all code quality checks a
 ## WHERE
 
 ### Modified files
-- `src/mcp_workspace/github_operations/github_utils.py` — remove RepoIdentifier class, parse_github_url, format_github_https_url, get_repo_full_name (file may become empty or be deleted if nothing remains)
-- `src/mcp_workspace/github_operations/__init__.py` — change RepoIdentifier import source
-- `tests/github_operations/test_repo_identifier.py` — update imports to `mcp_workspace.utils.repo_identifier` (or redirect to new test file)
-- `tests/github_operations/test_github_utils.py` — remove TestGitHubUtils class (tests for deleted functions), remove imports of deleted functions
+- `src/mcp_workspace/github_operations/base_manager.py`
+- `tests/github_operations/test_base_manager.py`
 
 ## WHAT
 
-### `github_utils.py` — after this step
-The file becomes empty (or contains only the module docstring). All contents moved/replaced:
-- `RepoIdentifier` → moved to `utils/repo_identifier.py` in Step 1
-- `parse_github_url()` → replaced by `RepoIdentifier.from_repo_url()`
-- `format_github_https_url()` → replaced by `RepoIdentifier.https_url`
-- `get_repo_full_name()` → replaced by `RepoIdentifier.full_name`
+### `base_manager.py` — new structure
 
-### `__init__.py` — updated import
 ```python
-# Before
-from .github_utils import RepoIdentifier
-# After
-from mcp_workspace.utils.repo_identifier import RepoIdentifier
+from mcp_workspace.utils.repo_identifier import RepoIdentifier, hostname_to_api_base_url
+
+class BaseGitHubManager:
+    def __init__(
+        self,
+        project_dir: Optional[Path] = None,
+        repo_url: Optional[str] = None,
+        github_token: Optional[str] = None,
+    ) -> None:
+        # Validate exactly one of project_dir/repo_url
+        # Validate project_dir (exists, is_dir, is_git_repo) OR parse repo_url
+        # Resolve and validate token (non-empty string)
+        # Store: self.project_dir, self.github_token
+        # Store: self._cached_repo_identifier (set for repo_url mode, None for project_dir mode)
+        # DO NOT create Github() client here
+        ...
+
+    @property
+    def _repo_identifier(self) -> RepoIdentifier:
+        """Lazy property — resolves from git remote in project_dir mode."""
+        ...
+
+    @property  
+    def _github_client(self) -> Github:
+        """Lazy property — creates Github() with correct base_url."""
+        ...
+
+    def _get_repository(self) -> Optional[Repository]:
+        """Get GitHub repo object using _repo_identifier.full_name."""
+        ...
+
+
+def get_authenticated_username(hostname: Optional[str] = None) -> str:
+    """Get authenticated GitHub username.
+    
+    Args:
+        hostname: GitHub hostname (default: "github.com"). For GHE, e.g. "ghe.corp.com".
+    """
+    ...
 ```
 
-### `test_repo_identifier.py` — updated imports
-```python
-# Before
-from mcp_workspace.github_operations.github_utils import RepoIdentifier
-# After  
-from mcp_workspace.utils.repo_identifier import RepoIdentifier
+### Removed attributes
+- `_repo_owner: Optional[str]`
+- `_repo_name: Optional[str]`  
+- `_repo_full_name: Optional[str]`
+- `_github_client` as eagerly-created attribute (becomes lazy property)
+
+### Removed methods
+- `_init_with_repo_url()` — logic inlined in `__init__`
+- `_init_with_project_dir()` — logic inlined in `__init__`
+
+## ALGORITHM — `__init__`
 ```
-These tests should still pass as-is (RepoIdentifier API unchanged for existing tests).
-
-### `test_github_utils.py` — removals
-- Remove `from mcp_workspace.github_operations.github_utils import (format_github_https_url, get_repo_full_name, parse_github_url)`
-- Remove entire `TestGitHubUtils` class
-- Keep the rest of the file (fixtures, integration test classes for PullRequestManager, LabelsManager)
-
-## HOW — finding all imports to update
-
-Callers of removed functions that need updating (handled in this step or later steps):
-- `base_manager.py` imports `parse_github_url` → updated in Step 4
-- `pr_manager.py` imports `get_github_repository_url` (from git_operations) → updated in Step 5
-- `pr_manager.py` uses `get_repo_full_name` via `repository_name` property → updated in Step 5
-- `test_github_utils.py` imports all three → updated in this step
-- `test_base_manager.py` patches `parse_github_url` → updated in Step 4
-
-**Important**: Since `base_manager.py` and `pr_manager.py` still reference removed functions after this step, those imports must be updated in this step too (to keep the code importable), OR we update them here with temporary replacements. The cleanest approach: update `base_manager.py`'s import of `parse_github_url` in this step (replace with `RepoIdentifier.from_repo_url`), and update `pr_manager.py`'s import of `get_repo_full_name` in this step (inline the logic). The full refactor of those files happens in Steps 4 and 5.
-
-### Minimal `base_manager.py` change in this step
-```python
-# Before
-from .github_utils import parse_github_url
-# After
-from mcp_workspace.utils.repo_identifier import RepoIdentifier
+validate exactly one of project_dir / repo_url
+if project_dir: validate exists, is_dir, is_git_repo; store self.project_dir
+if repo_url: parse with RepoIdentifier.from_repo_url(); store self._cached_repo_identifier
+resolve token (explicit param or get_github_token()); validate non-empty string
+store self.github_token; init self._cached_github_client = None, self._repository = None
 ```
-And in `_init_with_repo_url()` and `_get_repository()`, replace `parse_github_url(url)` calls with:
-```python
+
+## ALGORITHM — `_repo_identifier` property
+```
+if self._cached_repo_identifier is not None: return it
+# project_dir mode — discover from git remote
+identifier = git_operations.get_repository_identifier(self.project_dir)
+if identifier is None: raise ValueError("Could not detect repository from git remote")
+self._cached_repo_identifier = identifier
+return identifier
+```
+
+## ALGORITHM — `_github_client` property
+```
+if self._cached_github_client is not None: return it
+base_url = self._repo_identifier.api_base_url
+self._cached_github_client = Github(auth=Auth.Token(self.github_token), base_url=base_url)
+return self._cached_github_client
+```
+
+## ALGORITHM — `_get_repository()`
+```
+if self._repository is not None: return it (cached)
 try:
-    identifier = RepoIdentifier.from_repo_url(url)
-    owner, repo_name = identifier.owner, identifier.repo_name
-except ValueError:
-    # handle error
+    self._repository = self._github_client.get_repo(self._repo_identifier.full_name)
+    return self._repository
+except GithubException as e:
+    log error using self._repo_identifier.https_url for context
+    return None
 ```
 
-### Minimal `pr_manager.py` change in this step
-In `repository_name` property:
-```python
-# Before
-from .github_utils import get_repo_full_name
-repo_name = get_repo_full_name(self.repository_url)
-# After
-from mcp_workspace.utils.repo_identifier import RepoIdentifier
-try:
-    identifier = RepoIdentifier.from_repo_url(self.repository_url)
-    return identifier.full_name
-except ValueError:
-    return ""
+## ALGORITHM — `get_authenticated_username(hostname)`
+```
+token = get_github_token()
+validate token is string
+base_url = hostname_to_api_base_url(hostname or "github.com")
+client = Github(auth=Auth.Token(token), base_url=base_url)
+return client.get_user().login
 ```
 
-## TESTS
+## DATA
 
-### Removed tests
-- `TestGitHubUtils` class in `test_github_utils.py` (all methods test deleted functions)
+### BaseGitHubManager instance attributes after refactor
+| Attribute | Type | Set in |
+|-----------|------|--------|
+| `project_dir` | `Optional[Path]` | `__init__` |
+| `github_token` | `str` | `__init__` |
+| `_cached_repo_identifier` | `Optional[RepoIdentifier]` | `__init__` (repo_url mode) or `_repo_identifier` property |
+| `_cached_github_client` | `Optional[Github]` | `_github_client` property |
+| `_repository` | `Optional[Repository]` | `_get_repository()` |
 
-### Updated tests  
-- `test_repo_identifier.py` — import path change only, all tests pass unchanged
-- `test_base_manager.py` — update patches: `parse_github_url` patches become `RepoIdentifier.from_repo_url` patches (or remove if not needed since from_repo_url is used inline)
+## TESTS — `tests/github_operations/test_base_manager.py`
+
+### Updated tests — `TestBaseGitHubManagerWithProjectDir`
+- `test_successful_initialization_with_project_dir` — verify no `_repo_owner`/`_repo_name`/`_repo_full_name`, verify `_cached_github_client` is None (lazy), verify no `Github()` call in init
+- `test_get_repository_with_project_dir_mode` — patch `get_repository_identifier` (was `get_github_repository_url`), verify `Github()` created with `base_url="https://api.github.com"`
+
+### Updated tests — `TestBaseGitHubManagerWithRepoUrl`
+- `test_successful_initialization_with_https_repo_url` — verify `_cached_repo_identifier` is set, no `Github()` call in init
+- `test_successful_initialization_with_ssh_repo_url` — same
+- `test_get_repository_with_repo_url_mode` — verify `Github()` created with correct `base_url`
+
+### New GHE tests
+- `test_ghe_repo_url_creates_client_with_ghe_base_url` — `repo_url="https://ghe.corp.com/org/repo"` → `Github(base_url="https://ghe.corp.com/api/v3")`
+- `test_ghe_project_dir_creates_client_with_ghe_base_url` — mock `get_repository_identifier` returning GHE RepoIdentifier → verify `base_url`
+
+### Updated tests — `get_authenticated_username`
+- `test_get_authenticated_username_default_hostname` — verify `Github(base_url="https://api.github.com")`
+- `test_get_authenticated_username_ghe_hostname` — verify `Github(base_url="https://ghe.corp.com/api/v3")`
+
+### Updated tests — `TestGithubTokenForwarding`
+- Update patches: `get_github_repository_url` → `get_repository_identifier`
+- Remove assertions on `_repo_owner`, `_repo_name`, `_repo_full_name`
 
 ## COMMIT
 ```
-refactor: remove parse_github_url, format_github_https_url, get_repo_full_name (#156)
+refactor: BaseGitHubManager lazy client with GHE base_url support (#156)
 ```
