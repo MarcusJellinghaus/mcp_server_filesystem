@@ -79,7 +79,7 @@ from mcp_workspace.git_operations.remotes import get_repository_identifier
 
 **Delete**: The `RepoIdentifier` class (moved to `utils/repo_identifier.py` in Step 1)
 
-After deletions, the file should be empty or contain only the module docstring. If completely empty, delete the file.
+After removing all four definitions, delete `github_utils.py` entirely — no stub file needed. The now-unused imports (`re`, `dataclass`, `Optional`, `Tuple`) go with it.
 
 ### 4. `src/mcp_workspace/github_operations/__init__.py`
 

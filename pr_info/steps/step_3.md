@@ -170,8 +170,8 @@ assert manager._cached_repo_identifier.full_name == "test/repo"
 
 Apply the same pattern at line 191 (`_repo_full_name` → `_cached_repo_identifier.full_name`).
 
-### Updated tests — `TestGithubTokenForwarding`
-- Update patches: `get_github_repository_url` → `get_repository_identifier`
+### `TestGithubTokenForwarding`
+- Patch updates (`get_github_repository_url` → `get_repository_identifier`) already done in Step 2 — no changes needed here
 - Remove assertions on `_repo_owner`, `_repo_name`, `_repo_full_name`
 
 ## COMMIT
