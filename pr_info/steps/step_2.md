@@ -25,6 +25,7 @@ Follow TDD — update tests first, then implement. Run all code quality checks a
 - `src/mcp_workspace/github_operations/__init__.py`
 - `src/mcp_workspace/github_operations/base_manager.py`
 - `src/mcp_workspace/github_operations/pr_manager.py`
+- `src/mcp_workspace/github_operations/issues/cache.py`
 
 ### Modified files — config
 - `tach.toml` — add `mcp_workspace.utils` to `git_operations.depends_on`
@@ -35,6 +36,7 @@ Follow TDD — update tests first, then implement. Run all code quality checks a
 - `tests/github_operations/test_base_manager.py`
 - `tests/github_operations/test_pr_manager.py`
 - `tests/github_operations/test_repo_identifier.py`
+- `tests/github_operations/test_issue_cache.py`
 
 ---
 
@@ -164,7 +166,17 @@ except (ValueError, TypeError):
     return ""
 ```
 
-### 7. `tach.toml`
+### 7. `src/mcp_workspace/github_operations/issues/cache.py`
+
+**Replace import** (line 35):
+```python
+# Before
+from ..github_utils import RepoIdentifier
+# After
+from mcp_workspace.utils.repo_identifier import RepoIdentifier
+```
+
+### 8. `tach.toml`
 
 Add `{ path = "mcp_workspace.utils" }` to the `depends_on` list for `[[modules]]` entry with `path = "mcp_workspace.git_operations"`. This is needed because `git_operations/remotes.py` now imports from `utils/repo_identifier.py`.
 
@@ -221,6 +233,18 @@ from mcp_workspace.utils.repo_identifier import RepoIdentifier
 ```
 
 All test logic should remain unchanged — the `RepoIdentifier` API is the same. If this file substantially duplicates the new `tests/utils/test_repo_identifier.py` from Step 1, delete it and redirect. Otherwise, update the import path only.
+
+### `tests/github_operations/test_issue_cache.py`
+
+**Update import** (line 17):
+```python
+# Before
+from mcp_workspace.github_operations.github_utils import RepoIdentifier
+# After
+from mcp_workspace.utils.repo_identifier import RepoIdentifier
+```
+
+All test logic should remain unchanged — only the import path changes.
 
 ---
 

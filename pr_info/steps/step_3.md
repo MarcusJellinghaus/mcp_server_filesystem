@@ -19,6 +19,7 @@ Follow TDD — update tests first, then implement. Run all code quality checks a
 ### Modified files
 - `src/mcp_workspace/github_operations/base_manager.py`
 - `tests/github_operations/test_base_manager.py`
+- `tests/github_operations/test_ci_results_manager_foundation.py`
 
 ## WHAT
 
@@ -152,6 +153,22 @@ return client.get_user().login
 ### Updated tests — `get_authenticated_username`
 - `test_get_authenticated_username_default_hostname` — verify `Github(base_url="https://api.github.com")`
 - `test_get_authenticated_username_ghe_hostname` — verify `Github(base_url="https://ghe.corp.com/api/v3")`
+
+### Updated tests — `tests/github_operations/test_ci_results_manager_foundation.py`
+
+**Update assertions** that reference removed attributes `_repo_owner`, `_repo_name`, `_repo_full_name` (lines 52-54 and 191):
+```python
+# Before
+assert manager._repo_owner == "test"
+assert manager._repo_name == "repo"
+assert manager._repo_full_name == "test/repo"
+# After
+assert manager._cached_repo_identifier.owner == "test"
+assert manager._cached_repo_identifier.repo_name == "repo"
+assert manager._cached_repo_identifier.full_name == "test/repo"
+```
+
+Apply the same pattern at line 191 (`_repo_full_name` → `_cached_repo_identifier.full_name`).
 
 ### Updated tests — `TestGithubTokenForwarding`
 - Update patches: `get_github_repository_url` → `get_repository_identifier`

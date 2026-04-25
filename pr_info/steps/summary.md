@@ -75,6 +75,9 @@ github_operations/base_manager.py → lazy _github_client      uses RepoIdentifi
 | `tests/github_operations/test_base_manager.py` | Update for lazy init, GHE base_url |
 | `tests/github_operations/test_pr_manager.py` | Update for repo_identifier replacing repository_url |
 | `tests/git_operations/test_remotes.py` | Update for get_repository_identifier returning RepoIdentifier |
+| `src/mcp_workspace/github_operations/issues/cache.py` | Update RepoIdentifier import to `utils.repo_identifier` |
+| `tests/github_operations/test_issue_cache.py` | Update RepoIdentifier import to `utils.repo_identifier` |
+| `tests/github_operations/test_ci_results_manager_foundation.py` | Update assertions for removed `_repo_owner`/`_repo_name`/`_repo_full_name` attributes |
 
 ## Implementation Steps Overview
 1. **Create `utils/repo_identifier.py`** — RepoIdentifier with hostname support + tests

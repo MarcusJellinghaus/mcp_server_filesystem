@@ -32,4 +32,29 @@
 - Updated step_4.md (test_repository_url_property, exception fix)
 - Updated summary.md and TASK_TRACKER.md for 4-step structure
 
+**Status**: Committed (4a70d57)
+
+## Round 2 — 2026-04-25
+
+**Findings**:
+- Critical: `src/mcp_workspace/github_operations/issues/cache.py` imports `RepoIdentifier` from `..github_utils` — will break when class is moved in Step 2
+- Critical: `tests/github_operations/test_issue_cache.py` imports `RepoIdentifier` from `github_utils` — same breakage
+- Critical: `tests/github_operations/test_ci_results_manager_foundation.py` asserts on `_repo_owner`/`_repo_name`/`_repo_full_name` — removed in Step 3
+- Minor: Step 2 creates transitional code in `base_manager.py` that Step 3 removes (acceptable — intermediate state is functional)
+- Note: Multiple test assertions on eager `Github()` creation need updating in Step 3 (already covered implicitly)
+
+**Decisions**:
+- Accept (cache.py): Add to Step 2 — straightforward import path update
+- Accept (test_issue_cache.py): Add to Step 2 — straightforward import path update
+- Accept (test_ci_results_manager_foundation.py): Add to Step 3 — straightforward assertion update
+- Skip (transitional code): Acceptable trade-off — code is functional between steps
+- Skip (eager Github assertions): Already covered by Step 3's test rewrite scope
+
+**User decisions**: None needed.
+
+**Changes**:
+- Added `issues/cache.py` and `test_issue_cache.py` to Step 2
+- Added `test_ci_results_manager_foundation.py` to Step 3
+- Updated summary.md Files Modified table
+
 **Status**: Committing...
