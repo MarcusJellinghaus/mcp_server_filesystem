@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -74,6 +75,25 @@ def test_normalize_path_security_error_absolute() -> None:
     # Verify the security error message
     assert "Security error" in str(excinfo.value)
     assert "outside the project directory" in str(excinfo.value)
+
+
+def test_normalize_path_oserror_with_traversal_rejected() -> None:
+    """When resolve() raises OSError, paths with '..' are rejected."""
+    project_dir = Path("/fake/project")
+    with patch.object(Path, "resolve", side_effect=OSError("mocked")):
+        with pytest.raises(ValueError) as excinfo:
+            normalize_path("../etc/passwd", project_dir)
+        assert "Security error" in str(excinfo.value)
+        assert "traversal" in str(excinfo.value)
+
+
+def test_normalize_path_oserror_clean_path_passes() -> None:
+    """When resolve() raises OSError, clean relative paths pass through."""
+    project_dir = Path("/fake/project")
+    with patch.object(Path, "resolve", side_effect=OSError("mocked")):
+        abs_path, rel_path = normalize_path("subdir/file.txt", project_dir)
+    assert abs_path == project_dir / "subdir/file.txt"
+    assert Path(rel_path) == Path("subdir/file.txt")
 
 
 def test_normalize_path_security_error_relative() -> None:
