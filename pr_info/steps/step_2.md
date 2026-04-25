@@ -108,7 +108,7 @@ If check 2 fails, check 1 still reports `ok: True` but with `"configured (scopes
 
 ### Key detail: `BaseGitHubManager` with explicit token
 
-Pass `github_token=token` to avoid a second `get_github_token()` call. Use `project_dir` mode since we have the path.
+Pass `github_token=token` to reuse the already-fetched token when available. When `token` is `None`, the constructor will attempt its own lookup and raise `ValueError`, which the try/except handles. Use `project_dir` mode since we have the path.
 
 ## DATA
 

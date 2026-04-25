@@ -31,9 +31,13 @@ Add branch protection checks inside `verify_github()` after check 4 (repo access
 ## ALGORITHM
 
 ```
-# After check 4, if repo is available:
-default_branch_name = manager.get_default_branch()
-branch = repo.get_branch(default_branch_name)
+# After check 4 — gate on repo availability
+if repo is None:
+    # Set all 5 checks to ok=False, severity="warning", error="repository not accessible"
+    # Skip to overall_ok computation
+else:
+    default_branch_name = manager.get_default_branch()
+    branch = repo.get_branch(default_branch_name)
 try:
     protection = branch.get_protection()
 except GithubException(404):
@@ -66,7 +70,8 @@ result["branch_deletion"] = ok if disabled (False) else not ok
 - `protection.required_status_checks.strict` → `bool`
 - `protection.allow_force_pushes` → `bool` (PyGithub returns the raw value)
 - `protection.allow_deletions` → `bool`
-- **`required_status_checks` nullability**: When the GitHub API returns `null` for `required_status_checks`, PyGithub may return `None` or its `NotSet` sentinel. The implementation should check for both: `if status_checks is None or isinstance(status_checks, _NotSetType)`. Test with a mock returning `None` to cover this path.
+- **`required_status_checks` nullability**: When the GitHub API returns `null`, PyGithub returns `None` (via `_ValuedAttribute(None)`). A simple `if status_checks is None` check suffices — no need to import private `_NotSetType`.
+- **`allow_force_pushes` / `allow_deletions` defensiveness**: These properties normally return `bool`, but handle `None` defensively in case of partial API responses.
 
 ### Key detail: Graceful handling when repo not accessible
 

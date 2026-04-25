@@ -35,4 +35,30 @@
 - `pr_info/steps/step_3.md`: Added note about `required_status_checks` NotSet sentinel
 - `pr_info/steps/step_4.md`: Made `get_default_branch` vulture whitelist entry conditional
 
+**Status**: Committed (ce33190)
+
+## Round 2 — 2026-04-25
+
+**Findings**:
+- F1 (improvement): `allow_force_pushes`/`allow_deletions` could also be NotSet — add defensive note
+- F2 (critical): Step 3 pseudocode missing explicit `repo is None` guard around `manager.get_default_branch()`
+- F3 (improvement): `required_status_checks` NotSet handling over-complicated — simple `None` check suffices
+- F4 (nit): `github_token=None` doesn't prevent second `get_github_token()` call — misleading comment
+- F5 (nit): `Auth.Token(None)` raises AssertionError specifically
+- F6 (nit): Confirmation check 2 independence works — already addressed
+
+**Decisions**:
+- F1: Accept — add defensive None handling note for force push/deletions
+- F2: Accept — make guard explicit in pseudocode
+- F3: Accept — simplify to plain `None` check, avoid private import
+- F4: Accept — fix misleading comment
+- F5: Skip — caught by Exception, not worth documenting
+- F6: Skip — already addressed in round 1
+
+**User decisions**: None needed.
+
+**Changes**:
+- `pr_info/steps/step_3.md`: Added explicit `if repo is None` guard in algorithm, simplified required_status_checks guidance, added defensive note for allow_force_pushes/allow_deletions
+- `pr_info/steps/step_2.md`: Fixed misleading github_token comment
+
 **Status**: Pending commit
