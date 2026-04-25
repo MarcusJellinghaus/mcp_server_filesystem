@@ -27,5 +27,5 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `fix: harden normalize_path against OSError bypass (#152)`
 
 ## Pull Request
-- [ ] PR review
+- [x] PR review
 - [ ] PR summary
