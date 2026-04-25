@@ -36,14 +36,24 @@ if repo is None:
     # Set all 5 checks to ok=False, severity="warning", error="repository not accessible"
     # Skip to overall_ok computation
 else:
-    default_branch_name = manager.get_default_branch()
-    branch = repo.get_branch(default_branch_name)
-try:
-    protection = branch.get_protection()
-except GithubException(404):
-    # No protection — all 5 checks fail as warnings
-    set checks 5-9 to ok=False, severity="warning"
-    return
+    try:
+        default_branch_name = manager.get_default_branch()
+        branch = repo.get_branch(default_branch_name)
+        protection = branch.get_protection()
+    except GithubException as e:
+        if e.status == 404:
+            # No protection — all 5 checks fail as warnings
+            set checks 5-9 to ok=False, severity="warning"
+        else:
+            # Branch/API error — all 5 checks fail with error detail
+            set checks 5-9 to ok=False, severity="warning", error=str(e)
+        # Skip to overall_ok computation
+    except (ValueError, Exception) as e:
+        # Unexpected failure — all 5 checks fail with error detail
+        set checks 5-9 to ok=False, severity="warning", error=str(e)
+        # Skip to overall_ok computation
+    else:
+        # Protection retrieved successfully — evaluate checks 5-9
 
 # Check 5: branch_protection — protection exists
 result["branch_protection"] = ok=True, value=f"{default_branch_name} protected"

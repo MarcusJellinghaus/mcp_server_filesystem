@@ -61,4 +61,22 @@
 - `pr_info/steps/step_3.md`: Added explicit `if repo is None` guard in algorithm, simplified required_status_checks guidance, added defensive note for allow_force_pushes/allow_deletions
 - `pr_info/steps/step_2.md`: Fixed misleading github_token comment
 
+**Status**: Committed (f204de9)
+
+## Round 3 — 2026-04-25
+
+**Findings**:
+- F1 (nit): Summary still references `get_authenticated_username()` in architecture pattern — contradicts step 2
+- F2 (medium): Missing try/except around `get_default_branch()` and `get_branch()` in step 3 — breaks check independence
+
+**Decisions**:
+- F1: Accept — update summary to match step 2
+- F2: Accept — wrap entire branch protection block in try/except/else
+
+**User decisions**: None needed.
+
+**Changes**:
+- `pr_info/steps/summary.md`: Removed `get_authenticated_username()` from architecture pattern, added note about direct Github client
+- `pr_info/steps/step_3.md`: Wrapped entire branch protection block (get_default_branch + get_branch + get_protection) in try/except/else with proper GithubException handling
+
 **Status**: Pending commit

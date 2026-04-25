@@ -18,7 +18,7 @@ Add a `verify_github(project_dir: Path)` function that returns a structured dict
 
 ### Architecture pattern
 
-Single-file orchestrator in `verification.py`. No separate verify_* helper functions in `config.py` or `base_manager.py` — the orchestrator calls existing functions directly (`get_github_token()`, `get_authenticated_username()`, `get_repository_identifier()`, `BaseGitHubManager._get_repository()`). This keeps all verification logic in one readable file.
+Single-file orchestrator in `verification.py`. No separate verify_* helper functions in `config.py` or `base_manager.py` — the orchestrator calls existing functions directly (`get_github_token()`, `get_repository_identifier()`, `BaseGitHubManager._get_repository()`) and creates a direct `Github` client for auth/scopes (not `get_authenticated_username()`, which discards the client). This keeps all verification logic in one readable file.
 
 `get_default_branch()` is the only addition to `base_manager.py` because it's explicitly required as public API for external callers beyond verification.
 
