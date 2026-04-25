@@ -6,9 +6,10 @@ and returns per-check results. All checks use PyGithub — no gh CLI dependency.
 
 import logging
 from pathlib import Path
-from typing import Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from github import Auth, Github
+from github.GithubException import GithubException
 
 from mcp_workspace.config import get_github_token
 from mcp_workspace.git_operations.remotes import get_repository_identifier
@@ -121,6 +122,8 @@ def verify_github(project_dir: Path) -> dict[str, object]:
     # ------------------------------------------------------------------
     # Check 4: repository accessible
     # ------------------------------------------------------------------
+    manager = None
+    repo = None
     try:
         manager = BaseGitHubManager(project_dir=project_dir, github_token=token)
         repo = manager._get_repository()
@@ -147,14 +150,137 @@ def verify_github(project_dir: Path) -> dict[str, object]:
         )
 
     # ------------------------------------------------------------------
+    # Checks 5–9: branch protection
+    # ------------------------------------------------------------------
+    repo_obj = result.get("repo_accessible")
+    repo_is_ok = isinstance(repo_obj, dict) and repo_obj.get("ok") is True
+
+    if not repo_is_ok or repo is None or manager is None:
+        for key in (
+            "branch_protection",
+            "ci_checks_required",
+            "strict_mode",
+            "force_push",
+            "branch_deletion",
+        ):
+            result[key] = CheckResult(
+                ok=False,
+                value="unknown",
+                severity="warning",
+                error="repository not accessible",
+            )
+    else:
+        try:
+            default_branch_name = manager.get_default_branch()
+            branch = repo.get_branch(default_branch_name)
+            protection = branch.get_protection()
+        except GithubException as exc:
+            _reason = "no branch protection" if exc.status == 404 else str(exc)
+            for key in (
+                "branch_protection",
+                "ci_checks_required",
+                "strict_mode",
+                "force_push",
+                "branch_deletion",
+            ):
+                result[key] = CheckResult(
+                    ok=False,
+                    value="not configured",
+                    severity="warning",
+                    error=_reason,
+                )
+        except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+            _reason = str(exc)
+            for key in (
+                "branch_protection",
+                "ci_checks_required",
+                "strict_mode",
+                "force_push",
+                "branch_deletion",
+            ):
+                result[key] = CheckResult(
+                    ok=False,
+                    value="not configured",
+                    severity="warning",
+                    error=_reason,
+                )
+        else:
+            # Check 5: branch_protection
+            result["branch_protection"] = CheckResult(
+                ok=True,
+                value=f"{default_branch_name} protected",
+                severity="warning",
+            )
+
+            # Check 6: ci_checks_required
+            # PyGithub types this as RequiredStatusChecks but returns None
+            # when the GitHub API sends null
+            status_checks: Any = protection.required_status_checks
+            if status_checks is not None:
+                contexts = status_checks.contexts
+                result["ci_checks_required"] = CheckResult(
+                    ok=True,
+                    value=f"{len(contexts)} checks configured",
+                    severity="warning",
+                )
+            else:
+                result["ci_checks_required"] = CheckResult(
+                    ok=False,
+                    value="not configured",
+                    severity="warning",
+                )
+
+            # Check 7: strict_mode
+            if status_checks is not None and status_checks.strict:
+                result["strict_mode"] = CheckResult(
+                    ok=True,
+                    value="enabled",
+                    severity="warning",
+                )
+            else:
+                result["strict_mode"] = CheckResult(
+                    ok=False,
+                    value="disabled",
+                    severity="warning",
+                )
+
+            # Check 8: force_push
+            force_push_allowed = protection.allow_force_pushes
+            if not force_push_allowed:
+                result["force_push"] = CheckResult(
+                    ok=True,
+                    value="disabled",
+                    severity="warning",
+                )
+            else:
+                result["force_push"] = CheckResult(
+                    ok=False,
+                    value="enabled",
+                    severity="warning",
+                )
+
+            # Check 9: branch_deletion
+            deletion_allowed = protection.allow_deletions
+            if not deletion_allowed:
+                result["branch_deletion"] = CheckResult(
+                    ok=True,
+                    value="disabled",
+                    severity="warning",
+                )
+            else:
+                result["branch_deletion"] = CheckResult(
+                    ok=False,
+                    value="enabled",
+                    severity="warning",
+                )
+
+    # ------------------------------------------------------------------
     # overall_ok: all error-severity checks must pass
     # ------------------------------------------------------------------
-    check_keys = ("token_configured", "authenticated_user", "repo_url", "repo_accessible")
     error_checks: list[CheckResult] = []
-    for k in check_keys:
-        check = result[k]
-        if isinstance(check, dict) and check.get("severity") == "error":
-            error_checks.append(check)  # type: ignore[arg-type]
+    for check_val in result.values():
+        if isinstance(check_val, dict) and check_val.get("severity") == "error":
+            error_checks.append(check_val)  # type: ignore[arg-type]
     result["overall_ok"] = all(c["ok"] for c in error_checks)
 
     return result
