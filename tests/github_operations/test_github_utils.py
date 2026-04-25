@@ -22,11 +22,6 @@ import git
 import pytest
 
 from mcp_workspace.github_operations import LabelsManager, PullRequestManager
-from mcp_workspace.github_operations.github_utils import (
-    format_github_https_url,
-    get_repo_full_name,
-    parse_github_url,
-)
 from mcp_workspace.github_operations.labels_manager import LabelData
 from mcp_workspace.github_operations.pr_manager import PullRequestData
 
@@ -84,81 +79,6 @@ def pr_manager(
         yield manager
     except Exception as e:  # pylint: disable=broad-exception-caught
         pytest.skip(f"Failed to create PullRequestManager: {e}")
-
-
-class TestGitHubUtils:
-    """Unit tests for GitHub utility functions."""
-
-    def test_parse_github_url_https(self) -> None:
-        """Test parsing HTTPS GitHub URLs."""
-        result = parse_github_url("https://github.com/user/repo")
-        assert result == ("user", "repo")
-
-    def test_parse_github_url_https_with_git(self) -> None:
-        """Test parsing HTTPS GitHub URLs with .git suffix."""
-        result = parse_github_url("https://github.com/user/repo.git")
-        assert result == ("user", "repo")
-
-    def test_parse_github_url_ssh(self) -> None:
-        """Test parsing SSH GitHub URLs."""
-        result = parse_github_url("git@github.com:user/repo.git")
-        assert result == ("user", "repo")
-
-    def test_parse_github_url_short_format(self) -> None:
-        """Test parsing short format owner/repo."""
-        result = parse_github_url("user/repo")
-        assert result == ("user", "repo")
-
-    def test_parse_github_url_https_with_token(self) -> None:
-        """Test parsing HTTPS URLs with token as username."""
-        result = parse_github_url("https://token@github.com/user/repo.git")
-        assert result == ("user", "repo")
-
-    def test_parse_github_url_https_with_username(self) -> None:
-        """Test parsing HTTPS URLs with username only."""
-        result = parse_github_url("https://username@github.com/user/repo")
-        assert result == ("user", "repo")
-
-    def test_parse_github_url_https_with_username_password(self) -> None:
-        """Test parsing HTTPS URLs with username and password."""
-        result = parse_github_url("https://username:password@github.com/user/repo.git")
-        assert result == ("user", "repo")
-
-    def test_parse_github_url_https_with_special_chars_in_credentials(self) -> None:
-        """Test parsing HTTPS URLs with special characters in credentials."""
-        # Test with asterisks (like the actual error case)
-        result = parse_github_url(
-            "https://****@github.com/MarcusJellinghaus/mcp_coder.git"
-        )
-        assert result == ("MarcusJellinghaus", "mcp_coder")
-
-        # Test with complex token-like string
-        result = parse_github_url("https://ghp_abc123xyz789@github.com/owner/repo.git")
-        assert result == ("owner", "repo")
-
-    def test_parse_github_url_invalid(self) -> None:
-        """Test parsing invalid URLs returns None."""
-        assert parse_github_url("invalid-url") is None
-        assert parse_github_url("https://gitlab.com/user/repo") is None
-        assert parse_github_url("") is None
-        assert parse_github_url("   ") is None
-
-    def test_parse_github_url_non_string(self) -> None:
-        """Test parsing non-string input returns None."""
-        assert parse_github_url(None) is None  # type: ignore
-        assert parse_github_url(123) is None  # type: ignore
-
-    def test_format_github_https_url(self) -> None:
-        """Test formatting GitHub HTTPS URL."""
-        result = format_github_https_url("user", "repo")
-        assert result == "https://github.com/user/repo"
-
-    def test_get_repo_full_name(self) -> None:
-        """Test getting repository full name from various URL formats."""
-        assert get_repo_full_name("https://github.com/user/repo") == "user/repo"
-        assert get_repo_full_name("git@github.com:user/repo.git") == "user/repo"
-        assert get_repo_full_name("user/repo") == "user/repo"
-        assert get_repo_full_name("invalid-url") is None
 
 
 @pytest.mark.git_integration
@@ -467,7 +387,9 @@ class TestPullRequestManagerIntegration:
                     f"[DEBUG] Successfully listed {len(existing_prs_before)} existing PRs"
                 )
                 print(f"[DEBUG] Repository name: {pr_manager.repository_name}")
-                print(f"[DEBUG] Repository URL: {pr_manager.repository_url}")
+                print(
+                    f"[DEBUG] Repository URL: {pr_manager._repo_identifier.https_url}"
+                )
             except Exception as e:  # pylint: disable=broad-exception-caught
                 print(f"[ERROR] GitHub API access failed: {e}")
                 pytest.skip(f"GitHub API access failed: {e}")
@@ -584,7 +506,8 @@ class TestPullRequestManagerIntegration:
         ):
             direct_manager = PullRequestManager(git_dir)
             assert isinstance(direct_manager, PullRequestManager)
-            assert direct_manager.repository_url == "https://github.com/test/repo"
+            assert direct_manager._repo_identifier.full_name == "test/repo"
+            assert direct_manager._repo_identifier.hostname == "github.com"
             assert direct_manager.github_token == "test-token"
 
     def test_manager_properties(self, pr_manager: PullRequestManager) -> None:

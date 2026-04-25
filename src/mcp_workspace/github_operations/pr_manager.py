@@ -11,10 +11,7 @@ from typing import List, Optional, TypedDict, cast
 from github.GithubException import GithubException
 from mcp_coder_utils.log_utils import log_function_call
 
-from mcp_workspace.git_operations import (
-    get_default_branch_name,
-    get_github_repository_url,
-)
+from mcp_workspace.git_operations import get_default_branch_name
 
 from .base_manager import BaseGitHubManager, _handle_github_errors
 
@@ -67,18 +64,18 @@ class PullRequestManager(BaseGitHubManager):
         """
         super().__init__(project_dir)
 
-        # Store repository URL for compatibility with existing code
-        # At this point, project_dir is guaranteed to be valid (checked by super().__init__)
-        # Assert that project_dir is not None for type checker
+        # _repo_identifier is a lazy property from BaseGitHubManager.
+        # Eagerly resolve it here to fail fast if no GitHub remote.
         assert (
             self.project_dir is not None
         ), "project_dir must be set after initialization"
-        self.repository_url = get_github_repository_url(self.project_dir)
-        if self.repository_url is None:
+        try:
+            _ = self._repo_identifier  # triggers resolution
+        except ValueError as e:
             raise ValueError(
                 f"Could not detect GitHub repository URL from git remote in: {self.project_dir}. "
                 "Make sure the repository has a GitHub remote origin configured."
-            )
+            ) from e
 
     def _validate_pr_number(self, pr_number: int) -> bool:
         """Validate pull request number.
@@ -353,7 +350,7 @@ class PullRequestManager(BaseGitHubManager):
         if repo is None:
             return []
 
-        owner = self.repository_name.split("/")[0]
+        owner = self._repo_identifier.owner
         prs = repo.get_pulls(state="open", head=f"{owner}:{head_branch}")
 
         return [
@@ -501,18 +498,9 @@ class PullRequestManager(BaseGitHubManager):
         Returns:
             Repository name in format "owner/repo" or empty string on failure
         """
-        from .github_utils import get_repo_full_name
-
         try:
-            # repository_url is set in __init__ and guaranteed to be non-None
-            if self.repository_url is None:
-                return ""
-            repo_name = get_repo_full_name(self.repository_url)
-            return repo_name or ""
-        except (
-            Exception
-        ) as e:  # pylint: disable=broad-exception-caught  # TODO: narrow exception type
-            logger.debug(f"Error getting repository name: {e}")
+            return self._repo_identifier.full_name
+        except Exception:  # pylint: disable=broad-exception-caught
             return ""
 
     @property

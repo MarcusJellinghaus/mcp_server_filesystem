@@ -14,7 +14,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from mcp_workspace.github_operations.github_utils import RepoIdentifier
 from mcp_workspace.github_operations.issues import (
     CacheData,
     IssueData,
@@ -28,6 +27,7 @@ from mcp_workspace.github_operations.issues.cache import (
     _save_cache_file,
     get_all_cached_issues,
 )
+from mcp_workspace.utils.repo_identifier import RepoIdentifier
 
 
 class TestCacheMetricsLogging:
