@@ -39,7 +39,8 @@ def verify_github(project_dir: Path) -> dict[str, object]:
 
 ## HOW
 
-- Import existing functions: `get_github_token`, `get_authenticated_username`, `get_repository_identifier`
+- Import existing functions: `get_github_token`, `get_repository_identifier`
+- Do NOT use `get_authenticated_username()` — it creates an internal client whose `oauth_scopes` are inaccessible. Instead, create a `Github` client directly to get both the user login (check 2) and scopes (check 1 value).
 - Import `BaseGitHubManager` for repo access check
 - Create `Github` client for `get_user()` / `oauth_scopes` (separate from `BaseGitHubManager`'s client)
 - Each check wrapped in its own try/except — independent reporting
@@ -53,20 +54,33 @@ result = {}
 token = get_github_token()
 result["token_configured"] = ok/fail based on token being a string
 
-# Check 2: auth — create Github client, call get_user()
-# After get_user(), read github_client.oauth_scopes for check 1 value
-user = github_client.get_user()
-result["authenticated_user"] = ok/fail with user.login
-# Update check 1 value with scopes now available
+# Check 2: auth — create a NEW Github(auth=Auth.Token(token)) client, call get_user()
+# Do NOT use get_authenticated_username() — we need the client for oauth_scopes
+try:
+    github_client = Github(auth=Auth.Token(token))
+    user = github_client.get_user()
+    result["authenticated_user"] = ok with user.login
+    # Now oauth_scopes is populated — update check 1 value
+    scopes = github_client.oauth_scopes
+    # Update token_configured value with scopes
+except Exception:
+    result["authenticated_user"] = fail
+    # token_configured value stays "configured (scopes: unknown)"
 
 # Check 3: repo URL — call get_repository_identifier(project_dir)
 identifier = get_repository_identifier(project_dir)
-result["repo_url"] = ok/fail based on identifier
+result["repo_url"] = ok/fail based on identifier, use identifier.https_url as value
 
 # Check 4: repo accessible — create BaseGitHubManager, call _get_repository()
-manager = BaseGitHubManager(project_dir=project_dir, github_token=token)
-repo = manager._get_repository()
-result["repo_accessible"] = ok/fail based on repo
+# BaseGitHubManager raises ValueError if token is None — catch for independence
+try:
+    manager = BaseGitHubManager(project_dir=project_dir, github_token=token)
+    repo = manager._get_repository()
+    result["repo_accessible"] = ok/fail based on repo
+except (ValueError, Exception):
+    repo = None
+    manager = None
+    result["repo_accessible"] = fail with error message
 
 # Checks 5-9: placeholder (Step 3)
 # ... branch protection checks ...
@@ -74,6 +88,14 @@ result["repo_accessible"] = ok/fail based on repo
 result["overall_ok"] = all error-severity checks have ok=True
 return result
 ```
+
+### Key detail: Exception handling for check independence
+
+When `token` is `None`:
+- Check 2: `Github(auth=Auth.Token(None))` will fail → catch in try/except
+- Check 4: `BaseGitHubManager(github_token=None)` raises `ValueError` → catch in try/except
+
+Each check must have its own try/except to ensure later checks still run and report.
 
 ### Key detail: `oauth_scopes` ordering
 

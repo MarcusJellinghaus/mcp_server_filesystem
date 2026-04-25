@@ -38,7 +38,7 @@ Under the `# GitHub Operations` section:
 # Verification API (verify_github)
 _.verify_github
 _.CheckResult
-_.get_default_branch
+# Note: get_default_branch is called by verify_github() — only add if vulture flags it
 ```
 
 ## HOW

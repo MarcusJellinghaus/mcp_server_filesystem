@@ -66,6 +66,7 @@ result["branch_deletion"] = ok if disabled (False) else not ok
 - `protection.required_status_checks.strict` → `bool`
 - `protection.allow_force_pushes` → `bool` (PyGithub returns the raw value)
 - `protection.allow_deletions` → `bool`
+- **`required_status_checks` nullability**: When the GitHub API returns `null` for `required_status_checks`, PyGithub may return `None` or its `NotSet` sentinel. The implementation should check for both: `if status_checks is None or isinstance(status_checks, _NotSetType)`. Test with a mock returning `None` to cover this path.
 
 ### Key detail: Graceful handling when repo not accessible
 
