@@ -172,7 +172,6 @@ Apply the same pattern at line 191 (`_repo_full_name` → `_cached_repo_identifi
 
 ### `TestGithubTokenForwarding`
 - Patch updates (`get_github_repository_url` → `get_repository_identifier`) already done in Step 2 — no changes needed here
-- Remove assertions on `_repo_owner`, `_repo_name`, `_repo_full_name`
 
 ## COMMIT
 ```

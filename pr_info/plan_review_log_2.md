@@ -21,4 +21,23 @@
 - `pr_info/steps/step_2.md`: Explicit deletion instruction for `github_utils.py`
 - `pr_info/steps/step_3.md`: Clarified `TestGithubTokenForwarding` section — patch updates done in Step 2
 
+**Status**: Committed (ddbe988)
+
+## Round 2 — 2026-04-25
+
+**Findings**:
+- Step 3's `TestGithubTokenForwarding` section has bullet "Remove assertions on `_repo_owner`, `_repo_name`, `_repo_full_name`" but the class has NO such assertions — incorrect instruction
+- Step 2's HOW implementation order has `github_utils.py` deletion (step 4) before `__init__.py` update (step 5), but `__init__.py` imports from `github_utils.py` — would break if run between sub-steps
+- Steps 1 and 4 unaffected by round 1 changes — verified clean
+
+**Decisions**:
+- Accept (incorrect bullet): Remove second bullet from `TestGithubTokenForwarding` section in Step 3
+- Accept (HOW order): Swap steps 4 and 5 — update `__init__.py` before deleting `github_utils.py`
+
+**User decisions**: None needed.
+
+**Changes**:
+- `pr_info/steps/step_3.md`: Removed incorrect `_repo_owner`/`_repo_name`/`_repo_full_name` bullet from `TestGithubTokenForwarding`
+- `pr_info/steps/step_2.md`: Swapped HOW steps 4↔5 — `__init__.py` update before `github_utils.py` deletion
+
 **Status**: Committing

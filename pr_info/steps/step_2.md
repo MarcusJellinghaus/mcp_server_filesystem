@@ -268,8 +268,8 @@ except ValueError:
 1. Update `tach.toml` first (architecture dependency)
 2. Update `remotes.py` (delete `_parse_github_url`, rename function, update docstrings)
 3. Update `git_operations/__init__.py` (export rename)
-4. Delete functions from `github_utils.py`
-5. Update `github_operations/__init__.py` (re-export source)
+4. Update `github_operations/__init__.py` (re-export source)
+5. Delete `github_utils.py`
 6. Update `base_manager.py` (replace `parse_github_url` usage with `RepoIdentifier`)
 7. Update `pr_manager.py` (replace `get_github_repository_url` usage, replace `get_repo_full_name` usage)
 8. Update all test files in one pass
