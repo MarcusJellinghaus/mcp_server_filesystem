@@ -1,11 +1,5 @@
-feat: add branch protection checks to verify_github() (#157)
+chore: export verify_github and update whitelist (#157)
 
-Add checks 5-9 to verify_github() for branch protection verification:
-- branch_protection: whether default branch has protection rules
-- ci_checks_required: number of required status checks configured
-- strict_mode: whether branches must be up-to-date before merging
-- force_push: whether force pushes are disabled
-- branch_deletion: whether branch deletion is disabled
-
-All five checks use warning severity (don't affect overall_ok).
-Gracefully handles missing protection (404) and inaccessible repos.
+Export `verify_github` and `CheckResult` from
+`github_operations/__init__.py` and add corresponding entries
+to `vulture_whitelist.py`.

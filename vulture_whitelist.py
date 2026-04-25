@@ -128,6 +128,10 @@ _.REVIEW_REQUEST_REMOVED
 _.CONVERTED_TO_DRAFT
 _.READY_FOR_REVIEW
 
+# Verification API (verify_github)
+_.verify_github
+_.CheckResult
+
 # CI results manager - variables used in dict unpacking / data extraction
 _.run_ids
 _.workflow_name
