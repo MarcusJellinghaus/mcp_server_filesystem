@@ -338,6 +338,8 @@ class TestBaseGitHubManagerWithProjectDir:
 
     def test_get_repository_with_project_dir_mode(self) -> None:
         """Test _get_repository() in project_dir mode extracts repo from git remote."""
+        from mcp_workspace.utils.repo_identifier import RepoIdentifier
+
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -350,8 +352,8 @@ class TestBaseGitHubManagerWithProjectDir:
                 return_value=True,
             ),
             patch(
-                "mcp_workspace.github_operations.base_manager.git_operations.get_github_repository_url",
-                return_value="https://github.com/test-owner/test-repo.git",
+                "mcp_workspace.github_operations.base_manager.git_operations.get_repository_identifier",
+                return_value=RepoIdentifier(owner="test-owner", repo_name="test-repo"),
             ),
             patch(
                 "mcp_workspace.github_operations.base_manager.get_github_token",
@@ -475,7 +477,7 @@ class TestBaseGitHubManagerWithRepoUrl:
             assert isinstance(call_kwargs["auth"], Auth.Token)
 
     def test_initialization_fails_invalid_repo_url(self) -> None:
-        """Test initialization fails with invalid GitHub repo_url."""
+        """Test initialization fails with invalid repo_url."""
         with (
             patch(
                 "mcp_workspace.github_operations.base_manager.get_github_token",
@@ -485,7 +487,7 @@ class TestBaseGitHubManagerWithRepoUrl:
         ):
             with pytest.raises(ValueError) as exc_info:
                 BaseGitHubManager(
-                    repo_url="https://gitlab.com/test-owner/test-repo.git"
+                    repo_url="not-a-valid-url"
                 )
 
             assert "Invalid GitHub repository URL" in str(exc_info.value)
@@ -637,6 +639,8 @@ class TestBaseGitHubManagerWithRepoUrl:
 
     def test_get_repository_caching(self) -> None:
         """Test _get_repository() caches the repository object."""
+        from mcp_workspace.utils.repo_identifier import RepoIdentifier
+
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -649,8 +653,8 @@ class TestBaseGitHubManagerWithRepoUrl:
                 return_value=True,
             ),
             patch(
-                "mcp_workspace.github_operations.base_manager.git_operations.get_github_repository_url",
-                return_value="https://github.com/test-owner/test-repo.git",
+                "mcp_workspace.github_operations.base_manager.git_operations.get_repository_identifier",
+                return_value=RepoIdentifier(owner="test-owner", repo_name="test-repo"),
             ),
             patch(
                 "mcp_workspace.github_operations.base_manager.get_github_token",
@@ -689,7 +693,7 @@ class TestBaseGitHubManagerWithRepoUrl:
                 return_value=True,
             ),
             patch(
-                "mcp_workspace.github_operations.base_manager.git_operations.get_github_repository_url",
+                "mcp_workspace.github_operations.base_manager.git_operations.get_repository_identifier",
                 return_value=None,  # No origin remote
             ),
             patch(
@@ -718,8 +722,8 @@ class TestBaseGitHubManagerWithRepoUrl:
                 return_value=True,
             ),
             patch(
-                "mcp_workspace.github_operations.base_manager.git_operations.get_github_repository_url",
-                return_value="https://gitlab.com/test-owner/test-repo.git",  # Not GitHub
+                "mcp_workspace.github_operations.base_manager.git_operations.get_repository_identifier",
+                return_value=None,  # Could not parse URL
             ),
             patch(
                 "mcp_workspace.github_operations.base_manager.get_github_token",
@@ -737,6 +741,8 @@ class TestBaseGitHubManagerWithRepoUrl:
 
     def test_get_repository_github_api_error(self) -> None:
         """Test _get_repository() returns None when GitHub API returns error."""
+        from mcp_workspace.utils.repo_identifier import RepoIdentifier
+
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -747,8 +753,8 @@ class TestBaseGitHubManagerWithRepoUrl:
                 return_value=True,
             ),
             patch(
-                "mcp_workspace.github_operations.base_manager.git_operations.get_github_repository_url",
-                return_value="https://github.com/test-owner/test-repo.git",
+                "mcp_workspace.github_operations.base_manager.git_operations.get_repository_identifier",
+                return_value=RepoIdentifier(owner="test-owner", repo_name="test-repo"),
             ),
             patch(
                 "mcp_workspace.github_operations.base_manager.get_github_token",
@@ -774,6 +780,8 @@ class TestBaseGitHubManagerWithRepoUrl:
 
     def test_get_repository_generic_exception(self) -> None:
         """Test _get_repository() returns None on unexpected exceptions."""
+        from mcp_workspace.utils.repo_identifier import RepoIdentifier
+
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -784,8 +792,8 @@ class TestBaseGitHubManagerWithRepoUrl:
                 return_value=True,
             ),
             patch(
-                "mcp_workspace.github_operations.base_manager.git_operations.get_github_repository_url",
-                return_value="https://github.com/test-owner/test-repo.git",
+                "mcp_workspace.github_operations.base_manager.git_operations.get_repository_identifier",
+                return_value=RepoIdentifier(owner="test-owner", repo_name="test-repo"),
             ),
             patch(
                 "mcp_workspace.github_operations.base_manager.get_github_token",
@@ -809,6 +817,8 @@ class TestBaseGitHubManagerWithRepoUrl:
 
     def test_ssh_url_format_parsing(self) -> None:
         """Test _get_repository() correctly parses SSH URL format."""
+        from mcp_workspace.utils.repo_identifier import RepoIdentifier
+
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -821,8 +831,8 @@ class TestBaseGitHubManagerWithRepoUrl:
                 return_value=True,
             ),
             patch(
-                "mcp_workspace.github_operations.base_manager.git_operations.get_github_repository_url",
-                return_value="git@github.com:test-owner/test-repo.git",  # SSH format
+                "mcp_workspace.github_operations.base_manager.git_operations.get_repository_identifier",
+                return_value=RepoIdentifier(owner="test-owner", repo_name="test-repo"),
             ),
             patch(
                 "mcp_workspace.github_operations.base_manager.get_github_token",
@@ -849,6 +859,8 @@ class TestBaseGitHubManagerWithRepoUrl:
 
     def test_https_url_without_git_extension(self) -> None:
         """Test _get_repository() handles HTTPS URL without .git extension."""
+        from mcp_workspace.utils.repo_identifier import RepoIdentifier
+
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -861,8 +873,8 @@ class TestBaseGitHubManagerWithRepoUrl:
                 return_value=True,
             ),
             patch(
-                "mcp_workspace.github_operations.base_manager.git_operations.get_github_repository_url",
-                return_value="https://github.com/test-owner/test-repo",  # No .git
+                "mcp_workspace.github_operations.base_manager.git_operations.get_repository_identifier",
+                return_value=RepoIdentifier(owner="test-owner", repo_name="test-repo"),
             ),
             patch(
                 "mcp_workspace.github_operations.base_manager.get_github_token",
@@ -956,6 +968,8 @@ class TestGithubTokenForwarding:
         self, manager_cls_path: str
     ) -> None:
         """Without explicit ``github_token``, fallback to get_github_token is preserved."""
+        from mcp_workspace.utils.repo_identifier import RepoIdentifier
+
         module_path, cls_name = manager_cls_path.rsplit(".", 1)
         import importlib
 
@@ -971,8 +985,8 @@ class TestGithubTokenForwarding:
                 return_value=True,
             ),
             patch(
-                "mcp_workspace.github_operations.pr_manager.get_github_repository_url",
-                return_value="https://github.com/test-owner/test-repo.git",
+                "mcp_workspace.github_operations.pr_manager.get_repository_identifier",
+                return_value=RepoIdentifier(owner="test-owner", repo_name="test-repo"),
             ),
             patch(
                 "mcp_workspace.github_operations.base_manager.get_github_token",

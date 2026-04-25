@@ -1,8 +1,9 @@
 """Git remote operations for push, fetch, and GitHub URL parsing."""
 
-import re
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import git
 from git.exc import GitCommandError, InvalidGitRepositoryError
@@ -11,12 +12,15 @@ from .branch_queries import branch_exists
 from .core import logger, safe_repo_context
 from .repository_status import is_git_repository
 
+if TYPE_CHECKING:
+    from mcp_workspace.utils.repo_identifier import RepoIdentifier
+
 
 def get_remote_url(project_dir: Path) -> Optional[str]:
     """Get the raw remote origin URL from a git repository.
 
-    Unlike ``get_github_repository_url`` which normalises to GitHub HTTPS
-    format, this returns the URL exactly as configured (SSH, HTTPS, any host).
+    Unlike ``get_repository_identifier`` which normalises to a
+    RepoIdentifier, this returns the URL exactly as configured (SSH, HTTPS, any host).
 
     Args:
         project_dir: Path to the project directory containing a git repository.
@@ -224,25 +228,22 @@ def fetch_remote(project_dir: Path, remote: str = "origin") -> bool:
         return False
 
 
-def get_github_repository_url(project_dir: Path) -> Optional[str]:
-    """Get GitHub repository URL from git remote origin.
+def get_repository_identifier(
+    project_dir: Path,
+) -> Optional[RepoIdentifier]:
+    """Get repository identifier from git remote origin.
+
+    Returns RepoIdentifier if origin is a parseable git URL, None otherwise.
 
     Args:
         project_dir: Path to the project directory containing git repository
 
     Returns:
-        GitHub repository URL in https format, or None if:
-        - Directory is not a git repository
-        - No remote origin configured
-        - Remote origin is not a GitHub URL
-        - Error occurs during URL detection
-
-    Note:
-        Converts various Git URL formats to standard GitHub HTTPS format:
-        - SSH: git@github.com:owner/repo.git -> https://github.com/owner/repo
-        - HTTPS: https://github.com/owner/repo.git -> https://github.com/owner/repo
+        RepoIdentifier if origin is parseable, None otherwise.
     """
-    logger.debug("Getting GitHub repository URL for %s", project_dir)
+    from mcp_workspace.utils.repo_identifier import RepoIdentifier
+
+    logger.debug("Getting repository identifier for %s", project_dir)
 
     if not is_git_repository(project_dir):
         logger.debug("Not a git repository: %s", project_dir)
@@ -259,14 +260,13 @@ def get_github_repository_url(project_dir: Path) -> Optional[str]:
             origin_url = repo.remotes.origin.url
             logger.debug("Found origin URL: %s", origin_url)
 
-            # Parse and convert to GitHub HTTPS format
-            github_url = _parse_github_url(origin_url)
-            if github_url:
-                logger.debug("Converted to GitHub URL: %s", github_url)
-            else:
-                logger.debug("Could not parse as GitHub URL: %s", origin_url)
-
-            return github_url
+            try:
+                identifier = RepoIdentifier.from_repo_url(origin_url)
+                logger.debug("Parsed repository identifier: %s", identifier)
+                return identifier
+            except ValueError:
+                logger.debug("Could not parse as repository URL: %s", origin_url)
+                return None
 
     except (InvalidGitRepositoryError, GitCommandError) as e:
         logger.debug("Git error getting repository URL: %s", e)
@@ -276,34 +276,6 @@ def get_github_repository_url(project_dir: Path) -> Optional[str]:
     ) as e:  # pylint: disable=broad-exception-caught  # TODO: narrow to GitCommandError
         logger.warning("Unexpected error getting repository URL: %s", e)
         return None
-
-
-def _parse_github_url(git_url: str) -> Optional[str]:
-    """Parse git URL and convert to GitHub HTTPS format.
-
-    Args:
-        git_url: Git remote URL in various formats
-
-    Returns:
-        GitHub HTTPS URL or None if not a valid GitHub URL
-    """
-    # Remove trailing whitespace
-    git_url = git_url.strip()
-
-    # Pattern to match GitHub URLs in various formats
-    # SSH: git@github.com:owner/repo.git
-    # HTTPS: https://github.com/owner/repo.git
-    # HTTPS without .git: https://github.com/owner/repo
-    github_pattern = (
-        r"(?:https://github\.com/|git@github\.com:)([^/]+)/([^/\.]+)(?:\.git)?/?$"
-    )
-    match = re.match(github_pattern, git_url)
-
-    if not match:
-        return None
-
-    owner, repo_name = match.groups()
-    return f"https://github.com/{owner}/{repo_name}"
 
 
 def rebase_onto_branch(project_dir: Path, target_branch: str) -> bool:

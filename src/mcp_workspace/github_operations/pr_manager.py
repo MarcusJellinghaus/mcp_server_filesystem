@@ -13,7 +13,7 @@ from mcp_coder_utils.log_utils import log_function_call
 
 from mcp_workspace.git_operations import (
     get_default_branch_name,
-    get_github_repository_url,
+    get_repository_identifier,
 )
 
 from .base_manager import BaseGitHubManager, _handle_github_errors
@@ -73,7 +73,8 @@ class PullRequestManager(BaseGitHubManager):
         assert (
             self.project_dir is not None
         ), "project_dir must be set after initialization"
-        self.repository_url = get_github_repository_url(self.project_dir)
+        repo_id = get_repository_identifier(self.project_dir)
+        self.repository_url = repo_id.https_url if repo_id else None
         if self.repository_url is None:
             raise ValueError(
                 f"Could not detect GitHub repository URL from git remote in: {self.project_dir}. "
@@ -501,18 +502,14 @@ class PullRequestManager(BaseGitHubManager):
         Returns:
             Repository name in format "owner/repo" or empty string on failure
         """
-        from .github_utils import get_repo_full_name
+        from mcp_workspace.utils.repo_identifier import RepoIdentifier
 
         try:
-            # repository_url is set in __init__ and guaranteed to be non-None
             if self.repository_url is None:
                 return ""
-            repo_name = get_repo_full_name(self.repository_url)
-            return repo_name or ""
-        except (
-            Exception
-        ) as e:  # pylint: disable=broad-exception-caught  # TODO: narrow exception type
-            logger.debug(f"Error getting repository name: {e}")
+            identifier = RepoIdentifier.from_repo_url(self.repository_url)
+            return identifier.full_name
+        except (ValueError, TypeError):
             return ""
 
     @property

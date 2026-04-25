@@ -17,7 +17,7 @@ from mcp_coder_utils.log_utils import log_function_call
 from mcp_workspace import git_operations
 from mcp_workspace.config import get_github_token
 
-from .github_utils import parse_github_url
+from mcp_workspace.utils.repo_identifier import RepoIdentifier
 
 logger = logging.getLogger(__name__)
 
@@ -221,17 +221,16 @@ class BaseGitHubManager:
             ValueError: If repo_url format is invalid
         """
         # Parse repo_url to extract owner/repo
-        parsed = parse_github_url(repo_url)
-        if parsed is None:
+        try:
+            identifier = RepoIdentifier.from_repo_url(repo_url)
+        except ValueError:
             raise ValueError(f"Invalid GitHub repository URL: {repo_url}")
-
-        owner, repo_name = parsed
 
         # Initialize attributes for repo_url mode
         self.project_dir = None
-        self._repo_owner = owner
-        self._repo_name = repo_name
-        self._repo_full_name = f"{owner}/{repo_name}"
+        self._repo_owner = identifier.owner
+        self._repo_name = identifier.repo_name
+        self._repo_full_name = identifier.full_name
 
     @log_function_call
     def _get_repository(self) -> Optional[Repository]:
@@ -260,16 +259,13 @@ class BaseGitHubManager:
                 repo_full_name = self._repo_full_name
             elif self.project_dir is not None:
                 # project_dir mode - use git_operations abstraction
-                github_url = git_operations.get_github_repository_url(self.project_dir)
-                if not github_url:
-                    logger.warning("Could not get GitHub URL from repository")
+                identifier = git_operations.get_repository_identifier(
+                    self.project_dir
+                )
+                if not identifier:
+                    logger.warning("Could not get repository identifier")
                     return None
-                parsed = parse_github_url(github_url)
-                if parsed is None:
-                    logger.warning("Could not parse GitHub URL: %s", github_url)
-                    return None
-                owner, repo_name = parsed
-                repo_full_name = f"{owner}/{repo_name}"
+                repo_full_name = identifier.full_name
 
             if not repo_full_name:
                 logger.warning("Could not determine repository full name")

@@ -85,6 +85,7 @@ layer = "tools"
 depends_on = [
     { path = "mcp_coder_utils.log_utils" },
     { path = "mcp_coder_utils.subprocess_runner" },
+    { path = "mcp_workspace.utils" },
 ]
 
 [[modules]]

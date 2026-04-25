@@ -2,7 +2,7 @@
 
 import pytest
 
-from mcp_workspace.github_operations.github_utils import RepoIdentifier
+from mcp_workspace.utils.repo_identifier import RepoIdentifier
 
 
 class TestRepoIdentifierFromFullName:
@@ -63,12 +63,16 @@ class TestRepoIdentifierFromRepoUrl:
         assert result.repo_name == "repo"
 
     def test_raises_on_invalid_url(self) -> None:
-        """Test ValueError for non-GitHub URLs."""
-        with pytest.raises(ValueError, match="Invalid GitHub URL"):
-            RepoIdentifier.from_repo_url("https://gitlab.com/owner/repo")
-
-        with pytest.raises(ValueError, match="Invalid GitHub URL"):
+        """Test ValueError for invalid URLs."""
+        with pytest.raises(ValueError, match="Invalid repository URL"):
             RepoIdentifier.from_repo_url("invalid")
+
+    def test_non_github_url_succeeds(self) -> None:
+        """Test that non-GitHub URLs are accepted (host-agnostic)."""
+        result = RepoIdentifier.from_repo_url("https://gitlab.com/owner/repo")
+        assert result.owner == "owner"
+        assert result.repo_name == "repo"
+        assert result.hostname == "gitlab.com"
 
     def test_raises_on_non_string(self) -> None:
         """Test ValueError for non-string input."""

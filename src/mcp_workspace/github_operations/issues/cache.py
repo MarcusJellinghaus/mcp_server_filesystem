@@ -32,7 +32,7 @@ from mcp_workspace.utils.timezone_utils import (
     parse_iso_timestamp,
 )
 
-from ..github_utils import RepoIdentifier
+from mcp_workspace.utils.repo_identifier import RepoIdentifier
 from .types import IssueData
 
 if TYPE_CHECKING:

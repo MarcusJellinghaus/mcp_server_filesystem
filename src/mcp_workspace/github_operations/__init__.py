@@ -6,7 +6,7 @@ pull requests, labels, and repository operations.
 
 from .base_manager import BaseGitHubManager, get_authenticated_username
 from .ci_results_manager import CIResultsManager, CIStatusData
-from .github_utils import RepoIdentifier
+from mcp_workspace.utils.repo_identifier import RepoIdentifier
 from .labels_manager import LabelData, LabelsManager
 from .pr_manager import PullRequestManager
 

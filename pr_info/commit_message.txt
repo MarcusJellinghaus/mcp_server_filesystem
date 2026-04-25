@@ -1,13 +1,15 @@
-feat: create utils/repo_identifier.py with hostname support (#156)
+refactor: integrate RepoIdentifier, delete old URL-parsing functions (#156)
 
-Add RepoIdentifier dataclass to utils/ with hostname field for GitHub
-Enterprise support. The generalized URL parser handles any hostname in
-both HTTPS and SSH formats, with credential stripping.
-
-New files:
-- src/mcp_workspace/utils/repo_identifier.py
-- tests/utils/__init__.py
-- tests/utils/test_repo_identifier.py
-
-Includes hostname_to_api_base_url() helper that maps github.com to
-api.github.com and GHE hosts to hostname/api/v3.
+- Delete `_parse_github_url()` from remotes.py
+- Rename `get_github_repository_url()` → `get_repository_identifier()`
+  returning `RepoIdentifier` instead of URL string
+- Delete `github_utils.py` entirely (parse_github_url, format_github_https_url,
+  get_repo_full_name, old RepoIdentifier class)
+- Update `BaseGitHubManager` to use `RepoIdentifier.from_repo_url()` and
+  `get_repository_identifier()` instead of `parse_github_url()`
+- Update `PullRequestManager` to use `get_repository_identifier()` and
+  `RepoIdentifier.from_repo_url()` for repository_name property
+- Update `issues/cache.py` import to use `utils.repo_identifier`
+- Update `github_operations/__init__.py` to re-export from new location
+- Add `mcp_workspace.utils` to `git_operations.depends_on` in tach.toml
+- Update all test files to use new import paths and mock targets

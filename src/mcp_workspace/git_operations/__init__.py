@@ -37,8 +37,8 @@ from mcp_workspace.git_operations.parent_branch_detection import (
 from mcp_workspace.git_operations.remotes import (
     clone_repo,
     fetch_remote,
-    get_github_repository_url,
     get_remote_url,
+    get_repository_identifier,
     git_push,
     push_branch,
     rebase_onto_branch,
@@ -73,7 +73,7 @@ __all__ = [
     "get_default_branch_name",
     "get_full_status",
     "get_git_diff_for_commit",
-    "get_github_repository_url",
+    "get_repository_identifier",
     "get_latest_commit_sha",
     "get_remote_url",
     "git_move",

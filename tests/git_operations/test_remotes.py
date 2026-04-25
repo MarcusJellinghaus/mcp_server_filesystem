@@ -10,8 +10,8 @@ from git.exc import GitCommandError
 
 from mcp_workspace.git_operations.remotes import (
     clone_repo,
-    get_github_repository_url,
     get_remote_url,
+    get_repository_identifier,
     git_push,
     rebase_onto_branch,
 )
@@ -21,42 +21,61 @@ from mcp_workspace.git_operations.remotes import (
 class TestRemoteOperations:
     """Minimal tests for remote operations."""
 
-    def test_get_github_repository_url(self, git_repo: tuple[Repo, Path]) -> None:
-        """Test get_github_repository_url extracts GitHub URL."""
+    def test_get_repository_identifier(self, git_repo: tuple[Repo, Path]) -> None:
+        """Test get_repository_identifier extracts repo identity."""
         repo, project_dir = git_repo
 
         # Add GitHub remote
         repo.create_remote("origin", "https://github.com/user/repo.git")
 
-        # Get GitHub URL
-        url = get_github_repository_url(project_dir)
+        result = get_repository_identifier(project_dir)
 
-        assert url == "https://github.com/user/repo"
+        assert result is not None
+        assert result.owner == "user"
+        assert result.repo_name == "repo"
+        assert result.hostname == "github.com"
 
-    def test_get_github_repository_url_with_ssh(
+    def test_get_repository_identifier_with_ssh(
         self, git_repo: tuple[Repo, Path]
     ) -> None:
-        """Test get_github_repository_url handles SSH URLs."""
+        """Test get_repository_identifier handles SSH URLs."""
         repo, project_dir = git_repo
 
         # Add GitHub remote with SSH URL
         repo.create_remote("origin", "git@github.com:user/repo.git")
 
-        # Get GitHub URL
-        url = get_github_repository_url(project_dir)
+        result = get_repository_identifier(project_dir)
 
-        assert url == "https://github.com/user/repo"
+        assert result is not None
+        assert result.owner == "user"
+        assert result.repo_name == "repo"
+        assert result.hostname == "github.com"
 
-    def test_get_github_repository_url_no_remote(
+    def test_get_repository_identifier_no_remote(
         self, git_repo: tuple[Repo, Path]
     ) -> None:
-        """Test get_github_repository_url returns None without remote."""
+        """Test get_repository_identifier returns None without remote."""
         _repo, project_dir = git_repo
 
         # No remote configured
-        url = get_github_repository_url(project_dir)
+        result = get_repository_identifier(project_dir)
 
-        assert url is None
+        assert result is None
+
+    def test_get_repository_identifier_ghe(
+        self, git_repo: tuple[Repo, Path]
+    ) -> None:
+        """Test get_repository_identifier handles GHE HTTPS URLs."""
+        repo, project_dir = git_repo
+
+        repo.create_remote("origin", "https://ghe.corp.com/org/repo.git")
+
+        result = get_repository_identifier(project_dir)
+
+        assert result is not None
+        assert result.owner == "org"
+        assert result.repo_name == "repo"
+        assert result.hostname == "ghe.corp.com"
 
 
 @pytest.mark.git_integration

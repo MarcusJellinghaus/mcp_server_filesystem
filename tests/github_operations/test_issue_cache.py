@@ -14,7 +14,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from mcp_workspace.github_operations.github_utils import RepoIdentifier
+from mcp_workspace.utils.repo_identifier import RepoIdentifier
 from mcp_workspace.github_operations.issues import (
     CacheData,
     IssueData,
