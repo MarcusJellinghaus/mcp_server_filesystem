@@ -10,7 +10,9 @@ from github.GithubException import GithubException
 from mcp_workspace.github_operations.base_manager import (
     BaseGitHubManager,
     _handle_github_errors,
+    get_authenticated_username,
 )
+from mcp_workspace.utils.repo_identifier import RepoIdentifier
 
 
 class TestHandleGitHubErrorsDecorator:
@@ -246,16 +248,13 @@ class TestBaseGitHubManagerWithProjectDir:
             assert manager.project_dir == mock_path
             assert manager.github_token == "fake_token"
             assert manager._repository is None  # Not fetched yet
-            # repo_url mode attributes should be None
-            assert manager._repo_owner is None
-            assert manager._repo_name is None
-            assert manager._repo_full_name is None
+            # Lazy: _cached_github_client should be None (not created in __init__)
+            assert manager._cached_github_client is None
+            # _cached_repo_identifier should be None in project_dir mode
+            assert manager._cached_repo_identifier is None
 
-            # Verify GitHub client was initialized with Auth.Token
-            mock_github_class.assert_called_once()
-            call_kwargs = mock_github_class.call_args.kwargs
-            assert "auth" in call_kwargs
-            assert isinstance(call_kwargs["auth"], Auth.Token)
+            # Verify Github() was NOT called during init (lazy)
+            mock_github_class.assert_not_called()
 
     def test_initialization_fails_directory_not_exists(self) -> None:
         """Test initialization fails when directory does not exist."""
@@ -338,8 +337,6 @@ class TestBaseGitHubManagerWithProjectDir:
 
     def test_get_repository_with_project_dir_mode(self) -> None:
         """Test _get_repository() in project_dir mode extracts repo from git remote."""
-        from mcp_workspace.utils.repo_identifier import RepoIdentifier
-
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -379,6 +376,53 @@ class TestBaseGitHubManagerWithProjectDir:
             # Verify get_repo was called with correct full name
             mock_github_client.get_repo.assert_called_once_with("test-owner/test-repo")
 
+            # Verify Github() was created with correct base_url
+            mock_github_class.assert_called_once()
+            call_kwargs = mock_github_class.call_args.kwargs
+            assert call_kwargs["base_url"] == "https://api.github.com"
+
+    def test_ghe_project_dir_creates_client_with_ghe_base_url(self) -> None:
+        """Test that GHE remote in project_dir mode creates Github with GHE base_url."""
+        mock_path = Mock(spec=Path)
+        mock_path.exists.return_value = True
+        mock_path.is_dir.return_value = True
+
+        mock_github_repo = Mock()
+
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.git_operations.is_git_repository",
+                return_value=True,
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.git_operations.get_repository_identifier",
+                return_value=RepoIdentifier(
+                    owner="org", repo_name="repo", hostname="ghe.corp.com"
+                ),
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value="fake_token",
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_github_client.get_repo.return_value = mock_github_repo
+            mock_github_class.return_value = mock_github_client
+
+            manager = BaseGitHubManager(project_dir=mock_path)
+
+            # Trigger lazy client creation via _get_repository
+            result = manager._get_repository()
+
+            assert result == mock_github_repo
+            # Verify Github() was created with GHE base_url
+            mock_github_class.assert_called_once()
+            call_kwargs = mock_github_class.call_args.kwargs
+            assert call_kwargs["base_url"] == "https://ghe.corp.com/api/v3"
+
 
 class TestBaseGitHubManagerWithRepoUrl:
     """Test suite for BaseGitHubManager initialization with repo_url.
@@ -404,17 +448,15 @@ class TestBaseGitHubManagerWithRepoUrl:
 
             # Verify manager was initialized correctly
             assert manager.project_dir is None
-            assert manager._repo_owner == "test-owner"
-            assert manager._repo_name == "test-repo"
-            assert manager._repo_full_name == "test-owner/test-repo"
+            assert manager._cached_repo_identifier is not None
+            assert manager._cached_repo_identifier.owner == "test-owner"
+            assert manager._cached_repo_identifier.repo_name == "test-repo"
+            assert manager._cached_repo_identifier.full_name == "test-owner/test-repo"
             assert manager.github_token == "fake_token"
             assert manager._repository is None  # Not fetched yet
 
-            # Verify GitHub client was initialized with Auth.Token
-            mock_github_class.assert_called_once()
-            call_kwargs = mock_github_class.call_args.kwargs
-            assert "auth" in call_kwargs
-            assert isinstance(call_kwargs["auth"], Auth.Token)
+            # Verify Github() was NOT called during init (lazy)
+            mock_github_class.assert_not_called()
 
     def test_successful_initialization_with_https_repo_url_no_git_extension(
         self,
@@ -435,17 +477,15 @@ class TestBaseGitHubManagerWithRepoUrl:
 
             # Verify manager was initialized correctly
             assert manager.project_dir is None
-            assert manager._repo_owner == "test-owner"
-            assert manager._repo_name == "test-repo"
-            assert manager._repo_full_name == "test-owner/test-repo"
+            assert manager._cached_repo_identifier is not None
+            assert manager._cached_repo_identifier.owner == "test-owner"
+            assert manager._cached_repo_identifier.repo_name == "test-repo"
+            assert manager._cached_repo_identifier.full_name == "test-owner/test-repo"
             assert manager.github_token == "fake_token"
             assert manager._repository is None  # Not fetched yet
 
-            # Verify GitHub client was initialized with Auth.Token
-            mock_github_class.assert_called_once()
-            call_kwargs = mock_github_class.call_args.kwargs
-            assert "auth" in call_kwargs
-            assert isinstance(call_kwargs["auth"], Auth.Token)
+            # Verify Github() was NOT called during init (lazy)
+            mock_github_class.assert_not_called()
 
     def test_successful_initialization_with_ssh_repo_url(self) -> None:
         """Test successful initialization with valid SSH repo_url."""
@@ -464,17 +504,15 @@ class TestBaseGitHubManagerWithRepoUrl:
 
             # Verify manager was initialized correctly
             assert manager.project_dir is None
-            assert manager._repo_owner == "test-owner"
-            assert manager._repo_name == "test-repo"
-            assert manager._repo_full_name == "test-owner/test-repo"
+            assert manager._cached_repo_identifier is not None
+            assert manager._cached_repo_identifier.owner == "test-owner"
+            assert manager._cached_repo_identifier.repo_name == "test-repo"
+            assert manager._cached_repo_identifier.full_name == "test-owner/test-repo"
             assert manager.github_token == "fake_token"
             assert manager._repository is None  # Not fetched yet
 
-            # Verify GitHub client was initialized with Auth.Token
-            mock_github_class.assert_called_once()
-            call_kwargs = mock_github_class.call_args.kwargs
-            assert "auth" in call_kwargs
-            assert isinstance(call_kwargs["auth"], Auth.Token)
+            # Verify Github() was NOT called during init (lazy)
+            mock_github_class.assert_not_called()
 
     def test_initialization_fails_invalid_repo_url(self) -> None:
         """Test initialization fails with invalid repo_url."""
@@ -523,7 +561,7 @@ class TestBaseGitHubManagerWithRepoUrl:
             assert "GitHub token not found" in str(exc_info.value)
 
     def test_get_repository_with_repo_url_mode(self) -> None:
-        """Test _get_repository() in repo_url mode uses stored repo_full_name."""
+        """Test _get_repository() in repo_url mode uses stored repo_identifier."""
         mock_github_repo = Mock()
 
         with (
@@ -552,6 +590,41 @@ class TestBaseGitHubManagerWithRepoUrl:
 
             # Verify get_repo was called with correct full name
             mock_github_client.get_repo.assert_called_once_with("test-owner/test-repo")
+
+            # Verify Github() created with correct base_url
+            mock_github_class.assert_called_once()
+            call_kwargs = mock_github_class.call_args.kwargs
+            assert call_kwargs["base_url"] == "https://api.github.com"
+
+    def test_ghe_repo_url_creates_client_with_ghe_base_url(self) -> None:
+        """Test that GHE repo_url creates Github client with GHE base_url."""
+        mock_github_repo = Mock()
+
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value="fake_token",
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_github_client.get_repo.return_value = mock_github_repo
+            mock_github_class.return_value = mock_github_client
+
+            manager = BaseGitHubManager(
+                repo_url="https://ghe.corp.com/org/repo"
+            )
+
+            # Trigger lazy client creation
+            result = manager._get_repository()
+
+            assert result == mock_github_repo
+            # Verify Github() was created with GHE base_url
+            mock_github_class.assert_called_once()
+            call_kwargs = mock_github_class.call_args.kwargs
+            assert call_kwargs["base_url"] == "https://ghe.corp.com/api/v3"
 
     def test_get_repository_caching_with_repo_url(self) -> None:
         """Test _get_repository() caches the repository object in repo_url mode."""
@@ -639,8 +712,6 @@ class TestBaseGitHubManagerWithRepoUrl:
 
     def test_get_repository_caching(self) -> None:
         """Test _get_repository() caches the repository object."""
-        from mcp_workspace.utils.repo_identifier import RepoIdentifier
-
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -704,14 +775,14 @@ class TestBaseGitHubManagerWithRepoUrl:
         ):
             manager = BaseGitHubManager(project_dir=mock_path)
 
-            # Call _get_repository
-            result = manager._get_repository()
-
-            # Verify result is None (no origin remote)
-            assert result is None
+            # _repo_identifier property should raise ValueError
+            with pytest.raises(
+                ValueError, match="Could not detect repository from git remote"
+            ):
+                manager._get_repository()
 
     def test_get_repository_invalid_github_url(self) -> None:
-        """Test _get_repository() returns None when remote URL is not a valid GitHub URL."""
+        """Test _get_repository() raises when remote URL is not a valid GitHub URL."""
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -733,16 +804,14 @@ class TestBaseGitHubManagerWithRepoUrl:
         ):
             manager = BaseGitHubManager(project_dir=mock_path)
 
-            # Call _get_repository
-            result = manager._get_repository()
-
-            # Verify result is None (invalid GitHub URL)
-            assert result is None
+            # _repo_identifier property should raise ValueError
+            with pytest.raises(
+                ValueError, match="Could not detect repository from git remote"
+            ):
+                manager._get_repository()
 
     def test_get_repository_github_api_error(self) -> None:
         """Test _get_repository() returns None when GitHub API returns error."""
-        from mcp_workspace.utils.repo_identifier import RepoIdentifier
-
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -780,8 +849,6 @@ class TestBaseGitHubManagerWithRepoUrl:
 
     def test_get_repository_generic_exception(self) -> None:
         """Test _get_repository() returns None on unexpected exceptions."""
-        from mcp_workspace.utils.repo_identifier import RepoIdentifier
-
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -817,8 +884,6 @@ class TestBaseGitHubManagerWithRepoUrl:
 
     def test_ssh_url_format_parsing(self) -> None:
         """Test _get_repository() correctly parses SSH URL format."""
-        from mcp_workspace.utils.repo_identifier import RepoIdentifier
-
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -859,8 +924,6 @@ class TestBaseGitHubManagerWithRepoUrl:
 
     def test_https_url_without_git_extension(self) -> None:
         """Test _get_repository() handles HTTPS URL without .git extension."""
-        from mcp_workspace.utils.repo_identifier import RepoIdentifier
-
         mock_path = Mock(spec=Path)
         mock_path.exists.return_value = True
         mock_path.is_dir.return_value = True
@@ -947,6 +1010,58 @@ class TestBaseGitHubManagerParameterValidation:
             )
 
 
+class TestGetAuthenticatedUsername:
+    """Tests for get_authenticated_username function."""
+
+    def test_get_authenticated_username_default_hostname(self) -> None:
+        """Test get_authenticated_username with default hostname (github.com)."""
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value="fake_token",
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_user = Mock()
+            mock_user.login = "testuser"
+            mock_github_client.get_user.return_value = mock_user
+            mock_github_class.return_value = mock_github_client
+
+            result = get_authenticated_username()
+
+            assert result == "testuser"
+            mock_github_class.assert_called_once()
+            call_kwargs = mock_github_class.call_args.kwargs
+            assert call_kwargs["base_url"] == "https://api.github.com"
+
+    def test_get_authenticated_username_ghe_hostname(self) -> None:
+        """Test get_authenticated_username with GHE hostname."""
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value="fake_token",
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_user = Mock()
+            mock_user.login = "ghe_user"
+            mock_github_client.get_user.return_value = mock_user
+            mock_github_class.return_value = mock_github_client
+
+            result = get_authenticated_username(hostname="ghe.corp.com")
+
+            assert result == "ghe_user"
+            mock_github_class.assert_called_once()
+            call_kwargs = mock_github_class.call_args.kwargs
+            assert call_kwargs["base_url"] == "https://ghe.corp.com/api/v3"
+
+
 class TestGithubTokenForwarding:
     """Test suite for token forwarding through subclasses.
 
@@ -968,8 +1083,6 @@ class TestGithubTokenForwarding:
         self, manager_cls_path: str
     ) -> None:
         """Without explicit ``github_token``, fallback to get_github_token is preserved."""
-        from mcp_workspace.utils.repo_identifier import RepoIdentifier
-
         module_path, cls_name = manager_cls_path.rsplit(".", 1)
         import importlib
 

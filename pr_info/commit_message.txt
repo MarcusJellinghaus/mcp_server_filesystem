@@ -1,15 +1,8 @@
-refactor: integrate RepoIdentifier, delete old URL-parsing functions (#156)
+refactor: BaseGitHubManager lazy client with GHE base_url support (#156)
 
-- Delete `_parse_github_url()` from remotes.py
-- Rename `get_github_repository_url()` → `get_repository_identifier()`
-  returning `RepoIdentifier` instead of URL string
-- Delete `github_utils.py` entirely (parse_github_url, format_github_https_url,
-  get_repo_full_name, old RepoIdentifier class)
-- Update `BaseGitHubManager` to use `RepoIdentifier.from_repo_url()` and
-  `get_repository_identifier()` instead of `parse_github_url()`
-- Update `PullRequestManager` to use `get_repository_identifier()` and
-  `RepoIdentifier.from_repo_url()` for repository_name property
-- Update `issues/cache.py` import to use `utils.repo_identifier`
-- Update `github_operations/__init__.py` to re-export from new location
-- Add `mcp_workspace.utils` to `git_operations.depends_on` in tach.toml
-- Update all test files to use new import paths and mock targets
+- Replace _repo_owner/_repo_name/_repo_full_name with unified _repo_identifier
+- Make _github_client a lazy property (created on first access, not in __init__)
+- Github() client now always passes explicit base_url from RepoIdentifier.api_base_url
+- Add hostname parameter to get_authenticated_username() for GHE support
+- Update test fixtures to set _cached_github_client for lazy property compatibility
+- Update test_ci_results_manager_foundation.py assertions for new attributes

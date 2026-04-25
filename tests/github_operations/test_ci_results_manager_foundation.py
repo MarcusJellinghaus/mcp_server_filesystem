@@ -49,9 +49,9 @@ class TestCIResultsManagerFoundation:
                 manager = CIResultsManager(repo_url=repo_url)
 
                 assert manager.project_dir is None
-                assert manager._repo_owner == "test"
-                assert manager._repo_name == "repo"
-                assert manager._repo_full_name == "test/repo"
+                assert manager._cached_repo_identifier.owner == "test"
+                assert manager._cached_repo_identifier.repo_name == "repo"
+                assert manager._cached_repo_identifier.full_name == "test/repo"
 
     def test_initialization_validation(self) -> None:
         """Test initialization parameter validation."""
@@ -188,4 +188,4 @@ class TestCIResultsManagerFoundation:
                 assert hasattr(manager, "_github_client")
                 assert hasattr(manager, "_repository")
                 assert hasattr(manager, "_get_repository")
-                assert manager._repo_full_name == "test/repo"
+                assert manager._cached_repo_identifier.full_name == "test/repo"

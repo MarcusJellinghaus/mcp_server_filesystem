@@ -16,8 +16,7 @@ from mcp_coder_utils.log_utils import log_function_call
 
 from mcp_workspace import git_operations
 from mcp_workspace.config import get_github_token
-
-from mcp_workspace.utils.repo_identifier import RepoIdentifier
+from mcp_workspace.utils.repo_identifier import RepoIdentifier, hostname_to_api_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +77,11 @@ def _handle_github_errors(
     return decorator
 
 
-def get_authenticated_username() -> str:
+def get_authenticated_username(hostname: Optional[str] = None) -> str:
     """Get authenticated GitHub username via PyGithub API.
+
+    Args:
+        hostname: GitHub hostname (default: "github.com"). For GHE, e.g. "ghe.corp.com".
 
     Returns:
         GitHub username string
@@ -96,7 +98,8 @@ def get_authenticated_username() -> str:
         )
 
     try:
-        github_client = Github(auth=Auth.Token(raw_token))
+        base_url = hostname_to_api_base_url(hostname or "github.com")
+        github_client = Github(auth=Auth.Token(raw_token), base_url=base_url)
         user = github_client.get_user()
         return user.login
     except (
@@ -114,11 +117,9 @@ class BaseGitHubManager:
     Attributes:
         project_dir: Optional path to the project directory (when using local git repo)
         github_token: GitHub personal access token
-        _github_client: PyGithub client instance
+        _cached_repo_identifier: Cached RepoIdentifier (set eagerly for repo_url, lazily for project_dir)
+        _cached_github_client: Lazily-created PyGithub client instance
         _repository: Cached GitHub repository object
-        _repo_owner: Repository owner (when using repo_url)
-        _repo_name: Repository name (when using repo_url)
-        _repo_full_name: Full repository name "owner/repo" (when using repo_url)
 
     Configuration:
         Requires GitHub token in config file (~/.mcp_coder/config.toml):
@@ -154,21 +155,34 @@ class BaseGitHubManager:
         if (project_dir is None) == (repo_url is None):
             raise ValueError("Exactly one of project_dir or repo_url must be provided")
 
-        # Initialize attributes that may be set by helper methods
+        # Initialize attributes
         self.project_dir: Optional[Path] = None
-        self._repo_owner: Optional[str] = None
-        self._repo_name: Optional[str] = None
-        self._repo_full_name: Optional[str] = None
+        self._cached_repo_identifier: Optional[RepoIdentifier] = None
 
         # Validate directory/repository BEFORE checking token
-        # This ensures more specific error messages appear first
         if project_dir is not None:
-            self._init_with_project_dir(project_dir)
+            # Validate project_dir
+            if not project_dir.exists():
+                raise ValueError(f"Directory does not exist: {project_dir}")
+            if not project_dir.is_dir():
+                raise ValueError(f"Path is not a directory: {project_dir}")
+            if not git_operations.is_git_repository(project_dir):
+                raise ValueError(
+                    f"Directory is not a git repository: {project_dir}"
+                )
+            self.project_dir = project_dir
         else:
-            self._init_with_repo_url(repo_url)  # type: ignore[arg-type]
+            # Parse repo_url to extract owner/repo
+            try:
+                self._cached_repo_identifier = RepoIdentifier.from_repo_url(
+                    repo_url  # type: ignore[arg-type]
+                )
+            except ValueError:
+                raise ValueError(
+                    f"Invalid GitHub repository URL: {repo_url}"
+                )
 
         # Resolve GitHub token (after directory/repository validation).
-        # Explicit github_token parameter wins and bypasses config lookup.
         if github_token is not None:
             raw_token: object = github_token
         else:
@@ -179,66 +193,41 @@ class BaseGitHubManager:
                 "or set GITHUB_TOKEN environment variable"
             )
 
-        # Initialize GitHub client
         self.github_token = raw_token
-        self._github_client = Github(auth=Auth.Token(raw_token))
+        self._cached_github_client: Optional[Github] = None
         self._repository: Optional[Repository] = None
 
-    def _init_with_project_dir(self, project_dir: Path) -> None:
-        """Initialize with local git repository (existing behavior).
+    @property
+    def _repo_identifier(self) -> RepoIdentifier:
+        """Lazy property — resolves from git remote in project_dir mode."""
+        if self._cached_repo_identifier is not None:
+            return self._cached_repo_identifier
+        # project_dir mode — discover from git remote
+        identifier = git_operations.get_repository_identifier(
+            self.project_dir  # type: ignore[arg-type]
+        )
+        if identifier is None:
+            raise ValueError("Could not detect repository from git remote")
+        self._cached_repo_identifier = identifier
+        return identifier
 
-        Args:
-            project_dir: Path to the project directory containing git repository
-
-        Raises:
-            ValueError: If directory doesn't exist, is not a directory,
-                       or is not a git repository
-        """
-        # Validate project_dir
-        if not project_dir.exists():
-            raise ValueError(f"Directory does not exist: {project_dir}")
-
-        if not project_dir.is_dir():
-            raise ValueError(f"Path is not a directory: {project_dir}")
-
-        # Check if it's a git repository
-        if not git_operations.is_git_repository(project_dir):
-            raise ValueError(f"Directory is not a git repository: {project_dir}")
-
-        # Initialize attributes for project_dir mode
-        self.project_dir = project_dir
-        self._repo_owner = None
-        self._repo_name = None
-        self._repo_full_name = None
-
-    def _init_with_repo_url(self, repo_url: str) -> None:
-        """Initialize with GitHub repository URL (new behavior).
-
-        Args:
-            repo_url: GitHub repository URL (e.g., "https://github.com/user/repo.git")
-
-        Raises:
-            ValueError: If repo_url format is invalid
-        """
-        # Parse repo_url to extract owner/repo
-        try:
-            identifier = RepoIdentifier.from_repo_url(repo_url)
-        except ValueError:
-            raise ValueError(f"Invalid GitHub repository URL: {repo_url}")
-
-        # Initialize attributes for repo_url mode
-        self.project_dir = None
-        self._repo_owner = identifier.owner
-        self._repo_name = identifier.repo_name
-        self._repo_full_name = identifier.full_name
+    @property
+    def _github_client(self) -> Github:
+        """Lazy property — creates Github() with correct base_url."""
+        if self._cached_github_client is not None:
+            return self._cached_github_client
+        base_url = self._repo_identifier.api_base_url
+        self._cached_github_client = Github(
+            auth=Auth.Token(self.github_token), base_url=base_url
+        )
+        return self._cached_github_client
 
     @log_function_call
     def _get_repository(self) -> Optional[Repository]:
         """Get the GitHub repository object.
 
         Uses cached repository if available, otherwise retrieves it from
-        the GitHub API using either the git remote URL (project_dir mode)
-        or the stored repo_full_name (repo_url mode).
+        the GitHub API using the _repo_identifier.
 
         Returns:
             Repository object if successful, None otherwise
@@ -251,32 +240,13 @@ class BaseGitHubManager:
             return self._repository
 
         try:
-            repo_full_name = None
-
-            # Determine repo_full_name based on initialization mode
-            if self._repo_full_name is not None:
-                # repo_url mode - use stored value
-                repo_full_name = self._repo_full_name
-            elif self.project_dir is not None:
-                # project_dir mode - use git_operations abstraction
-                identifier = git_operations.get_repository_identifier(
-                    self.project_dir
-                )
-                if not identifier:
-                    logger.warning("Could not get repository identifier")
-                    return None
-                repo_full_name = identifier.full_name
-
-            if not repo_full_name:
-                logger.warning("Could not determine repository full name")
-                return None
-
-            # Get repository from GitHub API
-            self._repository = self._github_client.get_repo(repo_full_name)
+            self._repository = self._github_client.get_repo(
+                self._repo_identifier.full_name
+            )
             return self._repository
 
         except GithubException as e:
-            repo_url = f"https://github.com/{repo_full_name}"
+            repo_url = self._repo_identifier.https_url
             if e.status == 404:
                 logger.error(
                     "Repository not found: %s - Check that the repo exists, "
@@ -295,7 +265,7 @@ class BaseGitHubManager:
         ) as e:  # pylint: disable=broad-exception-caught  # TODO: narrow exception type
             logger.error(
                 "Unexpected error accessing repository '%s': %s",
-                repo_full_name,
+                self._repo_identifier.full_name,
                 e,
             )
             return None
