@@ -127,9 +127,7 @@ class RepoIdentifier:
             raise ValueError("Repository URL must be a string")
 
         # HTTPS: https://[credentials@]hostname/owner/repo[.git][/]
-        https_pattern = (
-            r"https://(?:[^@]+@)?([^/]+)/([^/]+)/([^/]+?)(?:\.git)?/?$"
-        )
+        https_pattern = r"https://(?:[^@]+@)?([^/]+)/([^/]+)/([^/]+?)(?:\.git)?/?$"
         https_match = re.match(https_pattern, url)
         if https_match:
             hostname, owner, repo_name = https_match.groups()

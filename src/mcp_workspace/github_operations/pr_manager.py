@@ -66,7 +66,9 @@ class PullRequestManager(BaseGitHubManager):
 
         # _repo_identifier is a lazy property from BaseGitHubManager.
         # Eagerly resolve it here to fail fast if no GitHub remote.
-        assert self.project_dir is not None, "project_dir must be set after initialization"
+        assert (
+            self.project_dir is not None
+        ), "project_dir must be set after initialization"
         try:
             _ = self._repo_identifier  # triggers resolution
         except ValueError as e:

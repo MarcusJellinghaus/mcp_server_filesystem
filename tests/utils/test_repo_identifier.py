@@ -40,9 +40,7 @@ class TestRepoIdentifierFromFullName:
 
     def test_custom_hostname(self) -> None:
         """Test from_full_name with custom GHE hostname."""
-        result = RepoIdentifier.from_full_name(
-            "owner/repo", hostname="ghe.corp.com"
-        )
+        result = RepoIdentifier.from_full_name("owner/repo", hostname="ghe.corp.com")
         assert result.owner == "owner"
         assert result.repo_name == "repo"
         assert result.hostname == "ghe.corp.com"
@@ -60,9 +58,7 @@ class TestRepoIdentifierFromRepoUrl:
 
     def test_https_url_with_git_suffix(self) -> None:
         """Test parsing HTTPS URLs with .git suffix."""
-        result = RepoIdentifier.from_repo_url(
-            "https://github.com/owner/repo.git"
-        )
+        result = RepoIdentifier.from_repo_url("https://github.com/owner/repo.git")
         assert result.owner == "owner"
         assert result.repo_name == "repo"
         assert result.hostname == "github.com"
@@ -76,9 +72,7 @@ class TestRepoIdentifierFromRepoUrl:
 
     def test_ssh_url_with_git_suffix(self) -> None:
         """Test parsing SSH URLs with .git suffix."""
-        result = RepoIdentifier.from_repo_url(
-            "git@github.com:owner/repo.git"
-        )
+        result = RepoIdentifier.from_repo_url("git@github.com:owner/repo.git")
         assert result.owner == "owner"
         assert result.repo_name == "repo"
         assert result.hostname == "github.com"
@@ -101,27 +95,21 @@ class TestRepoIdentifierFromRepoUrl:
 
     def test_ghe_https_url(self) -> None:
         """Test parsing GHE HTTPS URL."""
-        result = RepoIdentifier.from_repo_url(
-            "https://ghe.corp.com/org/repo.git"
-        )
+        result = RepoIdentifier.from_repo_url("https://ghe.corp.com/org/repo.git")
         assert result.owner == "org"
         assert result.repo_name == "repo"
         assert result.hostname == "ghe.corp.com"
 
     def test_ghe_ssh_url(self) -> None:
         """Test parsing GHE SSH URL."""
-        result = RepoIdentifier.from_repo_url(
-            "git@ghe.corp.com:org/repo.git"
-        )
+        result = RepoIdentifier.from_repo_url("git@ghe.corp.com:org/repo.git")
         assert result.owner == "org"
         assert result.repo_name == "repo"
         assert result.hostname == "ghe.corp.com"
 
     def test_https_url_with_token_credentials(self) -> None:
         """Test HTTPS URL with token credentials are stripped."""
-        result = RepoIdentifier.from_repo_url(
-            "https://token@ghe.corp.com/org/repo.git"
-        )
+        result = RepoIdentifier.from_repo_url("https://token@ghe.corp.com/org/repo.git")
         assert result.owner == "org"
         assert result.repo_name == "repo"
         assert result.hostname == "ghe.corp.com"
@@ -161,9 +149,7 @@ class TestRepoIdentifierProperties:
 
     def test_https_url_ghe(self) -> None:
         """Test https_url for GHE hostname."""
-        repo = RepoIdentifier(
-            owner="org", repo_name="app", hostname="ghe.corp.com"
-        )
+        repo = RepoIdentifier(owner="org", repo_name="app", hostname="ghe.corp.com")
         assert repo.https_url == "https://ghe.corp.com/org/app"
 
     def test_api_base_url_github_com(self) -> None:
@@ -173,9 +159,7 @@ class TestRepoIdentifierProperties:
 
     def test_api_base_url_ghe(self) -> None:
         """Test api_base_url for GHE hostname."""
-        repo = RepoIdentifier(
-            owner="org", repo_name="app", hostname="ghe.corp.com"
-        )
+        repo = RepoIdentifier(owner="org", repo_name="app", hostname="ghe.corp.com")
         assert repo.api_base_url == "https://ghe.corp.com/api/v3"
 
 
@@ -188,10 +172,7 @@ class TestHostnameToApiBaseUrl:
 
     def test_ghe_hostname(self) -> None:
         """Test GHE hostname returns /api/v3 URL."""
-        assert (
-            hostname_to_api_base_url("ghe.corp.com")
-            == "https://ghe.corp.com/api/v3"
-        )
+        assert hostname_to_api_base_url("ghe.corp.com") == "https://ghe.corp.com/api/v3"
 
     def test_another_ghe_hostname(self) -> None:
         """Test another GHE hostname returns /api/v3 URL."""

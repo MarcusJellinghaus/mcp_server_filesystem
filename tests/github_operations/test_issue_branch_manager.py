@@ -27,7 +27,9 @@ class TestGetLinkedBranches:
                 "mcp_workspace.github_operations.base_manager.get_github_token",
                 return_value="fake_token",
             ),
-            patch("mcp_workspace.github_operations.base_manager.Github") as mock_github_cls,
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_cls,
         ):
             manager = IssueBranchManager(mock_path)
             # Set cached github client so lazy property doesn't trigger outside patch
@@ -229,7 +231,9 @@ class TestCreateLinkedBranch:
                 "mcp_workspace.github_operations.base_manager.get_github_token",
                 return_value="fake_token",
             ),
-            patch("mcp_workspace.github_operations.base_manager.Github") as mock_github_cls,
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_cls,
         ):
             manager = IssueBranchManager(mock_path)
             # Set cached github client so lazy property doesn't trigger outside patch
@@ -718,7 +722,9 @@ class TestDeleteLinkedBranch:
                 "mcp_workspace.github_operations.base_manager.get_github_token",
                 return_value="fake_token",
             ),
-            patch("mcp_workspace.github_operations.base_manager.Github") as mock_github_cls,
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_cls,
         ):
             manager = IssueBranchManager(mock_path)
             # Set cached github client so lazy property doesn't trigger outside patch

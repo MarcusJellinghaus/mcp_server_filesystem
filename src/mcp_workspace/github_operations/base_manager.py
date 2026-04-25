@@ -167,9 +167,7 @@ class BaseGitHubManager:
             if not project_dir.is_dir():
                 raise ValueError(f"Path is not a directory: {project_dir}")
             if not git_operations.is_git_repository(project_dir):
-                raise ValueError(
-                    f"Directory is not a git repository: {project_dir}"
-                )
+                raise ValueError(f"Directory is not a git repository: {project_dir}")
             self.project_dir = project_dir
         else:
             # Parse repo_url to extract owner/repo
@@ -178,9 +176,7 @@ class BaseGitHubManager:
                     repo_url  # type: ignore[arg-type]
                 )
             except ValueError:
-                raise ValueError(
-                    f"Invalid GitHub repository URL: {repo_url}"
-                )
+                raise ValueError(f"Invalid GitHub repository URL: {repo_url}")
 
         # Resolve GitHub token (after directory/repository validation).
         if github_token is not None:

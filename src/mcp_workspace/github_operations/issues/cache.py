@@ -25,6 +25,7 @@ from typing import (
 )
 
 from mcp_workspace.constants import DUPLICATE_PROTECTION_SECONDS
+from mcp_workspace.utils.repo_identifier import RepoIdentifier
 from mcp_workspace.utils.timezone_utils import (
     format_for_cache,
     is_within_duration,
@@ -32,7 +33,6 @@ from mcp_workspace.utils.timezone_utils import (
     parse_iso_timestamp,
 )
 
-from mcp_workspace.utils.repo_identifier import RepoIdentifier
 from .types import IssueData
 
 if TYPE_CHECKING:

@@ -387,7 +387,9 @@ class TestPullRequestManagerIntegration:
                     f"[DEBUG] Successfully listed {len(existing_prs_before)} existing PRs"
                 )
                 print(f"[DEBUG] Repository name: {pr_manager.repository_name}")
-                print(f"[DEBUG] Repository URL: {pr_manager._repo_identifier.https_url}")
+                print(
+                    f"[DEBUG] Repository URL: {pr_manager._repo_identifier.https_url}"
+                )
             except Exception as e:  # pylint: disable=broad-exception-caught
                 print(f"[ERROR] GitHub API access failed: {e}")
                 pytest.skip(f"GitHub API access failed: {e}")

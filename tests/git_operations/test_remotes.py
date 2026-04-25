@@ -62,9 +62,7 @@ class TestRemoteOperations:
 
         assert result is None
 
-    def test_get_repository_identifier_ghe(
-        self, git_repo: tuple[Repo, Path]
-    ) -> None:
+    def test_get_repository_identifier_ghe(self, git_repo: tuple[Repo, Path]) -> None:
         """Test get_repository_identifier handles GHE HTTPS URLs."""
         repo, project_dir = git_repo
 

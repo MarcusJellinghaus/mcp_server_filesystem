@@ -524,9 +524,7 @@ class TestBaseGitHubManagerWithRepoUrl:
             patch("mcp_workspace.github_operations.base_manager.Github"),
         ):
             with pytest.raises(ValueError) as exc_info:
-                BaseGitHubManager(
-                    repo_url="not-a-valid-url"
-                )
+                BaseGitHubManager(repo_url="not-a-valid-url")
 
             assert "Invalid GitHub repository URL" in str(exc_info.value)
 
@@ -613,9 +611,7 @@ class TestBaseGitHubManagerWithRepoUrl:
             mock_github_client.get_repo.return_value = mock_github_repo
             mock_github_class.return_value = mock_github_client
 
-            manager = BaseGitHubManager(
-                repo_url="https://ghe.corp.com/org/repo"
-            )
+            manager = BaseGitHubManager(repo_url="https://ghe.corp.com/org/repo")
 
             # Trigger lazy client creation
             result = manager._get_repository()

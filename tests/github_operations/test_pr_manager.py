@@ -200,7 +200,10 @@ class TestPullRequestManagerUnit:
 
             assert manager._repo_identifier.full_name == "testuser/testrepo"
             assert manager._repo_identifier.hostname == "github.com"
-            assert manager._repo_identifier.https_url == "https://github.com/testuser/testrepo"
+            assert (
+                manager._repo_identifier.https_url
+                == "https://github.com/testuser/testrepo"
+            )
 
     # ========================================
     # Create Pull Request Tests
