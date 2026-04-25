@@ -1,0 +1,7 @@
+feat: add get_default_branch() to BaseGitHubManager (#157)
+
+Add public get_default_branch() method to BaseGitHubManager that returns
+the default branch name from the GitHub repository. Raises ValueError
+if the repository is not accessible.
+
+Includes unit tests for main, master branch names and error case.

@@ -1107,3 +1107,81 @@ class TestGithubTokenForwarding:
 
             assert manager.github_token == "config-token"
             mock_get_token.assert_called_once()
+
+
+class TestGetDefaultBranch:
+    """Tests for BaseGitHubManager.get_default_branch()."""
+
+    def test_get_default_branch_returns_main(self) -> None:
+        """Test get_default_branch returns 'main' when repo default is main."""
+        mock_github_repo = Mock()
+        mock_github_repo.default_branch = "main"
+
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value="fake_token",
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_github_client.get_repo.return_value = mock_github_repo
+            mock_github_class.return_value = mock_github_client
+
+            manager = BaseGitHubManager(
+                repo_url="https://github.com/test-owner/test-repo.git"
+            )
+            result = manager.get_default_branch()
+
+            assert result == "main"
+
+    def test_get_default_branch_returns_master(self) -> None:
+        """Test get_default_branch returns 'master' when repo default is master."""
+        mock_github_repo = Mock()
+        mock_github_repo.default_branch = "master"
+
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value="fake_token",
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_github_client.get_repo.return_value = mock_github_repo
+            mock_github_class.return_value = mock_github_client
+
+            manager = BaseGitHubManager(
+                repo_url="https://github.com/test-owner/test-repo.git"
+            )
+            result = manager.get_default_branch()
+
+            assert result == "master"
+
+    def test_get_default_branch_repo_not_accessible(self) -> None:
+        """Test get_default_branch raises ValueError when repo is not accessible."""
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value="fake_token",
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_github_client.get_repo.side_effect = GithubException(
+                404, {"message": "Not Found"}, None
+            )
+            mock_github_class.return_value = mock_github_client
+
+            manager = BaseGitHubManager(
+                repo_url="https://github.com/test-owner/test-repo.git"
+            )
+
+            with pytest.raises(ValueError, match="Repository not accessible"):
+                manager.get_default_branch()
