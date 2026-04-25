@@ -1,7 +1,15 @@
-feat: add get_default_branch() to BaseGitHubManager (#157)
+feat: add verify_github() with connectivity checks (#157)
 
-Add public get_default_branch() method to BaseGitHubManager that returns
-the default branch name from the GitHub repository. Raises ValueError
-if the repository is not accessible.
+Add CheckResult TypedDict and verify_github() orchestrator function
+that runs checks 1-4 independently:
+- Check 1: GitHub token configured (with OAuth scopes reporting)
+- Check 2: Authentication via get_user()
+- Check 3: Repository URL resolvable from git remote
+- Check 4: Repository accessible via GitHub API
 
-Includes unit tests for main, master branch names and error case.
+Each check runs in its own try/except for independent reporting.
+overall_ok reflects only error-severity checks.
+
+New files:
+- src/mcp_workspace/github_operations/verification.py
+- tests/github_operations/test_verification.py
