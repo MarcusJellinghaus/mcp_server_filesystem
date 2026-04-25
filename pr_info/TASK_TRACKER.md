@@ -21,6 +21,26 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Add `get_default_branch()` to `BaseGitHubManager`
+- [ ] Implementation: tests + production code
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 2: Add `CheckResult` TypedDict + `verify_github()` with connectivity checks (1–4)
+- [ ] Implementation: tests + production code
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 3: Add branch protection checks (5–9) to `verify_github()`
+- [ ] Implementation: tests + production code
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 4: Export from `__init__.py` and update vulture whitelist
+- [ ] Implementation: update exports and whitelist
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
 
 ## Pull Request
+- [ ] PR review: verify all steps complete and checks pass
+- [ ] PR summary prepared
