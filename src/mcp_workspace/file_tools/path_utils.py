@@ -62,7 +62,7 @@ def normalize_path(path: str, project_dir: Path) -> tuple[Path, str]:
                     f"Security error: Path '{path}' resolves to a location outside "
                     f"the project directory '{project_dir}'. Path traversal is not allowed."
                 )
-        except (FileNotFoundError, OSError):
+        except OSError:
             logger.warning(
                 "Path.resolve() failed for '%s', using fallback check",
                 absolute_path,
