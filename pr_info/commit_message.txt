@@ -1,0 +1,13 @@
+feat: create utils/repo_identifier.py with hostname support (#156)
+
+Add RepoIdentifier dataclass to utils/ with hostname field for GitHub
+Enterprise support. The generalized URL parser handles any hostname in
+both HTTPS and SSH formats, with credential stripping.
+
+New files:
+- src/mcp_workspace/utils/repo_identifier.py
+- tests/utils/__init__.py
+- tests/utils/test_repo_identifier.py
+
+Includes hostname_to_api_base_url() helper that maps github.com to
+api.github.com and GHE hosts to hostname/api/v3.
