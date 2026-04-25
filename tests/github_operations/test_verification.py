@@ -30,7 +30,9 @@ def _make_mock_protection(
     if has_status_checks:
         status_checks = Mock()
         status_checks.strict = strict
-        status_checks.contexts = contexts if contexts is not None else ["ci/test", "ci/lint"]
+        status_checks.contexts = (
+            contexts if contexts is not None else ["ci/test", "ci/lint"]
+        )
         protection.required_status_checks = status_checks
     else:
         protection.required_status_checks = None
@@ -94,14 +96,24 @@ class TestAllConnectivityChecksPass:
 
     def test_all_checks_ok(self, tmp_path: Path) -> None:
         result = _patch_all_ok(tmp_path)
-        for key in ("token_configured", "authenticated_user", "repo_url", "repo_accessible"):
+        for key in (
+            "token_configured",
+            "authenticated_user",
+            "repo_url",
+            "repo_accessible",
+        ):
             check = result[key]
             assert isinstance(check, dict)
             assert check["ok"] is True
 
     def test_severity_is_error(self, tmp_path: Path) -> None:
         result = _patch_all_ok(tmp_path)
-        for key in ("token_configured", "authenticated_user", "repo_url", "repo_accessible"):
+        for key in (
+            "token_configured",
+            "authenticated_user",
+            "repo_url",
+            "repo_accessible",
+        ):
             check = result[key]
             assert isinstance(check, dict)
             assert check["severity"] == "error"
@@ -284,7 +296,12 @@ class TestChecksIndependence:
             mock_mgr_cls.side_effect = ValueError("no token")
             result = verify_github(tmp_path)
 
-        for key in ("token_configured", "authenticated_user", "repo_url", "repo_accessible"):
+        for key in (
+            "token_configured",
+            "authenticated_user",
+            "repo_url",
+            "repo_accessible",
+        ):
             assert key in result
 
     def test_auth_fails_repo_checks_still_run(self, tmp_path: Path) -> None:

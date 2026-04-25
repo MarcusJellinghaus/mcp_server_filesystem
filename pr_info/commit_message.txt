@@ -1,5 +1,7 @@
-chore: export verify_github and update whitelist (#157)
+fix: format verification module and tests to pass black check
 
-Export `verify_github` and `CheckResult` from
-`github_operations/__init__.py` and add corresponding entries
-to `vulture_whitelist.py`.
+Wrap long lines exceeding 88-character limit in verification.py and
+test_verification.py to comply with black formatting rules.
+
+- Wrap except clause with multiple exception types across lines
+- Wrap for-loop tuples and ternary expressions in test file

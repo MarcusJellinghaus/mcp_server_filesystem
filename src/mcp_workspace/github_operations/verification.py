@@ -140,7 +140,10 @@ def verify_github(project_dir: Path) -> dict[str, object]:
                 severity="error",
                 error="Repository returned None from GitHub API",
             )
-    except (ValueError, Exception) as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+    except (  # noqa: BLE001  # pylint: disable=broad-exception-caught
+        ValueError,
+        Exception,
+    ) as exc:
         logger.debug("Repository access check failed: %s", exc)
         result["repo_accessible"] = CheckResult(
             ok=False,
@@ -189,7 +192,9 @@ def verify_github(project_dir: Path) -> dict[str, object]:
                     severity="warning",
                     error=_reason,
                 )
-        except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+        except (
+            Exception
+        ) as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
             _reason = str(exc)
             for key in (
                 "branch_protection",
