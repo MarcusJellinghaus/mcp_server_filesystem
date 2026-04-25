@@ -387,7 +387,7 @@ class TestPullRequestManagerIntegration:
                     f"[DEBUG] Successfully listed {len(existing_prs_before)} existing PRs"
                 )
                 print(f"[DEBUG] Repository name: {pr_manager.repository_name}")
-                print(f"[DEBUG] Repository URL: {pr_manager.repository_url}")
+                print(f"[DEBUG] Repository URL: {pr_manager._repo_identifier.https_url}")
             except Exception as e:  # pylint: disable=broad-exception-caught
                 print(f"[ERROR] GitHub API access failed: {e}")
                 pytest.skip(f"GitHub API access failed: {e}")
@@ -504,7 +504,8 @@ class TestPullRequestManagerIntegration:
         ):
             direct_manager = PullRequestManager(git_dir)
             assert isinstance(direct_manager, PullRequestManager)
-            assert direct_manager.repository_url == "https://github.com/test/repo"
+            assert direct_manager._repo_identifier.full_name == "test/repo"
+            assert direct_manager._repo_identifier.hostname == "github.com"
             assert direct_manager.github_token == "test-token"
 
     def test_manager_properties(self, pr_manager: PullRequestManager) -> None:

@@ -1098,7 +1098,7 @@ class TestGithubTokenForwarding:
                 return_value=True,
             ),
             patch(
-                "mcp_workspace.github_operations.pr_manager.get_repository_identifier",
+                "mcp_workspace.github_operations.base_manager.git_operations.get_repository_identifier",
                 return_value=RepoIdentifier(owner="test-owner", repo_name="test-repo"),
             ),
             patch(

@@ -1,8 +1,9 @@
-refactor: BaseGitHubManager lazy client with GHE base_url support (#156)
+refactor: PullRequestManager uses repo_identifier instead of repository_url (#156)
 
-- Replace _repo_owner/_repo_name/_repo_full_name with unified _repo_identifier
-- Make _github_client a lazy property (created on first access, not in __init__)
-- Github() client now always passes explicit base_url from RepoIdentifier.api_base_url
-- Add hostname parameter to get_authenticated_username() for GHE support
-- Update test fixtures to set _cached_github_client for lazy property compatibility
-- Update test_ci_results_manager_foundation.py assertions for new attributes
+- Remove `self.repository_url` attribute; eagerly resolve `_repo_identifier`
+  from BaseGitHubManager in __init__ to fail fast if no GitHub remote
+- Simplify `repository_name` property to delegate to `_repo_identifier.full_name`
+- Update `find_pull_request_by_head` to use `_repo_identifier.owner` directly
+- Remove `get_repository_identifier` import from pr_manager (now via base class)
+- Update all tests: replace `repository_url` assertions with `_repo_identifier`
+- Fix test_base_manager patch path for get_repository_identifier

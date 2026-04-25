@@ -185,8 +185,8 @@ class TestPullRequestManagerUnit:
 
             assert manager.repository_name == "testuser/testrepo"
 
-    def test_repository_url_property(self, tmp_path: Path) -> None:
-        """Test repository_url property is set correctly."""
+    def test_repo_identifier_property(self, tmp_path: Path) -> None:
+        """Test _repo_identifier is set correctly from git remote."""
         git_dir = tmp_path / "git_dir"
         git_dir.mkdir()
         repo = git.Repo.init(git_dir)
@@ -198,7 +198,9 @@ class TestPullRequestManagerUnit:
         ):
             manager = PullRequestManager(git_dir)
 
-            assert manager.repository_url == "https://github.com/testuser/testrepo"
+            assert manager._repo_identifier.full_name == "testuser/testrepo"
+            assert manager._repo_identifier.hostname == "github.com"
+            assert manager._repo_identifier.https_url == "https://github.com/testuser/testrepo"
 
     # ========================================
     # Create Pull Request Tests
