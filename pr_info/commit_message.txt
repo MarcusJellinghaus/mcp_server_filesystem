@@ -1,9 +1,0 @@
-refactor: PullRequestManager uses repo_identifier instead of repository_url (#156)
-
-- Remove `self.repository_url` attribute; eagerly resolve `_repo_identifier`
-  from BaseGitHubManager in __init__ to fail fast if no GitHub remote
-- Simplify `repository_name` property to delegate to `_repo_identifier.full_name`
-- Update `find_pull_request_by_head` to use `_repo_identifier.owner` directly
-- Remove `get_repository_identifier` import from pr_manager (now via base class)
-- Update all tests: replace `repository_url` assertions with `_repo_identifier`
-- Fix test_base_manager patch path for get_repository_identifier
