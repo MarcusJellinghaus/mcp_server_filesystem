@@ -131,6 +131,9 @@ _.READY_FOR_REVIEW
 # Verification API (verify_github)
 _.verify_github
 _.CheckResult
+_.ok
+_.severity
+_.install_hint
 
 # CI results manager - variables used in dict unpacking / data extraction
 _.run_ids
