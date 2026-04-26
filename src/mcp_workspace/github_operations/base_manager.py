@@ -218,6 +218,20 @@ class BaseGitHubManager:
         )
         return self._cached_github_client
 
+    def get_default_branch(self) -> str:
+        """Get the default branch name from the GitHub repository.
+
+        Returns:
+            Default branch name (e.g., "main", "master", "develop")
+
+        Raises:
+            ValueError: If repository is not accessible
+        """
+        repo = self._get_repository()
+        if repo is None:
+            raise ValueError("Repository not accessible")
+        return repo.default_branch
+
     @log_function_call
     def _get_repository(self) -> Optional[Repository]:
         """Get the GitHub repository object.

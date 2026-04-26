@@ -10,6 +10,7 @@ from .base_manager import BaseGitHubManager, get_authenticated_username
 from .ci_results_manager import CIResultsManager, CIStatusData
 from .labels_manager import LabelData, LabelsManager
 from .pr_manager import PullRequestManager
+from .verification import CheckResult, verify_github
 
 # Issue-related imports REMOVED per Decision #1
 # Consumers must import from: mcp_workspace.github_operations.issues
@@ -17,11 +18,13 @@ from .pr_manager import PullRequestManager
 
 __all__ = [
     "BaseGitHubManager",
-    "get_authenticated_username",
+    "CheckResult",
     "CIResultsManager",
     "CIStatusData",
     "LabelData",
     "LabelsManager",
     "PullRequestManager",
     "RepoIdentifier",
+    "get_authenticated_username",
+    "verify_github",
 ]
