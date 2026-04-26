@@ -1,7 +1,0 @@
-fix: format verification module and tests to pass black check
-
-Wrap long lines exceeding 88-character limit in verification.py and
-test_verification.py to comply with black formatting rules.
-
-- Wrap except clause with multiple exception types across lines
-- Wrap for-loop tuples and ternary expressions in test file
