@@ -3,18 +3,11 @@
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import pytest
 from github.GithubException import GithubException
 
 from mcp_workspace.github_operations.verification import CheckResult, verify_github
 
 MODULE = "mcp_workspace.github_operations.verification"
-
-
-@pytest.fixture
-def _mock_git_repo(tmp_path: Path) -> Path:
-    """Return tmp_path after patching is_git_repository to accept it."""
-    return tmp_path
 
 
 def _make_mock_protection(

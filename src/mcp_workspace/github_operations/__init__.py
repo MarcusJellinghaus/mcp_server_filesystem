@@ -18,13 +18,13 @@ from .verification import CheckResult, verify_github
 
 __all__ = [
     "BaseGitHubManager",
-    "get_authenticated_username",
+    "CheckResult",
     "CIResultsManager",
     "CIStatusData",
     "LabelData",
     "LabelsManager",
     "PullRequestManager",
     "RepoIdentifier",
-    "CheckResult",
+    "get_authenticated_username",
     "verify_github",
 ]
