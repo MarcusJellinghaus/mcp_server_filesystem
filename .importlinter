@@ -138,6 +138,8 @@ forbidden_modules =
 # -----------------------------------------------------------------------------
 # Production code must not use subprocess directly.
 # Use GitPython for git operations instead.
+# Note: mcp_coder_utils.subprocess_runner/streaming are banned via tach.toml
+# (not listed in depends_on for any production module).
 # -----------------------------------------------------------------------------
 [importlinter:contract:subprocess_ban]
 name = Subprocess Ban (use GitPython instead)
@@ -146,8 +148,6 @@ source_modules =
     mcp_workspace
 forbidden_modules =
     subprocess
-    mcp_coder_utils.subprocess_runner
-    mcp_coder_utils.subprocess_streaming
 
 # -----------------------------------------------------------------------------
 # Contract: Source Code Independence from Tests
