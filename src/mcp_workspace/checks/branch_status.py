@@ -621,14 +621,13 @@ def collect_branch_status(
 async def _wait_for_ci(project_dir: Path, branch_name: str, timeout: int) -> None:
     """Poll CI status until terminal (success/failure) or timeout."""
     logger.info("Waiting for CI on branch=%s (timeout=%ds)", branch_name, timeout)
+    ci_manager = CIResultsManager(project_dir=project_dir)
     deadline = time.monotonic() + timeout
     errors = 0
     while time.monotonic() < deadline:
         try:
             result = await asyncio.to_thread(
-                lambda: CIResultsManager(project_dir=project_dir).get_latest_ci_status(
-                    branch_name
-                )
+                ci_manager.get_latest_ci_status, branch_name
             )
             errors = 0
             run = result.get("run") if isinstance(result, dict) else None
@@ -646,14 +645,13 @@ async def _wait_for_ci(project_dir: Path, branch_name: str, timeout: int) -> Non
 async def _wait_for_pr(project_dir: Path, branch_name: str, timeout: int) -> None:
     """Poll for PR existence until found or timeout."""
     logger.info("Waiting for PR on branch=%s (timeout=%ds)", branch_name, timeout)
+    pr_manager = PullRequestManager(project_dir)
     deadline = time.monotonic() + timeout
     errors = 0
     while time.monotonic() < deadline:
         try:
             result = await asyncio.to_thread(
-                lambda: PullRequestManager(project_dir).find_pull_request_by_head(
-                    branch_name
-                )
+                pr_manager.find_pull_request_by_head, branch_name
             )
             errors = 0
             if result:
