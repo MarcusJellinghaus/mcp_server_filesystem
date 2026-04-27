@@ -21,6 +21,21 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Include hostname in cache_safe_name
+- [ ] Implementation: update `cache_safe_name` property and tests (`TestCacheFilePath`, `test_cache_safe_name_property`, add GHE test)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `fix: include hostname in cache_safe_name to prevent cache collisions`
+
+### Step 2: Change update_issue_labels_in_cache to accept RepoIdentifier
+- [ ] Implementation: change function signature and update `TestCacheIssueUpdate` / `TestCacheUpdateIntegration` call sites
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `refactor: change update_issue_labels_in_cache to accept RepoIdentifier`
+
+### Step 3: Change get_all_cached_issues to accept RepoIdentifier
+- [ ] Implementation: change function signature and update `TestAdditionalIssuesParameter` / `TestApiFailureHandling` / `TestLastFullRefresh` call sites
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `refactor: change get_all_cached_issues to accept RepoIdentifier`
 
 ## Pull Request
+- [ ] Review all changes for correctness and consistency
+- [ ] Write PR summary
