@@ -29,5 +29,4 @@ No new files or modules created (beyond the plan files).
 
 | Step | Description |
 |------|-------------|
-| 1 | Add tests for check 10 + update `_patch_all_ok` helper |
-| 2 | Implement check 10 in `verification.py` |
+| 1 | Add tests for check 10 (including `_patch_all_ok` update) and implement check 10 in `verification.py` |
