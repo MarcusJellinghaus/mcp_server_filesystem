@@ -21,6 +21,21 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Refactor `get_latest_commit_sha()` to Use GitPython
+- [ ] Implementation (replace `execute_command` with `safe_repo_context` in `commits.py`)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `refactor: replace execute_command with GitPython in get_latest_commit_sha`
+
+### Step 2: Add `.importlinter` Subprocess Ban Contract
+- [ ] Implementation (add forbidden contract banning subprocess in production code)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `chore: add importlinter subprocess ban for production code`
+
+### Step 3: Clean Up `tach.toml` Subprocess Runner References
+- [ ] Implementation (remove all `mcp_coder_utils.subprocess_runner` references from `tach.toml`)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit: `chore: remove stale subprocess_runner dependencies from tach.toml`
 
 ## Pull Request
+- [ ] Review all changes for correctness and completeness
+- [ ] Write PR summary
