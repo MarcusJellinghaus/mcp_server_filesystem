@@ -29,11 +29,17 @@ New parameters on the MCP tool (and the underlying public function):
 - Hardcoded intervals: 15 s for CI, 20 s for PR (matches proven `p_coder` CLI values).
 
 **Execution order in the orchestrator:**
-1. If `wait_for_pr=True`: check `remote_branch_exists()`. If branch is not pushed → skip PR wait, run final collection, prepend recommendation `"Push branch to remote before waiting for PR"` via `dataclasses.replace`. Continue to step 2 only if remote tracking exists.
-2. PR wait (if `wait_for_pr=True`).
-3. CI wait (if `ci_timeout > 0`).
+1. If `wait_for_pr=True` OR `ci_timeout > 0`: check `remote_branch_exists()`. If branch is not pushed to origin → skip BOTH waits, run final collection, prepend recommendation `"Push branch to remote before waiting for PR or CI"` via `dataclasses.replace`. The check short-circuits both waits and the recommendation is emitted exactly once.
+2. PR wait (if `wait_for_pr=True` and remote branch exists).
+3. CI wait (if `ci_timeout > 0` and remote branch exists).
 4. One full `collect_branch_status()` via `to_thread`.
 5. Return `report.format_for_llm()`.
+
+## Design Decisions
+
+- **Remote-branch check uses `remote_branch_exists()`, NOT `has_remote_tracking_branch()`** — this is a deliberate deviation from the issue's Decisions table. `has_remote_tracking_branch()` only returns True when an upstream is configured (i.e. the user pushed with `git push -u`). If the user pushed without `-u`, an open PR can exist on origin but the local upstream is unset; `has_remote_tracking_branch()` would incorrectly return False and skip both waits. `remote_branch_exists(project_dir, branch)` queries `origin/*` refs directly and proceeds correctly in this scenario.
+- **Symmetric guard for CI and PR waits.** If the branch isn't on origin, polling CI is just as wasteful as polling PR — both will fruitlessly time out. A single `remote_branch_exists` lookup gates both, and the same single recommendation covers both cases.
+- **`_wait_for_pr` terminal-state is loose.** Any non-empty list from `find_pull_request_by_head` (including closed PRs) is treated as "found". The orchestrator's final `collect_branch_status` surfaces actual PR state to the caller, so this is intentional.
 
 **Backwards compatibility:** All new parameters default to no-wait, so the existing tool surface is preserved bit-for-bit when callers don't pass them.
 

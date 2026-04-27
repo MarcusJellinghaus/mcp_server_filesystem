@@ -47,8 +47,10 @@ Both are fire-and-forget (return `None`) — they only block until terminal/time
   - PR: `PullRequestManager(project_dir).find_pull_request_by_head(branch_name)`
 - Use `await asyncio.sleep(interval)` between iterations.
 - `time.monotonic()` for the deadline; abort when `time.monotonic() >= deadline`.
-- Catch `Exception` around each `to_thread` call; track `consecutive_errors`; reset to 0 on success; abort when it hits `_MAX_CONSECUTIVE_ERRORS`. Log via `logger.info` / `logger.warning`.
+- Catch `Exception` around each `to_thread` call; track `consecutive_errors`; reset to 0 on success; abort when it hits `_MAX_CONSECUTIVE_ERRORS`.
+- Logging cardinality (avoid per-iteration noise): `logger.info` ONCE on start (with timeout), `logger.info` ONCE when terminal state reached, `logger.warning` ONLY on each exception. Do NOT emit `logger.info` per polling iteration.
 - No new imports outside the module — `CIResultsManager` and `PullRequestManager` are already imported.
+- Before TDD, confirm `PullRequestManager.find_pull_request_by_head` signature with `mcp__tools-py__list_symbols` against `src/mcp_workspace/github_operations/pr_manager.py`.
 
 ## ALGORITHM
 
@@ -89,7 +91,7 @@ Test cases (one class per helper):
 - Returns immediately when first poll yields `conclusion="success"`.
 - Returns immediately when first poll yields `conclusion="failure"`.
 - Returns after timeout when status stays `"in_progress"`.
-- Tolerates 2 consecutive exceptions, then succeeds on 3rd call.
+- Tolerates 2 consecutive CI-status exceptions, then succeeds when the 3rd call returns success (total: 2 raises, 3rd returns terminal success).
 - Aborts (returns) after 3 consecutive exceptions.
 - `timeout=0` returns immediately without polling.
 
@@ -99,7 +101,7 @@ Test cases (one class per helper):
 - Aborts after 3 consecutive exceptions.
 - `timeout=0` returns immediately without polling.
 
-Assertions: `to_thread` mock call counts, helper return value (`None`), test runtime (sleep patched).
+Assertions: `to_thread` mock call counts, helper return value (`None`), test runtime (sleep patched). Do NOT assert per-iteration info-level log calls — only at-most-one start/end info log per helper invocation, plus warnings for exceptions.
 
 ## Definition of done
 

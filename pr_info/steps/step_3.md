@@ -51,6 +51,7 @@ async def check_branch_status(
 
 ## HOW
 
+- Before editing `server.py`, run `mcp__workspace__search_files` for `check_branch_status` across `tests/` to confirm no test imports the function directly. If any are found, update those tests to `await` the new async signature (and patch `async_poll_branch_status` instead of `collect_branch_status`).
 - Update the import in `server.py`:
   - Remove `from mcp_workspace.checks.branch_status import collect_branch_status`.
   - Replace with `from mcp_workspace.checks.branch_status import async_poll_branch_status`.
