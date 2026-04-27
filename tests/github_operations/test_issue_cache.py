@@ -92,7 +92,10 @@ class TestCacheFilePath:
         test_cases = [
             ("anthropics/claude-code", "github_com_anthropics_claude-code.issues.json"),
             ("user/repo-with-dashes", "github_com_user_repo-with-dashes.issues.json"),
-            ("org/very.long.repo.name", "github_com_org_very.long.repo.name.issues.json"),
+            (
+                "org/very.long.repo.name",
+                "github_com_org_very.long.repo.name.issues.json",
+            ),
         ]
 
         for full_name, expected_filename in test_cases:

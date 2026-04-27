@@ -139,7 +139,11 @@ class TestRepoIdentifierProperties:
 
     def test_cache_safe_name_with_ghe_hostname(self) -> None:
         """Test cache_safe_name includes non-default hostname."""
-        repo = RepoIdentifier(owner="MarcusJellinghaus", repo_name="mcp_coder", hostname="ghe.corp.com")
+        repo = RepoIdentifier(
+            owner="MarcusJellinghaus",
+            repo_name="mcp_coder",
+            hostname="ghe.corp.com",
+        )
         assert repo.cache_safe_name == "ghe_corp_com_MarcusJellinghaus_mcp_coder"
 
     def test_str_returns_full_name(self) -> None:

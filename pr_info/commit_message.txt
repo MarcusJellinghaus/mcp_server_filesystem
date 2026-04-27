@@ -1,6 +1,5 @@
-refactor: change get_all_cached_issues to accept RepoIdentifier
+fix: apply black formatting to test files
 
-Change get_all_cached_issues() parameter from repo_full_name: str to
-repo_identifier: RepoIdentifier, removing internal from_full_name()
-construction. Update all 13 call sites in TestAdditionalIssuesParameter,
-TestApiFailureHandling, and TestLastFullRefresh test classes.
+Format tests/utils/test_repo_identifier.py and
+tests/github_operations/test_issue_cache.py to comply with
+black code style (line length 88).
