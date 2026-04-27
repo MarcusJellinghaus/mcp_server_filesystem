@@ -41,7 +41,7 @@ def update_issue_labels_in_cache(
 1. Remove repo_identifier = RepoIdentifier.from_full_name(repo_full_name)
 2. Use repo_identifier parameter directly
 3. Replace repo_full_name references in log messages with repo_identifier.full_name
-4. Remove the ValueError try/except around repo parsing (no longer needed)
+4. Remove the `except ValueError` clause — the broad `except Exception` handler must remain
 ```
 
 ## DATA

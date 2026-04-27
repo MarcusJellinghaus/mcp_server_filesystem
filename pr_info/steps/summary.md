@@ -22,6 +22,7 @@ Existing `github.com` caches change from `owner_repo.issues.json` to `github_com
 | `src/mcp_workspace/github_operations/issues/cache.py` | `update_issue_labels_in_cache`: param `repo_full_name: str` → `repo_identifier: RepoIdentifier` |
 | `src/mcp_workspace/github_operations/issues/cache.py` | `get_all_cached_issues`: param `repo_full_name: str` → `repo_identifier: RepoIdentifier` |
 | `tests/github_operations/test_issue_cache.py` | Update all call sites to pass `RepoIdentifier` instead of strings |
+| `tests/utils/test_repo_identifier.py` | Update assertion + add GHE hostname test case |
 
 No new files created.
 
