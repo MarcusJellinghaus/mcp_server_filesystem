@@ -1,5 +1,0 @@
-fix: apply black formatting to test files
-
-Format tests/utils/test_repo_identifier.py and
-tests/github_operations/test_issue_cache.py to comply with
-black code style (line length 88).
