@@ -83,16 +83,19 @@ class TestCacheFilePath:
         path = _get_cache_file_path(repo_identifier)
 
         expected_dir = Path.home() / ".mcp_coder" / "coordinator_cache"
-        expected_file = expected_dir / "owner_repo.issues.json"
+        expected_file = expected_dir / "github_com_owner_repo.issues.json"
 
         assert path == expected_file
 
     def test_get_cache_file_path_complex_names(self) -> None:
         """Test cache file path with complex repository names."""
         test_cases = [
-            ("anthropics/claude-code", "anthropics_claude-code.issues.json"),
-            ("user/repo-with-dashes", "user_repo-with-dashes.issues.json"),
-            ("org/very.long.repo.name", "org_very.long.repo.name.issues.json"),
+            ("anthropics/claude-code", "github_com_anthropics_claude-code.issues.json"),
+            ("user/repo-with-dashes", "github_com_user_repo-with-dashes.issues.json"),
+            (
+                "org/very.long.repo.name",
+                "github_com_org_very.long.repo.name.issues.json",
+            ),
         ]
 
         for full_name, expected_filename in test_cases:
@@ -383,7 +386,7 @@ class TestCacheIssueUpdate:
 
                 # Call the function under test
                 update_issue_labels_in_cache(
-                    "test/repo",
+                    RepoIdentifier.from_full_name("test/repo"),
                     123,
                     "status-02:awaiting-planning",
                     "status-03:planning",
@@ -430,7 +433,10 @@ class TestCacheIssueUpdate:
 
                 # Remove label without adding new one (empty string)
                 update_issue_labels_in_cache(
-                    "test/repo", 456, "status-05:plan-ready", ""
+                    RepoIdentifier.from_full_name("test/repo"),
+                    456,
+                    "status-05:plan-ready",
+                    "",
                 )
 
             # Verify only the specified label was removed
@@ -473,7 +479,10 @@ class TestCacheIssueUpdate:
 
                 # Add new label without removing any (empty old_label)
                 update_issue_labels_in_cache(
-                    "test/repo", 789, "", "status-02:awaiting-planning"
+                    RepoIdentifier.from_full_name("test/repo"),
+                    789,
+                    "",
+                    "status-02:awaiting-planning",
                 )
 
             # Verify new label was added and existing preserved
@@ -521,7 +530,12 @@ class TestCacheIssueUpdate:
                 mock_path.return_value = cache_path
 
                 # Try to update non-existent issue - should not raise exception
-                update_issue_labels_in_cache("test/repo", 123, "old-label", "new-label")
+                update_issue_labels_in_cache(
+                    RepoIdentifier.from_full_name("test/repo"),
+                    123,
+                    "old-label",
+                    "new-label",
+                )
 
             # Verify appropriate warning was logged
             assert "Issue #123 not found in cache for test/repo" in caplog.text
@@ -552,12 +566,17 @@ class TestCacheIssueUpdate:
                 mock_path.return_value = cache_path
 
                 # Should handle gracefully without crashing
-                update_issue_labels_in_cache("test/repo", 123, "old-label", "new-label")
+                update_issue_labels_in_cache(
+                    RepoIdentifier.from_full_name("test/repo"),
+                    123,
+                    "old-label",
+                    "new-label",
+                )
 
             # Verify warning was logged
             assert (
                 "Invalid cache structure" in caplog.text
-                or "Cache update failed" in caplog.text
+                or "Unexpected error updating cache" in caplog.text
             )
 
     def test_update_issue_labels_file_permission_error(
@@ -601,7 +620,12 @@ class TestCacheIssueUpdate:
             mock_save.return_value = False  # Simulate save failure
 
             # Should handle save failure gracefully
-            update_issue_labels_in_cache("test/repo", 123, "old-label", "new-label")
+            update_issue_labels_in_cache(
+                RepoIdentifier.from_full_name("test/repo"),
+                123,
+                "old-label",
+                "new-label",
+            )
 
             # Verify appropriate warning was logged
             assert any(
@@ -645,7 +669,7 @@ class TestCacheIssueUpdate:
                 mock_path.return_value = cache_path
 
                 update_issue_labels_in_cache(
-                    "test/repo",
+                    RepoIdentifier.from_full_name("test/repo"),
                     123,
                     "status-02:awaiting-planning",
                     "status-03:planning",
@@ -708,7 +732,7 @@ class TestCacheUpdateIntegration:
 
                 # Call the actual cache update function (this is what dispatch_workflow calls)
                 update_issue_labels_in_cache(
-                    "test/repo",
+                    RepoIdentifier.from_full_name("test/repo"),
                     123,
                     "status-02:awaiting-planning",
                     "status-03:planning",
@@ -768,13 +792,16 @@ class TestCacheUpdateIntegration:
 
                 # Simulate multiple dispatch operations
                 update_issue_labels_in_cache(
-                    "test/repo",
+                    RepoIdentifier.from_full_name("test/repo"),
                     123,
                     "status-02:awaiting-planning",
                     "status-03:planning",
                 )
                 update_issue_labels_in_cache(
-                    "test/repo", 456, "status-05:plan-ready", "status-06:implementing"
+                    RepoIdentifier.from_full_name("test/repo"),
+                    456,
+                    "status-05:plan-ready",
+                    "status-06:implementing",
                 )
 
             # Verify both issues were updated correctly
@@ -809,7 +836,12 @@ class TestCacheUpdateIntegration:
 
             # Cache update failure should not raise exception
             try:
-                update_issue_labels_in_cache("test/repo", 123, "old-label", "new-label")
+                update_issue_labels_in_cache(
+                    RepoIdentifier.from_full_name("test/repo"),
+                    123,
+                    "old-label",
+                    "new-label",
+                )
                 # Should complete without exception
             except Exception as e:  # pylint: disable=broad-exception-caught
                 pytest.fail(f"Cache update failure should not break workflow: {e}")
@@ -897,7 +929,7 @@ class TestAdditionalIssuesParameter:
 
             # Call with additional_issues parameter
             result = get_all_cached_issues(
-                "owner/repo",
+                RepoIdentifier.from_full_name("owner/repo"),
                 mock_cache_issue_manager,
                 additional_issues=[123],
             )
@@ -988,7 +1020,7 @@ class TestAdditionalIssuesParameter:
 
             # Call with additional_issues parameter
             result = get_all_cached_issues(
-                "owner/repo",
+                RepoIdentifier.from_full_name("owner/repo"),
                 mock_cache_issue_manager,
                 additional_issues=[123],
             )
@@ -1050,7 +1082,9 @@ class TestAdditionalIssuesParameter:
             mock_save.return_value = True
 
             # Call WITHOUT additional_issues parameter
-            result = get_all_cached_issues("owner/repo", mock_cache_issue_manager)
+            result = get_all_cached_issues(
+                RepoIdentifier.from_full_name("owner/repo"), mock_cache_issue_manager
+            )
 
             # Verify get_issue was NOT called
             mock_cache_issue_manager.get_issue.assert_not_called()
@@ -1118,7 +1152,7 @@ class TestAdditionalIssuesParameter:
 
             # Call with additional_issues - should not raise exception
             result = get_all_cached_issues(
-                "owner/repo",
+                RepoIdentifier.from_full_name("owner/repo"),
                 mock_cache_issue_manager,
                 additional_issues=[123],
             )
@@ -1178,7 +1212,7 @@ class TestAdditionalIssuesParameter:
 
             # Call with EMPTY additional_issues list
             result = get_all_cached_issues(
-                "owner/repo",
+                RepoIdentifier.from_full_name("owner/repo"),
                 mock_cache_issue_manager,
                 additional_issues=[],
             )
@@ -1246,7 +1280,9 @@ class TestApiFailureHandling:
         )
 
         result = get_all_cached_issues(
-            "test/repo", mock_cache_issue_manager, force_refresh=True
+            RepoIdentifier.from_full_name("test/repo"),
+            mock_cache_issue_manager,
+            force_refresh=True,
         )
 
         # last_checked should NOT have been advanced (no save call with new timestamp)
@@ -1290,7 +1326,9 @@ class TestApiFailureHandling:
         )
 
         result = get_all_cached_issues(
-            "test/repo", mock_cache_issue_manager, force_refresh=True
+            RepoIdentifier.from_full_name("test/repo"),
+            mock_cache_issue_manager,
+            force_refresh=True,
         )
 
         assert len(result) == 3
@@ -1331,7 +1369,9 @@ class TestApiFailureHandling:
             RuntimeError("API unavailable")
         )
 
-        result = get_all_cached_issues("test/repo", mock_cache_issue_manager)
+        result = get_all_cached_issues(
+            RepoIdentifier.from_full_name("test/repo"), mock_cache_issue_manager
+        )
 
         # Despite full refresh clearing cache, snapshot should restore original issues
         assert len(result) == 2
@@ -1375,7 +1415,9 @@ class TestApiFailureHandling:
         )
 
         result = get_all_cached_issues(
-            "test/repo", mock_cache_issue_manager, force_refresh=True
+            RepoIdentifier.from_full_name("test/repo"),
+            mock_cache_issue_manager,
+            force_refresh=True,
         )
 
         # last_checked must NOT have been advanced (no save)
@@ -1417,7 +1459,9 @@ class TestApiFailureHandling:
         ]
 
         result = get_all_cached_issues(
-            "test/repo", mock_cache_issue_manager, force_refresh=True
+            RepoIdentifier.from_full_name("test/repo"),
+            mock_cache_issue_manager,
+            force_refresh=True,
         )
 
         # Cache should be saved with updated last_checked
@@ -1474,7 +1518,11 @@ class TestLastFullRefresh:
 
         mock_cache_issue_manager._list_issues_no_error_handling.return_value = []
 
-        get_all_cached_issues("test/repo", mock_cache_issue_manager, force_refresh=True)
+        get_all_cached_issues(
+            RepoIdentifier.from_full_name("test/repo"),
+            mock_cache_issue_manager,
+            force_refresh=True,
+        )
 
         # Verify saved cache has last_full_refresh set
         with cache_file.open("r") as f:
@@ -1526,7 +1574,9 @@ class TestLastFullRefresh:
 
         mock_cache_issue_manager._list_issues_no_error_handling.return_value = []
 
-        get_all_cached_issues("test/repo", mock_cache_issue_manager)
+        get_all_cached_issues(
+            RepoIdentifier.from_full_name("test/repo"), mock_cache_issue_manager
+        )
 
         # Verify last_full_refresh is unchanged
         with cache_file.open("r") as f:
@@ -1577,7 +1627,9 @@ class TestLastFullRefresh:
 
         mock_cache_issue_manager._list_issues_no_error_handling.return_value = []
 
-        get_all_cached_issues("test/repo", mock_cache_issue_manager)
+        get_all_cached_issues(
+            RepoIdentifier.from_full_name("test/repo"), mock_cache_issue_manager
+        )
 
         # Full refresh should have been called with state="open" (not state="all" with since=)
         mock_cache_issue_manager._list_issues_no_error_handling.assert_called_once_with(

@@ -157,7 +157,7 @@ def _get_cache_file_path(repo_identifier: RepoIdentifier) -> Path:
 
 
 def update_issue_labels_in_cache(
-    repo_full_name: str, issue_number: int, old_label: str, new_label: str
+    repo_identifier: RepoIdentifier, issue_number: int, old_label: str, new_label: str
 ) -> None:
     """Update issue labels in cache after successful dispatch.
 
@@ -166,7 +166,7 @@ def update_issue_labels_in_cache(
     duplicate dispatches within the 1-minute duplicate protection window.
 
     Args:
-        repo_full_name: Repository in "owner/repo" format (e.g., "anthropics/claude-code")
+        repo_identifier: Repository identifier with owner and repo name
         issue_number: GitHub issue number to update
         old_label: Label to remove from cached issue
         new_label: Label to add to cached issue
@@ -177,22 +177,19 @@ def update_issue_labels_in_cache(
         from GitHub API.
     """
     try:
-        # Step 1: Parse repository identifier
-        repo_identifier = RepoIdentifier.from_full_name(repo_full_name)
-
-        # Step 2: Load existing cache
+        # Step 1: Load existing cache
         cache_file_path = _get_cache_file_path(repo_identifier)
         cache_data = _load_cache_file(cache_file_path)
 
-        # Step 3: Find target issue in cache
+        # Step 2: Find target issue in cache
         issue_key = str(issue_number)
         if issue_key not in cache_data["issues"]:
             logger.warning(
-                f"Issue #{issue_number} not found in cache for {repo_full_name}"
+                f"Issue #{issue_number} not found in cache for {repo_identifier.full_name}"
             )
             return
 
-        # Step 4: Update issue labels
+        # Step 3: Update issue labels
         issue = cache_data["issues"][issue_key]
         current_labels = list(issue.get("labels", []))
 
@@ -208,7 +205,7 @@ def update_issue_labels_in_cache(
         issue["labels"] = current_labels
         cache_data["issues"][issue_key] = issue
 
-        # Step 5: Save updated cache
+        # Step 4: Save updated cache
         save_success = _save_cache_file(cache_file_path, cache_data)
         if save_success:
             logger.debug(
@@ -219,9 +216,6 @@ def update_issue_labels_in_cache(
                 f"Cache update failed for issue #{issue_number}: save operation failed"
             )
 
-    except ValueError as e:
-        # Repository parsing or cache structure errors
-        logger.warning(f"Cache update failed for issue #{issue_number}: {e}")
     except Exception as e:  # pylint: disable=broad-exception-caught
         # Any unexpected errors - don't break main workflow
         logger.warning(
@@ -389,7 +383,7 @@ def _fetch_and_merge_issues(  # pylint: disable=too-many-arguments,too-many-posi
 
 
 def get_all_cached_issues(  # pylint: disable=too-many-locals
-    repo_full_name: str,
+    repo_identifier: RepoIdentifier,
     issue_manager: "IssueManager",
     force_refresh: bool = False,
     cache_refresh_minutes: int = 1440,
@@ -405,7 +399,7 @@ def get_all_cached_issues(  # pylint: disable=too-many-locals
     - Merging fresh issues into cache
 
     Args:
-        repo_full_name: Repository in "owner/repo" format
+        repo_identifier: RepoIdentifier for the repository
         issue_manager: IssueManager for GitHub API calls
         force_refresh: Bypass cache entirely
         cache_refresh_minutes: Full refresh threshold (default: 1440 = 24 hours)
@@ -422,8 +416,7 @@ def get_all_cached_issues(  # pylint: disable=too-many-locals
     Note:
         Caller (thin wrapper) should handle fallback to direct API fetch.
     """
-    # Step 1: Create RepoIdentifier and load cache
-    repo_identifier = RepoIdentifier.from_full_name(repo_full_name)
+    # Step 1: Load cache
     cache_data = _load_cache_file(_get_cache_file_path(repo_identifier))
     repo_name = repo_identifier.repo_name
 

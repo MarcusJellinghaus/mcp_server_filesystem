@@ -36,7 +36,7 @@ class RepoIdentifier:
 
     Properties:
         full_name: Returns "owner/repo" format
-        cache_safe_name: Returns "owner_repo" format for filenames
+        cache_safe_name: Returns "hostname_owner_repo" format for filenames
         https_url: Returns "https://hostname/owner/repo" format
         api_base_url: Returns API base URL for PyGithub
     """
@@ -52,8 +52,9 @@ class RepoIdentifier:
 
     @property
     def cache_safe_name(self) -> str:
-        """Return repository in 'owner_repo' format (safe for filenames)."""
-        return f"{self.owner}_{self.repo_name}"
+        """Return repository in 'hostname_owner_repo' format (safe for filenames)."""
+        safe_hostname = self.hostname.replace(".", "_")
+        return f"{safe_hostname}_{self.owner}_{self.repo_name}"
 
     @property
     def https_url(self) -> str:
