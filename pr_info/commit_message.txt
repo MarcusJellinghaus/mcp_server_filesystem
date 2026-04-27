@@ -1,0 +1,8 @@
+chore: add importlinter subprocess ban for production code
+
+Add a forbidden contract to .importlinter that bans subprocess,
+mcp_coder_utils.subprocess_runner, and mcp_coder_utils.subprocess_streaming
+from being imported in mcp_workspace production code.
+
+This enforces the architectural decision to use GitPython instead of
+subprocess for git operations.

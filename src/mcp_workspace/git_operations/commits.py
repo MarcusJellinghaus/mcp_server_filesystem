@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Optional
 
 from git.exc import GitCommandError, InvalidGitRepositoryError
-from mcp_coder_utils.subprocess_runner import execute_command
 
 from .core import GIT_SHORT_HASH_LENGTH, CommitResult, logger, safe_repo_context
 from .repository_status import get_staged_changes, is_git_repository
@@ -88,10 +87,8 @@ def get_latest_commit_sha(project_dir: Path) -> Optional[str]:
     Returns:
         The full SHA of HEAD, or None if not in a git repository
     """
-    result = execute_command(
-        ["git", "rev-parse", "HEAD"],
-        cwd=str(project_dir),
-    )
-    if result.return_code == 0:
-        return result.stdout.strip()
-    return None
+    try:
+        with safe_repo_context(project_dir) as repo:
+            return repo.head.commit.hexsha
+    except (InvalidGitRepositoryError, GitCommandError, ValueError, OSError):
+        return None
