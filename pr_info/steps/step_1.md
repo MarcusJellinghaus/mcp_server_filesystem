@@ -29,7 +29,7 @@
 - `test_enabled`: call `_patch_all_ok(tmp_path)` (default has `delete_branch_on_merge = True`), assert on `result["auto_delete_branches"]`
 - `test_disabled`: call `_patch_all_ok(tmp_path, delete_branch_on_merge=False)`, assert `ok=False`, value `"not enabled"`, severity `"warning"`
 - `test_present_when_no_branch_protection`: adapt the 404 test setup, set `mock_repo.delete_branch_on_merge = True`, verify the key is present and ok
-- `test_repo_not_accessible`: set up a scenario where the repo is not accessible (e.g. `repo_is_ok = False`), verify `auto_delete_branches` has `ok=False`, value `"unknown"`, and `error` field is set
+- `test_repo_not_accessible`: reuse setup pattern from `TestBranchProtectionWhenRepoNotAccessible.test_all_five_present_and_not_ok` (set `mock_manager._get_repository.return_value = None` so repo is inaccessible), verify `auto_delete_branches` has `ok=False`, value `"unknown"`, and `error` field is set
 
 ## WHAT — Implementation
 

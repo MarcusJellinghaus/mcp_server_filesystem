@@ -28,3 +28,21 @@
 - Added fourth test method `test_repo_not_accessible`
 
 **Status**: committed
+
+## Round 2 — 2026-04-27
+**Findings**:
+- (Accept) `test_repo_not_accessible` referenced `repo_is_ok = False` which is a derived variable — should point to existing mock pattern
+- (Skip) `_patch_all_ok` description is accurate enough, implementer will figure it out
+- (Skip) Pseudocode omits `manager` guard but check 10 doesn't need `manager`
+- (Skip) Insertion point description is clear enough with code landmarks
+
+**Decisions**:
+- Finding 1: Accept — add concrete pointer to `TestBranchProtectionWhenRepoNotAccessible` setup pattern
+- Findings 2-4: Skip
+
+**User decisions**: None needed
+
+**Changes**:
+- Clarified `test_repo_not_accessible` HOW section to reference existing test pattern
+
+**Status**: committed
