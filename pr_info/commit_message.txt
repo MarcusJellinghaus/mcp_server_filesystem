@@ -1,0 +1,12 @@
+feat: add auto_delete_branches check to verify_github (#162)
+
+Add check 10 (auto_delete_branches) to verify_github() that verifies
+the GitHub repo-level "Automatically delete head branches" setting.
+This prevents stale branch accumulation after PR merges.
+
+- Read repo.delete_branch_on_merge (PyGithub Repository bool property)
+- Report ok=True with "auto-delete on merge" when enabled
+- Report ok=False with "not enabled" when disabled
+- Fall back to "unknown" with error when repo not accessible
+- Update _patch_all_ok test helper with delete_branch_on_merge param
+- Add TestAutoDeleteBranches with 4 test methods

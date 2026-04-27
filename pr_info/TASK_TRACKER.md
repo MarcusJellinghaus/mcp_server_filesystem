@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Add tests and implement auto_delete_branches check
-- [ ] Implementation: add tests for check 10 + update `_patch_all_ok` helper + implement check 10 in `verification.py`
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `feat: add auto_delete_branches check to verify_github (#162)`
+- [x] Implementation: add tests for check 10 + update `_patch_all_ok` helper + implement check 10 in `verification.py`
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `feat: add auto_delete_branches check to verify_github (#162)`
 
 ## Pull Request
 - [ ] Review all changes for correctness and completeness
