@@ -620,30 +620,24 @@ def collect_branch_status(
 
 async def _wait_for_ci(project_dir: Path, branch_name: str, timeout: int) -> None:
     """Poll CI status until terminal (success/failure) or timeout."""
-    logger.info(
-        "Waiting for CI on branch=%s (timeout=%ds)", branch_name, timeout
-    )
+    logger.info("Waiting for CI on branch=%s (timeout=%ds)", branch_name, timeout)
     deadline = time.monotonic() + timeout
     errors = 0
     while time.monotonic() < deadline:
         try:
             result = await asyncio.to_thread(
-                lambda: CIResultsManager(
-                    project_dir=project_dir
-                ).get_latest_ci_status(branch_name)
+                lambda: CIResultsManager(project_dir=project_dir).get_latest_ci_status(
+                    branch_name
+                )
             )
             errors = 0
             run = result.get("run") if isinstance(result, dict) else None
             if run and run.get("conclusion") in ("success", "failure"):
-                logger.info(
-                    "CI reached terminal state for branch=%s", branch_name
-                )
+                logger.info("CI reached terminal state for branch=%s", branch_name)
                 return
         except Exception as exc:  # pylint: disable=broad-exception-caught
             errors += 1
-            logger.warning(
-                "CI poll error for branch=%s: %s", branch_name, exc
-            )
+            logger.warning("CI poll error for branch=%s: %s", branch_name, exc)
             if errors >= _MAX_CONSECUTIVE_ERRORS:
                 return
         await asyncio.sleep(_CI_POLL_INTERVAL)
@@ -651,9 +645,7 @@ async def _wait_for_ci(project_dir: Path, branch_name: str, timeout: int) -> Non
 
 async def _wait_for_pr(project_dir: Path, branch_name: str, timeout: int) -> None:
     """Poll for PR existence until found or timeout."""
-    logger.info(
-        "Waiting for PR on branch=%s (timeout=%ds)", branch_name, timeout
-    )
+    logger.info("Waiting for PR on branch=%s (timeout=%ds)", branch_name, timeout)
     deadline = time.monotonic() + timeout
     errors = 0
     while time.monotonic() < deadline:
@@ -669,9 +661,7 @@ async def _wait_for_pr(project_dir: Path, branch_name: str, timeout: int) -> Non
                 return
         except Exception as exc:  # pylint: disable=broad-exception-caught
             errors += 1
-            logger.warning(
-                "PR poll error for branch=%s: %s", branch_name, exc
-            )
+            logger.warning("PR poll error for branch=%s: %s", branch_name, exc)
             if errors >= _MAX_CONSECUTIVE_ERRORS:
                 return
         await asyncio.sleep(_PR_POLL_INTERVAL)
@@ -708,16 +698,12 @@ async def async_poll_branch_status(
         skip_msg = "Push branch to remote before waiting for PR or CI"
     else:
         if wait_for_pr:
-            effective_pr_timeout = (
-                pr_timeout if pr_timeout > 0 else _DEFAULT_PR_TIMEOUT
-            )
+            effective_pr_timeout = pr_timeout if pr_timeout > 0 else _DEFAULT_PR_TIMEOUT
             await _wait_for_pr(project_dir, branch, effective_pr_timeout)
         if ci_timeout > 0:
             await _wait_for_ci(project_dir, branch, ci_timeout)
 
-    report = await asyncio.to_thread(
-        collect_branch_status, project_dir, max_log_lines
-    )
+    report = await asyncio.to_thread(collect_branch_status, project_dir, max_log_lines)
 
     if skip_msg:
         report = replace(report, recommendations=[skip_msg, *report.recommendations])
