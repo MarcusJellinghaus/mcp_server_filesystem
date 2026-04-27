@@ -383,7 +383,7 @@ def _fetch_and_merge_issues(  # pylint: disable=too-many-arguments,too-many-posi
 
 
 def get_all_cached_issues(  # pylint: disable=too-many-locals
-    repo_full_name: str,
+    repo_identifier: RepoIdentifier,
     issue_manager: "IssueManager",
     force_refresh: bool = False,
     cache_refresh_minutes: int = 1440,
@@ -399,7 +399,7 @@ def get_all_cached_issues(  # pylint: disable=too-many-locals
     - Merging fresh issues into cache
 
     Args:
-        repo_full_name: Repository in "owner/repo" format
+        repo_identifier: RepoIdentifier for the repository
         issue_manager: IssueManager for GitHub API calls
         force_refresh: Bypass cache entirely
         cache_refresh_minutes: Full refresh threshold (default: 1440 = 24 hours)
@@ -416,8 +416,7 @@ def get_all_cached_issues(  # pylint: disable=too-many-locals
     Note:
         Caller (thin wrapper) should handle fallback to direct API fetch.
     """
-    # Step 1: Create RepoIdentifier and load cache
-    repo_identifier = RepoIdentifier.from_full_name(repo_full_name)
+    # Step 1: Load cache
     cache_data = _load_cache_file(_get_cache_file_path(repo_identifier))
     repo_name = repo_identifier.repo_name
 

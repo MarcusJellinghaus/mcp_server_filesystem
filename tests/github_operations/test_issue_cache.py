@@ -926,7 +926,7 @@ class TestAdditionalIssuesParameter:
 
             # Call with additional_issues parameter
             result = get_all_cached_issues(
-                "owner/repo",
+                RepoIdentifier.from_full_name("owner/repo"),
                 mock_cache_issue_manager,
                 additional_issues=[123],
             )
@@ -1017,7 +1017,7 @@ class TestAdditionalIssuesParameter:
 
             # Call with additional_issues parameter
             result = get_all_cached_issues(
-                "owner/repo",
+                RepoIdentifier.from_full_name("owner/repo"),
                 mock_cache_issue_manager,
                 additional_issues=[123],
             )
@@ -1079,7 +1079,9 @@ class TestAdditionalIssuesParameter:
             mock_save.return_value = True
 
             # Call WITHOUT additional_issues parameter
-            result = get_all_cached_issues("owner/repo", mock_cache_issue_manager)
+            result = get_all_cached_issues(
+                RepoIdentifier.from_full_name("owner/repo"), mock_cache_issue_manager
+            )
 
             # Verify get_issue was NOT called
             mock_cache_issue_manager.get_issue.assert_not_called()
@@ -1147,7 +1149,7 @@ class TestAdditionalIssuesParameter:
 
             # Call with additional_issues - should not raise exception
             result = get_all_cached_issues(
-                "owner/repo",
+                RepoIdentifier.from_full_name("owner/repo"),
                 mock_cache_issue_manager,
                 additional_issues=[123],
             )
@@ -1207,7 +1209,7 @@ class TestAdditionalIssuesParameter:
 
             # Call with EMPTY additional_issues list
             result = get_all_cached_issues(
-                "owner/repo",
+                RepoIdentifier.from_full_name("owner/repo"),
                 mock_cache_issue_manager,
                 additional_issues=[],
             )
@@ -1275,7 +1277,9 @@ class TestApiFailureHandling:
         )
 
         result = get_all_cached_issues(
-            "test/repo", mock_cache_issue_manager, force_refresh=True
+            RepoIdentifier.from_full_name("test/repo"),
+            mock_cache_issue_manager,
+            force_refresh=True,
         )
 
         # last_checked should NOT have been advanced (no save call with new timestamp)
@@ -1319,7 +1323,9 @@ class TestApiFailureHandling:
         )
 
         result = get_all_cached_issues(
-            "test/repo", mock_cache_issue_manager, force_refresh=True
+            RepoIdentifier.from_full_name("test/repo"),
+            mock_cache_issue_manager,
+            force_refresh=True,
         )
 
         assert len(result) == 3
@@ -1360,7 +1366,9 @@ class TestApiFailureHandling:
             RuntimeError("API unavailable")
         )
 
-        result = get_all_cached_issues("test/repo", mock_cache_issue_manager)
+        result = get_all_cached_issues(
+            RepoIdentifier.from_full_name("test/repo"), mock_cache_issue_manager
+        )
 
         # Despite full refresh clearing cache, snapshot should restore original issues
         assert len(result) == 2
@@ -1404,7 +1412,9 @@ class TestApiFailureHandling:
         )
 
         result = get_all_cached_issues(
-            "test/repo", mock_cache_issue_manager, force_refresh=True
+            RepoIdentifier.from_full_name("test/repo"),
+            mock_cache_issue_manager,
+            force_refresh=True,
         )
 
         # last_checked must NOT have been advanced (no save)
@@ -1446,7 +1456,9 @@ class TestApiFailureHandling:
         ]
 
         result = get_all_cached_issues(
-            "test/repo", mock_cache_issue_manager, force_refresh=True
+            RepoIdentifier.from_full_name("test/repo"),
+            mock_cache_issue_manager,
+            force_refresh=True,
         )
 
         # Cache should be saved with updated last_checked
@@ -1503,7 +1515,11 @@ class TestLastFullRefresh:
 
         mock_cache_issue_manager._list_issues_no_error_handling.return_value = []
 
-        get_all_cached_issues("test/repo", mock_cache_issue_manager, force_refresh=True)
+        get_all_cached_issues(
+            RepoIdentifier.from_full_name("test/repo"),
+            mock_cache_issue_manager,
+            force_refresh=True,
+        )
 
         # Verify saved cache has last_full_refresh set
         with cache_file.open("r") as f:
@@ -1555,7 +1571,9 @@ class TestLastFullRefresh:
 
         mock_cache_issue_manager._list_issues_no_error_handling.return_value = []
 
-        get_all_cached_issues("test/repo", mock_cache_issue_manager)
+        get_all_cached_issues(
+            RepoIdentifier.from_full_name("test/repo"), mock_cache_issue_manager
+        )
 
         # Verify last_full_refresh is unchanged
         with cache_file.open("r") as f:
@@ -1606,7 +1624,9 @@ class TestLastFullRefresh:
 
         mock_cache_issue_manager._list_issues_no_error_handling.return_value = []
 
-        get_all_cached_issues("test/repo", mock_cache_issue_manager)
+        get_all_cached_issues(
+            RepoIdentifier.from_full_name("test/repo"), mock_cache_issue_manager
+        )
 
         # Full refresh should have been called with state="open" (not state="all" with since=)
         mock_cache_issue_manager._list_issues_no_error_handling.assert_called_once_with(

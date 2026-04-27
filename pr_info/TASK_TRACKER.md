@@ -32,9 +32,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `refactor: change update_issue_labels_in_cache to accept RepoIdentifier`
 
 ### Step 3: Change get_all_cached_issues to accept RepoIdentifier
-- [ ] Implementation: change function signature and update `TestAdditionalIssuesParameter` / `TestApiFailureHandling` / `TestLastFullRefresh` call sites
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `refactor: change get_all_cached_issues to accept RepoIdentifier`
+- [x] Implementation: change function signature and update `TestAdditionalIssuesParameter` / `TestApiFailureHandling` / `TestLastFullRefresh` call sites
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `refactor: change get_all_cached_issues to accept RepoIdentifier`
 
 ## Pull Request
 - [ ] Review all changes for correctness and consistency

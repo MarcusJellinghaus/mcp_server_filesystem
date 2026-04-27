@@ -1,10 +1,6 @@
-refactor: change update_issue_labels_in_cache to accept RepoIdentifier
+refactor: change get_all_cached_issues to accept RepoIdentifier
 
-Change update_issue_labels_in_cache() to accept a RepoIdentifier directly
-instead of a plain string, eliminating the internal from_full_name() call
-that can't carry hostname info for GitHub Enterprise instances.
-
-- Update function signature: repo_full_name: str -> repo_identifier: RepoIdentifier
-- Remove internal RepoIdentifier.from_full_name() call
-- Remove except ValueError clause (no longer needed without parsing)
-- Update all test call sites in TestCacheIssueUpdate and TestCacheUpdateIntegration
+Change get_all_cached_issues() parameter from repo_full_name: str to
+repo_identifier: RepoIdentifier, removing internal from_full_name()
+construction. Update all 13 call sites in TestAdditionalIssuesParameter,
+TestApiFailureHandling, and TestLastFullRefresh test classes.
