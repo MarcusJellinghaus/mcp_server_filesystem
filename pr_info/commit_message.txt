@@ -1,12 +1,11 @@
-feat: add auto_delete_branches check to verify_github (#162)
+fix(ci): use current branch's mcp_workspace in file-size check
 
-Add check 10 (auto_delete_branches) to verify_github() that verifies
-the GitHub repo-level "Automatically delete head branches" setting.
-This prevents stale branch accumulation after PR merges.
+The file-size CI job runs mcp_coder via uvx in isolation, but
+mcp_coder depends on mcp_workspace as a transitive dependency.
+When uvx resolves mcp_workspace independently, it may install a
+version that lacks symbols added in the current branch (e.g.
+get_repository_identifier), causing an ImportError.
 
-- Read repo.delete_branch_on_merge (PyGithub Repository bool property)
-- Report ok=True with "auto-delete on merge" when enabled
-- Report ok=False with "not enabled" when disabled
-- Fall back to "unknown" with error when repo not accessible
-- Update _patch_all_ok test helper with delete_branch_on_merge param
-- Add TestAutoDeleteBranches with 4 test methods
+Add --with . to the uvx invocation so it injects the current
+branch's mcp_workspace into the isolated environment, ensuring
+compatibility between mcp_coder and the code being tested.
