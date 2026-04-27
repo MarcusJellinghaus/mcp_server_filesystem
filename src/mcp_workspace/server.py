@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from mcp.server.fastmcp import FastMCP
 from mcp_coder_utils.log_utils import log_function_call
 
-from mcp_workspace.checks.branch_status import collect_branch_status
+from mcp_workspace.checks.branch_status import async_poll_branch_status
 from mcp_workspace.checks.file_sizes import (
     check_file_sizes,
     load_allowlist,
@@ -735,19 +735,32 @@ def check_file_size(max_lines: int = 600) -> str:
 
 @mcp.tool()
 @log_function_call
-def check_branch_status(max_log_lines: int = 300) -> str:
+async def check_branch_status(
+    max_log_lines: int = 300,
+    ci_timeout: int = 0,
+    pr_timeout: int = 0,
+    wait_for_pr: bool = False,
+) -> str:
     """Check comprehensive branch status: git state, CI, PR, tasks.
 
     Args:
         max_log_lines: Maximum CI log lines to include (default 300).
+        ci_timeout: Seconds to poll for CI completion. 0 disables polling (default).
+        pr_timeout: Seconds to poll for PR existence. 0 disables polling (default).
+        wait_for_pr: Enable PR polling. With pr_timeout=0 falls back to 600s.
 
     Returns:
         Formatted branch status report for LLM consumption.
     """
     if _project_dir is None:
         raise ValueError("Project directory has not been set")
-    report = collect_branch_status(_project_dir, max_log_lines=max_log_lines)
-    return report.format_for_llm()
+    return await async_poll_branch_status(
+        _project_dir,
+        max_log_lines=max_log_lines,
+        ci_timeout=ci_timeout,
+        pr_timeout=pr_timeout,
+        wait_for_pr=wait_for_pr,
+    )
 
 
 @log_function_call

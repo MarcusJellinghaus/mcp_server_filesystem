@@ -2,12 +2,13 @@
 
 from pathlib import Path
 from typing import Callable, Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from mcp_workspace.server import (
     append_file,
+    check_branch_status,
     delete_this_file,
     edit_file,
     git,
@@ -644,5 +645,68 @@ class TestGitTool:
             srv._project_dir = None
             with pytest.raises(ValueError, match="Project directory has not been set"):
                 await git(command="log")
+        finally:
+            srv._project_dir = original
+
+
+# --- check_branch_status tool tests ---
+
+
+class TestCheckBranchStatusTool:
+    """Tests for the async check_branch_status MCP tool."""
+
+    @pytest.mark.asyncio
+    @patch("mcp_workspace.server.async_poll_branch_status", new_callable=AsyncMock)
+    async def test_check_branch_status_defaults(
+        self, mock_poll: AsyncMock, project_dir: Path
+    ) -> None:
+        """Default invocation forwards no-wait params to async_poll_branch_status."""
+        mock_poll.return_value = "report-text"
+
+        result = await check_branch_status()
+
+        assert result == "report-text"
+        mock_poll.assert_awaited_once_with(
+            project_dir,
+            max_log_lines=300,
+            ci_timeout=0,
+            pr_timeout=0,
+            wait_for_pr=False,
+        )
+
+    @pytest.mark.asyncio
+    @patch("mcp_workspace.server.async_poll_branch_status", new_callable=AsyncMock)
+    async def test_check_branch_status_with_polling_params(
+        self, mock_poll: AsyncMock, project_dir: Path
+    ) -> None:
+        """Polling kwargs propagate to async_poll_branch_status."""
+        mock_poll.return_value = "polled-report"
+
+        result = await check_branch_status(
+            max_log_lines=100,
+            ci_timeout=180,
+            pr_timeout=120,
+            wait_for_pr=True,
+        )
+
+        assert result == "polled-report"
+        mock_poll.assert_awaited_once_with(
+            project_dir,
+            max_log_lines=100,
+            ci_timeout=180,
+            pr_timeout=120,
+            wait_for_pr=True,
+        )
+
+    @pytest.mark.asyncio
+    async def test_check_branch_status_no_project_dir(self) -> None:
+        """check_branch_status raises ValueError when _project_dir is None."""
+        import mcp_workspace.server as srv
+
+        original = srv._project_dir
+        try:
+            srv._project_dir = None
+            with pytest.raises(ValueError, match="Project directory has not been set"):
+                await check_branch_status()
         finally:
             srv._project_dir = original
