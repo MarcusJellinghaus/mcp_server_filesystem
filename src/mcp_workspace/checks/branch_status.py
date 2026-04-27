@@ -8,7 +8,7 @@ check_branch_status MCP tool.
 import asyncio
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -17,6 +17,7 @@ from mcp_workspace.git_operations.base_branch import detect_base_branch
 from mcp_workspace.git_operations.branch_queries import (
     extract_issue_number_from_branch,
     get_current_branch_name,
+    remote_branch_exists,
 )
 from mcp_workspace.git_operations.workflows import needs_rebase
 from mcp_workspace.github_operations.ci_log_parser import (
@@ -674,3 +675,51 @@ async def _wait_for_pr(project_dir: Path, branch_name: str, timeout: int) -> Non
             if errors >= _MAX_CONSECUTIVE_ERRORS:
                 return
         await asyncio.sleep(_PR_POLL_INTERVAL)
+
+
+async def async_poll_branch_status(
+    project_dir: Path,
+    max_log_lines: int = 300,
+    ci_timeout: int = 0,
+    pr_timeout: int = 0,
+    wait_for_pr: bool = False,
+) -> str:
+    """Collect branch status, optionally polling for CI/PR.
+
+    Returns the report formatted via `format_for_llm()`.
+    """
+    branch = await asyncio.to_thread(get_current_branch_name, project_dir)
+
+    if branch is None:
+        report = await asyncio.to_thread(
+            collect_branch_status, project_dir, max_log_lines
+        )
+        return report.format_for_llm()
+
+    needs_remote = wait_for_pr or ci_timeout > 0
+    remote_present = (
+        await asyncio.to_thread(remote_branch_exists, project_dir, branch)
+        if needs_remote
+        else True
+    )
+
+    skip_msg: Optional[str] = None
+    if needs_remote and not remote_present:
+        skip_msg = "Push branch to remote before waiting for PR or CI"
+    else:
+        if wait_for_pr:
+            effective_pr_timeout = (
+                pr_timeout if pr_timeout > 0 else _DEFAULT_PR_TIMEOUT
+            )
+            await _wait_for_pr(project_dir, branch, effective_pr_timeout)
+        if ci_timeout > 0:
+            await _wait_for_ci(project_dir, branch, ci_timeout)
+
+    report = await asyncio.to_thread(
+        collect_branch_status, project_dir, max_log_lines
+    )
+
+    if skip_msg:
+        report = replace(report, recommendations=[skip_msg, *report.recommendations])
+
+    return report.format_for_llm()
