@@ -32,9 +32,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `chore: add importlinter subprocess ban for production code`
 
 ### Step 3: Clean Up `tach.toml` Subprocess Runner References
-- [ ] Implementation (remove all `mcp_coder_utils.subprocess_runner` references from `tach.toml`)
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `chore: remove stale subprocess_runner dependencies from tach.toml`
+- [x] Implementation (remove all `mcp_coder_utils.subprocess_runner` references from `tach.toml`)
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `chore: remove stale subprocess_runner dependencies from tach.toml`
 
 ## Pull Request
 - [ ] Review all changes for correctness and completeness
