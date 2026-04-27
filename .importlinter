@@ -134,6 +134,22 @@ forbidden_modules =
     pythonjsonlogger
 
 # -----------------------------------------------------------------------------
+# Contract: Subprocess Ban
+# -----------------------------------------------------------------------------
+# Production code must not use subprocess directly.
+# Use GitPython for git operations instead.
+# -----------------------------------------------------------------------------
+[importlinter:contract:subprocess_ban]
+name = Subprocess Ban (use GitPython instead)
+type = forbidden
+source_modules =
+    mcp_workspace
+forbidden_modules =
+    subprocess
+    mcp_coder_utils.subprocess_runner
+    mcp_coder_utils.subprocess_streaming
+
+# -----------------------------------------------------------------------------
 # Contract: Source Code Independence from Tests
 # -----------------------------------------------------------------------------
 # Production code should never import from test modules.
