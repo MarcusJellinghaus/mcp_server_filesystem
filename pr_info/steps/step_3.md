@@ -79,8 +79,8 @@ Extend `tests/test_server.py`:
    - Assert return value matches the mock's return.
 
 2. **`test_check_branch_status_with_polling_params`** (async):
-   - Same setup; call with `await check_branch_status(max_log_lines=100, ci_timeout=180, pr_timeout=600, wait_for_pr=True)`.
-   - Assert kwargs propagate correctly.
+   - Same setup; call with `await check_branch_status(max_log_lines=100, ci_timeout=180, pr_timeout=120, wait_for_pr=True)`.
+   - Assert kwargs propagate correctly. Note: `pr_timeout=120` is intentionally NOT equal to `_DEFAULT_PR_TIMEOUT` (600s) — using a non-default value makes the propagation assertion meaningful (a defaulted value would be ambiguous). `ci_timeout=180` is already non-default (default is 0).
 
 3. **`test_check_branch_status_no_project_dir`**:
    - Follow the established try/finally pattern in `TestGitTool::test_raises_without_project_dir` (in `tests/test_server.py`): preserve `original = srv._project_dir`, set `srv._project_dir = None`, run the call inside the `try`, and restore `srv._project_dir = original` in `finally`.

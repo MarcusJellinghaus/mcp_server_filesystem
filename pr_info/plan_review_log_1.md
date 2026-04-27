@@ -94,3 +94,17 @@ After resolving Findings 1 and 10 and applying the small clarifications, the pla
 - step_3.md: added log_function_call async-support verification bullet; referenced TestGitTool::test_raises_without_project_dir as try/finally pattern source
 
 **Status**: Plan updated, ready for Round 3 review
+
+## Round 3 — 2026-04-27
+**Findings**: (2 polish items)
+1. Step 2 pseudocode: positional vs keyword max_log_lines inconsistency (straightforward)
+2. Step 3 test: pr_timeout=600 equals default, ambiguous propagation assertion (straightforward)
+
+**Decisions**: both → accept (straightforward)
+**User decisions**: none
+
+**Changes**:
+- step_2.md: pseudocode uses max_log_lines=max_log_lines keyword form (matching surrounding prose)
+- step_3.md: test uses non-default pr_timeout value (e.g., 120) so propagation assertion is meaningful
+
+**Status**: Plan updated, ready for Round 4 review

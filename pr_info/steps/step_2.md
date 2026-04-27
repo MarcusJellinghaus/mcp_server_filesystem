@@ -56,7 +56,7 @@ branch = await to_thread(get_current_branch_name, project_dir)
 # skip the remote_branch_exists lookup entirely (must NOT be called
 # when branch is None).
 if branch is None:
-    report = await to_thread(collect_branch_status, project_dir, max_log_lines)
+    report = await to_thread(collect_branch_status, project_dir, max_log_lines=max_log_lines)
     return report.format_for_llm()
 
 # Single remote-branch lookup gates BOTH PR-wait and CI-wait.
@@ -78,7 +78,7 @@ else:
     if ci_timeout > 0:
         await _wait_for_ci(project_dir, branch, ci_timeout)
 
-report = await to_thread(collect_branch_status, project_dir, max_log_lines)
+report = await to_thread(collect_branch_status, project_dir, max_log_lines=max_log_lines)
 
 if skip_msg:
     report = replace(report, recommendations=[skip_msg, *report.recommendations])
