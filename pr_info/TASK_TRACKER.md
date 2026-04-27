@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Refactor `get_latest_commit_sha()` to Use GitPython
-- [ ] Implementation (replace `execute_command` with `safe_repo_context` in `commits.py`)
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `refactor: replace execute_command with GitPython in get_latest_commit_sha`
+- [x] Implementation (replace `execute_command` with `safe_repo_context` in `commits.py`)
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `refactor: replace execute_command with GitPython in get_latest_commit_sha`
 
 ### Step 2: Add `.importlinter` Subprocess Ban Contract
 - [ ] Implementation (add forbidden contract banning subprocess in production code)
