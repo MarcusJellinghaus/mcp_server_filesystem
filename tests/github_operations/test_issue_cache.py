@@ -83,16 +83,16 @@ class TestCacheFilePath:
         path = _get_cache_file_path(repo_identifier)
 
         expected_dir = Path.home() / ".mcp_coder" / "coordinator_cache"
-        expected_file = expected_dir / "owner_repo.issues.json"
+        expected_file = expected_dir / "github_com_owner_repo.issues.json"
 
         assert path == expected_file
 
     def test_get_cache_file_path_complex_names(self) -> None:
         """Test cache file path with complex repository names."""
         test_cases = [
-            ("anthropics/claude-code", "anthropics_claude-code.issues.json"),
-            ("user/repo-with-dashes", "user_repo-with-dashes.issues.json"),
-            ("org/very.long.repo.name", "org_very.long.repo.name.issues.json"),
+            ("anthropics/claude-code", "github_com_anthropics_claude-code.issues.json"),
+            ("user/repo-with-dashes", "github_com_user_repo-with-dashes.issues.json"),
+            ("org/very.long.repo.name", "github_com_org_very.long.repo.name.issues.json"),
         ]
 
         for full_name, expected_filename in test_cases:

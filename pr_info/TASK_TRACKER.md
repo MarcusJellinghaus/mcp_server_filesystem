@@ -22,9 +22,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 ## Tasks
 
 ### Step 1: Include hostname in cache_safe_name
-- [ ] Implementation: update `cache_safe_name` property and tests (`TestCacheFilePath`, `test_cache_safe_name_property`, add GHE test)
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `fix: include hostname in cache_safe_name to prevent cache collisions`
+- [x] Implementation: update `cache_safe_name` property and tests (`TestCacheFilePath`, `test_cache_safe_name_property`, add GHE test)
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `fix: include hostname in cache_safe_name to prevent cache collisions`
 
 ### Step 2: Change update_issue_labels_in_cache to accept RepoIdentifier
 - [ ] Implementation: change function signature and update `TestCacheIssueUpdate` / `TestCacheUpdateIntegration` call sites
