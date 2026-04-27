@@ -277,6 +277,30 @@ def verify_github(project_dir: Path) -> dict[str, object]:
                 )
 
     # ------------------------------------------------------------------
+    # Check 10: auto_delete_branches (repo-level setting)
+    # ------------------------------------------------------------------
+    if repo_is_ok and repo is not None:
+        if repo.delete_branch_on_merge:
+            result["auto_delete_branches"] = CheckResult(
+                ok=True,
+                value="auto-delete on merge",
+                severity="warning",
+            )
+        else:
+            result["auto_delete_branches"] = CheckResult(
+                ok=False,
+                value="not enabled",
+                severity="warning",
+            )
+    else:
+        result["auto_delete_branches"] = CheckResult(
+            ok=False,
+            value="unknown",
+            severity="warning",
+            error="repository not accessible",
+        )
+
+    # ------------------------------------------------------------------
     # overall_ok: all error-severity checks must pass
     # ------------------------------------------------------------------
     error_checks: list[CheckResult] = []

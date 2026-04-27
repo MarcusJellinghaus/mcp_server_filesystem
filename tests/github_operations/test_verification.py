@@ -42,6 +42,7 @@ def _patch_all_ok(
     repo_full_name: str = "owner/repo",
     default_branch: str = "main",
     protection: Mock | None = None,
+    delete_branch_on_merge: bool = True,
 ) -> dict[str, object]:
     """Run verify_github with all dependencies mocked to succeed."""
     if oauth_scopes is None:
@@ -56,6 +57,7 @@ def _patch_all_ok(
 
     mock_repo = Mock()
     mock_repo.full_name = repo_full_name
+    mock_repo.delete_branch_on_merge = delete_branch_on_merge
 
     mock_branch = Mock()
     if protection is None:
@@ -495,6 +497,93 @@ class TestDefaultBranchNameInProtectionValue:
         result = _patch_all_ok(tmp_path, default_branch="develop")
         check: CheckResult = result["branch_protection"]  # type: ignore[assignment]
         assert "develop" in check["value"]
+
+
+# ===================================================================
+# Check 10: auto_delete_branches
+# ===================================================================
+
+
+class TestAutoDeleteBranches:
+    """Test auto_delete_branches check (check 10)."""
+
+    def test_enabled(self, tmp_path: Path) -> None:
+        result = _patch_all_ok(tmp_path, delete_branch_on_merge=True)
+        check: CheckResult = result["auto_delete_branches"]  # type: ignore[assignment]
+        assert check["ok"] is True
+        assert check["value"] == "auto-delete on merge"
+        assert check["severity"] == "warning"
+
+    def test_disabled(self, tmp_path: Path) -> None:
+        result = _patch_all_ok(tmp_path, delete_branch_on_merge=False)
+        check: CheckResult = result["auto_delete_branches"]  # type: ignore[assignment]
+        assert check["ok"] is False
+        assert check["value"] == "not enabled"
+        assert check["severity"] == "warning"
+
+    def test_present_when_no_branch_protection(self, tmp_path: Path) -> None:
+        mock_user = Mock()
+        mock_user.login = "testuser"
+
+        mock_github_client = Mock()
+        mock_github_client.get_user.return_value = mock_user
+        mock_github_client.oauth_scopes = ["repo"]
+
+        mock_branch = Mock()
+        mock_branch.get_protection.side_effect = GithubException(
+            status=404, data={"message": "Branch not protected"}, headers={}
+        )
+
+        mock_repo = Mock()
+        mock_repo.full_name = "owner/repo"
+        mock_repo.get_branch.return_value = mock_branch
+        mock_repo.delete_branch_on_merge = True
+
+        identifier = Mock()
+        identifier.https_url = "https://github.com/owner/repo"
+
+        with (
+            patch(f"{MODULE}.get_github_token", return_value="ghp_test"),
+            patch(f"{MODULE}.Github", return_value=mock_github_client),
+            patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
+            patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
+        ):
+            mock_manager = Mock()
+            mock_manager._get_repository.return_value = mock_repo
+            mock_manager.get_default_branch.return_value = "main"
+            mock_mgr_cls.return_value = mock_manager
+            result = verify_github(tmp_path)
+
+        check: CheckResult = result["auto_delete_branches"]  # type: ignore[assignment]
+        assert check["ok"] is True
+        assert check["value"] == "auto-delete on merge"
+
+    def test_repo_not_accessible(self, tmp_path: Path) -> None:
+        mock_user = Mock()
+        mock_user.login = "testuser"
+
+        mock_github_client = Mock()
+        mock_github_client.get_user.return_value = mock_user
+        mock_github_client.oauth_scopes = ["repo"]
+
+        identifier = Mock()
+        identifier.https_url = "https://github.com/owner/repo"
+
+        with (
+            patch(f"{MODULE}.get_github_token", return_value="ghp_test"),
+            patch(f"{MODULE}.Github", return_value=mock_github_client),
+            patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
+            patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
+        ):
+            mock_manager = Mock()
+            mock_manager._get_repository.return_value = None
+            mock_mgr_cls.return_value = mock_manager
+            result = verify_github(tmp_path)
+
+        check: CheckResult = result["auto_delete_branches"]  # type: ignore[assignment]
+        assert check["ok"] is False
+        assert check["value"] == "unknown"
+        assert "error" in check
 
 
 class TestOverallOkTrueWhenOnlyWarningsFail:
