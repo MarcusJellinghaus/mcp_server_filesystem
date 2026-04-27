@@ -52,6 +52,7 @@ async def check_branch_status(
 ## HOW
 
 - Before editing `server.py`, run `mcp__workspace__search_files` for `check_branch_status` across `tests/` to confirm no test imports the function directly. If any are found, update those tests to `await` the new async signature (and patch `async_poll_branch_status` instead of `collect_branch_status`).
+- Before editing, read `p_coder-utils/log_utils.py` (via `mcp__workspace__read_reference_file`) to confirm `log_function_call` supports `async def`. The existing async `edit_file`/`git` tools in `server.py` are precedent, but verify explicitly.
 - Update the import in `server.py`:
   - Remove `from mcp_workspace.checks.branch_status import collect_branch_status`.
   - Replace with `from mcp_workspace.checks.branch_status import async_poll_branch_status`.
@@ -82,10 +83,10 @@ Extend `tests/test_server.py`:
    - Assert kwargs propagate correctly.
 
 3. **`test_check_branch_status_no_project_dir`**:
-   - Reset `_project_dir` to `None`.
+   - Follow the established try/finally pattern in `TestGitTool::test_raises_without_project_dir` (in `tests/test_server.py`): preserve `original = srv._project_dir`, set `srv._project_dir = None`, run the call inside the `try`, and restore `srv._project_dir = original` in `finally`.
    - Assert `ValueError` is raised.
 
-(Look up how `tests/test_server.py` currently sets/resets `_project_dir` and follow that pattern.)
+(For setup, look up how `tests/test_server.py` currently sets/resets `_project_dir` and follow that same pattern.)
 
 ## Definition of done
 

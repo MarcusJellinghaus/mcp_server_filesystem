@@ -77,3 +77,20 @@ After resolving Findings 1 and 10 and applying the small clarifications, the pla
 - summary.md: added note that we deviate from issue Decisions table re. remote check function; documented why
 
 **Status**: Plan updated, ready for Round 2 review
+
+
+## Round 2 — 2026-04-27
+**Findings**: (4 findings)
+1. Step 2 algorithm: missing explicit `branch is None` early-return before remote_branch_exists call (straightforward)
+2. Step 3: verify log_function_call supports async (straightforward)
+3. Step 2 test #3: contradictory mock + sleep assertion (straightforward)
+4. Step 3 test: reference existing try/finally restore pattern (straightforward)
+
+**Decisions**: all 4 → accept (straightforward)
+**User decisions**: none — no design questions raised this round
+
+**Changes**:
+- step_2.md: added explicit `branch is None` early-return to algorithm; removed contradictory sleep/virtual-time assertions from orchestrator test #3
+- step_3.md: added log_function_call async-support verification bullet; referenced TestGitTool::test_raises_without_project_dir as try/finally pattern source
+
+**Status**: Plan updated, ready for Round 3 review

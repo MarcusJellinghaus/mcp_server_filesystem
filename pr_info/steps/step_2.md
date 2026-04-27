@@ -52,12 +52,15 @@ Defaults reproduce the current snapshot behavior (no waiting).
 ```
 branch = await to_thread(get_current_branch_name, project_dir)
 
-# Early-return path when not in a git repo — skip both waits
+# Early-return path when not in a git repo — skip both waits AND
+# skip the remote_branch_exists lookup entirely (must NOT be called
+# when branch is None).
 if branch is None:
     report = await to_thread(collect_branch_status, project_dir, max_log_lines)
     return report.format_for_llm()
 
 # Single remote-branch lookup gates BOTH PR-wait and CI-wait.
+# Reached ONLY when branch is not None (guaranteed by early-return above).
 needs_remote = wait_for_pr or ci_timeout > 0
 remote_present = (
     await to_thread(remote_branch_exists, project_dir, branch)
@@ -108,7 +111,7 @@ Test cases:
 
 1. **Defaults** (`wait_for_pr=False`, both timeouts `0`): neither helper is called; `remote_branch_exists` NOT called (no need to look it up); `collect_branch_status` is called once; output equals `format_for_llm()` of the fixture report.
 2. **`ci_timeout=30`, remote branch exists**: `_wait_for_ci` called with `(project_dir, branch, 30)`; `_wait_for_pr` not called.
-3. **`wait_for_pr=True`, remote branch exists, default PR timeout**: import `_DEFAULT_PR_TIMEOUT` directly from `mcp_workspace.checks.branch_status`; assert `_wait_for_pr` was awaited with `(project_dir, branch, _DEFAULT_PR_TIMEOUT)`. Also assert `await asyncio.sleep` (when patched inside `_wait_for_pr`) is awaited with `_PR_POLL_INTERVAL` and elapsed virtual-time matches `_DEFAULT_PR_TIMEOUT`. Recommendation NOT prepended.
+3. **`wait_for_pr=True`, remote branch exists, default PR timeout**: import `_DEFAULT_PR_TIMEOUT` directly from `mcp_workspace.checks.branch_status`; assert `_wait_for_pr` was awaited with `(project_dir, branch, _DEFAULT_PR_TIMEOUT)`. Recommendation NOT prepended. (NOTE: do NOT assert on `asyncio.sleep` interval or elapsed virtual-time here — `_wait_for_pr` is patched at the orchestrator level, so its internals never execute. Interval/timeout-elapsed assertions belong in Step 1's `TestWaitForPR`.)
 4. **`wait_for_pr=True`, `pr_timeout=120`, remote branch exists**: `_wait_for_pr` called with `120`.
 5. **`wait_for_pr=True`, no remote branch**: `_wait_for_pr` NOT called; output recommendations include `"Push branch to remote before waiting for PR or CI"` as the FIRST entry (verify via the un-formatted `BranchStatusReport` returned by `replace(...)` or by string-contains on `format_for_llm()` output).
 6. **`ci_timeout=30`, no remote branch**: `_wait_for_ci` NOT called; recommendation `"Push branch to remote before waiting for PR or CI"` prepended.
