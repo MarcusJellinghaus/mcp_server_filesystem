@@ -27,9 +27,9 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 - [x] Commit: `fix: include hostname in cache_safe_name to prevent cache collisions`
 
 ### Step 2: Change update_issue_labels_in_cache to accept RepoIdentifier
-- [ ] Implementation: change function signature and update `TestCacheIssueUpdate` / `TestCacheUpdateIntegration` call sites
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit: `refactor: change update_issue_labels_in_cache to accept RepoIdentifier`
+- [x] Implementation: change function signature and update `TestCacheIssueUpdate` / `TestCacheUpdateIntegration` call sites
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit: `refactor: change update_issue_labels_in_cache to accept RepoIdentifier`
 
 ### Step 3: Change get_all_cached_issues to accept RepoIdentifier
 - [ ] Implementation: change function signature and update `TestAdditionalIssuesParameter` / `TestApiFailureHandling` / `TestLastFullRefresh` call sites

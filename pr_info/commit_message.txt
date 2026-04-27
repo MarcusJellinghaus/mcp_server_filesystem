@@ -1,10 +1,10 @@
-fix: include hostname in cache_safe_name to prevent cache collisions
+refactor: change update_issue_labels_in_cache to accept RepoIdentifier
 
-Update RepoIdentifier.cache_safe_name to prepend hostname (dots replaced
-with underscores), changing format from "owner_repo" to
-"hostname_owner_repo". This prevents cache file collisions between repos
-with the same owner/name on different GitHub hosts (e.g., github.com vs
-ghe.corp.com).
+Change update_issue_labels_in_cache() to accept a RepoIdentifier directly
+instead of a plain string, eliminating the internal from_full_name() call
+that can't carry hostname info for GitHub Enterprise instances.
 
-Update TestCacheFilePath assertions and test_cache_safe_name_property to
-expect the new format. Add test_cache_safe_name_with_ghe_hostname test.
+- Update function signature: repo_full_name: str -> repo_identifier: RepoIdentifier
+- Remove internal RepoIdentifier.from_full_name() call
+- Remove except ValueError clause (no longer needed without parsing)
+- Update all test call sites in TestCacheIssueUpdate and TestCacheUpdateIntegration

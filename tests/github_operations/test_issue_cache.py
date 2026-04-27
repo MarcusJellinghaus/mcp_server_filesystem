@@ -383,7 +383,7 @@ class TestCacheIssueUpdate:
 
                 # Call the function under test
                 update_issue_labels_in_cache(
-                    "test/repo",
+                    RepoIdentifier.from_full_name("test/repo"),
                     123,
                     "status-02:awaiting-planning",
                     "status-03:planning",
@@ -430,7 +430,10 @@ class TestCacheIssueUpdate:
 
                 # Remove label without adding new one (empty string)
                 update_issue_labels_in_cache(
-                    "test/repo", 456, "status-05:plan-ready", ""
+                    RepoIdentifier.from_full_name("test/repo"),
+                    456,
+                    "status-05:plan-ready",
+                    "",
                 )
 
             # Verify only the specified label was removed
@@ -473,7 +476,10 @@ class TestCacheIssueUpdate:
 
                 # Add new label without removing any (empty old_label)
                 update_issue_labels_in_cache(
-                    "test/repo", 789, "", "status-02:awaiting-planning"
+                    RepoIdentifier.from_full_name("test/repo"),
+                    789,
+                    "",
+                    "status-02:awaiting-planning",
                 )
 
             # Verify new label was added and existing preserved
@@ -521,7 +527,12 @@ class TestCacheIssueUpdate:
                 mock_path.return_value = cache_path
 
                 # Try to update non-existent issue - should not raise exception
-                update_issue_labels_in_cache("test/repo", 123, "old-label", "new-label")
+                update_issue_labels_in_cache(
+                    RepoIdentifier.from_full_name("test/repo"),
+                    123,
+                    "old-label",
+                    "new-label",
+                )
 
             # Verify appropriate warning was logged
             assert "Issue #123 not found in cache for test/repo" in caplog.text
@@ -552,12 +563,17 @@ class TestCacheIssueUpdate:
                 mock_path.return_value = cache_path
 
                 # Should handle gracefully without crashing
-                update_issue_labels_in_cache("test/repo", 123, "old-label", "new-label")
+                update_issue_labels_in_cache(
+                    RepoIdentifier.from_full_name("test/repo"),
+                    123,
+                    "old-label",
+                    "new-label",
+                )
 
             # Verify warning was logged
             assert (
                 "Invalid cache structure" in caplog.text
-                or "Cache update failed" in caplog.text
+                or "Unexpected error updating cache" in caplog.text
             )
 
     def test_update_issue_labels_file_permission_error(
@@ -601,7 +617,12 @@ class TestCacheIssueUpdate:
             mock_save.return_value = False  # Simulate save failure
 
             # Should handle save failure gracefully
-            update_issue_labels_in_cache("test/repo", 123, "old-label", "new-label")
+            update_issue_labels_in_cache(
+                RepoIdentifier.from_full_name("test/repo"),
+                123,
+                "old-label",
+                "new-label",
+            )
 
             # Verify appropriate warning was logged
             assert any(
@@ -645,7 +666,7 @@ class TestCacheIssueUpdate:
                 mock_path.return_value = cache_path
 
                 update_issue_labels_in_cache(
-                    "test/repo",
+                    RepoIdentifier.from_full_name("test/repo"),
                     123,
                     "status-02:awaiting-planning",
                     "status-03:planning",
@@ -708,7 +729,7 @@ class TestCacheUpdateIntegration:
 
                 # Call the actual cache update function (this is what dispatch_workflow calls)
                 update_issue_labels_in_cache(
-                    "test/repo",
+                    RepoIdentifier.from_full_name("test/repo"),
                     123,
                     "status-02:awaiting-planning",
                     "status-03:planning",
@@ -768,13 +789,16 @@ class TestCacheUpdateIntegration:
 
                 # Simulate multiple dispatch operations
                 update_issue_labels_in_cache(
-                    "test/repo",
+                    RepoIdentifier.from_full_name("test/repo"),
                     123,
                     "status-02:awaiting-planning",
                     "status-03:planning",
                 )
                 update_issue_labels_in_cache(
-                    "test/repo", 456, "status-05:plan-ready", "status-06:implementing"
+                    RepoIdentifier.from_full_name("test/repo"),
+                    456,
+                    "status-05:plan-ready",
+                    "status-06:implementing",
                 )
 
             # Verify both issues were updated correctly
@@ -809,7 +833,12 @@ class TestCacheUpdateIntegration:
 
             # Cache update failure should not raise exception
             try:
-                update_issue_labels_in_cache("test/repo", 123, "old-label", "new-label")
+                update_issue_labels_in_cache(
+                    RepoIdentifier.from_full_name("test/repo"),
+                    123,
+                    "old-label",
+                    "new-label",
+                )
                 # Should complete without exception
             except Exception as e:  # pylint: disable=broad-exception-caught
                 pytest.fail(f"Cache update failure should not break workflow: {e}")
