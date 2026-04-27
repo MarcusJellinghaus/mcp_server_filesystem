@@ -27,11 +27,12 @@ def get_latest_commit_sha(project_dir):
     try:
         with safe_repo_context(project_dir) as repo:
             return repo.head.commit.hexsha
-    except (InvalidGitRepositoryError, GitCommandError, ValueError):
+    except (InvalidGitRepositoryError, GitCommandError, ValueError, OSError):
         return None
 ```
 
 `ValueError` covers empty repos / detached HEAD with no commits.
+`OSError` covers non-existent or inaccessible paths.
 
 ## DATA
 
