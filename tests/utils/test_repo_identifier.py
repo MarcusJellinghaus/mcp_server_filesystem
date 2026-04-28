@@ -175,17 +175,35 @@ class TestRepoIdentifierProperties:
 class TestHostnameToApiBaseUrl:
     """Test hostname_to_api_base_url() standalone function."""
 
-    def test_github_com(self) -> None:
-        """Test github.com returns api.github.com."""
-        assert hostname_to_api_base_url("github.com") == "https://api.github.com"
+    @pytest.mark.parametrize(
+        "hostname,expected",
+        [
+            ("github.com", "https://api.github.com"),
+            ("GitHub.com", "https://api.github.com"),
+            ("ghe.corp.com", "https://ghe.corp.com/api/v3"),
+            ("github.example.org", "https://github.example.org/api/v3"),
+        ],
+    )
+    def test_basic_and_mixed_case(self, hostname: str, expected: str) -> None:
+        """Test github.com (with case variations) and GHES fallback."""
+        assert hostname_to_api_base_url(hostname) == expected
 
-    def test_ghe_hostname(self) -> None:
-        """Test GHE hostname returns /api/v3 URL."""
-        assert hostname_to_api_base_url("ghe.corp.com") == "https://ghe.corp.com/api/v3"
-
-    def test_another_ghe_hostname(self) -> None:
-        """Test another GHE hostname returns /api/v3 URL."""
+    def test_ghe_cloud_subdomain(self) -> None:
+        """Test *.ghe.com returns subdomain-style API URL."""
         assert (
-            hostname_to_api_base_url("github.example.org")
-            == "https://github.example.org/api/v3"
+            hostname_to_api_base_url("tenant.ghe.com")
+            == "https://api.tenant.ghe.com"
         )
+
+    def test_ghe_cloud_mixed_case(self) -> None:
+        """Test *.ghe.com lowercases the hostname."""
+        assert (
+            hostname_to_api_base_url("Foo.GHE.com") == "https://api.foo.ghe.com"
+        )
+
+    def test_repo_identifier_api_base_url_propagates_ghe_cloud_fix(self) -> None:
+        """Test RepoIdentifier.api_base_url propagates the *.ghe.com fix."""
+        repo = RepoIdentifier(
+            owner="o", repo_name="r", hostname="tenant.ghe.com"
+        )
+        assert repo.api_base_url == "https://api.tenant.ghe.com"

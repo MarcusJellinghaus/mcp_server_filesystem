@@ -11,14 +11,27 @@ from dataclasses import dataclass
 def hostname_to_api_base_url(hostname: str) -> str:
     """Convert a git hostname to the corresponding GitHub API base URL.
 
+    Three hostname patterns are recognized (case-insensitive on input;
+    GHES fallback preserves original casing in the URL):
+
+    - ``github.com`` -> ``https://api.github.com``
+    - ``*.ghe.com`` (GHE Cloud with data residency) ->
+      ``https://api.<tenant>.ghe.com``
+    - Any other host (GHES / GitHub Enterprise Server) ->
+      ``https://<host>/api/v3``
+
     Args:
-        hostname: Git host (e.g., "github.com" or "ghe.corp.com")
+        hostname: Git host (e.g., "github.com", "tenant.ghe.com",
+            or "ghe.corp.com")
 
     Returns:
         API base URL for use with PyGithub
     """
-    if hostname == "github.com":
+    h = hostname.lower()
+    if h == "github.com":
         return "https://api.github.com"
+    if h.endswith(".ghe.com"):
+        return f"https://api.{h}"
     return f"https://{hostname}/api/v3"
 
 
