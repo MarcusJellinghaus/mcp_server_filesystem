@@ -5,8 +5,8 @@ import logging
 import sys
 import types
 from collections.abc import Generator
-from typing import Any
-from unittest.mock import MagicMock
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -102,11 +102,9 @@ def test_inject_failure_does_not_raise(
 
 
 def test_main_invokes_ensure_truststore_in_correct_order(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Any
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """``main()`` invokes ``ensure_truststore()`` after logging, before server import."""
-    from unittest.mock import Mock, patch
-
     monkeypatch.setattr(sys, "argv", ["mcp-workspace", "--project-dir", str(tmp_path)])
 
     parent = Mock()
