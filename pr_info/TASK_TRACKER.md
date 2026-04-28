@@ -35,7 +35,7 @@ Detail: [step_2.md](./steps/step_2.md)
 
 - [x] Implementation (tests + production code, including `tach.toml` and `.importlinter` updates)
 - [x] Quality checks: pylint, pytest, mypy, tach, lint-imports — fix all issues
-- [ ] Commit message prepared
+- [x] Commit message prepared
 
 ### Step 3: Wire `ensure_truststore()` into `main()`
 
