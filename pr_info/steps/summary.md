@@ -26,7 +26,7 @@ This change is **purely additive** to public APIs. No layer, contract, or import
 - `src/mcp_workspace/config.py` — add `get_github_token_with_source()`; refactor `get_github_token()` to delegate.
 - `src/mcp_workspace/github_operations/verification.py` — extend `CheckResult`; refactor token/auth flow in `verify_github()`.
 - `tests/test_config.py` — add `TestGetGithubTokenWithSource` class (4 cases).
-- `tests/github_operations/test_verification.py` — update 13 patch sites from `get_github_token` to `get_github_token_with_source` with tuple return values; add 3 new tests for `token_source`.
+- `tests/github_operations/test_verification.py` — update 13 patch sites from `get_github_token` to `get_github_token_with_source` with tuple return values; add 4 new tests for `token_source` (env, config, omitted, and the auth-failure debug case).
 
 ### Created
 - None.

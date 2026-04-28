@@ -6,12 +6,11 @@
 
 > Read `pr_info/steps/summary.md` and `pr_info/steps/step_2.md`. Step 1 must already be merged/committed. Implement Step 2 only.
 >
-> TDD order:
-> 1. Update existing test patch sites (mechanical: `get_github_token` → `get_github_token_with_source`, return values become tuples).
-> 2. Add the three new verification tests for `token_source`.
-> 3. Run the test suite — new tests fail, existing tests should be green after the patch updates and a small adjustment in `verify_github()`. Adjust if needed so existing tests still pass against the refactored code.
-> 4. Implement the `CheckResult` extension and refactor `verify_github()`.
-> 5. Re-run all checks until green.
+> TDD order (note: after step 1 alone, the existing tests will FAIL — the patch-site rename breaks them until `verify_github()` is refactored in step 2. Quality gates only need to pass after step 3.):
+> 1. Extend the `_patch_all_ok` helper and update the 13 existing patch sites in `tests/github_operations/test_verification.py` (mechanical rename: `get_github_token` → `get_github_token_with_source`, scalar return values become tuples).
+> 2. Implement the `CheckResult` TypedDict extension and refactor `verify_github()` to single-write `token_configured` and set `token_source`.
+> 3. Add the four new `TestTokenSource` / auth-failure tests for `token_source`.
+> 4. Run all quality gates — they should all be green now.
 >
 > Run `mcp__tools-py__run_pylint_check`, `mcp__tools-py__run_pytest_check` (with `extra_args=["-n", "auto", "-m", "not git_integration and not claude_cli_integration and not claude_api_integration and not formatter_integration and not github_integration and not langchain_integration"]`), and `mcp__tools-py__run_mypy_check` — all must pass. Single commit.
 
@@ -46,7 +45,8 @@ Other checks (3 — repo URL, 4 — repo accessible, 5–10 — branch protectio
 
 ## HOW
 
-- Replace `from mcp_workspace.config import get_github_token` with `from mcp_workspace.config import get_github_token_with_source`.
+- **Imports note:** `from typing import Literal` is **already present** in `src/mcp_workspace/github_operations/verification.py` (line ~9, alongside `Any, NotRequired, TypedDict`) — do NOT re-add it. The only import change in that file is replacing `from mcp_workspace.config import get_github_token` with `from mcp_workspace.config import get_github_token_with_source`. Note that `get_github_token` is still used by `src/mcp_workspace/github_operations/base_manager.py` — leave that import alone (Step 1 keeps `get_github_token()` as a thin wrapper, so `base_manager.py` is unaffected).
+- Replace `from mcp_workspace.config import get_github_token` with `from mcp_workspace.config import get_github_token_with_source` in `verification.py` only.
 - Add `token_source: NotRequired[Literal["env", "config"]]` field to `CheckResult` (last field).
 - In `tests/github_operations/test_verification.py`, replace all 13 occurrences of `f"{MODULE}.get_github_token"` with `f"{MODULE}.get_github_token_with_source"` and update return values:
   - `return_value="ghp_test"` → `return_value=("ghp_test", "env")` (or `"config"` where the test specifically targets the config path; default `"env"` is fine for tests that don't care)
@@ -100,7 +100,7 @@ function verify_github(project_dir):
 | `patch(f"{MODULE}.get_github_token", return_value="ghp_testtoken")` | `patch(f"{MODULE}.get_github_token_with_source", return_value=("ghp_testtoken", "env"))` |
 | `patch(f"{MODULE}.get_github_token", return_value=None)` | `patch(f"{MODULE}.get_github_token_with_source", return_value=(None, None))` |
 
-### Add three new test methods
+### Add four new test methods
 
 Add a new class `TestTokenSource` to `tests/github_operations/test_verification.py`:
 
@@ -117,9 +117,18 @@ class TestTokenSource:
     def test_token_source_omitted_when_no_token(self, tmp_path: Path) -> None:
         # patch get_github_token_with_source -> (None, None)
         # assert "token_source" not in result["token_configured"]
+
+    def test_token_source_set_on_auth_failure(self, tmp_path: Path) -> None:
+        # patch get_github_token_with_source -> ("ghp_bad", "env")
+        # mock client.get_user() to raise (e.g. 401 "Bad credentials")
+        # assert result["authenticated_user"]["ok"] is False
+        # assert result["token_configured"]["token_source"] == "env"
+        # This is the motivating "Bad credentials" debug scenario from
+        # Acceptance criterion 4 / Decision #7 — token_source MUST still
+        # be set when the token resolves but auth then fails.
 ```
 
-Reuse `_patch_all_ok` for the first two by parameterizing its mock return; for the third, use a minimal patch block similar to `TestTokenNotConfigured`.
+Reuse `_patch_all_ok` for the first two by parameterizing its mock return; for the third, use a minimal patch block similar to `TestTokenNotConfigured`. For the fourth, model it on the existing `TestAuthFailure` class — patch the token source as `"env"` and force `Github.get_user()` to raise (matching the existing auth-failure test pattern). If preferred, the fourth test can live inside `TestAuthFailure` instead of `TestTokenSource` — pick whichever organization is more idiomatic for this file.
 
 `_patch_all_ok` will need a small extension: accept an optional `token_source: Literal["env", "config"] = "env"` parameter and forward it to the patched return tuple.
 
@@ -127,6 +136,6 @@ Reuse `_patch_all_ok` for the first two by parameterizing its mock return; for t
 
 - All 3 quality checks pass.
 - All existing verification tests pass after the mechanical patch update.
-- 3 new `TestTokenSource` tests pass.
+- 4 new tests for `token_source` pass (3 in `TestTokenSource` + 1 auth-failure case, possibly in `TestAuthFailure`).
 - `verify_github()` writes `token_configured` exactly once.
 - Single commit on the working branch with the changes from this step only.
