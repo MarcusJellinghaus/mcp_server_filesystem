@@ -35,11 +35,11 @@ Detail: [step_1.md](./steps/step_1.md)
 
 Detail: [step_2.md](./steps/step_2.md)
 
-- [ ] Implementation (tests + production code)
-- [ ] Pylint check passes — fix all issues
-- [ ] Pytest passes — fix all issues
-- [ ] Mypy check passes — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation (tests + production code)
+- [x] Pylint check passes — fix all issues
+- [x] Pytest passes — fix all issues
+- [x] Mypy check passes — fix all issues
+- [x] Commit message prepared
 
 ### Step 3: Create `.github/workflows/notify-downstream.yml`
 

@@ -1,0 +1,38 @@
+name: Upstream mypy check
+
+# Triggered by repository_dispatch when mcp-coder-utils' main branch changes.
+# Runs mypy --strict against this repo with the latest mcp-coder-utils from main.
+# On failure: standard GitHub Actions email + red icon in the Actions tab.
+
+on:
+  repository_dispatch:
+    types: [upstream-main-updated]
+  workflow_dispatch:
+    inputs:
+      upstream:
+        description: 'Upstream that triggered this run (shown in the job name)'
+        required: false
+        default: 'manual'
+
+permissions:
+  contents: read
+
+jobs:
+  mypy-against-upstream-main:
+    name: mypy-against-upstream-${{ github.event.client_payload.upstream || github.event.inputs.upstream }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install mcp-coder-utils from main
+        run: uv pip install --system "mcp-coder-utils @ git+https://github.com/MarcusJellinghaus/mcp-coder-utils.git"
+
+      - name: Install mcp-workspace with typecheck extra
+        run: uv pip install --system ".[typecheck]"
+
+      - name: Run mypy --strict
+        run: mypy --strict src tests
