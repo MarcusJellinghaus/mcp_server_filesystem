@@ -41,9 +41,9 @@ Detail: [step_2.md](./steps/step_2.md)
 
 Detail: [step_3.md](./steps/step_3.md)
 
-- [ ] Implementation (tests + production code, including `tach.toml` update)
-- [ ] Quality checks: pylint, pytest, mypy, tach, lint-imports — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation (tests + production code, including `tach.toml` update)
+- [x] Quality checks: pylint, pytest, mypy, tach, lint-imports — fix all issues
+- [x] Commit message prepared
 
 ## Pull Request
 

@@ -99,3 +99,41 @@ def test_inject_failure_does_not_raise(
         and "nope" in record.message
         for record in caplog.records
     )
+
+
+def test_main_invokes_ensure_truststore_in_correct_order(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Any
+) -> None:
+    """``main()`` invokes ``ensure_truststore()`` after logging, before server import."""
+    from unittest.mock import Mock, patch
+
+    monkeypatch.setattr(
+        sys, "argv", ["mcp-workspace", "--project-dir", str(tmp_path)]
+    )
+
+    parent = Mock()
+    mock_setup_logging = MagicMock(name="setup_logging")
+    mock_ensure_truststore = MagicMock(name="ensure_truststore")
+    mock_run_server = MagicMock(name="run_server")
+    parent.attach_mock(mock_setup_logging, "setup_logging")
+    parent.attach_mock(mock_ensure_truststore, "ensure_truststore")
+    parent.attach_mock(mock_run_server, "run_server")
+
+    with patch(
+        "mcp_workspace.main.setup_logging", mock_setup_logging
+    ), patch(
+        "mcp_workspace.main.ensure_truststore", mock_ensure_truststore
+    ), patch(
+        "mcp_workspace.server.run_server", mock_run_server
+    ):
+        from mcp_workspace.main import main
+
+        main()
+
+    call_names = [c[0] for c in parent.mock_calls]
+    setup_idx = call_names.index("setup_logging")
+    truststore_idx = call_names.index("ensure_truststore")
+    run_server_idx = call_names.index("run_server")
+
+    assert setup_idx < truststore_idx
+    assert truststore_idx < run_server_idx
