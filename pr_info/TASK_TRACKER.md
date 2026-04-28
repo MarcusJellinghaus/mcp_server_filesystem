@@ -33,7 +33,7 @@ Detail: [step_1.md](./steps/step_1.md)
 
 Detail: [step_2.md](./steps/step_2.md)
 
-- [ ] Implementation (tests + production code, including `tach.toml` and `.importlinter` updates)
+- [x] Implementation (tests + production code, including `tach.toml` and `.importlinter` updates)
 - [ ] Quality checks: pylint, pytest, mypy, tach, lint-imports — fix all issues
 - [ ] Commit message prepared
 
