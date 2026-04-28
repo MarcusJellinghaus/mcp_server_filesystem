@@ -31,9 +31,7 @@ def ensure_truststore() -> None:
     try:
         import truststore  # pylint: disable=import-outside-toplevel
     except ImportError:
-        logger.warning(
-            "truststore not installed; skipping OS trust-store activation"
-        )
+        logger.warning("truststore not installed; skipping OS trust-store activation")
         return
     try:
         truststore.inject_into_ssl()

@@ -191,19 +191,14 @@ class TestHostnameToApiBaseUrl:
     def test_ghe_cloud_subdomain(self) -> None:
         """Test *.ghe.com returns subdomain-style API URL."""
         assert (
-            hostname_to_api_base_url("tenant.ghe.com")
-            == "https://api.tenant.ghe.com"
+            hostname_to_api_base_url("tenant.ghe.com") == "https://api.tenant.ghe.com"
         )
 
     def test_ghe_cloud_mixed_case(self) -> None:
         """Test *.ghe.com lowercases the hostname."""
-        assert (
-            hostname_to_api_base_url("Foo.GHE.com") == "https://api.foo.ghe.com"
-        )
+        assert hostname_to_api_base_url("Foo.GHE.com") == "https://api.foo.ghe.com"
 
     def test_repo_identifier_api_base_url_propagates_ghe_cloud_fix(self) -> None:
         """Test RepoIdentifier.api_base_url propagates the *.ghe.com fix."""
-        repo = RepoIdentifier(
-            owner="o", repo_name="r", hostname="tenant.ghe.com"
-        )
+        repo = RepoIdentifier(owner="o", repo_name="r", hostname="tenant.ghe.com")
         assert repo.api_base_url == "https://api.tenant.ghe.com"

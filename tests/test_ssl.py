@@ -107,9 +107,7 @@ def test_main_invokes_ensure_truststore_in_correct_order(
     """``main()`` invokes ``ensure_truststore()`` after logging, before server import."""
     from unittest.mock import Mock, patch
 
-    monkeypatch.setattr(
-        sys, "argv", ["mcp-workspace", "--project-dir", str(tmp_path)]
-    )
+    monkeypatch.setattr(sys, "argv", ["mcp-workspace", "--project-dir", str(tmp_path)])
 
     parent = Mock()
     mock_setup_logging = MagicMock(name="setup_logging")
@@ -119,12 +117,10 @@ def test_main_invokes_ensure_truststore_in_correct_order(
     parent.attach_mock(mock_ensure_truststore, "ensure_truststore")
     parent.attach_mock(mock_run_server, "run_server")
 
-    with patch(
-        "mcp_workspace.main.setup_logging", mock_setup_logging
-    ), patch(
-        "mcp_workspace.main.ensure_truststore", mock_ensure_truststore
-    ), patch(
-        "mcp_workspace.server.run_server", mock_run_server
+    with (
+        patch("mcp_workspace.main.setup_logging", mock_setup_logging),
+        patch("mcp_workspace.main.ensure_truststore", mock_ensure_truststore),
+        patch("mcp_workspace.server.run_server", mock_run_server),
     ):
         from mcp_workspace.main import main
 
