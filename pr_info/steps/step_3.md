@@ -89,7 +89,7 @@ jobs:
      assert w['event-type'] == 'upstream-main-updated'; \
      payload = json.loads(w['client-payload'].replace('\${{ github.sha }}', 'SHA_PLACEHOLDER')); \
      assert isinstance(payload, dict) and 'upstream' in payload and 'sha' in payload; \
-     assert payload['upstream'] == 'mcp-workspace';  # payload contract for downstream consumer \
+     assert payload['upstream'] == 'mcp-workspace'; \
      print('OK')"
    ```
 

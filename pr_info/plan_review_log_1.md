@@ -41,3 +41,25 @@
 
 ---
 
+## Round 2 — 2026-04-28
+
+**Findings:**
+- F-R2-1 step_2 verification one-liner has inline `#` comments that swallow trailing assertions and `print('OK')` after bash `\` line-continuation joins lines (CRITICAL — round-1 edits introduced this regression)
+- F-R2-2 step_3 verification one-liner has same `#`-comment swallow bug for the `print('OK')`
+- F-R2-3 (subset of F-R2-1) trailing `print('OK')` in step_2 dead-code due to F-R2-1
+- F-R2-4 summary.md acceptance-criteria mapping doesn't cross-reference new round-1 invariants — optional
+
+**Decisions:**
+- Auto-accept: F-R2-1, F-R2-2 (and F-R2-3 resolves with F-R2-1) — critical correctness bug
+- Skip: F-R2-4 — nice-to-have, doesn't block
+
+**User decisions:** none — pure correctness fix
+
+**Changes applied:**
+- `pr_info/steps/step_2.md` — removed 3 inline `#` comments from verification one-liner (least-privilege, install-order, python-version str). Rationale already in surrounding markdown.
+- `pr_info/steps/step_3.md` — removed 1 inline `#` comment from verification one-liner (payload contract).
+
+**Status:** committed
+
+---
+

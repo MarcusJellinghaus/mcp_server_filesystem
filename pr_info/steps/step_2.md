@@ -101,7 +101,7 @@ jobs:
      assert 'repository_dispatch' in d[True]; \
      assert d[True]['repository_dispatch']['types'] == ['upstream-main-updated']; \
      assert 'workflow_dispatch' in d[True]; \
-     assert d.get('permissions', {}).get('contents') == 'read';  # load-bearing least-privilege \
+     assert d.get('permissions', {}).get('contents') == 'read'; \
      steps = d['jobs']['mypy-against-upstream-main']['steps']; \
      uses = [s.get('uses','') for s in steps]; \
      assert 'actions/checkout@v6' in uses; \
@@ -110,10 +110,10 @@ jobs:
      names = [s.get('name','') for s in steps]; \
      idx_upstream = next(i for i,n in enumerate(names) if 'mcp-coder-utils' in n or 'upstream' in n); \
      idx_typecheck = next(i for i,n in enumerate(names) if 'typecheck' in n); \
-     assert idx_upstream < idx_typecheck;  # load-bearing install order \
+     assert idx_upstream < idx_typecheck; \
      py_step = next(s for s in steps if str(s.get('uses','')).startswith('actions/setup-python@v6')); \
      pv = py_step['with']['python-version']; \
-     assert pv == '3.11' and isinstance(pv, str);  # YAML float footgun guard \
+     assert pv == '3.11' and isinstance(pv, str); \
      print('OK')"
    ```
 
