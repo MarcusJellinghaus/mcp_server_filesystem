@@ -11,6 +11,7 @@ from typing import Dict, List
 from mcp_coder_utils.log_utils import setup_logging
 
 from mcp_workspace import __version__
+from mcp_workspace._ssl import ensure_truststore
 from mcp_workspace.reference_projects import ReferenceProject, detect_and_verify_url
 
 # Create loggers
@@ -219,6 +220,9 @@ def main() -> None:
 
     # Add debug logging after logger is initialized
     stdlogger.debug("Logger initialized in main")
+
+    # Activate OS trust store BEFORE any GitHub-related code path runs
+    ensure_truststore()
 
     # Parse reference projects
     reference_projects: Dict[str, ReferenceProject] = {}

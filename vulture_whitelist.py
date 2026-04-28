@@ -147,3 +147,4 @@ _.issues
 _.mock_zip_content
 _.sample_issue
 _._patch_get_default_branch
+_._reset_activated_flag
