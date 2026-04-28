@@ -1,6 +1,7 @@
 """Unit tests for verify_github() connectivity and branch protection checks."""
 
 from pathlib import Path
+from typing import Literal
 from unittest.mock import Mock, patch
 
 from github.GithubException import GithubException
@@ -43,6 +44,7 @@ def _patch_all_ok(
     default_branch: str = "main",
     protection: Mock | None = None,
     delete_branch_on_merge: bool = True,
+    token_source: Literal["env", "config"] = "env",
 ) -> dict[str, object]:
     """Run verify_github with all dependencies mocked to succeed."""
     if oauth_scopes is None:
@@ -69,7 +71,10 @@ def _patch_all_ok(
     identifier.https_url = f"https://github.com/{repo_full_name}"
 
     with (
-        patch(f"{MODULE}.get_github_token", return_value="ghp_testtoken"),
+        patch(
+            f"{MODULE}.get_github_token_with_source",
+            return_value=("ghp_testtoken", token_source),
+        ),
         patch(f"{MODULE}.Github", return_value=mock_github_client),
         patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
         patch(f"{MODULE}.BaseGitHubManager") as mock_manager_cls,
@@ -123,7 +128,10 @@ class TestTokenNotConfigured:
         mock_github_client.oauth_scopes = None
 
         with (
-            patch(f"{MODULE}.get_github_token", return_value=None),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=(None, None),
+            ),
             patch(f"{MODULE}.Github", return_value=mock_github_client),
             patch(f"{MODULE}.get_repository_identifier", return_value=None),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
@@ -137,7 +145,10 @@ class TestTokenNotConfigured:
 
     def test_overall_ok_false(self, tmp_path: Path) -> None:
         with (
-            patch(f"{MODULE}.get_github_token", return_value=None),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=(None, None),
+            ),
             patch(f"{MODULE}.Github") as mock_gh,
             patch(f"{MODULE}.get_repository_identifier", return_value=None),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
@@ -182,7 +193,10 @@ class TestAuthFailure:
         mock_repo.get_branch.return_value = mock_branch
 
         with (
-            patch(f"{MODULE}.get_github_token", return_value="ghp_test"),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=("ghp_test", "env"),
+            ),
             patch(f"{MODULE}.Github", return_value=mock_github_client),
             patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
@@ -207,7 +221,10 @@ class TestAuthFailureScopesUnknown:
         mock_github_client.oauth_scopes = None
 
         with (
-            patch(f"{MODULE}.get_github_token", return_value="ghp_test"),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=("ghp_test", "env"),
+            ),
             patch(f"{MODULE}.Github", return_value=mock_github_client),
             patch(f"{MODULE}.get_repository_identifier", return_value=None),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
@@ -217,6 +234,62 @@ class TestAuthFailureScopesUnknown:
 
         check: CheckResult = result["token_configured"]  # type: ignore[assignment]
         assert "unknown" in check["value"].lower()
+
+
+class TestTokenSource:
+    """Test that token_source is surfaced on token_configured."""
+
+    def test_token_source_env(self, tmp_path: Path) -> None:
+        result = _patch_all_ok(tmp_path, token_source="env")
+        check: CheckResult = result["token_configured"]  # type: ignore[assignment]
+        assert check["token_source"] == "env"
+
+    def test_token_source_config(self, tmp_path: Path) -> None:
+        result = _patch_all_ok(tmp_path, token_source="config")
+        check: CheckResult = result["token_configured"]  # type: ignore[assignment]
+        assert check["token_source"] == "config"
+
+    def test_token_source_omitted_when_no_token(self, tmp_path: Path) -> None:
+        mock_github_client = Mock()
+        mock_github_client.get_user.side_effect = Exception("no token")
+        mock_github_client.oauth_scopes = None
+
+        with (
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=(None, None),
+            ),
+            patch(f"{MODULE}.Github", return_value=mock_github_client),
+            patch(f"{MODULE}.get_repository_identifier", return_value=None),
+            patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
+        ):
+            mock_mgr_cls.side_effect = ValueError("no token")
+            result = verify_github(tmp_path)
+
+        check: CheckResult = result["token_configured"]  # type: ignore[assignment]
+        assert "token_source" not in check
+
+    def test_token_source_set_on_auth_failure(self, tmp_path: Path) -> None:
+        mock_github_client = Mock()
+        mock_github_client.get_user.side_effect = Exception("Bad credentials")
+        mock_github_client.oauth_scopes = None
+
+        with (
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=("ghp_bad", "env"),
+            ),
+            patch(f"{MODULE}.Github", return_value=mock_github_client),
+            patch(f"{MODULE}.get_repository_identifier", return_value=None),
+            patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
+        ):
+            mock_mgr_cls.side_effect = ValueError("no repo")
+            result = verify_github(tmp_path)
+
+        auth_check: CheckResult = result["authenticated_user"]  # type: ignore[assignment]
+        token_check: CheckResult = result["token_configured"]  # type: ignore[assignment]
+        assert auth_check["ok"] is False
+        assert token_check["token_source"] == "env"
 
 
 class TestRepoUrlNotResolvable:
@@ -231,7 +304,10 @@ class TestRepoUrlNotResolvable:
         mock_github_client.oauth_scopes = ["repo"]
 
         with (
-            patch(f"{MODULE}.get_github_token", return_value="ghp_test"),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=("ghp_test", "env"),
+            ),
             patch(f"{MODULE}.Github", return_value=mock_github_client),
             patch(f"{MODULE}.get_repository_identifier", return_value=None),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
@@ -259,7 +335,10 @@ class TestRepoNotAccessible:
         identifier.https_url = "https://github.com/owner/repo"
 
         with (
-            patch(f"{MODULE}.get_github_token", return_value="ghp_test"),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=("ghp_test", "env"),
+            ),
             patch(f"{MODULE}.Github", return_value=mock_github_client),
             patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
@@ -283,7 +362,10 @@ class TestChecksIndependence:
         mock_github_client.oauth_scopes = None
 
         with (
-            patch(f"{MODULE}.get_github_token", return_value=None),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=(None, None),
+            ),
             patch(f"{MODULE}.Github", return_value=mock_github_client),
             patch(f"{MODULE}.get_repository_identifier", return_value=None),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
@@ -314,7 +396,10 @@ class TestChecksIndependence:
         mock_repo.get_branch.return_value = mock_branch
 
         with (
-            patch(f"{MODULE}.get_github_token", return_value="ghp_test"),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=("ghp_test", "env"),
+            ),
             patch(f"{MODULE}.Github", return_value=mock_github_client),
             patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
@@ -389,7 +474,10 @@ class TestNoBranchProtection404:
         identifier.https_url = "https://github.com/owner/repo"
 
         with (
-            patch(f"{MODULE}.get_github_token", return_value="ghp_test"),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=("ghp_test", "env"),
+            ),
             patch(f"{MODULE}.Github", return_value=mock_github_client),
             patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
@@ -474,7 +562,10 @@ class TestBranchProtectionWhenRepoNotAccessible:
         identifier.https_url = "https://github.com/owner/repo"
 
         with (
-            patch(f"{MODULE}.get_github_token", return_value="ghp_test"),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=("ghp_test", "env"),
+            ),
             patch(f"{MODULE}.Github", return_value=mock_github_client),
             patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
@@ -543,7 +634,10 @@ class TestAutoDeleteBranches:
         identifier.https_url = "https://github.com/owner/repo"
 
         with (
-            patch(f"{MODULE}.get_github_token", return_value="ghp_test"),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=("ghp_test", "env"),
+            ),
             patch(f"{MODULE}.Github", return_value=mock_github_client),
             patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
@@ -570,7 +664,10 @@ class TestAutoDeleteBranches:
         identifier.https_url = "https://github.com/owner/repo"
 
         with (
-            patch(f"{MODULE}.get_github_token", return_value="ghp_test"),
+            patch(
+                f"{MODULE}.get_github_token_with_source",
+                return_value=("ghp_test", "env"),
+            ),
             patch(f"{MODULE}.Github", return_value=mock_github_client),
             patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
             patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,

@@ -3,6 +3,7 @@
 import os
 import tomllib
 from pathlib import Path
+from typing import Literal
 
 
 def _read_config_value(section: str, key: str) -> str | None:
@@ -17,15 +18,22 @@ def _read_config_value(section: str, key: str) -> str | None:
         return None
 
 
-def get_github_token() -> str | None:
-    """Resolve GitHub token: env var → config file → None."""
+def get_github_token_with_source() -> (
+    tuple[str | None, Literal["env", "config"] | None]
+):
+    """Resolve GitHub token with source: env var → config file → (None, None)."""
     token = os.environ.get("GITHUB_TOKEN")
     if token:
-        return token
+        return (token, "env")
     token = _read_config_value("github", "token")
     if token:
-        return token
-    return None
+        return (token, "config")
+    return (None, None)
+
+
+def get_github_token() -> str | None:
+    """Resolve GitHub token: env var → config file → None."""
+    return get_github_token_with_source()[0]
 
 
 def get_test_repo_url() -> str | None:
