@@ -37,3 +37,25 @@
 - `pr_info/steps/step_3.md`: `mcp_workspace.main.depends_on` += `_ssl` diff added; wiring test simplified to single approach using shared `parent = Mock()` + `mock_calls.index(...)` ordering (covers `setup_logging < ensure_truststore < run_server`); Option B dropped
 
 **Status**: pending commit
+
+
+## Round 2 — 2026-04-28
+
+**Findings**:
+- No critical findings
+- Improvement: `_activated` flag in `_ssl.py` ALGORITHM needed `global` declaration (idempotency test would otherwise fail)
+- Improvement: pyproject.toml insertion position underspecified
+- Improvement: step 3 wiring test — clarify `--reference-project` not passed (default `None` skips that branch)
+- Improvement: tach.toml `tests` block conditional addition of `_ssl` should be mandatory for consistency with surrounding entries
+- No questions for user
+
+**Decisions**:
+- All four improvements: accept — apply
+
+**User decisions**: none needed this round
+
+**Changes**:
+- `pr_info/steps/step_2.md`: added `global _activated` declaration to ALGORITHM pseudocode; pyproject.toml diff made concrete (truststore appended to `dependencies` after `PyGithub>=1.59.0`, bare/unpinned); tach.toml `tests` depends_on update made mandatory with concrete diff
+- `pr_info/steps/step_3.md`: added note that wiring test argv excludes `--reference-project`
+
+**Status**: pending commit

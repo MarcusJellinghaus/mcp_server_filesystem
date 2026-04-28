@@ -32,7 +32,19 @@ Idempotent. No-op when `truststore` is not importable.
 - Import `truststore` lazily inside the function (defensive `try/except ImportError`) so the module is safe to import even if the optional dep is somehow missing in a downstream consumer.
 - Wrap the `truststore.inject_into_ssl()` call in a broad `except Exception` (warn-and-continue): a corporate-proxy environment failing truststore activation must NOT crash the server. PyGithub falls back to certifi if the global SSL monkeypatch isn't applied. Log a warning with the exception message.
 - Use a module-level `logging.getLogger(__name__)` and emit a single `debug("truststore activated: using OS certificate store")` line on activation; emit `warning(...)` on import failure or inject failure.
-- Add `truststore` (bare, unpinned) to `[project].dependencies` in `pyproject.toml`. Place it alongside the other core deps.
+- Add `truststore` (bare, unpinned — matching the `mcp-coder-utils` style) to the **end** of the `dependencies = [ ... ]` list in `[project]` in `pyproject.toml`, immediately after `"PyGithub>=1.59.0",`. Concrete diff:
+
+  ```diff
+   dependencies = [
+       "pathspec>=0.12.1",
+       "igittigitt>=2.1.5",
+       "mcp>=1.3.0",
+       "GitPython>=3.1.0",
+       "mcp-coder-utils",
+       "PyGithub>=1.59.0",
+  +    "truststore",
+   ]
+  ```
 - **Do not** edit `main.py` in this step.
 
 ### Config edits (mandatory in this step)
@@ -58,12 +70,37 @@ Change it to:
 mcp_workspace.config | mcp_workspace.constants | mcp_workspace.utils | mcp_workspace._ssl
 ```
 
-`tach.toml` `[[modules]] path = "tests"` block: the project sets `exact = false` at the top of `tach.toml`, so the `tests` block is not required to enumerate every internal target it imports. **No edit needed** for `tests/test_ssl.py` importing `mcp_workspace._ssl`. If `tach check` reports otherwise after the test file is added, append `{ path = "mcp_workspace._ssl" }` to the `tests` depends_on list.
+`tach.toml` `[[modules]] path = "tests"` block: although the project sets `exact = false` (which technically allows omission), the existing `tests` block enumerates every internal `mcp_workspace.*` module it imports. For consistency, **mandatorily** append `{ path = "mcp_workspace._ssl" }` to the `tests` `depends_on` list as part of this step's `tach.toml` edit. Concrete diff:
+
+```diff
+ [[modules]]
+ path = "tests"
+ depends_on = [
+     { path = "mcp_workspace" },
+     { path = "mcp_workspace.main" },
+     { path = "mcp_workspace.server" },
+     { path = "mcp_workspace.server_reference_tools" },
+     { path = "mcp_workspace.file_tools" },
+     { path = "mcp_workspace.git_operations" },
+     { path = "mcp_workspace.github_operations" },
+     { path = "mcp_workspace.checks" },
+     { path = "mcp_workspace.workflows" },
+     { path = "mcp_workspace.reference_projects" },
+     { path = "mcp_workspace.config" },
+     { path = "mcp_workspace.constants" },
+     { path = "mcp_workspace.utils" },
++    { path = "mcp_workspace._ssl" },
+     { path = "mcp_coder_utils.log_utils" },
+ ]
+```
 
 ## ALGORITHM
 
 ```python
 def ensure_truststore() -> None:
+    global _activated                       # MANDATORY: assignment below would
+                                            # otherwise create a local name and
+                                            # break the idempotency guard.
     if _activated:                          # idempotent guard
         return
     try:
@@ -81,6 +118,8 @@ def ensure_truststore() -> None:
     _activated = True
     log.debug("truststore activated: using OS certificate store")
 ```
+
+The `global _activated` declaration is **required** — without it, the `_activated = True` assignment creates a function-local variable, leaving the module-level flag at `False` and breaking the `test_idempotent_calls_inject_once` test.
 
 The broad `except Exception` is intentional — see HOW above. Failures must warn-and-continue, not propagate.
 

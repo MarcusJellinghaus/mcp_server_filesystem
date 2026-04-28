@@ -84,6 +84,7 @@ One wiring test in `tests/test_ssl.py` (or a new `tests/test_main_wiring.py` if 
 
 - Patch `mcp_workspace.main.ensure_truststore`, `mcp_workspace.main.setup_logging`, and `mcp_workspace.server.run_server` (the lazy import target — patch on its source module so the late `from mcp_workspace.server import run_server` inside `main()` picks up the mock).
 - Use `monkeypatch.setattr(sys, "argv", [...])` with `--project-dir <real tmp dir>` (use the `tmp_path` pytest fixture) so `parse_args` / `validate_reference_projects` accept real input without further mocking.
+  - **Do not** pass `--reference-project` in the test argv; the default `None` skips the `validate_reference_projects` branch, so no extra mocking is needed.
 - Attach all three patched callables to a single shared `parent = Mock()` (e.g. `parent.attach_mock(mock_setup_logging, "setup_logging")`, etc.).
 - Call `main()`, then assert call ordering via `parent.mock_calls.index(...)`:
   - `setup_logging` index < `ensure_truststore` index — proves the helper runs after logging is configured (so its log lines land in the configured handler).
