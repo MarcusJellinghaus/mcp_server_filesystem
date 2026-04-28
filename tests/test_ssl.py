@@ -14,7 +14,7 @@ from mcp_workspace import _ssl
 
 
 @pytest.fixture(autouse=True)
-def reset_activated_flag() -> Generator[None, None, None]:
+def _reset_activated_flag() -> Generator[None, None, None]:
     """Reset the module-level ``_activated`` flag before and after each test."""
     _ssl._activated = False
     yield
