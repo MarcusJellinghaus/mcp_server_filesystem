@@ -5,7 +5,12 @@ from unittest.mock import patch
 
 import pytest
 
-from mcp_workspace.config import _read_config_value, get_github_token, get_test_repo_url
+from mcp_workspace.config import (
+    _read_config_value,
+    get_github_token,
+    get_github_token_with_source,
+    get_test_repo_url,
+)
 
 
 class TestReadConfigValue:
@@ -89,6 +94,45 @@ class TestGetGithubToken:
             patch.object(Path, "home", return_value=tmp_path),
         ):
             assert get_github_token() is None
+
+
+class TestGetGithubTokenWithSource:
+    """Tests for get_github_token_with_source()."""
+
+    def test_returns_env_var_when_set(self) -> None:
+        with patch.dict("os.environ", {"GITHUB_TOKEN": "env_token"}):
+            assert get_github_token_with_source() == ("env_token", "env")
+
+    def test_falls_back_to_config_file(self, tmp_path: Path) -> None:
+        config_dir = tmp_path / ".mcp_coder"
+        config_dir.mkdir()
+        (config_dir / "config.toml").write_text(
+            '[github]\ntoken = "file_token"\n', encoding="utf-8"
+        )
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch.object(Path, "home", return_value=tmp_path),
+        ):
+            assert get_github_token_with_source() == ("file_token", "config")
+
+    def test_env_var_takes_precedence(self, tmp_path: Path) -> None:
+        config_dir = tmp_path / ".mcp_coder"
+        config_dir.mkdir()
+        (config_dir / "config.toml").write_text(
+            '[github]\ntoken = "file_token"\n', encoding="utf-8"
+        )
+        with (
+            patch.dict("os.environ", {"GITHUB_TOKEN": "env_token"}),
+            patch.object(Path, "home", return_value=tmp_path),
+        ):
+            assert get_github_token_with_source() == ("env_token", "env")
+
+    def test_returns_none_when_neither_source(self, tmp_path: Path) -> None:
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch.object(Path, "home", return_value=tmp_path),
+        ):
+            assert get_github_token_with_source() == (None, None)
 
 
 class TestGetTestRepoUrl:
