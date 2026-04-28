@@ -13,7 +13,7 @@ repo runs one toolchain (matches the new workflows from steps 2 & 3):
 
 | Action | Old | New | Occurrences |
 |---|---|---|---|
-| `astral-sh/setup-uv` | `@v4` | `@v8` | 4 (in jobs `test`, `github-integration-tests`, `file-size`, `architecture`) |
+| `astral-sh/setup-uv` | `@v4` | `@v6` | 4 (in jobs `test`, `github-integration-tests`, `file-size`, `architecture`) |
 | `actions/setup-python` | `@v5` | `@v6` | 3 (in jobs `test`, `github-integration-tests`, `architecture` — `file-size` does not use `setup-python`) |
 | `actions/checkout` | `@v6` | `@v6` | already current — **no change** |
 
@@ -24,7 +24,7 @@ restructuring, no logic changes, no new jobs.
 
 Two `replace_all` edits via `mcp__workspace__edit_file`:
 
-1. Replace `astral-sh/setup-uv@v4` → `astral-sh/setup-uv@v8` (replace_all).
+1. Replace `astral-sh/setup-uv@v4` → `astral-sh/setup-uv@v6` (replace_all).
 2. Replace `actions/setup-python@v5` → `actions/setup-python@v6` (replace_all).
 
 After each edit, verify the diff shows exactly the expected number of
@@ -43,7 +43,7 @@ occurrences receive the same substitution):
 -      - name: Install uv
 -        uses: astral-sh/setup-uv@v4
 +      - name: Install uv
-+        uses: astral-sh/setup-uv@v8
++        uses: astral-sh/setup-uv@v6
 
 -      - uses: actions/setup-python@v5
 +      - uses: actions/setup-python@v6
@@ -58,7 +58,7 @@ occurrences receive the same substitution):
    ```bash
    python -c "from pathlib import Path; \
      text = Path('.github/workflows/ci.yml').read_text(); \
-     assert text.count('setup-uv@v8') == 4; \
+     assert text.count('setup-uv@v6') == 4; \
      assert text.count('setup-uv@v4') == 0; \
      assert text.count('setup-python@v6') == 3; \
      assert text.count('setup-python@v5') == 0; \
@@ -84,7 +84,7 @@ occurrences receive the same substitution):
 ## Commit
 
 One commit, message suggestion:
-`Bump setup-uv to v8 and setup-python to v6 in ci.yml (#168)`
+`Bump setup-uv to v6 and setup-python to v6 in ci.yml (#168)`
 
 ---
 
@@ -95,7 +95,7 @@ One commit, message suggestion:
 > `mcp__workspace__edit_file` with `replace_all=True` to perform exactly two
 > substitutions in `.github/workflows/ci.yml`:
 >
->   1. `astral-sh/setup-uv@v4` → `astral-sh/setup-uv@v8` (4 occurrences)
+>   1. `astral-sh/setup-uv@v4` → `astral-sh/setup-uv@v6` (4 occurrences)
 >   2. `actions/setup-python@v5` → `actions/setup-python@v6` (3 occurrences)
 >
 > Do not change `actions/checkout@v6` — it is already current. Do not modify
@@ -103,4 +103,4 @@ One commit, message suggestion:
 > one-liners from this file, then run all three MCP code-quality checks
 > (`pylint`, `pytest` with the integration-test exclusions from `CLAUDE.md`,
 > and `mypy`). All three must pass. Make a single commit with message
-> `Bump setup-uv to v8 and setup-python to v6 in ci.yml (#168)`.
+> `Bump setup-uv to v6 and setup-python to v6 in ci.yml (#168)`.

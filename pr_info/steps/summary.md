@@ -38,7 +38,7 @@ What changes:
      `mcp_coder`. Uses a fine-grained PAT stored as repo secret `DOWNSTREAM_PAT`.
 
 3. **GitHub Actions version pinning bumped** in existing `ci.yml`:
-   `astral-sh/setup-uv@v4 → @v8`, `actions/setup-python@v5 → @v6`. Brings the
+   `astral-sh/setup-uv@v4 → @v6`, `actions/setup-python@v5 → @v6`. Brings the
    whole repo to one toolchain version for consistency with the new workflows.
 
 ### Load-bearing constraints (do not alter without re-reading the issue)
@@ -95,7 +95,7 @@ stand-in for a unit test on config.
    (depends on step 1: uses `.[typecheck]`).
 3. **`step_3.md`** — Create `.github/workflows/notify-downstream.yml`
    (independent of steps 1 / 2).
-4. **`step_4.md`** — Bump `setup-uv@v4 → @v8` and `setup-python@v5 → @v6` in
+4. **`step_4.md`** — Bump `setup-uv@v4 → @v6` and `setup-python@v5 → @v6` in
    `.github/workflows/ci.yml`.
 
 Steps 3 and 4 are independent of each other and of steps 1 / 2; the listed
@@ -108,7 +108,7 @@ order matches dependency direction and minimizes review-time confusion.
 | `[typecheck]` extra exists in `pyproject.toml` | 1 |
 | `notify-downstream.yml` exists and parses | 3 |
 | `upstream-mypy-check.yml` exists, parses, uses pinned action versions | 2 |
-| `ci.yml` bumped to `setup-uv@v8` / `setup-python@v6` | 4 |
+| `ci.yml` bumped to `setup-uv@v6` / `setup-python@v6` | 4 |
 | `DOWNSTREAM_PAT` secret set | manual (out of scope of code) |
 | Manual `workflow_dispatch` of `Upstream mypy check` runs to completion | manual (post-merge) |
 | Auto-trigger after `mcp-coder-utils#28` ships | depends on upstream issue |
