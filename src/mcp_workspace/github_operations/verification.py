@@ -11,7 +11,7 @@ from typing import Any, Literal, NotRequired, TypedDict
 from github import Auth, Github
 from github.GithubException import GithubException
 
-from mcp_workspace.config import get_github_token
+from mcp_workspace.config import get_github_token_with_source
 from mcp_workspace.git_operations.remotes import get_repository_identifier
 from mcp_workspace.github_operations.base_manager import BaseGitHubManager
 
@@ -26,6 +26,7 @@ class CheckResult(TypedDict):
     severity: Literal["error", "warning"]
     error: NotRequired[str]
     install_hint: NotRequired[str]
+    token_source: NotRequired[Literal["env", "config"]]
 
 
 def verify_github(project_dir: Path) -> dict[str, object]:
@@ -43,17 +44,31 @@ def verify_github(project_dir: Path) -> dict[str, object]:
     result: dict[str, object] = {}
 
     # ------------------------------------------------------------------
-    # Check 1: token configured
+    # Checks 1 & 2: token configured + authenticated user
     # ------------------------------------------------------------------
-    token = get_github_token()
-    if isinstance(token, str):
-        # Scopes will be updated after check 2 if auth succeeds
-        result["token_configured"] = CheckResult(
+    token, source = get_github_token_with_source()
+    scope_str: str | None = None
+    try:
+        github_client = Github(auth=Auth.Token(token))  # type: ignore[arg-type]
+        user = github_client.get_user()
+        result["authenticated_user"] = CheckResult(
             ok=True,
-            value="configured (scopes: unknown)",
+            value=user.login,
             severity="error",
         )
-    else:
+        scopes = github_client.oauth_scopes
+        if scopes is not None:
+            scope_str = ", ".join(scopes) if scopes else "none"
+    except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+        logger.debug("Authentication check failed: %s", exc)
+        result["authenticated_user"] = CheckResult(
+            ok=False,
+            value="authentication failed",
+            severity="error",
+            error=str(exc),
+        )
+
+    if token is None:
         result["token_configured"] = CheckResult(
             ok=False,
             value="not configured",
@@ -64,37 +79,15 @@ def verify_github(project_dir: Path) -> dict[str, object]:
                 "to ~/.mcp_coder/config.toml"
             ),
         )
-
-    # ------------------------------------------------------------------
-    # Check 2: authenticated user (also populates oauth_scopes for check 1)
-    # ------------------------------------------------------------------
-    try:
-        github_client = Github(auth=Auth.Token(token))  # type: ignore[arg-type]
-        user = github_client.get_user()
-        result["authenticated_user"] = CheckResult(
+    else:
+        token_check = CheckResult(
             ok=True,
-            value=user.login,
+            value=f"configured (scopes: {scope_str or 'unknown'})",
             severity="error",
         )
-        # Update check 1 value with actual scopes
-        scopes = github_client.oauth_scopes
-        if scopes is not None:
-            scope_str = ", ".join(scopes) if scopes else "none"
-        else:
-            scope_str = "unknown"
-        result["token_configured"] = CheckResult(
-            ok=True,
-            value=f"configured (scopes: {scope_str})",
-            severity="error",
-        )
-    except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
-        logger.debug("Authentication check failed: %s", exc)
-        result["authenticated_user"] = CheckResult(
-            ok=False,
-            value="authentication failed",
-            severity="error",
-            error=str(exc),
-        )
+        if source is not None:
+            token_check["token_source"] = source
+        result["token_configured"] = token_check
 
     # ------------------------------------------------------------------
     # Check 3: repository URL resolvable
