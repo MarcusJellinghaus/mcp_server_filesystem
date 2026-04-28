@@ -11,6 +11,7 @@
 | Action | File | Symbol |
 |---|---|---|
 | Modify | `src/mcp_workspace/main.py` | `main()` |
+| Modify | `tach.toml` | add `mcp_workspace._ssl` to `mcp_workspace.main` `depends_on` |
 | Modify | `tests/test_server.py` *or* extend `tests/test_ssl.py` | one wiring test |
 
 ## WHAT
@@ -39,6 +40,24 @@ def main() -> None:
 - The call goes **only** in `main()`. Do not add a call to `__main__.py`, `server.py`, or any module-level location. `__main__.py` already forwards to `main()`, and `server.py` has no `if __name__` block — single entry point is confirmed.
 - No changes to `parse_args()`, `validate_reference_projects()`, or argument schema.
 
+### Config edit (mandatory in this step)
+
+`tach.toml` — extend the `mcp_workspace.main` `depends_on` list with the new module. Concretely, add `{ path = "mcp_workspace._ssl" }`:
+
+```toml
+[[modules]]
+path = "mcp_workspace.main"
+layer = "entry"
+depends_on = [
+    { path = "mcp_workspace.server" },
+    { path = "mcp_workspace.reference_projects" },
+    { path = "mcp_workspace._ssl" },              # NEW in step 3
+    { path = "mcp_coder_utils.log_utils" },
+]
+```
+
+`.importlinter` requires no further edit — the `layered_architecture` contract was extended in step 2 and `entry -> utilities` is already a downward import.
+
 ## ALGORITHM
 
 (No new logic; just placement.)
@@ -61,17 +80,26 @@ No return value or signature changes.
 
 ## Tests to Add (TDD — write first)
 
-One small test confirming the wiring. Two reasonable options — pick the simpler:
+One wiring test in `tests/test_ssl.py` (or a new `tests/test_main_wiring.py` if preferred):
 
-- **Option A (preferred):** in `tests/test_ssl.py`, add a test that imports `mcp_workspace.main`, patches `mcp_workspace.main.ensure_truststore` with a `MagicMock`, also patches `parse_args` / `setup_logging` / `run_server` / `Path.exists` etc. as needed, calls `main()`, asserts the helper was invoked exactly once and **after** `setup_logging` was called (use a shared `MagicMock` parent with `mock_calls` to assert order).
-- **Option B:** integration-style — assert by reading `main.py` source that the call appears between the two anchor lines. Simpler but brittle. Avoid unless A proves disproportionately complex.
+- Patch `mcp_workspace.main.ensure_truststore`, `mcp_workspace.main.setup_logging`, and `mcp_workspace.server.run_server` (the lazy import target — patch on its source module so the late `from mcp_workspace.server import run_server` inside `main()` picks up the mock).
+- Use `monkeypatch.setattr(sys, "argv", [...])` with `--project-dir <real tmp dir>` (use the `tmp_path` pytest fixture) so `parse_args` / `validate_reference_projects` accept real input without further mocking.
+- Attach all three patched callables to a single shared `parent = Mock()` (e.g. `parent.attach_mock(mock_setup_logging, "setup_logging")`, etc.).
+- Call `main()`, then assert call ordering via `parent.mock_calls.index(...)`:
+  - `setup_logging` index < `ensure_truststore` index — proves the helper runs after logging is configured (so its log lines land in the configured handler).
+  - `ensure_truststore` index < `run_server` index — proves the SSL monkeypatch is active before any GitHub work; this also covers the "before any GitHub-related code path" property.
+
+Drop any source-text-inspection variant — the patched-callable ordering test is sufficient.
 
 ## Quality Gates
 
 - `mcp__tools-py__run_pytest_check` (standard `-n auto -m "not ..."` exclusion pattern)
 - `mcp__tools-py__run_pylint_check`
 - `mcp__tools-py__run_mypy_check`
-- `tach check` and `lint-imports` should still pass (Step 2 already handled any needed config).
+- `mcp__tools-py__run_tach_check` — must pass with `mcp_workspace._ssl` added to the `mcp_workspace.main` `depends_on` list.
+- `mcp__tools-py__run_lint_imports_check` — must continue to pass (no new contract change in this step).
+
+All five must pass independently after this step's commit.
 
 ## Commit Message Suggestion
 

@@ -4,7 +4,7 @@
 
 ## LLM Prompt
 
-> Read `pr_info/steps/summary.md` and then implement **Step 2** as described in `pr_info/steps/step_2.md`. Follow TDD: write `tests/test_ssl.py` first, watch them fail, then add `src/mcp_workspace/_ssl.py` and the dependency to `pyproject.toml`. Do not wire anything into `main()` in this step — that is Step 3. Run pylint, mypy, pytest after each edit; if `tach check` or `lint-imports` flag the new module, add the minimal config declaration needed. Commit with a single descriptive message once all checks are green.
+> Read `pr_info/steps/summary.md` and then implement **Step 2** as described in `pr_info/steps/step_2.md`. Follow TDD: write `tests/test_ssl.py` first, watch them fail, then add `src/mcp_workspace/_ssl.py` and the dependency to `pyproject.toml`. Register the new module in `tach.toml` and `.importlinter` as part of this step (mandatory — see config edits below). Do not wire anything into `main()` in this step — that is Step 3. Run pylint, mypy, pytest, `tach check`, and `lint-imports` after each edit. Commit with a single descriptive message once all checks are green.
 
 ## WHERE
 
@@ -13,8 +13,8 @@
 | Create | `src/mcp_workspace/_ssl.py` | `ensure_truststore()` |
 | Create | `tests/test_ssl.py` | tests for `ensure_truststore()` |
 | Modify | `pyproject.toml` | add `truststore` to `[project].dependencies` |
-| Conditional modify | `tach.toml` | declare `mcp_workspace._ssl` (only if `tach check` flags it) |
-| Conditional modify | `.importlinter` | add `_ssl` to `layered_architecture` (only if `lint-imports` flags it) |
+| Modify | `tach.toml` | declare `mcp_workspace._ssl` at utilities layer (mandatory) |
+| Modify | `.importlinter` | add `_ssl` to `layered_architecture` bottom row (mandatory) |
 
 ## WHAT
 
@@ -30,20 +30,59 @@ Idempotent. No-op when `truststore` is not importable.
 - **Library-safety is non-negotiable.** This module must NOT call `ensure_truststore()` at import time.
 - Module-level `_activated: bool = False` guard so `truststore.inject_into_ssl()` runs at most once across the process lifetime, even if `ensure_truststore()` is called repeatedly.
 - Import `truststore` lazily inside the function (defensive `try/except ImportError`) so the module is safe to import even if the optional dep is somehow missing in a downstream consumer.
-- Use a module-level `logging.getLogger(__name__)` and emit a single `debug("truststore activated: using OS certificate store")` line on activation.
+- Wrap the `truststore.inject_into_ssl()` call in a broad `except Exception` (warn-and-continue): a corporate-proxy environment failing truststore activation must NOT crash the server. PyGithub falls back to certifi if the global SSL monkeypatch isn't applied. Log a warning with the exception message.
+- Use a module-level `logging.getLogger(__name__)` and emit a single `debug("truststore activated: using OS certificate store")` line on activation; emit `warning(...)` on import failure or inject failure.
 - Add `truststore` (bare, unpinned) to `[project].dependencies` in `pyproject.toml`. Place it alongside the other core deps.
 - **Do not** edit `main.py` in this step.
 
-## ALGORITHM
+### Config edits (mandatory in this step)
+
+`tach.toml` — register the new module as a utilities-layer leaf alongside `mcp_workspace.utils`. Append:
+
+```toml
+[[modules]]
+path = "mcp_workspace._ssl"
+layer = "utilities"
+depends_on = []
+```
+
+`.importlinter` — append `mcp_workspace._ssl` to the bottom (utilities) row of the `layered_architecture` contract. The current bottom row is:
 
 ```
-if _activated: return
-try: import truststore
-except ImportError: return
-truststore.inject_into_ssl()
-_activated = True
-log.debug("truststore activated: using OS certificate store")
+mcp_workspace.config | mcp_workspace.constants | mcp_workspace.utils
 ```
+
+Change it to:
+
+```
+mcp_workspace.config | mcp_workspace.constants | mcp_workspace.utils | mcp_workspace._ssl
+```
+
+`tach.toml` `[[modules]] path = "tests"` block: the project sets `exact = false` at the top of `tach.toml`, so the `tests` block is not required to enumerate every internal target it imports. **No edit needed** for `tests/test_ssl.py` importing `mcp_workspace._ssl`. If `tach check` reports otherwise after the test file is added, append `{ path = "mcp_workspace._ssl" }` to the `tests` depends_on list.
+
+## ALGORITHM
+
+```python
+def ensure_truststore() -> None:
+    if _activated:                          # idempotent guard
+        return
+    try:
+        import truststore
+    except ImportError:
+        log.warning("truststore not installed; skipping OS trust-store activation")
+        return
+    try:
+        truststore.inject_into_ssl()
+    except Exception as exc:                # noqa: BLE001 — intentional broad catch
+        log.warning(
+            "truststore.inject_into_ssl() failed: %s; falling back to certifi", exc
+        )
+        return
+    _activated = True
+    log.debug("truststore activated: using OS certificate store")
+```
+
+The broad `except Exception` is intentional — see HOW above. Failures must warn-and-continue, not propagate.
 
 ## DATA
 
@@ -54,7 +93,9 @@ Returns `None`. Mutates module-level `_activated` flag and (on success) global `
 `tests/test_ssl.py`:
 
 1. **`test_idempotent_calls_inject_once`** — patch `sys.modules['truststore']` with a `MagicMock`, reset the module's `_activated` flag (or reload the module), call `ensure_truststore()` twice, assert the mock's `inject_into_ssl` was called exactly once.
-2. **`test_no_op_when_truststore_unavailable`** — simulate `ImportError` (e.g. `monkeypatch.setitem(sys.modules, "truststore", None)` or use a custom meta-path finder). Call `ensure_truststore()`. Assert no exception, `_activated` stays `False`.
+2. **`test_no_op_when_truststore_unavailable`** — simulate `ImportError` (e.g. `monkeypatch.setitem(sys.modules, "truststore", None)` or use a custom meta-path finder). Call `ensure_truststore()`. Assert no exception, `_activated` stays `False`, and a warning is logged.
+3. **`test_import_does_not_activate`** — proves the library-safety guarantee: importing `mcp_workspace._ssl` must NOT activate truststore. Patch `truststore.inject_into_ssl` (e.g. via `monkeypatch.setattr` on a stub `truststore` module in `sys.modules`) **before** importing/reloading `mcp_workspace._ssl`. After the import statement, assert `inject_into_ssl` was **not** called and the module's `_activated` flag is `False`.
+4. **`test_inject_failure_does_not_raise`** — corporate-proxy resilience: mock `truststore.inject_into_ssl` to raise (`RuntimeError("nope")` or similar). Call `ensure_truststore()`. Assert no exception propagates, `_activated` stays `False`, and a warning is logged with the exception message.
 
 Reset `_activated` between tests via a fixture so test order doesn't matter.
 
@@ -65,9 +106,10 @@ Test file path: `tests/test_ssl.py` (mirrors flat source layout `src/mcp_workspa
 - `mcp__tools-py__run_pytest_check` (standard `-n auto -m "not ..."` exclusion pattern)
 - `mcp__tools-py__run_pylint_check`
 - `mcp__tools-py__run_mypy_check`
-- Manually run `tach check` and `lint-imports` (if MCP tooling exposes them, otherwise via the `tools/` shell scripts). Add the **minimal** declaration needed if a contract breaks:
-  - `tach.toml`: a `[[modules]]` block for `mcp_workspace._ssl` at the utilities layer, `depends_on = []`
-  - `.importlinter`: append `| mcp_workspace._ssl` to the bottom utilities row of `layered_architecture`
+- `mcp__tools-py__run_tach_check` — must pass with the new `[[modules]]` block declared.
+- `mcp__tools-py__run_lint_imports_check` — must pass with `mcp_workspace._ssl` listed in the bottom row of `layered_architecture`.
+
+All five must pass independently after this step's commit (the module exists and is registered, even though `main.py` does not yet import it — that is step 3).
 
 ## Commit Message Suggestion
 

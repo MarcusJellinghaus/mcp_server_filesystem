@@ -16,7 +16,10 @@ Both fixes are needed for the same enterprise scenario; without either, `verify_
 - **Activation site = application entry point only.** `ensure_truststore()` is called inside `main()` (after `setup_logging()`, before `from mcp_workspace.server import run_server`). Never at module import time, because `truststore.inject_into_ssl()` is a global monkeypatch on `ssl.SSLContext` and library consumers (e.g. mcp-coder importing mcp-workspace) must remain free to opt in or out.
 - **Hostname dispatch in `hostname_to_api_base_url()` extended from 2 branches to 3.** Lowercases the hostname before comparing (DNS is case-insensitive; git remotes can supply mixed case). Original casing preserved in the GHES fallback URL for user-visible messages. `RepoIdentifier.api_base_url` is a thin wrapper, so the fix propagates automatically — no call-site edits needed.
 - **`truststore` becomes a core dependency**, not an opt-in extra. It is a small pure-Python wrapper around the stdlib; mcp-coder takes the same approach. Adding it as a core dep avoids silent SSL failures for users who don't know they need it.
-- **Architecture-config touch is conditional.** `tach.toml` uses `exact = false`, and import-linter's `layers` contract only constrains listed layers. A leaf module imported only by `main` typically needs no declaration. We update these configs **only if** `tach check` or `lint-imports` flag the new module.
+- **Architecture-config edits are mandatory, split across steps 2 and 3.** The new `mcp_workspace._ssl` module needs to be registered so layer enforcement keeps working:
+  - **Step 2 (module created):** add a `[[modules]] path = "mcp_workspace._ssl"` block at the utilities layer to `tach.toml`, and append `mcp_workspace._ssl` to the bottom row of the `layered_architecture` contract in `.importlinter`.
+  - **Step 3 (module wired in):** add `{ path = "mcp_workspace._ssl" }` to the `depends_on` list of the `mcp_workspace.main` block in `tach.toml`.
+  Each step's quality gates (`tach check` + `lint-imports`) must pass independently after its own commit.
 
 ## Files to Create or Modify
 
@@ -39,8 +42,8 @@ Both fixes are needed for the same enterprise scenario; without either, `verify_
 | `tests/utils/test_repo_identifier.py` | Add `*.ghe.com` cases (basic + mixed-case) to `TestHostnameToApiBaseUrl` |
 | `pyproject.toml` | Add `truststore` to `[project].dependencies` |
 | `src/mcp_workspace/main.py` | Import + call `ensure_truststore()` in `main()` after `setup_logging()` |
-| `tach.toml` | **Conditional** — declare `mcp_workspace._ssl` only if `tach check` flags it |
-| `.importlinter` | **Conditional** — list `_ssl` in `layered_architecture` only if `lint-imports` flags it |
+| `tach.toml` | **Mandatory** — step 2 registers `mcp_workspace._ssl` at utilities layer; step 3 adds it to `mcp_workspace.main` `depends_on` |
+| `.importlinter` | **Mandatory** — step 2 appends `mcp_workspace._ssl` to the bottom row of `layered_architecture` |
 
 ## Steps
 
@@ -57,3 +60,4 @@ Each step = one commit (tests + implementation + checks passing).
 - Upstreaming `ensure_truststore()` into `mcp-coder-utils` — file as a follow-up issue per the original issue's decision table.
 - Any PyGithub-specific SSL wiring — `truststore.inject_into_ssl()` patches `ssl.SSLContext` globally; PyGithub's transport (`requests` → `urllib3`) honors it transitively.
 - Bare `ghe.com` (no tenant subdomain) handling — intentionally falls through to GHES path-style; not a real product hostname.
+- End-to-end / integration test against a fake `*.ghe.com` URL hitting `BaseGitHubManager` is out of scope — covered by the unit test on `hostname_to_api_base_url` and existing `BaseGitHubManager` tests.

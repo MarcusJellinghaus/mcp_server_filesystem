@@ -26,7 +26,28 @@ def hostname_to_api_base_url(hostname: str) -> str: ...
 - No new imports.
 - No call-site changes — `RepoIdentifier.api_base_url` is a thin wrapper around this function and propagates the fix automatically.
 - The two existing call paths (`base_manager.py:101` direct + `RepoIdentifier.api_base_url` property) need no edits.
-- Update the docstring to mention the three product hostname patterns.
+- Update the docstring to cover the three product hostname patterns. Target docstring text (replaces the current `Args:`/`Returns:` body):
+
+  ```python
+  """Convert a git hostname to the corresponding GitHub API base URL.
+
+  Three hostname patterns are recognized (case-insensitive on input;
+  GHES fallback preserves original casing in the URL):
+
+  - ``github.com`` -> ``https://api.github.com``
+  - ``*.ghe.com`` (GHE Cloud with data residency) ->
+    ``https://api.<tenant>.ghe.com``
+  - Any other host (GHES / GitHub Enterprise Server) ->
+    ``https://<host>/api/v3``
+
+  Args:
+      hostname: Git host (e.g., "github.com", "tenant.ghe.com",
+          or "ghe.corp.com")
+
+  Returns:
+      API base URL for use with PyGithub
+  """
+  ```
 
 ## ALGORITHM
 
@@ -56,6 +77,14 @@ In `tests/utils/test_repo_identifier.py`, extend `TestHostnameToApiBaseUrl`:
 
 1. `test_ghe_cloud_subdomain` — `tenant.ghe.com` → `https://api.tenant.ghe.com`
 2. `test_ghe_cloud_mixed_case` — `Foo.GHE.com` → `https://api.foo.ghe.com`
+
+Note: collapse the basic + mixed-case (and optional bare `ghe.com` GHES fallback) cases into a single `pytest.mark.parametrize` test to keep the suite tidy.
+
+Also add (in `TestRepoIdentifierApiBaseUrl` or equivalent class) one assertion confirming the property propagates the fix:
+
+```python
+assert RepoIdentifier(owner="o", repo_name="r", hostname="tenant.ghe.com").api_base_url == "https://api.tenant.ghe.com"
+```
 
 Existing tests must continue to pass (github.com, ghe.corp.com, github.example.org).
 
