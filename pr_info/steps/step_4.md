@@ -56,10 +56,14 @@ occurrences receive the same substitution):
 1. **Substitution-count check:**
 
    ```bash
-   grep -c 'astral-sh/setup-uv@v8' .github/workflows/ci.yml      # expect 4
-   grep -c 'actions/setup-python@v6' .github/workflows/ci.yml    # expect 3
-   grep -c 'astral-sh/setup-uv@v4' .github/workflows/ci.yml      # expect 0
-   grep -c 'actions/setup-python@v5' .github/workflows/ci.yml    # expect 0
+   python -c "from pathlib import Path; \
+     text = Path('.github/workflows/ci.yml').read_text(); \
+     assert text.count('setup-uv@v8') == 4; \
+     assert text.count('setup-uv@v4') == 0; \
+     assert text.count('setup-python@v6') == 3; \
+     assert text.count('setup-python@v5') == 0; \
+     assert text.count('actions/checkout@v6') == 5; \
+     print('OK')"
    ```
 
 2. **YAML parse check** (catches accidental indentation breakage):

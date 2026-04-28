@@ -76,7 +76,8 @@ jobs:
 1. **YAML parse + structure check:**
 
    ```bash
-   python -c "import yaml; \
+   python -c "from pathlib import Path; import json, yaml; \
+     assert Path('.github/workflows/notify-downstream.yml').is_file(); \
      d = yaml.safe_load(open('.github/workflows/notify-downstream.yml')); \
      assert d['name'] == 'Notify downstream of main update'; \
      assert d[True]['push']['branches'] == ['main']; \
@@ -86,6 +87,9 @@ jobs:
      w = step['with']; \
      assert w['repository'] == 'MarcusJellinghaus/mcp_coder'; \
      assert w['event-type'] == 'upstream-main-updated'; \
+     payload = json.loads(w['client-payload'].replace('\${{ github.sha }}', 'SHA_PLACEHOLDER')); \
+     assert isinstance(payload, dict) and 'upstream' in payload and 'sha' in payload; \
+     assert payload['upstream'] == 'mcp-workspace';  # payload contract for downstream consumer \
      print('OK')"
    ```
 

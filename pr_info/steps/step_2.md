@@ -94,17 +94,26 @@ jobs:
 1. **YAML parse + structure check:**
 
    ```bash
-   python -c "import yaml; \
+   python -c "from pathlib import Path; import yaml; \
+     assert Path('.github/workflows/upstream-mypy-check.yml').is_file(); \
      d = yaml.safe_load(open('.github/workflows/upstream-mypy-check.yml')); \
      assert d['name'] == 'Upstream mypy check'; \
      assert 'repository_dispatch' in d[True]; \
      assert d[True]['repository_dispatch']['types'] == ['upstream-main-updated']; \
      assert 'workflow_dispatch' in d[True]; \
+     assert d.get('permissions', {}).get('contents') == 'read';  # load-bearing least-privilege \
      steps = d['jobs']['mypy-against-upstream-main']['steps']; \
      uses = [s.get('uses','') for s in steps]; \
      assert 'actions/checkout@v6' in uses; \
      assert 'astral-sh/setup-uv@v8' in uses; \
      assert any(u.startswith('actions/setup-python@v6') for u in uses); \
+     names = [s.get('name','') for s in steps]; \
+     idx_upstream = next(i for i,n in enumerate(names) if 'mcp-coder-utils' in n or 'upstream' in n); \
+     idx_typecheck = next(i for i,n in enumerate(names) if 'typecheck' in n); \
+     assert idx_upstream < idx_typecheck;  # load-bearing install order \
+     py_step = next(s for s in steps if str(s.get('uses','')).startswith('actions/setup-python@v6')); \
+     pv = py_step['with']['python-version']; \
+     assert pv == '3.11' and isinstance(pv, str);  # YAML float footgun guard \
      print('OK')"
    ```
 
