@@ -21,6 +21,31 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Fix `hostname_to_api_base_url()` for `*.ghe.com`
+
+Detail: [step_1.md](./steps/step_1.md)
+
+- [ ] Implementation (tests + production code)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 2: Add `_ssl.py` helper + `truststore` dependency
+
+Detail: [step_2.md](./steps/step_2.md)
+
+- [ ] Implementation (tests + production code, including `tach.toml` and `.importlinter` updates)
+- [ ] Quality checks: pylint, pytest, mypy, tach, lint-imports — fix all issues
+- [ ] Commit message prepared
+
+### Step 3: Wire `ensure_truststore()` into `main()`
+
+Detail: [step_3.md](./steps/step_3.md)
+
+- [ ] Implementation (tests + production code, including `tach.toml` update)
+- [ ] Quality checks: pylint, pytest, mypy, tach, lint-imports — fix all issues
+- [ ] Commit message prepared
 
 ## Pull Request
+
+- [ ] PR review
+- [ ] PR summary
