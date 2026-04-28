@@ -55,11 +55,11 @@ Detail: [step_3.md](./steps/step_3.md)
 
 Detail: [step_4.md](./steps/step_4.md)
 
-- [ ] Implementation (tests + production code)
-- [ ] Pylint check passes — fix all issues
-- [ ] Pytest passes — fix all issues
-- [ ] Mypy check passes — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation (tests + production code)
+- [x] Pylint check passes — fix all issues
+- [x] Pytest passes — fix all issues
+- [x] Mypy check passes — fix all issues
+- [x] Commit message prepared
 
 ## Pull Request
 
