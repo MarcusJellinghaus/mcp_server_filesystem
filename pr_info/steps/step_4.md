@@ -120,7 +120,7 @@ if ci_ok and tasks_ok and not rebase_needed:
 - `test_no_review_rec_when_ci_failed` — CI failed + `pr_feedback_blocks_merge=True` → `"Fix CI test failures"` in recs and `"Address review comments"` NOT in recs (CI takes precedence — issue decision #6).
 - `test_no_review_rec_when_tasks_blocking` — tasks incomplete + `pr_feedback_blocks_merge=True` → `"remaining tasks"` in recs and `"Address review comments"` NOT in recs.
 - `test_ready_to_merge_when_feedback_clean` — CI passed + tasks complete + `pr_feedback_blocks_merge=False` → `"Ready to merge"` in recs.
-- `test_feedback_blocks_take_precedence_over_rebase_and_mergeable` — `rebase_needed=True`, `pr_mergeable=True`, `pr_feedback_blocks_merge=True` (CI passed + tasks complete) → `"Address review comments"` in recs; `"Ready to merge"` and `"Ready to merge (squash-merge safe)"` NOT in recs. Locks in the `_apply_pr_merge_override` interaction so feedback-blocking takes priority over both rebase-needed and ready-to-merge branches.
+- `test_feedback_blocks_take_precedence_over_rebase_and_mergeable` — `rebase_needed=True`, `pr_mergeable=True`, `pr_feedback_blocks_merge=True` (CI passed + tasks complete) → `"Address review comments"` in recs; `"Ready to merge"` and `"Ready to merge (squash-merge safe)"` NOT in recs. Verifies feedback-blocking takes priority within `_generate_recommendations` regardless of rebase/mergeable inputs — the override path is exercised separately at the integration level.
 
 ### Existing tests
 

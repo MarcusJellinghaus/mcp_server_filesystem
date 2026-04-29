@@ -56,7 +56,7 @@ def get_pr_feedback(self, pr_number: int) -> PRFeedback:
     ...
 ```
 
-**Note:** `default_return` must be a **callable factory** (lambda) returning a fresh dict, matching the existing pattern in `pr_manager.py` (e.g., `@_handle_github_errors(lambda: cast(PullRequestData, {}))`). Passing a literal dict would share mutable state across invocations.
+**Note:** `default_return` is kept as a **callable factory** (lambda) returning a fresh dict. This matches the existing `default_return=lambda: ...` pattern used elsewhere in `pr_manager.py` for consistency; do not change the pattern in this PR.
 
 ### Private helpers (module-level or method-private)
 
