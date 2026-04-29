@@ -1,0 +1,10 @@
+Add _format_pr_feedback pure formatter for PR review feedback
+
+Add a stateless helper in branch_status.py that turns a PRFeedback dict
+into a multi-line "PR Reviews:" block (or the empty-state affirmation
+line). Items are emitted in the order unresolved_threads → comments →
+changes_requested → alerts, capped at 20 with "... and N more".
+Comment bodies are truncated at 10 lines; diff_hunks render as-is.
+Unavailable sections render inline placeholder lines.
+
+Wiring into BranchStatusReport happens in Step 4.
