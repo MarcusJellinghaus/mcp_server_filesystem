@@ -143,6 +143,9 @@ _.commit_sha
 _.jobs_fetch_warning
 _.issues
 
+# PRFeedback TypedDict fields - accessed via subscript, vulture can't see usage
+_.resolved_thread_count
+
 # Test fixtures
 _.mock_zip_content
 _.sample_issue

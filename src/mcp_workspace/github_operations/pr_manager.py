@@ -6,13 +6,14 @@ through the PyGithub library.
 
 import logging
 from pathlib import Path
-from typing import List, Optional, TypedDict, cast
+from typing import Any, List, Optional, TypedDict, cast
 
 from github.GithubException import GithubException
 from mcp_coder_utils.log_utils import log_function_call
 
 from mcp_workspace.git_operations import get_default_branch_name
 
+from . import _pr_feedback_sources
 from .base_manager import BaseGitHubManager, _handle_github_errors
 
 # Configure logger for GitHub operations
@@ -33,8 +34,32 @@ class PullRequestData(TypedDict):
     updated_at: Optional[str]
     user: Optional[str]
     mergeable: Optional[bool]
+    mergeable_state: Optional[str]
     merged: bool
     draft: bool
+
+
+class PRFeedback(TypedDict):
+    """TypedDict for aggregated PR feedback (review threads, comments, alerts)."""
+
+    unresolved_threads: list[dict[str, Any]]
+    resolved_thread_count: int
+    changes_requested: list[dict[str, Any]]
+    conversation_comments: list[dict[str, Any]]
+    alerts: list[dict[str, Any]]
+    unavailable: list[str]
+
+
+def _empty_pr_feedback() -> PRFeedback:
+    """Return a fresh empty PRFeedback dict."""
+    return {
+        "unresolved_threads": [],
+        "resolved_thread_count": 0,
+        "changes_requested": [],
+        "conversation_comments": [],
+        "alerts": [],
+        "unavailable": [],
+    }
 
 
 class PullRequestManager(BaseGitHubManager):
@@ -204,6 +229,7 @@ class PullRequestManager(BaseGitHubManager):
                 "updated_at": pr.updated_at.isoformat() if pr.updated_at else None,
                 "user": pr.user.login if pr.user else None,
                 "mergeable": pr.mergeable,
+                "mergeable_state": pr.mergeable_state,
                 "merged": pr.merged,
                 "draft": pr.draft,
             }
@@ -249,6 +275,7 @@ class PullRequestManager(BaseGitHubManager):
                 "updated_at": pr.updated_at.isoformat() if pr.updated_at else None,
                 "user": pr.user.login if pr.user else None,
                 "mergeable": pr.mergeable,
+                "mergeable_state": pr.mergeable_state,
                 "merged": pr.merged,
                 "draft": pr.draft,
             }
@@ -318,6 +345,7 @@ class PullRequestManager(BaseGitHubManager):
                         ),
                         "user": pr.user.login if pr.user else None,
                         "mergeable": pr.mergeable,
+                        "mergeable_state": pr.mergeable_state,
                         "merged": pr.merged,
                         "draft": pr.draft,
                     },
@@ -372,6 +400,7 @@ class PullRequestManager(BaseGitHubManager):
                     ),
                     "user": pr.user.login if pr.user else None,
                     "mergeable": pr.mergeable,
+                    "mergeable_state": pr.mergeable_state,
                     "merged": pr.merged,
                     "draft": pr.draft,
                 },
@@ -425,6 +454,7 @@ class PullRequestManager(BaseGitHubManager):
                 ),
                 "user": updated_pr.user.login if updated_pr.user else None,
                 "mergeable": updated_pr.mergeable,
+                "mergeable_state": updated_pr.mergeable_state,
                 "merged": updated_pr.merged,
                 "draft": updated_pr.draft,
             }
@@ -490,6 +520,69 @@ class PullRequestManager(BaseGitHubManager):
         except (KeyError, TypeError) as e:
             logger.error(f"Error parsing GraphQL response: {e}")
             return []
+
+    @log_function_call
+    @_handle_github_errors(default_return=_empty_pr_feedback)
+    def get_pr_feedback(self, pr_number: int) -> PRFeedback:
+        """Fetch aggregated PR feedback (review threads, comments, alerts).
+
+        Args:
+            pr_number: Pull request number to query
+
+        Returns:
+            PRFeedback dict containing unresolved threads, resolved thread count,
+            CHANGES_REQUESTED reviews, conversation comments, code-scanning alerts,
+            and a list of section names that failed to fetch (excluding 403 on alerts).
+        """
+        if not self._validate_pr_number(pr_number):
+            return _empty_pr_feedback()
+
+        unavailable: list[str] = []
+
+        try:
+            threads, resolved_count, changes_requested = (
+                _pr_feedback_sources.fetch_review_data(self, pr_number)
+            )
+        except (
+            Exception
+        ) as e:  # pylint: disable=broad-exception-caught  # one section failure must not abort
+            logger.warning(f"Failed to fetch review data for PR #{pr_number}: {e}")
+            threads, resolved_count, changes_requested = ([], 0, [])
+            unavailable.append("threads")
+
+        try:
+            comments = _pr_feedback_sources.fetch_conversation_comments(self, pr_number)
+        except (
+            Exception
+        ) as e:  # pylint: disable=broad-exception-caught  # one section failure must not abort
+            logger.warning(
+                f"Failed to fetch conversation comments for PR #{pr_number}: {e}"
+            )
+            comments = []
+            unavailable.append("comments")
+
+        try:
+            alerts_or_none = _pr_feedback_sources.fetch_code_scanning_alerts(
+                self, pr_number
+            )
+            alerts = alerts_or_none if alerts_or_none is not None else []
+        except (
+            Exception
+        ) as e:  # pylint: disable=broad-exception-caught  # one section failure must not abort
+            logger.warning(
+                f"Failed to fetch code-scanning alerts for PR #{pr_number}: {e}"
+            )
+            alerts = []
+            unavailable.append("alerts")
+
+        return {
+            "unresolved_threads": threads,
+            "resolved_thread_count": resolved_count,
+            "changes_requested": changes_requested,
+            "conversation_comments": comments,
+            "alerts": alerts,
+            "unavailable": unavailable,
+        }
 
     @property
     def repository_name(self) -> str:

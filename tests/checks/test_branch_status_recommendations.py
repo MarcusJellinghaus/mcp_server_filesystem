@@ -224,3 +224,79 @@ class TestApplyPrMergeOverride:
             pr_mergeable=None,
         )
         assert result == (True, "3 commits behind")
+
+
+class TestPRFeedbackBlockingRecommendations:
+    """Tests for `pr_feedback_blocks_merge` gating in `_generate_recommendations`."""
+
+    def test_blocks_ready_to_merge_when_pr_feedback_blocks(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_feedback_blocks_merge": True,
+            }
+        )
+        assert "Address review comments" in recs
+        assert "Ready to merge" not in recs
+        assert "Ready to merge (squash-merge safe)" not in recs
+
+    def test_no_review_rec_when_ci_failed(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.FAILED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_feedback_blocks_merge": True,
+            }
+        )
+        assert "Fix CI test failures" in recs
+        assert "Address review comments" not in recs
+
+    def test_no_review_rec_when_tasks_blocking(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.INCOMPLETE,
+                "tasks_reason": "2 of 5",
+                "tasks_is_blocking": True,
+                "pr_feedback_blocks_merge": True,
+            }
+        )
+        assert any("remaining tasks" in r.lower() for r in recs)
+        assert "Address review comments" not in recs
+
+    def test_ready_to_merge_when_feedback_clean(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_feedback_blocks_merge": False,
+            }
+        )
+        assert "Ready to merge" in recs
+
+    def test_feedback_blocks_take_precedence_over_rebase_and_mergeable(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": True,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_mergeable": True,
+                "pr_feedback_blocks_merge": True,
+            }
+        )
+        assert "Address review comments" in recs
+        assert "Ready to merge" not in recs
+        assert "Ready to merge (squash-merge safe)" not in recs

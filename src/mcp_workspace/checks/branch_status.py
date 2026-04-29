@@ -13,6 +13,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from mcp_workspace.checks.pr_feedback import collect_pr_feedback
 from mcp_workspace.git_operations.base_branch import detect_base_branch
 from mcp_workspace.git_operations.branch_queries import (
     extract_issue_number_from_branch,
@@ -76,6 +77,9 @@ class BranchStatusReport:
     pr_url: Optional[str] = None
     pr_found: Optional[bool] = None
     pr_mergeable: Optional[bool] = None
+    pr_mergeable_state: Optional[str] = None
+    pr_feedback_text: Optional[str] = None
+    pr_feedback_blocks_merge: bool = False
 
     def format_for_human(self) -> str:
         """Format report for human consumption.
@@ -125,6 +129,11 @@ class BranchStatusReport:
                     lines.append("Merge Status: \u274c Not mergeable (has conflicts)")
                 else:
                     lines.append("Merge Status: \u23f3 Pending")
+                if self.pr_mergeable_state is not None:
+                    lines.append(f"Mergeable State: {self.pr_mergeable_state}")
+                if self.pr_feedback_text is not None:
+                    lines.append("")
+                    lines.append(self.pr_feedback_text)
             else:
                 lines.append("PR: \u274c No PR found")
             lines.append("")
@@ -183,6 +192,8 @@ class BranchStatusReport:
                 str(self.pr_mergeable) if self.pr_mergeable is not None else "None"
             )
             status_summary += f", PR=#{self.pr_number}, Mergeable={mergeable_str}"
+            if self.pr_mergeable_state is not None:
+                status_summary += f", Mergeable_State={self.pr_mergeable_state}"
         elif self.pr_found is False:
             status_summary += ", PR=NOT_FOUND"
         recommendations_text = ", ".join(self.recommendations)
@@ -194,6 +205,10 @@ class BranchStatusReport:
             f"GitHub Label: {self.current_github_label}",
             f"Recommendations: {recommendations_text}",
         ]
+
+        if self.pr_feedback_text is not None:
+            lines.append("")
+            lines.append(self.pr_feedback_text)
 
         # Add CI details if they exist, with truncation and footer
         if self.ci_details:
@@ -415,21 +430,27 @@ def _collect_github_label(issue_data: Optional[IssueData]) -> str:
 
 def _collect_pr_info(
     pr_manager: PullRequestManager, branch_name: str
-) -> tuple[Optional[int], Optional[str], Optional[bool], Optional[bool]]:
+) -> tuple[Optional[int], Optional[str], Optional[bool], Optional[bool], Optional[str]]:
     """Collect PR info for the branch.
 
     Returns:
-        Tuple of (pr_number, pr_url, pr_found, pr_mergeable).
+        Tuple of (pr_number, pr_url, pr_found, pr_mergeable, pr_mergeable_state).
     """
     try:
         prs = pr_manager.find_pull_request_by_head(branch_name)
         if prs:
             pr = prs[0]
-            return (pr["number"], pr["url"], True, pr.get("mergeable"))
-        return (None, None, False, None)
+            return (
+                pr["number"],
+                pr["url"],
+                True,
+                pr.get("mergeable"),
+                pr.get("mergeable_state"),
+            )
+        return (None, None, False, None, None)
     except Exception:  # pylint: disable=broad-exception-caught
         logger.debug("PR lookup failed", exc_info=True)
-        return (None, None, None, None)
+        return (None, None, None, None, None)
 
 
 def _apply_pr_merge_override(
@@ -472,6 +493,7 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
     tasks_is_blocking = report_data.get("tasks_is_blocking", False)
     tasks_ok = not tasks_is_blocking
     pr_mergeable = report_data.get("pr_mergeable")
+    pr_blocks = report_data.get("pr_feedback_blocks_merge", False)
 
     if ci_status == CIStatus.FAILED:
         recommendations.append("Fix CI test failures")
@@ -492,15 +514,15 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
     if rebase_needed and tasks_ok and ci_status != CIStatus.FAILED:
         recommendations.append("Rebase onto origin/main")
 
-    if (
-        ci_status in [CIStatus.PASSED, CIStatus.NOT_CONFIGURED]
-        and tasks_ok
-        and not rebase_needed
-    ):
-        if pr_mergeable is True:
-            recommendations.append("Ready to merge (squash-merge safe)")
-        else:
-            recommendations.append("Ready to merge")
+    ci_ok = ci_status in (CIStatus.PASSED, CIStatus.NOT_CONFIGURED)
+    if ci_ok and tasks_ok:
+        if pr_blocks:
+            recommendations.append("Address review comments")
+        elif not rebase_needed:
+            if pr_mergeable is True:
+                recommendations.append("Ready to merge (squash-merge safe)")
+            else:
+                recommendations.append("Ready to merge")
 
     if not recommendations:
         recommendations.append("Continue with current work")
@@ -573,10 +595,10 @@ def collect_branch_status(
         current_github_label = _collect_github_label(issue_data)
 
         # 8. Collect PR info
-        pr_number, pr_url, pr_found, pr_mergeable = (
+        pr_number, pr_url, pr_found, pr_mergeable, pr_mergeable_state = (
             _collect_pr_info(pr_manager, branch_name)
             if pr_manager
-            else (None, None, None, None)
+            else (None, None, None, None, None)
         )
 
         # 9. Apply PR merge override
@@ -584,7 +606,15 @@ def collect_branch_status(
             rebase_needed, rebase_reason, pr_mergeable if pr_found else None
         )
 
-        # 10. Generate recommendations
+        # 10. Collect PR feedback
+        if pr_manager and pr_found and pr_number is not None:
+            pr_feedback_text, pr_feedback_blocks_merge = collect_pr_feedback(
+                pr_manager, pr_number
+            )
+        else:
+            pr_feedback_text, pr_feedback_blocks_merge = None, False
+
+        # 11. Generate recommendations
         report_data: Dict[str, Any] = {
             "ci_status": ci_status,
             "ci_details": ci_details,
@@ -593,6 +623,7 @@ def collect_branch_status(
             "tasks_reason": tasks_reason,
             "tasks_is_blocking": tasks_is_blocking,
             "pr_mergeable": pr_mergeable,
+            "pr_feedback_blocks_merge": pr_feedback_blocks_merge,
         }
         recommendations = _generate_recommendations(report_data)
 
@@ -612,6 +643,9 @@ def collect_branch_status(
             pr_url=pr_url,
             pr_found=pr_found,
             pr_mergeable=pr_mergeable,
+            pr_mergeable_state=pr_mergeable_state,
+            pr_feedback_text=pr_feedback_text,
+            pr_feedback_blocks_merge=pr_feedback_blocks_merge,
         )
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Error collecting branch status: {e}")
