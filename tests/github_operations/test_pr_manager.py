@@ -509,41 +509,6 @@ class TestPullRequestManagerUnit:
             assert not result
 
     # ========================================
-    # mergeable_state Field Tests
-    # ========================================
-
-    @pytest.mark.parametrize(
-        "state_value", ["clean", "dirty", "unstable", "blocked", None]
-    )
-    @patch("mcp_workspace.github_operations.base_manager.Github")
-    def test_get_pull_request_mergeable_state_flows_through(
-        self,
-        mock_github: Mock,
-        state_value: Any,
-        tmp_path: Path,
-    ) -> None:
-        """mergeable_state flows from PyGithub PR to PullRequestData unchanged."""
-        git_dir = tmp_path / "git_dir"
-        git_dir.mkdir()
-        repo = git.Repo.init(git_dir)
-        repo.create_remote("origin", "https://github.com/test/repo.git")
-
-        mock_pr = create_mock_pr(mergeable_state=state_value)
-        mock_repo = MagicMock()
-        mock_repo.get_pull.return_value = mock_pr
-        mock_github_client = MagicMock()
-        mock_github_client.get_repo.return_value = mock_repo
-        mock_github.return_value = mock_github_client
-
-        with patch(
-            "mcp_workspace.github_operations.base_manager.get_github_token",
-            return_value="dummy-token",
-        ):
-            manager = PullRequestManager(git_dir)
-            result = manager.get_pull_request(123)
-            assert result["mergeable_state"] == state_value
-
-    # ========================================
     # Error Handling Tests
     # ========================================
 

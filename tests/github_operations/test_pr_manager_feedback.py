@@ -1,8 +1,8 @@
-"""Unit tests for PullRequestManager.get_pr_feedback() method."""
+"""Unit tests for PullRequestManager.get_pr_feedback() and mergeable_state field."""
 
 from pathlib import Path
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import git
 import pytest
@@ -334,3 +334,54 @@ class TestGetPRFeedback:
         assert result["conversation_comments"] == []
         assert result["alerts"] == []
         assert result["unavailable"] == []
+
+
+@pytest.mark.git_integration
+class TestMergeableStateField:
+    """Verify mergeable_state flows through PullRequestData unchanged."""
+
+    @pytest.mark.parametrize(
+        "state_value", ["clean", "dirty", "unstable", "blocked", None]
+    )
+    @patch("mcp_workspace.github_operations.base_manager.Github")
+    def test_get_pull_request_mergeable_state_flows_through(
+        self,
+        mock_github: Mock,
+        state_value: Any,
+        tmp_path: Path,
+    ) -> None:
+        """mergeable_state flows from PyGithub PR to PullRequestData unchanged."""
+        git_dir = tmp_path / "git_dir"
+        git_dir.mkdir()
+        repo = git.Repo.init(git_dir)
+        repo.create_remote("origin", "https://github.com/test/repo.git")
+
+        mock_pr = MagicMock()
+        mock_pr.number = 123
+        mock_pr.title = "Test PR"
+        mock_pr.body = "Test description"
+        mock_pr.state = "open"
+        mock_pr.head.ref = "feature-branch"
+        mock_pr.base.ref = "main"
+        mock_pr.html_url = "https://github.com/test/repo/pull/123"
+        mock_pr.mergeable = True
+        mock_pr.mergeable_state = state_value
+        mock_pr.merged = False
+        mock_pr.draft = False
+        mock_pr.created_at.isoformat.return_value = "2023-01-01T00:00:00Z"
+        mock_pr.updated_at.isoformat.return_value = "2023-01-01T00:00:00Z"
+        mock_pr.user.login = "testuser"
+
+        mock_repo = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+        mock_github_client = MagicMock()
+        mock_github_client.get_repo.return_value = mock_repo
+        mock_github.return_value = mock_github_client
+
+        with patch(
+            "mcp_workspace.github_operations.base_manager.get_github_token",
+            return_value="dummy-token",
+        ):
+            manager = PullRequestManager(git_dir)
+            result = manager.get_pull_request(123)
+            assert result["mergeable_state"] == state_value

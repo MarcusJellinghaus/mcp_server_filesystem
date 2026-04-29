@@ -14,8 +14,10 @@ The change is **purely additive** within existing layer boundaries — no new mo
 
 | Layer | Change |
 |-------|--------|
-| `github_operations/pr_manager.py` | Add `mergeable_state` to `PullRequestData` TypedDict; add one new public method `get_pr_feedback()` returning a single `PRFeedback` TypedDict. Three private helpers (GraphQL threads+reviews, REST conversation comments, REST code-scanning alerts) live inside this module. Reuses existing `_handle_github_errors` decorator and `_Github__requester.graphql_query` plumbing already established in `get_closing_issue_numbers`. |
-| `checks/branch_status.py` | Add 2 fields to `BranchStatusReport` (`pr_mergeable_state`, `pr_feedback_text`) and 1 boolean (`pr_feedback_blocks_merge`). Add 1 pure formatter `_format_pr_feedback()` and 1 collector `_collect_pr_feedback()`. Wire into `collect_branch_status()` and splice text into both `format_for_human` / `format_for_llm`. Gate `_generate_recommendations()` on the new boolean. |
+| `github_operations/pr_manager.py` | Add `mergeable_state` to `PullRequestData` TypedDict; add `PRFeedback` TypedDict and one new public method `get_pr_feedback()` that delegates to private helpers in sibling module `_pr_feedback_sources.py`. Reuses existing `_handle_github_errors` decorator. |
+| `github_operations/_pr_feedback_sources.py` | New private module hosting the three feedback-source helpers (`fetch_review_data` for GraphQL threads+reviews, `fetch_conversation_comments` for REST issue comments, `fetch_code_scanning_alerts` for REST alerts). Keeps `pr_manager.py` under the file-size budget. |
+| `checks/branch_status.py` | Add 2 fields to `BranchStatusReport` (`pr_mergeable_state`, `pr_feedback_text`) and 1 boolean (`pr_feedback_blocks_merge`). Wire `collect_pr_feedback()` (imported from `checks/pr_feedback.py`) into `collect_branch_status()` and splice text into both `format_for_human` / `format_for_llm`. Gate `_generate_recommendations()` on the new boolean. |
+| `checks/pr_feedback.py` | New sibling module hosting the pure formatter `format_pr_feedback()` and the collector `collect_pr_feedback()`. Keeps `branch_status.py` under the file-size budget. |
 
 ### Why this shape (KISS choices)
 
@@ -43,9 +45,8 @@ _MAX_LINES_PER_COMMENT = 10      # body truncation per comment
 
 | File | Change |
 |------|--------|
-| `src/mcp_workspace/github_operations/pr_manager.py` | Add `mergeable_state` field; add `PRFeedback` TypedDict; add `get_pr_feedback()` method with private helpers. |
-| `src/mcp_workspace/checks/branch_status.py` | Add 3 fields to `BranchStatusReport`; add `_format_pr_feedback`, `_collect_pr_feedback`; wire into `collect_branch_status`; update both formatters and `_generate_recommendations`. |
-| `tests/github_operations/test_pr_manager.py` | Extend with `mergeable_state` assertions on existing PR builders. |
+| `src/mcp_workspace/github_operations/pr_manager.py` | Add `mergeable_state` field; add `PRFeedback` TypedDict; add `get_pr_feedback()` method that delegates to `_pr_feedback_sources` helpers. |
+| `src/mcp_workspace/checks/branch_status.py` | Add 3 fields to `BranchStatusReport`; wire `collect_pr_feedback` (from `pr_feedback.py`) into `collect_branch_status`; update both formatters and `_generate_recommendations`. |
 | `tests/checks/test_branch_status_pr_fields.py` | Extend with `mergeable_state` and `pr_feedback_text` rendering tests. |
 | `tests/checks/test_branch_status_recommendations.py` | Extend with feedback-blocking tests for `_generate_recommendations`. |
 
@@ -53,8 +54,10 @@ _MAX_LINES_PER_COMMENT = 10      # body truncation per comment
 
 | File | Purpose |
 |------|---------|
-| `tests/github_operations/test_pr_manager_feedback.py` | Mock-only tests for `get_pr_feedback()` (success, empty, 403 silent skip, error → "unavailable"). |
-| `tests/checks/test_branch_status_pr_feedback.py` | Tests for `_format_pr_feedback()` (clean, threads, comments, alerts, truncation, unavailable placeholders). |
+| `src/mcp_workspace/github_operations/_pr_feedback_sources.py` | Private helpers extracted from `pr_manager.py` (GraphQL threads/reviews, REST conversation comments, REST code-scanning alerts). |
+| `src/mcp_workspace/checks/pr_feedback.py` | Pure formatter `format_pr_feedback()` and collector `collect_pr_feedback()` extracted from `branch_status.py`. |
+| `tests/github_operations/test_pr_manager_feedback.py` | Mock-only tests for `get_pr_feedback()` (success, empty, 403 silent skip, error → "unavailable") plus the `mergeable_state` parametrized flow-through test. |
+| `tests/checks/test_branch_status_pr_feedback.py` | Tests for `format_pr_feedback()` (clean, threads, comments, alerts, truncation, unavailable placeholders). |
 
 ## Implementation Steps
 

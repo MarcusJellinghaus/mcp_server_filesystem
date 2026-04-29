@@ -217,7 +217,9 @@ class TestPRFeedbackTextRendering:
     """Tests for `pr_feedback_text` rendering in both formatters."""
 
     def test_pr_feedback_text_in_human_format(self) -> None:
-        feedback_text = "PR Reviews:\n[alert] py/sql-injection: SQL injection @ src/db.py:17"
+        feedback_text = (
+            "PR Reviews:\n[alert] py/sql-injection: SQL injection @ src/db.py:17"
+        )
         report = _make_report(
             pr_number=42,
             pr_url="https://github.com/owner/repo/pull/42",
@@ -229,7 +231,9 @@ class TestPRFeedbackTextRendering:
         assert feedback_text in output
 
     def test_pr_feedback_text_in_llm_format(self) -> None:
-        feedback_text = "PR Reviews:\n[alert] py/sql-injection: SQL injection @ src/db.py:17"
+        feedback_text = (
+            "PR Reviews:\n[alert] py/sql-injection: SQL injection @ src/db.py:17"
+        )
         report = _make_report(
             pr_number=42,
             pr_url="https://github.com/owner/repo/pull/42",

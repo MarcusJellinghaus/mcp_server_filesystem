@@ -1,0 +1,27 @@
+Split PR feedback code out of branch_status and pr_manager
+
+The file-size CI job started failing because the issue #173
+implementation pushed three files past the 750-line threshold:
+branch_status.py (843), pr_manager.py (758), and
+tests/github_operations/test_pr_manager.py (755).
+
+Refactor by extracting the new code into sibling modules instead of
+appending to the existing files:
+
+- New src/mcp_workspace/checks/pr_feedback.py hosts format_pr_feedback()
+  and collect_pr_feedback() (plus _truncate_body and the truncation
+  constants). branch_status.py imports collect_pr_feedback from there.
+- New src/mcp_workspace/github_operations/_pr_feedback_sources.py hosts
+  the three private feedback-source helpers (GraphQL review threads,
+  REST conversation comments, REST code-scanning alerts) as module-level
+  functions taking the PullRequestManager as an argument. pr_manager.py
+  keeps only the thin public get_pr_feedback() method which delegates to
+  these helpers.
+- The mergeable_state parametrized flow-through test moves from
+  test_pr_manager.py to test_pr_manager_feedback.py.
+- Update tests/checks/test_branch_status_pr_feedback.py to import the
+  renamed format_pr_feedback (no leading underscore now that it's
+  imported across modules).
+- Update pr_info/steps/summary.md to reflect the new module split.
+
+All quality checks (pylint, mypy, pytest) pass.
