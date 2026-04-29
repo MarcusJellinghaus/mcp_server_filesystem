@@ -51,6 +51,7 @@ class TestFindPullRequestByHead:
             assert result[0]["title"] == "Feature PR"
             assert result[0]["head_branch"] == "feature/xyz"
             assert result[0]["base_branch"] == "main"
+            assert result[0]["mergeable_state"] == "clean"
             mock_repo.get_pulls.assert_called_once_with(
                 state="open", head="testowner:feature/xyz"
             )

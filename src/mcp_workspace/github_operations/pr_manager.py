@@ -33,6 +33,7 @@ class PullRequestData(TypedDict):
     updated_at: Optional[str]
     user: Optional[str]
     mergeable: Optional[bool]
+    mergeable_state: Optional[str]
     merged: bool
     draft: bool
 
@@ -204,6 +205,7 @@ class PullRequestManager(BaseGitHubManager):
                 "updated_at": pr.updated_at.isoformat() if pr.updated_at else None,
                 "user": pr.user.login if pr.user else None,
                 "mergeable": pr.mergeable,
+                "mergeable_state": pr.mergeable_state,
                 "merged": pr.merged,
                 "draft": pr.draft,
             }
@@ -249,6 +251,7 @@ class PullRequestManager(BaseGitHubManager):
                 "updated_at": pr.updated_at.isoformat() if pr.updated_at else None,
                 "user": pr.user.login if pr.user else None,
                 "mergeable": pr.mergeable,
+                "mergeable_state": pr.mergeable_state,
                 "merged": pr.merged,
                 "draft": pr.draft,
             }
@@ -318,6 +321,7 @@ class PullRequestManager(BaseGitHubManager):
                         ),
                         "user": pr.user.login if pr.user else None,
                         "mergeable": pr.mergeable,
+                        "mergeable_state": pr.mergeable_state,
                         "merged": pr.merged,
                         "draft": pr.draft,
                     },
@@ -372,6 +376,7 @@ class PullRequestManager(BaseGitHubManager):
                     ),
                     "user": pr.user.login if pr.user else None,
                     "mergeable": pr.mergeable,
+                    "mergeable_state": pr.mergeable_state,
                     "merged": pr.merged,
                     "draft": pr.draft,
                 },
@@ -425,6 +430,7 @@ class PullRequestManager(BaseGitHubManager):
                 ),
                 "user": updated_pr.user.login if updated_pr.user else None,
                 "mergeable": updated_pr.mergeable,
+                "mergeable_state": updated_pr.mergeable_state,
                 "merged": updated_pr.merged,
                 "draft": updated_pr.draft,
             }

@@ -28,6 +28,7 @@ def create_mock_pr(**overrides: Any) -> MagicMock:
         "url", f"https://github.com/test/repo/pull/{mock_pr.number}"
     )
     mock_pr.mergeable = overrides.get("mergeable", True)
+    mock_pr.mergeable_state = overrides.get("mergeable_state", "clean")
     mock_pr.merged = overrides.get("merged", False)
     mock_pr.draft = overrides.get("draft", False)
     # Handle optional datetime fields
@@ -241,6 +242,7 @@ class TestPullRequestManagerUnit:
             assert result["head_branch"] == "feature-branch"
             assert result["base_branch"] == "main"
             assert result["url"] == "https://github.com/test/repo/pull/123"
+            assert result["mergeable_state"] == "clean"
             mock_repo.create_pull.assert_called_once_with(
                 title="Test PR",
                 body="Test description",
@@ -332,6 +334,7 @@ class TestPullRequestManagerUnit:
             result = manager.get_pull_request(123)
             assert result["number"] == 123
             assert result["title"] == "Test PR"
+            assert result["mergeable_state"] == "clean"
             mock_repo.get_pull.assert_called_once_with(123)
 
     def test_get_pull_request_invalid_number(self, tmp_path: Path) -> None:
@@ -381,6 +384,7 @@ class TestPullRequestManagerUnit:
             head_ref="feature-2",
             user_login="user2",
             mergeable=False,
+            mergeable_state="dirty",
             draft=True,
             created_at="2023-01-02T00:00:00Z",
             updated_at="2023-01-02T00:00:00Z",
@@ -401,9 +405,11 @@ class TestPullRequestManagerUnit:
             assert result[0]["number"] == 1
             assert result[0]["title"] == "First PR"
             assert result[0]["draft"] is False
+            assert result[0]["mergeable_state"] == "clean"
             assert result[1]["number"] == 2
             assert result[1]["title"] == "Second PR"
             assert result[1]["draft"] is True
+            assert result[1]["mergeable_state"] == "dirty"
             mock_repo.get_pulls.assert_called_once_with(state="open")
 
     @patch("mcp_workspace.github_operations.base_manager.Github")
@@ -479,6 +485,7 @@ class TestPullRequestManagerUnit:
             result = manager.close_pull_request(123)
             assert result["number"] == 123
             assert result["state"] == "closed"
+            assert result["mergeable_state"] == "clean"
             mock_pr.edit.assert_called_once_with(state="closed")
             assert mock_repo.get_pull.call_count == 2
 
@@ -500,6 +507,41 @@ class TestPullRequestManagerUnit:
 
             result = manager.close_pull_request(-1)
             assert not result
+
+    # ========================================
+    # mergeable_state Field Tests
+    # ========================================
+
+    @pytest.mark.parametrize(
+        "state_value", ["clean", "dirty", "unstable", "blocked", None]
+    )
+    @patch("mcp_workspace.github_operations.base_manager.Github")
+    def test_get_pull_request_mergeable_state_flows_through(
+        self,
+        mock_github: Mock,
+        state_value: Any,
+        tmp_path: Path,
+    ) -> None:
+        """mergeable_state flows from PyGithub PR to PullRequestData unchanged."""
+        git_dir = tmp_path / "git_dir"
+        git_dir.mkdir()
+        repo = git.Repo.init(git_dir)
+        repo.create_remote("origin", "https://github.com/test/repo.git")
+
+        mock_pr = create_mock_pr(mergeable_state=state_value)
+        mock_repo = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+        mock_github_client = MagicMock()
+        mock_github_client.get_repo.return_value = mock_repo
+        mock_github.return_value = mock_github_client
+
+        with patch(
+            "mcp_workspace.github_operations.base_manager.get_github_token",
+            return_value="dummy-token",
+        ):
+            manager = PullRequestManager(git_dir)
+            result = manager.get_pull_request(123)
+            assert result["mergeable_state"] == state_value
 
     # ========================================
     # Error Handling Tests
