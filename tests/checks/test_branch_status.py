@@ -471,27 +471,37 @@ class TestCollectPRInfo:
                 "number": 45,
                 "url": "https://github.com/owner/repo/pull/45",
                 "mergeable": True,
+                "mergeable_state": "clean",
             }
         ]
-        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
+        number, url, found, mergeable, mergeable_state = _collect_pr_info(
+            mock_pr, "feature"
+        )
         assert number == 45
         assert found is True
         assert mergeable is True
+        assert mergeable_state == "clean"
 
     def test_no_pr(self) -> None:
         mock_pr = MagicMock()
         mock_pr.find_pull_request_by_head.return_value = []
-        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
+        number, url, found, mergeable, mergeable_state = _collect_pr_info(
+            mock_pr, "feature"
+        )
         assert number is None
         assert found is False
         assert mergeable is None
+        assert mergeable_state is None
 
     def test_exception(self) -> None:
         mock_pr = MagicMock()
         mock_pr.find_pull_request_by_head.side_effect = Exception("fail")
-        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
+        number, url, found, mergeable, mergeable_state = _collect_pr_info(
+            mock_pr, "feature"
+        )
         assert found is None
         assert mergeable is None
+        assert mergeable_state is None
 
     def test_pr_found_mergeable_none(self) -> None:
         """PR exists but mergeable is None."""
@@ -503,10 +513,13 @@ class TestCollectPRInfo:
                 "mergeable": None,
             }
         ]
-        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
+        number, url, found, mergeable, mergeable_state = _collect_pr_info(
+            mock_pr, "feature"
+        )
         assert number == 45
         assert found is True
         assert mergeable is None
+        assert mergeable_state is None
 
     def test_pr_found_mergeable_false(self) -> None:
         """PR exists but mergeable is False."""
@@ -516,12 +529,16 @@ class TestCollectPRInfo:
                 "number": 45,
                 "url": "https://github.com/owner/repo/pull/45",
                 "mergeable": False,
+                "mergeable_state": "dirty",
             }
         ]
-        number, url, found, mergeable = _collect_pr_info(mock_pr, "feature")
+        number, url, found, mergeable, mergeable_state = _collect_pr_info(
+            mock_pr, "feature"
+        )
         assert number == 45
         assert found is True
         assert mergeable is False
+        assert mergeable_state == "dirty"
 
 
 class TestCollectBranchStatus:
@@ -574,7 +591,7 @@ class TestCollectBranchStatus:
             False,
         )
         mock_label.return_value = "status-04:in-progress"
-        mock_pr_info.return_value = (45, "https://url", True, True)
+        mock_pr_info.return_value = (45, "https://url", True, True, "clean")
 
         report = collect_branch_status(Path("/tmp"))
         assert report.branch_name == "123-feature"
@@ -660,7 +677,7 @@ class TestCollectBranchStatus:
             False,
         )
         mock_label.return_value = "unknown"
-        mock_pr_info.return_value = (45, "https://url", True, True)
+        mock_pr_info.return_value = (45, "https://url", True, True, "clean")
 
         report = collect_branch_status(Path("/tmp"))
         assert report.rebase_needed is False

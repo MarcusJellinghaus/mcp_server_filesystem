@@ -1,0 +1,18 @@
+Wire PR feedback into BranchStatusReport with recommendation gating
+
+Add three new fields to BranchStatusReport (pr_mergeable_state,
+pr_feedback_text, pr_feedback_blocks_merge) and wire the data layer
+and formatter from earlier steps into collect_branch_status.
+
+- Extend _collect_pr_info to return mergeable_state (5-tuple)
+- Add _collect_pr_feedback helper calling pr_manager.get_pr_feedback
+  and _format_pr_feedback
+- Splice mergeable state into both human and LLM formatters
+- Splice formatted PR feedback block into both formatters
+- Gate _generate_recommendations: when CI passes and tasks complete,
+  emit "Address review comments" if feedback blocks merge, else
+  "Ready to merge" (or squash-merge safe variant)
+
+CI failures and incomplete tasks still take precedence over the
+review-comment recommendation. Existing test fixtures unaffected
+because new fields have defaults.
