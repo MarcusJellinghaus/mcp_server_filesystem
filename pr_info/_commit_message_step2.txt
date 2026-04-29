@@ -1,0 +1,22 @@
+Add PRFeedback TypedDict and get_pr_feedback() method
+
+Adds PullRequestManager.get_pr_feedback(pr_number) which aggregates PR
+review feedback into a single PRFeedback TypedDict:
+
+- Unresolved review threads (path, line, author, body, diff_hunk) and
+  resolved-thread count via a single GraphQL call.
+- CHANGES_REQUESTED reviews from the same GraphQL response (filtered
+  client-side; the reviews connection does not accept a states: arg).
+- Top-level conversation comments via REST (issue.get_comments()).
+- Code-scanning alerts via REST. Returns silently on 403 (token lacks
+  security_events:read or feature disabled); other failures surface in
+  the unavailable list.
+
+Each section is wrapped in its own try/except so a partial failure
+yields the inline placeholder via the unavailable list rather than
+aborting the whole call. Per-reviewer dedup of stale CHANGES_REQUESTED
+reviews is intentionally omitted in favour of simpler code.
+
+Tests use the same mock pattern as test_pr_manager_closing_issues.py
+covering happy path, clean state, 403 silent skip, 500 unavailable,
+GraphQL failure, comments failure, and invalid PR number.

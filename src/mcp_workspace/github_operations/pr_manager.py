@@ -6,7 +6,7 @@ through the PyGithub library.
 
 import logging
 from pathlib import Path
-from typing import List, Optional, TypedDict, cast
+from typing import Any, List, Optional, Tuple, TypedDict, cast
 
 from github.GithubException import GithubException
 from mcp_coder_utils.log_utils import log_function_call
@@ -36,6 +36,29 @@ class PullRequestData(TypedDict):
     mergeable_state: Optional[str]
     merged: bool
     draft: bool
+
+
+class PRFeedback(TypedDict):
+    """TypedDict for aggregated PR feedback (review threads, comments, alerts)."""
+
+    unresolved_threads: list[dict[str, Any]]
+    resolved_thread_count: int
+    changes_requested: list[dict[str, Any]]
+    conversation_comments: list[dict[str, Any]]
+    alerts: list[dict[str, Any]]
+    unavailable: list[str]
+
+
+def _empty_pr_feedback() -> PRFeedback:
+    """Return a fresh empty PRFeedback dict."""
+    return {
+        "unresolved_threads": [],
+        "resolved_thread_count": 0,
+        "changes_requested": [],
+        "conversation_comments": [],
+        "alerts": [],
+        "unavailable": [],
+    }
 
 
 class PullRequestManager(BaseGitHubManager):
@@ -496,6 +519,213 @@ class PullRequestManager(BaseGitHubManager):
         except (KeyError, TypeError) as e:
             logger.error(f"Error parsing GraphQL response: {e}")
             return []
+
+    def _fetch_review_data(
+        self, pr_number: int
+    ) -> Tuple[list[dict[str, Any]], int, list[dict[str, Any]]]:
+        """Fetch review threads + reviews via single GraphQL call.
+
+        Returns:
+            Tuple of (unresolved_threads, resolved_count, changes_requested_reviews)
+        """
+        repo = self._get_repository()
+        if repo is None:
+            return ([], 0, [])
+
+        owner, repo_name = repo.owner.login, repo.name
+
+        query = """
+        query($owner: String!, $repo: String!, $prNumber: Int!) {
+          repository(owner: $owner, name: $repo) {
+            pullRequest(number: $prNumber) {
+              reviewThreads(first: 50) {
+                nodes {
+                  isResolved
+                  comments(first: 5) {
+                    nodes { author { login } body path line diffSide diffHunk }
+                  }
+                }
+              }
+              reviews(first: 50) {
+                nodes { state author { login } body submittedAt }
+              }
+            }
+          }
+        }
+        """
+
+        variables = {"owner": owner, "repo": repo_name, "prNumber": pr_number}
+
+        _, result = self._github_client._Github__requester.graphql_query(  # type: ignore[attr-defined]  # pylint: disable=protected-access  # no public GraphQL API in PyGithub
+            query=query, variables=variables
+        )
+
+        pr_data = result.get("data", {}).get("repository", {}).get("pullRequest")
+        if pr_data is None:
+            return ([], 0, [])
+
+        unresolved_threads: list[dict[str, Any]] = []
+        resolved_count = 0
+        thread_nodes = pr_data.get("reviewThreads", {}).get("nodes", []) or []
+        for thread in thread_nodes:
+            if thread.get("isResolved"):
+                resolved_count += 1
+                continue
+            comment_nodes = thread.get("comments", {}).get("nodes", []) or []
+            if not comment_nodes:
+                continue
+            first = comment_nodes[0]
+            author = (first.get("author") or {}).get("login") or ""
+            unresolved_threads.append(
+                {
+                    "path": first.get("path") or "",
+                    "line": first.get("line"),
+                    "author": author,
+                    "body": first.get("body") or "",
+                    "diff_hunk": first.get("diffHunk") or "",
+                }
+            )
+
+        changes_requested: list[dict[str, Any]] = []
+        review_nodes = pr_data.get("reviews", {}).get("nodes", []) or []
+        for review in review_nodes:
+            if review.get("state") != "CHANGES_REQUESTED":
+                continue
+            author = (review.get("author") or {}).get("login") or ""
+            changes_requested.append(
+                {"author": author, "body": review.get("body") or ""}
+            )
+
+        return (unresolved_threads, resolved_count, changes_requested)
+
+    def _fetch_conversation_comments(
+        self, pr_number: int
+    ) -> list[dict[str, Any]]:
+        """Fetch top-level PR conversation comments via REST."""
+        repo = self._get_repository()
+        if repo is None:
+            return []
+
+        issue = repo.get_issue(pr_number)
+        comments = issue.get_comments()
+        return [
+            {
+                "author": c.user.login if c.user else "",
+                "body": c.body or "",
+            }
+            for c in comments
+        ]
+
+    def _fetch_code_scanning_alerts(
+        self, pr_number: int
+    ) -> Optional[list[dict[str, Any]]]:
+        """Fetch code-scanning alerts for the PR head ref via REST.
+
+        Returns:
+            None on 403 (silent skip — caller does not flag as unavailable).
+            [] on success with no alerts or if repository is unavailable.
+            list of alert dicts on success.
+
+        Raises:
+            GithubException: For non-403 errors (caller flags as unavailable).
+        """
+        repo = self._get_repository()
+        if repo is None:
+            return []
+
+        owner, repo_name = repo.owner.login, repo.name
+
+        try:
+            _, _, data = self._github_client._Github__requester.requestJsonAndCheck(  # type: ignore[attr-defined]  # pylint: disable=protected-access  # no public alerts API in PyGithub
+                "GET",
+                f"/repos/{owner}/{repo_name}/code-scanning/alerts",
+                parameters={"ref": f"refs/pull/{pr_number}/head"},
+            )
+        except GithubException as e:
+            if e.status == 403:
+                logger.debug(
+                    "Code-scanning alerts unavailable (403): token lacks "
+                    "security_events:read or code-scanning is disabled"
+                )
+                return None
+            raise
+
+        alerts: list[dict[str, Any]] = []
+        for alert in data or []:
+            instance = alert.get("most_recent_instance") or {}
+            location = instance.get("location") or {}
+            message = (instance.get("message") or {}).get("text") or ""
+            rule_description = (alert.get("rule") or {}).get("description") or ""
+            alerts.append(
+                {
+                    "rule_description": rule_description,
+                    "message": message,
+                    "path": location.get("path") or "",
+                    "line": location.get("start_line"),
+                }
+            )
+        return alerts
+
+    @log_function_call
+    @_handle_github_errors(default_return=_empty_pr_feedback)
+    def get_pr_feedback(self, pr_number: int) -> PRFeedback:
+        """Fetch aggregated PR feedback (review threads, comments, alerts).
+
+        Args:
+            pr_number: Pull request number to query
+
+        Returns:
+            PRFeedback dict containing unresolved threads, resolved thread count,
+            CHANGES_REQUESTED reviews, conversation comments, code-scanning alerts,
+            and a list of section names that failed to fetch (excluding 403 on alerts).
+        """
+        if not self._validate_pr_number(pr_number):
+            return _empty_pr_feedback()
+
+        unavailable: list[str] = []
+
+        try:
+            threads, resolved_count, changes_requested = self._fetch_review_data(
+                pr_number
+            )
+        except (
+            Exception
+        ) as e:  # pylint: disable=broad-exception-caught  # one section failure must not abort
+            logger.warning(f"Failed to fetch review data for PR #{pr_number}: {e}")
+            threads, resolved_count, changes_requested = ([], 0, [])
+            unavailable.append("threads")
+
+        try:
+            comments = self._fetch_conversation_comments(pr_number)
+        except (
+            Exception
+        ) as e:  # pylint: disable=broad-exception-caught  # one section failure must not abort
+            logger.warning(
+                f"Failed to fetch conversation comments for PR #{pr_number}: {e}"
+            )
+            comments = []
+            unavailable.append("comments")
+
+        try:
+            alerts_or_none = self._fetch_code_scanning_alerts(pr_number)
+            alerts = alerts_or_none if alerts_or_none is not None else []
+        except (
+            Exception
+        ) as e:  # pylint: disable=broad-exception-caught  # one section failure must not abort
+            logger.warning(
+                f"Failed to fetch code-scanning alerts for PR #{pr_number}: {e}"
+            )
+            alerts = []
+            unavailable.append("alerts")
+
+        return {
+            "unresolved_threads": threads,
+            "resolved_thread_count": resolved_count,
+            "changes_requested": changes_requested,
+            "conversation_comments": comments,
+            "alerts": alerts,
+            "unavailable": unavailable,
+        }
 
     @property
     def repository_name(self) -> str:
