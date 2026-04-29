@@ -37,8 +37,9 @@ def _format_pr_feedback(feedback: PRFeedback) -> str:
 ## HOW
 
 - Pure function — no I/O, no exceptions raised, takes a `PRFeedback` and returns `str`.
-- Truncate body lines per item to `_MAX_LINES_PER_COMMENT` with `... (truncated)` marker.
-- Total items rendered (sum of unresolved_threads + comments + changes_requested + alerts) capped at `_MAX_FEEDBACK_ITEMS` with `... and N more` marker.
+- Truncate body lines per item to `_MAX_LINES_PER_COMMENT` with `... (truncated)` marker. **`_MAX_LINES_PER_COMMENT` applies only to comment/review bodies** — it does **not** truncate `diff_hunk`. Diff hunks are typically short and rendered as-is. This is a deliberate decision (issue #173 plan review round 1).
+- Total items rendered (sum of unresolved_threads + comments + changes_requested + alerts) capped at `_MAX_FEEDBACK_ITEMS = 20` with `... and N more` marker.
+- **Cap-ordering (per issue decision #21):** items are emitted in the order `unresolved_threads → conversation_comments → changes_requested → alerts`. If `unresolved_threads` alone fills or exceeds the 20-item cap, the trailing categories (`conversation_comments`, `changes_requested`, `alerts`) will be **dropped** from the output and only counted in `... and N more`. This drop-order is by design — unresolved threads are the highest-priority blocking signal.
 - For each entry in `feedback["unavailable"]`, render one line: `[unavailable] {section}: API error`.
 - Resolved threads rendered as a single trailing line `"{n} resolved threads"` only when `n > 0`.
 

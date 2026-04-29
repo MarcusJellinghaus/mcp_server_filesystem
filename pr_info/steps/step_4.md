@@ -47,8 +47,18 @@ def _collect_pr_feedback(
 
 ### Formatter changes
 
-- `format_for_human`: after the existing `Merge Status:` line, if `self.pr_feedback_text` is not None, append a blank line + the text.
+- `format_for_human`: after the existing `Merge Status:` line, if `self.pr_feedback_text` is not None, append a blank line + the text. Include `Mergeable_State` in the human-readable Merge Status section as well (e.g., `Mergeable State: clean`).
 - `format_for_llm`: include `Mergeable_State=<value>` in the status summary when `pr_found` and `pr_mergeable_state` is set; if `self.pr_feedback_text` is not None, append a blank line + the text after the recommendations line (and before the `CI Errors:` block when present).
+
+### Exact `Mergeable_State` format in `format_for_llm`
+
+The status summary line must follow the existing comma-separated `Key=Value` style. Append `Mergeable_State=<value>` to the existing PR status line, only when `pr_found is True` and `pr_mergeable_state is not None`. Example:
+
+```
+PR=#123, Mergeable=True, Mergeable_State=clean
+```
+
+When `pr_mergeable_state` is `None`, the `Mergeable_State=...` segment is omitted entirely (no `Mergeable_State=None` rendering).
 
 ### Recommendation logic update
 
@@ -110,6 +120,7 @@ if ci_ok and tasks_ok and not rebase_needed:
 - `test_no_review_rec_when_ci_failed` — CI failed + `pr_feedback_blocks_merge=True` → `"Fix CI test failures"` in recs and `"Address review comments"` NOT in recs (CI takes precedence — issue decision #6).
 - `test_no_review_rec_when_tasks_blocking` — tasks incomplete + `pr_feedback_blocks_merge=True` → `"remaining tasks"` in recs and `"Address review comments"` NOT in recs.
 - `test_ready_to_merge_when_feedback_clean` — CI passed + tasks complete + `pr_feedback_blocks_merge=False` → `"Ready to merge"` in recs.
+- `test_feedback_blocks_take_precedence_over_rebase_and_mergeable` — `rebase_needed=True`, `pr_mergeable=True`, `pr_feedback_blocks_merge=True` (CI passed + tasks complete) → `"Address review comments"` in recs; `"Ready to merge"` and `"Ready to merge (squash-merge safe)"` NOT in recs. Locks in the `_apply_pr_merge_override` interaction so feedback-blocking takes priority over both rebase-needed and ready-to-merge branches.
 
 ### Existing tests
 

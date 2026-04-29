@@ -39,10 +39,24 @@ class PRFeedback(TypedDict):
 
 ```python
 @log_function_call
-@_handle_github_errors(default_return=cast(PRFeedback, {...empty...}))
+@_handle_github_errors(
+    default_return=lambda: cast(
+        PRFeedback,
+        {
+            "unresolved_threads": [],
+            "resolved_thread_count": 0,
+            "changes_requested": [],
+            "conversation_comments": [],
+            "alerts": [],
+            "unavailable": [],
+        },
+    )
+)
 def get_pr_feedback(self, pr_number: int) -> PRFeedback:
     ...
 ```
+
+**Note:** `default_return` must be a **callable factory** (lambda) returning a fresh dict, matching the existing pattern in `pr_manager.py` (e.g., `@_handle_github_errors(lambda: cast(PullRequestData, {}))`). Passing a literal dict would share mutable state across invocations.
 
 ### Private helpers (module-level or method-private)
 
@@ -107,7 +121,7 @@ query($owner: String!, $repo: String!, $prNumber: Int!) {
           }
         }
       }
-      reviews(first: 50, states: CHANGES_REQUESTED) {
+      reviews(first: 50) {
         nodes { state author { login } body submittedAt }
       }
     }
@@ -115,7 +129,14 @@ query($owner: String!, $repo: String!, $prNumber: Int!) {
 }
 ```
 
-Post-process: split `reviewThreads.nodes` into `unresolved_threads` (where `isResolved=false`, take first comment's `path/line/author/body/diffHunk`) and `resolved_count` (the rest).
+**Note:** GitHub's GraphQL `reviews` connection does **not** accept a `states:` argument — fetch reviews unfiltered and filter client-side to keep only nodes where `state == "CHANGES_REQUESTED"`.
+
+**Accepted limitation (no per-reviewer dedup):** The simpler approach does not deduplicate reviews per reviewer by `submittedAt`. This means a stale `CHANGES_REQUESTED` from a reviewer who later submitted an `APPROVED` review will still surface in `changes_requested`. This trade-off was accepted in favour of simpler code.
+
+Post-process:
+- Split `reviewThreads.nodes` into `unresolved_threads` (where `isResolved=false`) and `resolved_count` (the rest).
+- For each unresolved thread, extract `path`, `line`, `author`, `body`, and `diffHunk` from the **first comment** in `comments.nodes` (i.e., the original review comment that opened the thread, not subsequent replies).
+- Filter `reviews.nodes` to those with `state == "CHANGES_REQUESTED"` to populate `changes_requested`.
 
 ## DATA
 

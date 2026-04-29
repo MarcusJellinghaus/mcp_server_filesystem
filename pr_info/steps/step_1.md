@@ -12,7 +12,8 @@ Add a new `mergeable_state` field to the `PullRequestData` TypedDict and populat
 ## WHERE
 
 - `src/mcp_workspace/github_operations/pr_manager.py` — modify `PullRequestData` TypedDict and the 5 builder methods.
-- `tests/github_operations/test_pr_manager.py` — extend existing tests with assertions on the new field.
+- `tests/github_operations/test_pr_manager.py` — extend existing tests with assertions on the new field for `create_pull_request`, `get_pull_request`, `list_pull_requests`, and `close_pull_request`.
+- `tests/github_operations/test_pr_manager_find_by_head.py` — extend existing tests with the `mergeable_state` assertion for `find_pull_request_by_head` (this builder lives in a separate test file from the others above).
 
 ## WHAT
 
