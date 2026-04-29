@@ -21,6 +21,31 @@ This tracks **Feature Implementation** consisting of multiple **Tasks**.
 
 ## Tasks
 
-<!-- Tasks populated from pr_info/steps/ by prepare_task_tracker -->
+### Step 1: Add `mergeable_state` to `PullRequestData` ([details](./steps/step_1.md))
+
+- [ ] Implementation (tests + production code)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 2: Add `PRFeedback` TypedDict and `get_pr_feedback()` method ([details](./steps/step_2.md))
+
+- [ ] Implementation (tests + production code)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 3: Add `_format_pr_feedback()` pure formatter ([details](./steps/step_3.md))
+
+- [ ] Implementation (tests + production code)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
+
+### Step 4: Wire feedback into `BranchStatusReport` + recommendation gating ([details](./steps/step_4.md))
+
+- [ ] Implementation (tests + production code)
+- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [ ] Commit message prepared
 
 ## Pull Request
+
+- [ ] PR review
+- [ ] PR summary
