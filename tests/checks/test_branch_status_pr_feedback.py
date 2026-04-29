@@ -87,6 +87,18 @@ class TestUnresolvedThreads:
         assert "@@ -1,2 +1,2 @@" in result
         assert "Please refactor this." in result
 
+    def test_unresolved_thread_without_line_no(self) -> None:
+        """Outdated/file-level threads have line=None; render path only."""
+        feedback = _empty_feedback()
+        thread = _thread(path="src/foo.py", author="alice")
+        thread["line"] = None
+        feedback["unresolved_threads"] = [thread]
+        result = format_pr_feedback(feedback)
+        assert "[unresolved thread]" in result
+        assert "src/foo.py" in result
+        assert ":None" not in result
+        assert "src/foo.py (alice)" in result
+
 
 class TestConversationComments:
     """Conversation comments rendering."""
@@ -135,6 +147,22 @@ class TestAlerts:
         assert "py/sql-injection" in result
         assert "SQL injection" in result
         assert "src/db.py:17" in result
+
+    def test_alert_without_line_no(self) -> None:
+        """Alerts without a specific line number render path only."""
+        feedback = _empty_feedback()
+        alert = _alert(
+            rule_description="py/sql-injection",
+            message="SQL injection",
+            path="src/db.py",
+        )
+        alert["line"] = None
+        feedback["alerts"] = [alert]
+        result = format_pr_feedback(feedback)
+        assert "[alert]" in result
+        assert "src/db.py" in result
+        assert ":None" not in result
+        assert "@ src/db.py" in result
 
 
 class TestResolvedThreadsTrailingLine:

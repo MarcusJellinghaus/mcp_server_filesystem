@@ -50,8 +50,9 @@ def format_pr_feedback(feedback: PRFeedback) -> str:
         diff_hunk = thread.get("diff_hunk", "")
         body = _truncate_body(thread.get("body", ""))
         indented_hunk = "\n".join(f"  {line}" for line in diff_hunk.splitlines())
+        location = f"{path}:{line_no}" if line_no else path
         rendered.append(
-            f"[unresolved thread] {path}:{line_no} ({author}):\n"
+            f"[unresolved thread] {location} ({author}):\n"
             f"{indented_hunk}\n"
             f"  Comment: {body}"
         )
@@ -71,7 +72,8 @@ def format_pr_feedback(feedback: PRFeedback) -> str:
         message = alert.get("message", "")
         path = alert.get("path", "")
         line_no = alert.get("line")
-        rendered.append(f"[alert] {rule}: {message} @ {path}:{line_no}")
+        location = f"{path}:{line_no}" if line_no else path
+        rendered.append(f"[alert] {rule}: {message} @ {location}")
 
     total = len(rendered)
     if total > _MAX_FEEDBACK_ITEMS:
