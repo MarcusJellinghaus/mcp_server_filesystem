@@ -134,6 +134,7 @@ _.CheckResult
 _.ok
 _.severity
 _.install_hint
+_.token_fingerprint
 
 # CI results manager - variables used in dict unpacking / data extraction
 _.run_ids
