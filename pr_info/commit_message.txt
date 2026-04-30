@@ -1,5 +1,0 @@
-style: apply black formatting to test_search.py
-
-Collapse the multi-line signature of
-test_windows_case_insensitive_match_preserved onto a single line
-so it conforms to black 26.3.1, fixing the CI `black --check` step.
