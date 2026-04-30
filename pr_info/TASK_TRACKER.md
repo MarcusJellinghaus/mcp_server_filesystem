@@ -31,9 +31,9 @@ See [step_1.md](./steps/step_1.md) for details.
 ### Step 2: Add `token_fingerprint.py` utility
 See [step_2.md](./steps/step_2.md) for details.
 
-- [ ] Implementation (tests + production code)
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation (tests + production code)
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 3: DEBUG logging in `hostname_to_api_base_url()`
 See [step_3.md](./steps/step_3.md) for details.
