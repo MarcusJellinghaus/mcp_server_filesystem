@@ -4,8 +4,11 @@ Provides RepoIdentifier dataclass that handles both github.com and
 GitHub Enterprise (GHE) URLs, plus hostname_to_api_base_url() helper.
 """
 
+import logging
 import re
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 def hostname_to_api_base_url(hostname: str) -> str:
@@ -29,10 +32,31 @@ def hostname_to_api_base_url(hostname: str) -> str:
     """
     h = hostname.lower()
     if h == "github.com":
-        return "https://api.github.com"
+        url = "https://api.github.com"
+        logger.debug(
+            "hostname_to_api_base_url input=%s normalized=%s branch=github.com url=%s",
+            hostname,
+            h,
+            url,
+        )
+        return url
     if h.endswith(".ghe.com"):
-        return f"https://api.{h}"
-    return f"https://{hostname}/api/v3"
+        url = f"https://api.{h}"
+        logger.debug(
+            "hostname_to_api_base_url input=%s normalized=%s branch=ghe.com url=%s",
+            hostname,
+            h,
+            url,
+        )
+        return url
+    url = f"https://{hostname}/api/v3"
+    logger.debug(
+        "hostname_to_api_base_url input=%s normalized=%s branch=ghes-fallback url=%s",
+        hostname,
+        h,
+        url,
+    )
+    return url
 
 
 @dataclass
