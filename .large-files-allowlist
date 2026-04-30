@@ -18,4 +18,5 @@ tests/github_operations/test_issue_cache.py
 tests/github_operations/test_issue_branch_manager.py
 tests/github_operations/test_base_manager.py
 tests/github_operations/test_github_utils.py
+tests/github_operations/test_verification.py
 tests/github_operations/issues/test_get_branch_with_pr_fallback.py

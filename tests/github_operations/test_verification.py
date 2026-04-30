@@ -705,7 +705,6 @@ class TestOverallOkTrueWhenOnlyWarningsFail:
         assert result["overall_ok"] is True
 
 
-
 # ===================================================================
 # Step 6: api_base_url result entry + auth probe base_url kwarg
 # ===================================================================
@@ -757,7 +756,9 @@ class TestAuthProbeBaseUrlGithubCom:
             hostname="github.com", api_base_url="https://api.github.com"
         )
         _, mock_github_class = _patch_for_auth_probe(tmp_path, identifier=identifier)
-        assert mock_github_class.call_args.kwargs["base_url"] == "https://api.github.com"
+        assert (
+            mock_github_class.call_args.kwargs["base_url"] == "https://api.github.com"
+        )
 
 
 class TestAuthProbeBaseUrlGhe:
@@ -791,7 +792,9 @@ class TestAuthProbeBaseUrlFallback:
 
     def test_base_url_fallback(self, tmp_path: Path) -> None:
         _, mock_github_class = _patch_for_auth_probe(tmp_path, identifier=None)
-        assert mock_github_class.call_args.kwargs["base_url"] == "https://api.github.com"
+        assert (
+            mock_github_class.call_args.kwargs["base_url"] == "https://api.github.com"
+        )
 
 
 class TestApiBaseUrlResultEntrySuccess:
@@ -852,7 +855,6 @@ class TestOverallOkNotPoisonedByFallback:
         api_base: CheckResult = result["api_base_url"]  # type: ignore[assignment]
         assert api_base["ok"] is False
         assert api_base["severity"] == "warning"
-
 
 
 # ===================================================================

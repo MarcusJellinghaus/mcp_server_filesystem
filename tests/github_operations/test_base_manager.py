@@ -1319,9 +1319,7 @@ class TestGetRepositoryDebugLogging:
         assert "X-GitHub-Request-Id" in caplog.text
         assert "Set-Cookie" not in caplog.text
 
-    def test_raw_token_is_never_in_logs(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_raw_token_is_never_in_logs(self, caplog: pytest.LogCaptureFixture) -> None:
         """Raw token middle is never present in DEBUG output."""
         caplog.set_level(logging.DEBUG, logger=self._LOGGER_NAME)
         raw_token = "ghp_RAW_SECRET_TOKEN_VALUE_FOR_TEST_xyz"
@@ -1376,9 +1374,7 @@ class TestGetAuthenticatedUsernameDebugLogging:
             mock_github_client.get_user.side_effect = exc
             mock_github_class.return_value = mock_github_client
 
-            with pytest.raises(
-                ValueError, match="Failed to authenticate with GitHub"
-            ):
+            with pytest.raises(ValueError, match="Failed to authenticate with GitHub"):
                 get_authenticated_username()
 
         assert "status=401" in caplog.text
@@ -1426,22 +1422,16 @@ class TestGetAuthenticatedUsernameDebugLogging:
             ) as mock_github_class,
         ):
             mock_github_client = Mock()
-            mock_github_client.get_user.side_effect = RuntimeError(
-                "connection reset"
-            )
+            mock_github_client.get_user.side_effect = RuntimeError("connection reset")
             mock_github_class.return_value = mock_github_client
 
-            with pytest.raises(
-                ValueError, match="Failed to authenticate with GitHub"
-            ):
+            with pytest.raises(ValueError, match="Failed to authenticate with GitHub"):
                 get_authenticated_username()
 
         # The GithubException-specific DEBUG line is not present
         assert "get_authenticated_username GithubException" not in caplog.text
 
-    def test_raw_token_is_never_in_logs(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_raw_token_is_never_in_logs(self, caplog: pytest.LogCaptureFixture) -> None:
         """Raw token middle is never present in DEBUG output after 401."""
         caplog.set_level(logging.DEBUG, logger=self._LOGGER_NAME)
         raw_token = "ghp_RAW_SECRET_TOKEN_VALUE_FOR_TEST_xyz"
