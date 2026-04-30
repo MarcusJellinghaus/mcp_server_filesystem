@@ -137,10 +137,9 @@ def verify_github(project_dir: Path) -> dict[str, object]:
         )
         if source is not None:
             token_check["token_source"] = source
-        if token:
-            fingerprint = format_token_fingerprint(token)
-            if fingerprint:
-                token_check["token_fingerprint"] = fingerprint
+        fingerprint = format_token_fingerprint(token)
+        if fingerprint:
+            token_check["token_fingerprint"] = fingerprint
         result["token_configured"] = token_check
 
     # ------------------------------------------------------------------
