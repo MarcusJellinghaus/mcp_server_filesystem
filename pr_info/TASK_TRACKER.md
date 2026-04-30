@@ -72,5 +72,5 @@ See [step_7.md](./steps/step_7.md) for details.
 
 ## Pull Request
 
-- [ ] PR review (self-review of diff, address feedback)
+- [x] PR review (self-review of diff, address feedback)
 - [ ] PR summary (description, linked issue #176, test evidence)
