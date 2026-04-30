@@ -34,3 +34,22 @@
 - pr_info/steps/Decisions.md — created; logs D1–D6
 
 **Status**: changes applied, ready to commit
+
+## Round 2 — 2026-04-30
+
+**Findings**: No new findings. All Round 1 changes verified in plan files (step_2 prefix+suffix design, step_6 severity comment + decoupled test helper + explicit assertions, step_7 success-path raw-token negative, summary.md mcp-coder-utils#30 reference).
+
+**Decisions**: N/A — nothing to fix.
+
+**User decisions**: None requested.
+
+**Changes**: None.
+
+**Status**: no changes needed — loop exits.
+
+## Final Status
+
+- **Rounds run**: 2
+- **Commits produced**: 1 (round-1 plan changes — hash 60fc93c)
+- **External actions**: filed upstream feature request mcp-coder-utils#30
+- **Plan readiness**: ready for approval
