@@ -99,11 +99,22 @@ def get_authenticated_username(hostname: Optional[str] = None) -> str:
             "variable or config file [github] section"
         )
 
+    base_url = hostname_to_api_base_url(hostname or "github.com")
     try:
-        base_url = hostname_to_api_base_url(hostname or "github.com")
         github_client = Github(auth=Auth.Token(raw_token), base_url=base_url)
         user = github_client.get_user()
         return user.login
+    except GithubException as e:
+        logger.debug(
+            "get_authenticated_username GithubException status=%s data=%s "
+            "headers=%s base_url=%s token=%s",
+            e.status,
+            e.data,
+            extract_diagnostic_headers(e),
+            base_url,
+            format_token_fingerprint(raw_token) if raw_token else "<none>",
+        )
+        raise ValueError(f"Failed to authenticate with GitHub: {e}") from e
     except (
         Exception
     ) as e:  # pylint: disable=broad-exception-caught  # TODO: narrow exception type
