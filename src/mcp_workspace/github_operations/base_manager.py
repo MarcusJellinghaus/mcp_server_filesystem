@@ -16,7 +16,9 @@ from mcp_coder_utils.log_utils import log_function_call
 
 from mcp_workspace import git_operations
 from mcp_workspace.config import get_github_token
+from mcp_workspace.github_operations._diagnostics import extract_diagnostic_headers
 from mcp_workspace.utils.repo_identifier import RepoIdentifier, hostname_to_api_base_url
+from mcp_workspace.utils.token_fingerprint import format_token_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -256,6 +258,20 @@ class BaseGitHubManager:
             return self._repository
 
         except GithubException as e:
+            logger.debug(
+                "_get_repository GithubException status=%s data=%s headers=%s "
+                "full_name=%s api_base_url=%s token=%s",
+                e.status,
+                e.data,
+                extract_diagnostic_headers(e),
+                self._repo_identifier.full_name,
+                self._repo_identifier.api_base_url,
+                (
+                    format_token_fingerprint(self.github_token)
+                    if self.github_token
+                    else "<none>"
+                ),
+            )
             repo_url = self._repo_identifier.https_url
             if e.status == 404:
                 logger.error(

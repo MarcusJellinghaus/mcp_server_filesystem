@@ -1,5 +1,6 @@
 """Unit tests for BaseGitHubManager error handling decorator."""
 
+import logging
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -1185,3 +1186,163 @@ class TestGetDefaultBranch:
 
             with pytest.raises(ValueError, match="Repository not accessible"):
                 manager.get_default_branch()
+
+
+class TestGetRepositoryDebugLogging:
+    """Tests for DEBUG companion log in `_get_repository()` GithubException path."""
+
+    _LOGGER_NAME = "mcp_workspace.github_operations.base_manager"
+
+    def test_debug_log_on_401_includes_allow_listed_fields(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """401 GithubException -> DEBUG includes status, body, allow-listed headers."""
+        caplog.set_level(logging.DEBUG, logger=self._LOGGER_NAME)
+        exc = GithubException(
+            401,
+            {"message": "Bad credentials"},
+            {
+                "WWW-Authenticate": "Bearer",
+                "X-GitHub-Request-Id": "ABCD:1234",
+            },
+        )
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value="fake_token",
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_github_client.get_repo.side_effect = exc
+            mock_github_class.return_value = mock_github_client
+            manager = BaseGitHubManager(
+                repo_url="https://github.com/test-owner/test-repo.git"
+            )
+
+            result = manager._get_repository()
+
+        assert result is None
+        assert "status=401" in caplog.text
+        assert "Bad credentials" in caplog.text
+        assert "X-GitHub-Request-Id" in caplog.text
+        assert "WWW-Authenticate" in caplog.text
+        assert "full_name=" in caplog.text
+        assert "api_base_url=" in caplog.text
+        assert "token=" in caplog.text
+
+    def test_debug_log_includes_token_fingerprint(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A long, ghp_-prefixed token is fingerprinted in DEBUG output."""
+        caplog.set_level(logging.DEBUG, logger=self._LOGGER_NAME)
+        exc = GithubException(401, {"message": "Bad credentials"}, {})
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value="ghp_LongEnoughTokenABCDxyz",
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_github_client.get_repo.side_effect = exc
+            mock_github_class.return_value = mock_github_client
+            manager = BaseGitHubManager(
+                repo_url="https://github.com/test-owner/test-repo.git"
+            )
+
+            manager._get_repository()
+
+        assert "token=ghp_..." in caplog.text
+
+    def test_debug_log_on_404_emitted_and_error_remains(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """404 GithubException -> DEBUG with status=404 AND existing ERROR retained."""
+        caplog.set_level(logging.DEBUG, logger=self._LOGGER_NAME)
+        exc = GithubException(404, {"message": "Not Found"}, {})
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value="fake_token",
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_github_client.get_repo.side_effect = exc
+            mock_github_class.return_value = mock_github_client
+            manager = BaseGitHubManager(
+                repo_url="https://github.com/test-owner/test-repo.git"
+            )
+
+            result = manager._get_repository()
+
+        assert result is None
+        assert "status=404" in caplog.text
+        assert "Repository not found" in caplog.text
+
+    def test_debug_log_excludes_non_allow_listed_headers(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """500 GithubException with Set-Cookie header -> Set-Cookie not logged."""
+        caplog.set_level(logging.DEBUG, logger=self._LOGGER_NAME)
+        exc = GithubException(
+            500,
+            {"message": "Internal Server Error"},
+            {"Set-Cookie": "session=abc", "X-GitHub-Request-Id": "ABCD:1234"},
+        )
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value="fake_token",
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_github_client.get_repo.side_effect = exc
+            mock_github_class.return_value = mock_github_client
+            manager = BaseGitHubManager(
+                repo_url="https://github.com/test-owner/test-repo.git"
+            )
+
+            manager._get_repository()
+
+        assert "status=500" in caplog.text
+        assert "X-GitHub-Request-Id" in caplog.text
+        assert "Set-Cookie" not in caplog.text
+
+    def test_raw_token_is_never_in_logs(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Raw token middle is never present in DEBUG output."""
+        caplog.set_level(logging.DEBUG, logger=self._LOGGER_NAME)
+        raw_token = "ghp_RAW_SECRET_TOKEN_VALUE_FOR_TEST_xyz"
+        exc = GithubException(401, {"message": "Bad credentials"}, {})
+        with (
+            patch(
+                "mcp_workspace.github_operations.base_manager.get_github_token",
+                return_value=raw_token,
+            ),
+            patch(
+                "mcp_workspace.github_operations.base_manager.Github"
+            ) as mock_github_class,
+        ):
+            mock_github_client = Mock()
+            mock_github_client.get_repo.side_effect = exc
+            mock_github_class.return_value = mock_github_client
+            manager = BaseGitHubManager(
+                repo_url="https://github.com/test-owner/test-repo.git"
+            )
+
+            manager._get_repository()
+
+        assert raw_token not in caplog.text
+        assert "ghp_..._xyz" in caplog.text
