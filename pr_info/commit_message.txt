@@ -1,0 +1,18 @@
+Switch search_files glob matching to pathspec gitwildmatch (#177)
+
+Replace fnmatch-based glob matching in search_files with
+pathspec.PathSpec.from_lines("gitwildmatch", ...). This fixes the
+original bug where `**/foo.bat` did not match a root-level `foo.bat`
+and aligns user-facing glob semantics with the gitignore semantics
+already used by the project.
+
+Inside search_files, candidate paths are normalised from `\` to `/`
+and on Windows both pattern and candidates are lower-cased to
+preserve the existing case-insensitive behaviour. _discover_files,
+list_directory, and the public signature of search_files are
+unchanged.
+
+Tests: 5 new contract tests in TestSearchFilesGlobOnly cover
+double-star at root, bare patterns matching at any depth, leading
+slash anchoring, * not crossing path separators in anchored patterns,
+and Windows case-insensitive matching.

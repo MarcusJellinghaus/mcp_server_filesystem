@@ -1,5 +1,6 @@
 """Tests for search_files glob-only, content search, and combined modes."""
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -56,6 +57,78 @@ class TestSearchFilesGlobOnly:
         assert len(result["files"]) == 3
         assert result["total_files"] == 10
         assert result["truncated"] is True
+
+    def test_double_star_matches_root_file(self, project_dir: Path) -> None:
+        """``**/foo.bat`` matches a root-level file (the original bug)."""
+        (project_dir / "foo.bat").write_text("@echo off\n")
+
+        result = search_files(project_dir, glob="**/foo.bat")
+
+        assert result["mode"] == "file_search"
+        matched_basenames = {Path(f).name for f in result["files"]}
+        assert "foo.bat" in matched_basenames
+
+    def test_bare_pattern_matches_at_any_depth(self, project_dir: Path) -> None:
+        """``*.py`` matches .py files at root and nested directories."""
+        (project_dir / "a.py").write_text("x = 1\n")
+        sub = project_dir / "sub"
+        sub.mkdir()
+        (sub / "b.py").write_text("y = 2\n")
+
+        result = search_files(project_dir, glob="*.py")
+
+        matched_basenames = {Path(f).name for f in result["files"]}
+        assert "a.py" in matched_basenames
+        assert "b.py" in matched_basenames
+
+    def test_leading_slash_anchors_to_root(self, project_dir: Path) -> None:
+        """``/foo.py`` anchors to project root and excludes nested files."""
+        (project_dir / "foo.py").write_text("x = 1\n")
+        sub = project_dir / "sub"
+        sub.mkdir()
+        (sub / "foo.py").write_text("y = 2\n")
+
+        result = search_files(project_dir, glob="/foo.py")
+
+        # Only the root foo.py should match, not sub/foo.py
+        assert len(result["files"]) == 1
+        matched = result["files"][0]
+        assert Path(matched).name == "foo.py"
+        assert "sub" not in Path(matched).parts
+
+    def test_star_does_not_cross_path_separator(self, project_dir: Path) -> None:
+        """In an anchored pattern, ``*`` matches one segment only — not across ``/``."""
+        a = project_dir / "a"
+        a.mkdir()
+        (a / "bfoo.py").write_text("y = 2\n")
+        nested = a / "x"
+        nested.mkdir()
+        (nested / "bfoo.py").write_text("z = 3\n")
+
+        # Anchored pattern: 'a/*foo.py' matches 'a/<one-segment>foo.py' only.
+        # Under fnmatch, '*' matched across '/' so 'a/x/bfoo.py' would also match.
+        result = search_files(project_dir, glob="a/*foo.py")
+
+        matched_paths = result["files"]
+        # 'a/bfoo.py' should match (single segment after 'a/').
+        assert any(
+            Path(f).name == "bfoo.py" and "x" not in Path(f).parts
+            for f in matched_paths
+        )
+        # 'a/x/bfoo.py' should NOT match — '*' must not cross '/'.
+        assert not any("x" in Path(f).parts for f in matched_paths)
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows-only")
+    def test_windows_case_insensitive_match_preserved(
+        self, project_dir: Path
+    ) -> None:
+        """On Windows, ``README.md`` matches ``readme.md`` (case-insensitive)."""
+        (project_dir / "readme.md").write_text("# docs\n")
+
+        result = search_files(project_dir, glob="README.md")
+
+        matched_basenames = {Path(f).name.lower() for f in result["files"]}
+        assert "readme.md" in matched_basenames
 
     def test_search_files_glob_respects_gitignore(self, project_dir: Path) -> None:
         """Files matching .gitignore patterns are excluded."""

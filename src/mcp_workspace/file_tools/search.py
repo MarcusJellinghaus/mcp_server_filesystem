@@ -1,9 +1,11 @@
 """File search utilities for glob matching and content searching."""
 
-import fnmatch
 import re
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+from pathspec import PathSpec
 
 from mcp_workspace.file_tools.directory_utils import list_files
 from mcp_workspace.file_tools.path_utils import normalize_path
@@ -95,7 +97,9 @@ def search_files(
 
     Args:
         project_dir: Project root directory.
-        glob: Glob pattern for file name matching (e.g. ``**/*.py``).
+        glob: Glob pattern (gitignore semantics). Examples:
+            ``*.py`` (any .py at any depth), ``tests/**/test_*.py``,
+            ``/README.md`` (root only).
         pattern: Python regex to match file contents. Invalid regex patterns
             are automatically treated as literal text.
             (e.g. "def foo", "TODO.*fix")
@@ -115,7 +119,15 @@ def search_files(
     all_files = list_files(".", project_dir=project_dir, use_gitignore=True)
 
     if glob is not None:
-        matched = [f for f in all_files if fnmatch.fnmatch(f, glob)]
+        win32 = sys.platform == "win32"
+        norm_glob = glob.lower() if win32 else glob
+        spec = PathSpec.from_lines("gitwildmatch", [norm_glob])
+
+        def _norm(p: str) -> str:
+            slashed = p.replace("\\", "/")
+            return slashed.lower() if win32 else slashed
+
+        matched = [f for f in all_files if spec.match_file(_norm(f))]
     else:
         matched = all_files
 
