@@ -64,3 +64,25 @@
 - pr_info/steps/Decisions.md — appended D7 and D8
 
 **Status**: changes applied, ready to commit
+
+## Round 4 — 2026-04-30
+
+**Findings**: No new findings. Round 3 changes verified in plan files (step_4 + step_5 token fingerprint fields and tests, step_7 base_url on generic-Exception branch and test, Decisions.md D7+D8). Issue-resolution check confirmed: plan routes `<tenant>.ghe.com` auth probe to `https://api.<tenant>.ghe.com`. Future-diagnosability check confirmed: DEBUG covers branch decision, API URL, status/body, diagnostic headers, token fingerprint at every probe site, plus raw-token strict negatives.
+
+**Decisions**: N/A — nothing to fix.
+
+**User decisions**: None requested.
+
+**Changes**: None.
+
+**Status**: no changes needed — loop exits.
+
+## Final Status
+
+- **Rounds run**: 4
+- **Commits produced**: 3
+  - 60fc93c — round-1 plan changes (token_fingerprint redesign, step 6/7 clarifications, Decisions.md D1–D6)
+  - 9711dcc — round-3 gap fixes (base_url in generic-Exception log, token fingerprint in step 4/5, D7+D8)
+  - (plus this commit — final log entry)
+- **External actions**: filed mcp-coder-utils#30 proposing shared token_fingerprint helper with `_mask_api_key` at p_coder/src/mcp_coder/llm/providers/langchain/verification.py:36 as the direct-replacement target
+- **Plan readiness**: ready for approval — bug fix verified against issue's `<tenant>.ghe.com` URL pattern; debug logging coverage sufficient for future GHE issue self-diagnosis
