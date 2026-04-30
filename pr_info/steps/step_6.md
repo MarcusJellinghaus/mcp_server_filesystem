@@ -64,6 +64,9 @@ api_base_url = identifier.api_base_url if identifier else "https://api.github.co
 if identifier:
     result["api_base_url"] = CheckResult(ok=True, value=api_base_url, severity="error")
 else:
+    # severity="warning" (not "error") so this entry does NOT poison overall_ok:
+    # the underlying error is already reported by result["repo_url"], and we do
+    # not want a missing identifier to be counted twice in the failure set.
     result["api_base_url"] = CheckResult(
         ok=False,
         value=f"{api_base_url} (fallback - identifier unresolved)",
@@ -96,15 +99,33 @@ except Exception as exc:
 
 ## Tests (extend test_verification.py)
 
-Update existing `_patch_all_ok` helper so the mocked identifier exposes both `https_url` AND `api_base_url`. New small helper:
+Update existing `_patch_all_ok` helper so the mocked identifier exposes both `https_url` AND `api_base_url`. New small helper takes `api_base_url` as an explicit parameter so the test does not depend on `hostname_to_api_base_url()` (production code) — if that helper's output changes, these tests must not break:
 
 ```python
-def _make_identifier(hostname="github.com", full_name="owner/repo") -> Mock:
+def _make_identifier(
+    hostname: str = "github.com",
+    full_name: str = "owner/repo",
+    api_base_url: str = "https://api.github.com",
+) -> Mock:
     m = Mock()
     m.https_url = f"https://{hostname}/{full_name}"
-    m.api_base_url = hostname_to_api_base_url(hostname)
+    m.api_base_url = api_base_url           # explicit, not derived
     m.full_name = full_name
     return m
+```
+
+Tests that need the GHE shape pass it directly, e.g.:
+
+```python
+identifier = _make_identifier(
+    hostname="tenant.ghe.com",
+    api_base_url="https://api.tenant.ghe.com",
+)
+# and for GHES:
+identifier = _make_identifier(
+    hostname="ghe.example.com",
+    api_base_url="https://ghe.example.com/api/v3",
+)
 ```
 
 New test classes:
@@ -115,6 +136,11 @@ New test classes:
 - `TestApiBaseUrlResultEntrySuccess`: `result["api_base_url"]["ok"] is True`, value matches identifier's API URL, `severity == "error"`.
 - `TestApiBaseUrlResultEntryFallback`: identifier `None` → `result["api_base_url"]["ok"] is False`, value contains `"fallback"`, `severity == "warning"`, `error` is set.
 - `TestApiBaseUrlIsFirstKey`: `next(iter(result.keys())) == "api_base_url"`.
-- `TestOverallOkNotPoisonedByFallback`: identifier `None` but auth + token still fail (existing behavior) — `overall_ok` stays `False` because of `repo_url` (not `api_base_url`); `api_base_url`'s `severity="warning"` ensures it is excluded from the error-set check.
+- `TestOverallOkNotPoisonedByFallback`: identifier `None` (auth + token can pass or fail — see explicit assertions below). The point is to prove that the `api_base_url` fallback entry does NOT cause `overall_ok=False`; the failure signal must come from `repo_url`. Concrete assertions:
+  - `result["overall_ok"]["ok"] is False`
+  - `result["repo_url"]["ok"] is False` and `result["repo_url"]["severity"] == "error"` (the contributing failure)
+  - `result["api_base_url"]["ok"] is False` (it is unhappy)
+  - `result["api_base_url"]["severity"] == "warning"` (but excluded from the overall_ok error set)
+  - Optional reinforcement: temporarily flip `repo_url` to `ok=True` in a sibling test variant (or mock the overall_ok aggregator inputs) and assert `overall_ok` is True even with `api_base_url.ok=False severity=warning` — proves the warning entry alone cannot poison overall_ok.
 
 Existing tests in `test_verification.py` that mock `identifier` need their mocks updated to also expose `api_base_url` (use the `_make_identifier` helper or set `.api_base_url` on existing `Mock()`).

@@ -15,7 +15,7 @@ The downstream consumer (`mcp-coder verify`) renders the new fields, so DEBUG is
 ### New utility helpers (small, single-purpose, pure)
 
 - **`mcp_workspace.github_operations._diagnostics`** — frozenset allow-list of 7 response headers + `extract_diagnostic_headers(exc)` helper. Three call-sites need the same allow-list and exception formatting; centralizing avoids drift. Underscore prefix marks it as package-private.
-- **`mcp_workspace.utils.token_fingerprint`** — `format_token_fingerprint(token)`: pure function, no I/O. Returns `<prefix>...XXXX, len=N` (or `<malformed>, len=N` for `len<8`). Local helper (not upstreamed) — acknowledged trade-off vs. the project's "no local workarounds" guideline; future upstreaming opportunity.
+- **`mcp_workspace.utils.token_fingerprint`** — `format_token_fingerprint(token)`: pure function, no I/O. Returns `<first4>...<last4>` for tokens with `len > 8`, `"****"` for `1 <= len <= 8`, and `""` for empty/None input. No hashing, no GitHub-family allow-list, no `len=N` suffix — the shape mirrors the existing `_mask_api_key` helper in `p_coder/src/mcp_coder/llm/providers/langchain/verification.py:36`. Local helper (not upstreamed) — acknowledged trade-off vs. the project's "no local workarounds" guideline; the upstream feature request that will replace this helper is filed at [mcp-coder-utils#30](https://github.com/MarcusJellinghaus/mcp-coder-utils/issues/30).
 
 ### Result-dict shape (`verify_github`)
 

@@ -13,6 +13,22 @@
 > until all pass. Commit with message:
 > `feat(utils): add token_fingerprint formatter for redacted token logs`.
 
+## Motivation
+
+A simple prefix+suffix shape (`abcd...wxyz`) was chosen over a SHA-256 +
+GitHub-family-prefix design because:
+
+- It aligns with the existing redaction helper `_mask_api_key` in
+  `p_coder/src/mcp_coder/llm/providers/langchain/verification.py:36`.
+- The same shape is the proposed upstream API at
+  [mcp-coder-utils#30](https://github.com/MarcusJellinghaus/mcp-coder-utils/issues/30),
+  which will eventually replace this local helper.
+- Operator recognition is the primary use case: a tail like `...a3f9` lets a
+  human recognize the token in support contexts. GitHub's UI itself displays
+  the last-4 publicly, so leaking it is consistent with established practice.
+- No hashing, no family allow-list, no `len=N` suffix — just the minimum needed
+  to make logs operator-readable while keeping the secret middle hidden.
+
 ## WHERE
 
 - **Create**: `src/mcp_workspace/utils/token_fingerprint.py`
@@ -21,11 +37,12 @@
 ## WHAT
 
 ```python
-def format_token_fingerprint(token: str) -> str:
-    """Return '<prefix>...XXXX, len=N' for known/unknown families.
+def format_token_fingerprint(token: str | None) -> str:
+    """Return '<first4>...<last4>' for tokens longer than 8 characters.
 
-    Malformed tokens (len < 8) return '<malformed>, len=N' with no token
-    characters exposed.
+    For short tokens (1..=8 characters) returns '****' so no characters of the
+    secret leak. For empty or None input returns '' (the consumer omits the
+    field when empty — see step 7).
     """
 ```
 
@@ -33,31 +50,41 @@ def format_token_fingerprint(token: str) -> str:
 
 - Pure function, no I/O, no logging.
 - No imports outside stdlib.
-- Lives in `mcp_workspace.utils` (leaf layer per `tach.toml`). Not exported via `utils/__init__.py` — direct module imports only.
+- No `hashlib` use.
+- Lives in `mcp_workspace.utils` (leaf layer per `tach.toml`). Not exported via
+  `utils/__init__.py` — direct module imports only.
 
 ## ALGORITHM
 
 ```
-KNOWN = ("github_pat_", "ghp_", "gho_", "ghu_", "ghs_", "ghr_")  # check longest first
-N = len(token)
-if N < 8: return f"<malformed>, len={N}"
-prefix = first matching KNOWN family, else token[:4] + "_"
-return f"{prefix}...{token[-4:]}, len={N}"
+if not token:           # None or empty string
+    return ""
+if len(token) > 8:
+    return f"{token[:4]}...{token[-4:]}"
+return "****"           # 1 <= len <= 8
 ```
 
 ## DATA
 
-- Input: any `str`
-- Output: `str` of the form `<prefix>...XXXX, len=N` or `<malformed>, len=N`
+- Input: `str | None`
+- Output: `str`
+  - empty/None → `""`
+  - length 1–8 → `"****"`
+  - length > 8 → `"<first4>...<last4>"`
 
 ## Tests (write first)
 
-- Classic PAT (`ghp_` + 36 chars) → `ghp_...{last4}, len=40`
-- Fine-grained PAT (`github_pat_` + 82 chars) → `github_pat_...{last4}, len=93`
-- Other known families: `gho_`, `ghu_`, `ghs_`, `ghr_`
-- Unknown family (e.g. `abcd1234...`) → `abcd_...{last4}, len=N`
-- Empty string → `<malformed>, len=0`
-- Length 7 → `<malformed>, len=7` (boundary)
-- Length 8 with unknown prefix → uses `<first4>_` form (boundary, not malformed)
-- **Strict negative**: for a token like `ghp_SECRET_MIDDLE_PART_ABC123xyz789a3f9`, the substring `SECRET_MIDDLE_PART` must NOT appear in the returned fingerprint
-- **Strict negative**: for malformed input `"abc"`, no character of `"abc"` appears in output
+- Classic PAT (`ghp_` + 36 chars, total len 40) → `"ghp_...{last4}"`
+- Fine-grained PAT (`github_pat_` + 82 chars, total len 93) → `"gith...{last4}"`
+- Generic long token (40 hex chars) → `"<first4>...<last4>"`
+- Length 9 (boundary, just over threshold) → `"<first4>...<last4>"`
+- Length 8 (boundary) → `"****"`
+- Length 1 → `"****"`
+- Empty string `""` → `""`
+- `None` → `""`
+- **Strict negative**: for a token like `ghp_SECRET_MIDDLE_PART_ABC123xyz789a3f9`,
+  the substring `SECRET_MIDDLE_PART` must NOT appear anywhere in the returned
+  fingerprint. (This is the load-bearing assertion that proves the helper does
+  not leak the raw token's middle.)
+- **Strict negative**: for short input `"abcdefgh"` (len 8), the output is
+  exactly `"****"` — none of `"abcdefgh"` appears in the output.

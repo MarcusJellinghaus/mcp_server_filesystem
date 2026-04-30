@@ -69,7 +69,8 @@ else:
     )
     if source is not None:
         token_check["token_source"] = source
-    token_check["token_fingerprint"] = format_token_fingerprint(token)   # NEW
+    if token:                                                            # NEW
+        token_check["token_fingerprint"] = format_token_fingerprint(token)
     result["token_configured"] = token_check
 ```
 
@@ -78,7 +79,7 @@ else:
 - New imports in `verification.py`:
   - `from mcp_workspace.github_operations._diagnostics import extract_diagnostic_headers`
   - `from mcp_workspace.utils.token_fingerprint import format_token_fingerprint`
-- The `token_fingerprint` is populated only when `token is not None` (mirrors `token_source`).
+- The `token_fingerprint` is populated only when `token` is truthy (mirrors `token_source`); for `token=None` or empty-string the field is omitted from the `token_configured` `CheckResult`. The helper itself returns `""` for empty/None input — `verify_github` must skip the assignment in that case rather than store an empty string.
 - The `GithubException` `except` clause must catch `github.GithubException` specifically — `from github.GithubException import GithubException` is already imported.
 
 ## ALGORITHM
@@ -95,8 +96,9 @@ except Exception as exc:
     logger.debug("verify_github auth probe error: %s", exc)
     result["authenticated_user"] = CheckResult(ok=False, value="authentication failed", severity="error", error=str(exc))
 
-# In token-configured branch (when token is not None):
-token_check["token_fingerprint"] = format_token_fingerprint(token)
+# In token-configured branch (only when token is truthy):
+if token:
+    token_check["token_fingerprint"] = format_token_fingerprint(token)
 ```
 
 ## DATA
@@ -110,9 +112,9 @@ token_check["token_fingerprint"] = format_token_fingerprint(token)
 Set `caplog.set_level(logging.DEBUG, logger="mcp_workspace.github_operations.verification")`.
 
 - `TestTokenFingerprintPopulated`:
-  - All-OK run with token `"ghp_testtoken_abcdef..."` → `result["token_configured"]["token_fingerprint"]` starts with `"ghp_..."`
+  - All-OK run with token `"ghp_testtoken_abcdef_longer_than_8_xyz9"` → `result["token_configured"]["token_fingerprint"]` equals `"ghp_...xyz9"` (i.e. matches the new prefix+suffix shape: starts with `"ghp_..."`, ends with the token's last 4 characters, contains no `len=N` suffix and no SHA digest)
   - Auth-probe failure with token loaded → `token_fingerprint` STILL populated on `token_configured`
-  - No token loaded (`token=None`) → `"token_fingerprint" not in result["token_configured"]`
+  - No token loaded (`token=None`) → `"token_fingerprint" not in result["token_configured"]` (the helper returns `""` for empty/None and the consumer omits the field when empty)
 
 - `TestAuthProbeDebugGithubException`:
   - Mock `get_user()` to raise `GithubException(401, {"message": "Bad credentials"}, headers={"X-GitHub-Request-Id": "abc"})`
@@ -127,8 +129,8 @@ Set `caplog.set_level(logging.DEBUG, logger="mcp_workspace.github_operations.ver
   - `"connection reset by peer" in caplog.text`
   - `"status=" not in caplog.text` (rich-DEBUG branch did not fire)
 
-- `TestRawTokenNotLogged` (strict negative):
+- `TestRawTokenNotLogged` (strict negative — covers all three code paths):
   - Configured token: `"ghp_RAW_SECRET_TOKEN_VALUE_FOR_TEST_xyz"`
-  - Trigger 401 GithubException
-  - `"RAW_SECRET_TOKEN_VALUE_FOR_TEST" not in caplog.text`
-  - Trigger generic Exception path → same negative
+  - **Failure path A — `GithubException`**: trigger 401 GithubException → `"RAW_SECRET_TOKEN_VALUE_FOR_TEST" not in caplog.text` AND not in `repr(result)` AND not in any `CheckResult` `value`/`error` field of `result`.
+  - **Failure path B — generic `Exception`**: trigger `RuntimeError("connection reset")` → same negatives as path A.
+  - **Success path** (NEW): auth probe succeeds (mock `get_user()` returns a user object normally) → `"RAW_SECRET_TOKEN_VALUE_FOR_TEST" not in caplog.text` AND not in `repr(result)` AND not in any `CheckResult` `value`/`error` field of `result`. This is the load-bearing assertion that proves the new prefix+suffix `format_token_fingerprint` helper, when its output is stored in `token_configured.token_fingerprint`, does not accidentally leak the raw token into the structured result on the happy path. (`result["token_configured"]["token_fingerprint"]` should equal `"ghp_..._xyz"` — only the first-4 + last-4, no middle.)
