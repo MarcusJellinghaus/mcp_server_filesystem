@@ -1,9 +1,11 @@
 """Unit tests for verify_github() connectivity and branch protection checks."""
 
+import logging
 from pathlib import Path
 from typing import Literal
 from unittest.mock import Mock, patch
 
+import pytest
 from github.GithubException import GithubException
 
 from mcp_workspace.github_operations.verification import CheckResult, verify_github
@@ -850,3 +852,204 @@ class TestOverallOkNotPoisonedByFallback:
         api_base: CheckResult = result["api_base_url"]  # type: ignore[assignment]
         assert api_base["ok"] is False
         assert api_base["severity"] == "warning"
+
+
+
+# ===================================================================
+# Step 7: token_fingerprint + auth-probe DEBUG logging
+# ===================================================================
+
+
+_FINGERPRINT_TOKEN = "ghp_testtoken_abcdef_longer_than_8_xyz9"
+_RAW_SECRET_TOKEN = "ghp_RAW_SECRET_TOKEN_VALUE_FOR_TEST_xyz"
+_RAW_SECRET_SUBSTR = "RAW_SECRET_TOKEN_VALUE_FOR_TEST"
+
+
+def _patch_with_token_and_auth_behavior(
+    project_dir: Path,
+    *,
+    token: str | None,
+    get_user_side_effect: Exception | None,
+    identifier: Mock | None,
+) -> dict[str, object]:
+    """Run verify_github with explicit token and auth-probe behavior."""
+    mock_user = Mock()
+    mock_user.login = "testuser"
+
+    mock_github_client = Mock()
+    if get_user_side_effect is not None:
+        mock_github_client.get_user.side_effect = get_user_side_effect
+        mock_github_client.oauth_scopes = None
+    else:
+        mock_github_client.get_user.return_value = mock_user
+        mock_github_client.oauth_scopes = ["repo"]
+
+    mock_repo = Mock()
+    mock_repo.full_name = "owner/repo"
+    mock_repo.delete_branch_on_merge = True
+    mock_branch = Mock()
+    mock_branch.get_protection.return_value = _make_mock_protection()
+    mock_repo.get_branch.return_value = mock_branch
+
+    with (
+        patch(
+            f"{MODULE}.get_github_token_with_source",
+            return_value=(token, "env" if token is not None else None),
+        ),
+        patch(f"{MODULE}.Github", return_value=mock_github_client),
+        patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
+        patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
+    ):
+        if identifier is None or token is None:
+            mock_mgr_cls.side_effect = ValueError("no")
+        else:
+            mock_manager = Mock()
+            mock_manager._get_repository.return_value = mock_repo
+            mock_manager.get_default_branch.return_value = "main"
+            mock_mgr_cls.return_value = mock_manager
+        return verify_github(project_dir)
+
+
+class TestTokenFingerprintPopulated:
+    """token_fingerprint is populated whenever a token loaded."""
+
+    def test_fingerprint_on_success(self, tmp_path: Path) -> None:
+        identifier = _make_identifier()
+        result = _patch_with_token_and_auth_behavior(
+            tmp_path,
+            token=_FINGERPRINT_TOKEN,
+            get_user_side_effect=None,
+            identifier=identifier,
+        )
+        check: CheckResult = result["token_configured"]  # type: ignore[assignment]
+        assert "token_fingerprint" in check
+        assert check["token_fingerprint"] == "ghp_...xyz9"
+        # No len=N suffix and no SHA digest in the fingerprint shape
+        assert "len=" not in check["token_fingerprint"]
+
+    def test_fingerprint_on_auth_failure(self, tmp_path: Path) -> None:
+        result = _patch_with_token_and_auth_behavior(
+            tmp_path,
+            token=_FINGERPRINT_TOKEN,
+            get_user_side_effect=GithubException(
+                status=401, data={"message": "Bad credentials"}, headers={}
+            ),
+            identifier=None,
+        )
+        check: CheckResult = result["token_configured"]  # type: ignore[assignment]
+        assert check["token_fingerprint"] == "ghp_...xyz9"
+
+    def test_fingerprint_omitted_when_no_token(self, tmp_path: Path) -> None:
+        result = _patch_with_token_and_auth_behavior(
+            tmp_path,
+            token=None,
+            get_user_side_effect=Exception("no token"),
+            identifier=None,
+        )
+        check: CheckResult = result["token_configured"]  # type: ignore[assignment]
+        assert "token_fingerprint" not in check
+
+
+class TestAuthProbeDebugGithubException:
+    """DEBUG log on auth probe GithubException carries status/data/headers/base_url/token fingerprint."""
+
+    def test_debug_log_content(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        caplog.set_level(logging.DEBUG, logger=MODULE)
+        identifier = _make_identifier()
+        _patch_with_token_and_auth_behavior(
+            tmp_path,
+            token=_FINGERPRINT_TOKEN,
+            get_user_side_effect=GithubException(
+                status=401,
+                data={"message": "Bad credentials"},
+                headers={"X-GitHub-Request-Id": "abc"},
+            ),
+            identifier=identifier,
+        )
+        assert "status=401" in caplog.text
+        assert "Bad credentials" in caplog.text
+        assert "X-GitHub-Request-Id" in caplog.text
+        assert "base_url=" in caplog.text
+        assert "token=ghp_..." in caplog.text
+
+
+class TestAuthProbeDebugGenericException:
+    """DEBUG log on auth probe generic Exception logs base_url and the exception message."""
+
+    def test_debug_log_content(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        caplog.set_level(logging.DEBUG, logger=MODULE)
+        identifier = _make_identifier()
+        _patch_with_token_and_auth_behavior(
+            tmp_path,
+            token=_FINGERPRINT_TOKEN,
+            get_user_side_effect=RuntimeError("connection reset by peer"),
+            identifier=identifier,
+        )
+        assert "connection reset by peer" in caplog.text
+        assert "base_url=" in caplog.text
+        # rich-DEBUG branch did not fire
+        assert "status=" not in caplog.text
+
+
+class TestRawTokenNotLogged:
+    """Raw token must never appear in logs or in the result dict on any path."""
+
+    @staticmethod
+    def _assert_token_not_in_result(result: dict[str, object]) -> None:
+        assert _RAW_SECRET_SUBSTR not in repr(result)
+        for v in result.values():
+            if isinstance(v, dict):
+                if "value" in v:
+                    assert _RAW_SECRET_SUBSTR not in str(v["value"])
+                if "error" in v:
+                    assert _RAW_SECRET_SUBSTR not in str(v["error"])
+
+    def test_failure_path_github_exception(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        caplog.set_level(logging.DEBUG, logger=MODULE)
+        identifier = _make_identifier()
+        result = _patch_with_token_and_auth_behavior(
+            tmp_path,
+            token=_RAW_SECRET_TOKEN,
+            get_user_side_effect=GithubException(
+                status=401, data={"message": "Bad credentials"}, headers={}
+            ),
+            identifier=identifier,
+        )
+        assert _RAW_SECRET_SUBSTR not in caplog.text
+        self._assert_token_not_in_result(result)
+
+    def test_failure_path_generic_exception(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        caplog.set_level(logging.DEBUG, logger=MODULE)
+        identifier = _make_identifier()
+        result = _patch_with_token_and_auth_behavior(
+            tmp_path,
+            token=_RAW_SECRET_TOKEN,
+            get_user_side_effect=RuntimeError("connection reset"),
+            identifier=identifier,
+        )
+        assert _RAW_SECRET_SUBSTR not in caplog.text
+        self._assert_token_not_in_result(result)
+
+    def test_success_path(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        caplog.set_level(logging.DEBUG, logger=MODULE)
+        identifier = _make_identifier()
+        result = _patch_with_token_and_auth_behavior(
+            tmp_path,
+            token=_RAW_SECRET_TOKEN,
+            get_user_side_effect=None,
+            identifier=identifier,
+        )
+        assert _RAW_SECRET_SUBSTR not in caplog.text
+        self._assert_token_not_in_result(result)
+        token_check: CheckResult = result["token_configured"]  # type: ignore[assignment]
+        assert token_check["token_fingerprint"] == "ghp_..._xyz"

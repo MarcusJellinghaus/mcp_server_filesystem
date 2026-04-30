@@ -13,7 +13,9 @@ from github.GithubException import GithubException
 
 from mcp_workspace.config import get_github_token_with_source
 from mcp_workspace.git_operations.remotes import get_repository_identifier
+from mcp_workspace.github_operations._diagnostics import extract_diagnostic_headers
 from mcp_workspace.github_operations.base_manager import BaseGitHubManager
+from mcp_workspace.utils.token_fingerprint import format_token_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +29,7 @@ class CheckResult(TypedDict):
     error: NotRequired[str]
     install_hint: NotRequired[str]
     token_source: NotRequired[Literal["env", "config"]]
+    token_fingerprint: NotRequired[str]
 
 
 def verify_github(project_dir: Path) -> dict[str, object]:
@@ -87,8 +90,27 @@ def verify_github(project_dir: Path) -> dict[str, object]:
         scopes = github_client.oauth_scopes
         if scopes is not None:
             scope_str = ", ".join(scopes) if scopes else "none"
+    except GithubException as e:
+        logger.debug(
+            "verify_github auth probe GithubException base_url=%s status=%s data=%s headers=%s token=%s",
+            api_base_url,
+            e.status,
+            e.data,
+            extract_diagnostic_headers(e),
+            format_token_fingerprint(token) if token else "<none>",
+        )
+        result["authenticated_user"] = CheckResult(
+            ok=False,
+            value="authentication failed",
+            severity="error",
+            error=str(e),
+        )
     except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
-        logger.debug("Authentication check failed: %s", exc)
+        logger.debug(
+            "verify_github auth probe Exception base_url=%s exc=%s",
+            api_base_url,
+            exc,
+        )
         result["authenticated_user"] = CheckResult(
             ok=False,
             value="authentication failed",
@@ -115,6 +137,10 @@ def verify_github(project_dir: Path) -> dict[str, object]:
         )
         if source is not None:
             token_check["token_source"] = source
+        if token:
+            fingerprint = format_token_fingerprint(token)
+            if fingerprint:
+                token_check["token_fingerprint"] = fingerprint
         result["token_configured"] = token_check
 
     # ------------------------------------------------------------------
