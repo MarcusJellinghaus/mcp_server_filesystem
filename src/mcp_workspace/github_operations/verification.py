@@ -13,7 +13,9 @@ from github.GithubException import GithubException
 
 from mcp_workspace.config import get_github_token_with_source
 from mcp_workspace.git_operations.remotes import get_repository_identifier
+from mcp_workspace.github_operations._diagnostics import extract_diagnostic_headers
 from mcp_workspace.github_operations.base_manager import BaseGitHubManager
+from mcp_workspace.utils.token_fingerprint import format_token_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +29,7 @@ class CheckResult(TypedDict):
     error: NotRequired[str]
     install_hint: NotRequired[str]
     token_source: NotRequired[Literal["env", "config"]]
+    token_fingerprint: NotRequired[str]
 
 
 def verify_github(project_dir: Path) -> dict[str, object]:
@@ -43,13 +46,41 @@ def verify_github(project_dir: Path) -> dict[str, object]:
     """
     result: dict[str, object] = {}
 
+    token, source = get_github_token_with_source()
+
+    # ------------------------------------------------------------------
+    # Resolve repository identifier first — auth probe needs api_base_url.
+    # ------------------------------------------------------------------
+    try:
+        identifier = get_repository_identifier(project_dir)
+    except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+        logger.debug("Repository identifier lookup failed: %s", exc)
+        identifier = None
+
+    api_base_url = (
+        identifier.api_base_url if identifier is not None else "https://api.github.com"
+    )
+
+    if identifier is not None:
+        result["api_base_url"] = CheckResult(
+            ok=True,
+            value=api_base_url,
+            severity="error",
+        )
+    else:
+        result["api_base_url"] = CheckResult(
+            ok=False,
+            value=f"{api_base_url} (fallback - identifier unresolved)",
+            severity="warning",
+            error="Could not determine repository URL from git remote",
+        )
+
     # ------------------------------------------------------------------
     # Checks 1 & 2: token configured + authenticated user
     # ------------------------------------------------------------------
-    token, source = get_github_token_with_source()
     scope_str: str | None = None
     try:
-        github_client = Github(auth=Auth.Token(token))  # type: ignore[arg-type]
+        github_client = Github(auth=Auth.Token(token), base_url=api_base_url)  # type: ignore[arg-type]
         user = github_client.get_user()
         result["authenticated_user"] = CheckResult(
             ok=True,
@@ -59,8 +90,27 @@ def verify_github(project_dir: Path) -> dict[str, object]:
         scopes = github_client.oauth_scopes
         if scopes is not None:
             scope_str = ", ".join(scopes) if scopes else "none"
+    except GithubException as e:
+        logger.debug(
+            "verify_github auth probe GithubException base_url=%s status=%s data=%s headers=%s token=%s",
+            api_base_url,
+            e.status,
+            e.data,
+            extract_diagnostic_headers(e),
+            format_token_fingerprint(token) if token else "<none>",
+        )
+        result["authenticated_user"] = CheckResult(
+            ok=False,
+            value="authentication failed",
+            severity="error",
+            error=str(e),
+        )
     except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
-        logger.debug("Authentication check failed: %s", exc)
+        logger.debug(
+            "verify_github auth probe Exception base_url=%s exc=%s",
+            api_base_url,
+            exc,
+        )
         result["authenticated_user"] = CheckResult(
             ok=False,
             value="authentication failed",
@@ -87,17 +137,14 @@ def verify_github(project_dir: Path) -> dict[str, object]:
         )
         if source is not None:
             token_check["token_source"] = source
+        fingerprint = format_token_fingerprint(token)
+        if fingerprint:
+            token_check["token_fingerprint"] = fingerprint
         result["token_configured"] = token_check
 
     # ------------------------------------------------------------------
     # Check 3: repository URL resolvable
     # ------------------------------------------------------------------
-    try:
-        identifier = get_repository_identifier(project_dir)
-    except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
-        logger.debug("Repository identifier lookup failed: %s", exc)
-        identifier = None
-
     if identifier is not None:
         result["repo_url"] = CheckResult(
             ok=True,

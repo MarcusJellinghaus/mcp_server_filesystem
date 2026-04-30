@@ -1,5 +1,7 @@
 """Tests for RepoIdentifier class and hostname_to_api_base_url()."""
 
+import logging
+
 import pytest
 
 from mcp_workspace.utils.repo_identifier import (
@@ -202,3 +204,37 @@ class TestHostnameToApiBaseUrl:
         """Test RepoIdentifier.api_base_url propagates the *.ghe.com fix."""
         repo = RepoIdentifier(owner="o", repo_name="r", hostname="tenant.ghe.com")
         assert repo.api_base_url == "https://api.tenant.ghe.com"
+
+
+class TestHostnameToApiBaseUrlDebugLogging:
+    """Test DEBUG logging output of hostname_to_api_base_url()."""
+
+    def test_github_com_debug_log(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test github.com branch emits DEBUG with branch and URL."""
+        caplog.set_level(logging.DEBUG, logger="mcp_workspace.utils.repo_identifier")
+        hostname_to_api_base_url("github.com")
+        assert "branch=github.com" in caplog.text
+        assert "url=https://api.github.com" in caplog.text
+
+    def test_ghe_cloud_debug_log(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test *.ghe.com branch emits DEBUG with branch and URL."""
+        caplog.set_level(logging.DEBUG, logger="mcp_workspace.utils.repo_identifier")
+        hostname_to_api_base_url("tenant.ghe.com")
+        assert "branch=ghe.com" in caplog.text
+        assert "url=https://api.tenant.ghe.com" in caplog.text
+
+    def test_ghes_fallback_debug_log(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test GHES fallback branch emits DEBUG with branch and URL."""
+        caplog.set_level(logging.DEBUG, logger="mcp_workspace.utils.repo_identifier")
+        hostname_to_api_base_url("ghe.corp.com")
+        assert "branch=ghes-fallback" in caplog.text
+        assert "url=https://ghe.corp.com/api/v3" in caplog.text
+
+    def test_mixed_case_input_normalized_in_debug(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test mixed-case input shows both raw and normalized forms in DEBUG."""
+        caplog.set_level(logging.DEBUG, logger="mcp_workspace.utils.repo_identifier")
+        hostname_to_api_base_url("GitHub.com")
+        assert "input=GitHub.com" in caplog.text
+        assert "normalized=github.com" in caplog.text
