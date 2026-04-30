@@ -119,9 +119,7 @@ class TestSearchFilesGlobOnly:
         assert not any("x" in Path(f).parts for f in matched_paths)
 
     @pytest.mark.skipif(sys.platform != "win32", reason="Windows-only")
-    def test_windows_case_insensitive_match_preserved(
-        self, project_dir: Path
-    ) -> None:
+    def test_windows_case_insensitive_match_preserved(self, project_dir: Path) -> None:
         """On Windows, ``README.md`` matches ``readme.md`` (case-insensitive)."""
         (project_dir / "readme.md").write_text("# docs\n")
 
