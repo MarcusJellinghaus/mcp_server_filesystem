@@ -8,8 +8,10 @@
 > `token_configured`. Three coupled additions to one function, in one commit:
 >
 > 1. Split the auth-probe `except Exception` into
->    `except GithubException` (rich DEBUG via `_diagnostics`) and
->    `except Exception` (plain `str(exc)` DEBUG).
+>    `except GithubException` (rich DEBUG via `_diagnostics`, includes
+>    `base_url` and `token` fingerprint) and `except Exception` (DEBUG with
+>    `base_url` and `str(exc)` so SSL/network failures on GHE hosts are
+>    diagnosable).
 > 2. Extend the `CheckResult` TypedDict with `token_fingerprint: NotRequired[str]`.
 > 3. Populate `token_fingerprint` on `result["token_configured"]` whenever a
 >    token loaded (success or failure of auth probe).
@@ -55,7 +57,11 @@ except GithubException as e:
     )
     result["authenticated_user"] = CheckResult(ok=False, value="authentication failed", severity="error", error=str(e))
 except Exception as exc:
-    logger.debug("verify_github auth probe error: %s", exc)
+    logger.debug(
+        "verify_github auth probe Exception base_url=%s exc=%s",
+        api_base_url,
+        exc,
+    )
     result["authenticated_user"] = CheckResult(ok=False, value="authentication failed", severity="error", error=str(exc))
 ```
 
@@ -93,7 +99,7 @@ except GithubException as e:
                  format_token_fingerprint(token) if token else "<none>")
     result["authenticated_user"] = CheckResult(ok=False, value="authentication failed", severity="error", error=str(e))
 except Exception as exc:
-    logger.debug("verify_github auth probe error: %s", exc)
+    logger.debug("verify_github auth probe Exception base_url=%s exc=%s", api_base_url, exc)
     result["authenticated_user"] = CheckResult(ok=False, value="authentication failed", severity="error", error=str(exc))
 
 # In token-configured branch (only when token is truthy):
@@ -125,8 +131,9 @@ Set `caplog.set_level(logging.DEBUG, logger="mcp_workspace.github_operations.ver
   - `"token=ghp_..." in caplog.text` (fingerprint, not raw)
 
 - `TestAuthProbeDebugGenericException`:
-  - Mock `get_user()` to raise `RuntimeError("connection reset by peer")`
+  - Mock `get_user()` to raise `RuntimeError("connection reset by peer")` (simulates SSL/network failure on a GHE host)
   - `"connection reset by peer" in caplog.text`
+  - `"base_url=" in caplog.text` (proves the generic-Exception branch logs `api_base_url` so GHE diagnosis is possible from logs alone)
   - `"status=" not in caplog.text` (rich-DEBUG branch did not fire)
 
 - `TestRawTokenNotLogged` (strict negative — covers all three code paths):

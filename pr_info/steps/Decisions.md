@@ -68,3 +68,9 @@ returned `result` dict. Confirms the new prefix+suffix
 via `token_configured.token_fingerprint` on the happy path.
 
 **Affects:** `step_7.md` test list.
+
+## D7 — Gap A: include base_url in generic-Exception auth-probe log
+Surface api_base_url in verify_github's except Exception branch so SSL/network failures on GHE hosts are diagnosable from logs alone. base_url is known at that site; adding it is a one-arg change.
+
+## D8 — Gap B: include token fingerprint in step 4/5 DEBUG logs
+Add format_token_fingerprint(self._token) to BaseGitHubManager._get_repository and get_authenticated_username DEBUG logs on GithubException. Lets operators with multiple configured tokens (env, .env, CI) disambiguate which token was used per failure. Strict raw-token negatives already in place cover the safety side.

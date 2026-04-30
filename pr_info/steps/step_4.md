@@ -24,7 +24,8 @@
 
 - Inside `_get_repository()`'s `except GithubException as e:` block, add **one**
   `logger.debug(...)` call (in addition to the existing `logger.error(...)`).
-- Log fields: `e.status`, `e.data`, allow-listed headers, `full_name`, `api_base_url`.
+- Log fields: `e.status`, `e.data`, allow-listed headers, `full_name`, `api_base_url`,
+  `token` (fingerprint of `self.github_token`).
 
 Signature unchanged:
 ```python
@@ -35,21 +36,24 @@ def _get_repository(self) -> Optional[Repository]: ...
 ## HOW
 
 - Add: `from mcp_workspace.github_operations._diagnostics import extract_diagnostic_headers`
+- Add: `from mcp_workspace.utils.token_fingerprint import format_token_fingerprint`
 - Within `except GithubException as e:` (before the existing 404-vs-other branching that emits ERROR):
   ```python
   logger.debug(
-      "_get_repository GithubException status=%s data=%s headers=%s full_name=%s api_base_url=%s",
+      "_get_repository GithubException status=%s data=%s headers=%s full_name=%s api_base_url=%s token=%s",
       e.status, e.data, extract_diagnostic_headers(e),
       self._repo_identifier.full_name, self._repo_identifier.api_base_url,
+      format_token_fingerprint(self.github_token) if self.github_token else "<none>",
   )
   ```
 - Order: emit DEBUG **before** the existing 404/other ERROR branch, so DEBUG is always emitted regardless of status.
+- The manager's token attribute is `self.github_token` (set in `__init__` after token resolution).
 
 ## ALGORITHM
 
 ```
 except GithubException as e:
-    logger.debug("_get_repository ... status=... data=... headers=... full_name=... api_base_url=...")
+    logger.debug("_get_repository ... status=... data=... headers=... full_name=... api_base_url=... token=...")
     repo_url = self._repo_identifier.https_url
     if e.status == 404:
         logger.error("Repository not found: %s ...", repo_url)
@@ -75,6 +79,7 @@ Set `caplog.set_level(logging.DEBUG, logger="mcp_workspace.github_operations.bas
   - `"WWW-Authenticate" in caplog.text`
   - `"full_name=" in caplog.text`
   - `"api_base_url=" in caplog.text`
+  - `"token=ghp_..." in caplog.text` (fingerprint of configured token, not raw)
 - 404 GithubException → DEBUG emitted with `status=404`, **and** existing ERROR for "Repository not found" remains
 - 500 GithubException with non-allow-listed `Set-Cookie` header → `caplog.text` does NOT contain `"Set-Cookie"`
-- **Strict negative**: token `"ghp_RAW_SECRET_TOKEN_VALUE_FOR_TEST_xyz"` configured on manager; on 401 GithubException, raw token substring NOT in `caplog.text`
+- **Strict negative**: token `"ghp_RAW_SECRET_TOKEN_VALUE_FOR_TEST_xyz"` configured on manager; on 401 GithubException, raw token substring NOT in `caplog.text` (the fingerprint `ghp_..._xyz` IS present, but the full raw middle is not).

@@ -47,9 +47,20 @@
 
 **Status**: no changes needed — loop exits.
 
-## Final Status
+## Round 3 — 2026-04-30
 
-- **Rounds run**: 2
-- **Commits produced**: 1 (round-1 plan changes — hash 60fc93c)
-- **External actions**: filed upstream feature request mcp-coder-utils#30
-- **Plan readiness**: ready for approval
+**Findings**: User-driven verification surfaced two diagnostic gaps:
+- Gap A: step 7's generic-Exception auth-probe branch omitted base_url, leaving SSL/network failures on GHE hosts non-diagnosable from logs alone
+- Gap B: step 4 and step 5 DEBUG failure logs omitted token fingerprint, preventing operators with multiple configured tokens from disambiguating per-failure
+
+**Decisions**: Both accepted (auto-fix). Logged as D7 and D8 in Decisions.md.
+
+**User decisions**: Q3 — close both gaps (option A).
+
+**Changes**:
+- pr_info/steps/step_7.md — added base_url=%s to except Exception branch + new caplog test
+- pr_info/steps/step_4.md — added token=%s to _get_repository GithubException log + import + test
+- pr_info/steps/step_5.md — added token=%s to get_authenticated_username GithubException log + import + test
+- pr_info/steps/Decisions.md — appended D7 and D8
+
+**Status**: changes applied, ready to commit

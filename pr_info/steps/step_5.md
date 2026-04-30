@@ -27,13 +27,15 @@ def get_authenticated_username(hostname: Optional[str] = None) -> str:
 ```
 
 Internally split the existing broad `except Exception` into:
-- `except GithubException as e:` → DEBUG-log status, data, allow-listed headers, `base_url`; re-raise as `ValueError(f"Failed to authenticate with GitHub: {e}")`
+- `except GithubException as e:` → DEBUG-log status, data, allow-listed headers, `base_url`, `token` (fingerprint of `raw_token`); re-raise as `ValueError(f"Failed to authenticate with GitHub: {e}")`
 - `except Exception as e:` → unchanged: re-raise as `ValueError(...)` (no rich DEBUG — network/SSL errors lack status/data/headers)
 
 ## HOW
 
 - Reuse the existing import added in Step 4: `from mcp_workspace.github_operations._diagnostics import extract_diagnostic_headers`.
+- Reuse the existing import added in Step 4: `from mcp_workspace.utils.token_fingerprint import format_token_fingerprint`.
 - The `ValueError` re-raise message format must remain compatible with existing callers / tests — preserve `"Failed to authenticate with GitHub: {e}"`.
+- `get_authenticated_username()` is module-scope (not a method); the token is the local `raw_token` variable, so the fingerprint argument is `format_token_fingerprint(raw_token) if raw_token else "<none>"`.
 
 ## ALGORITHM
 
@@ -43,8 +45,9 @@ try:
     github_client = Github(auth=Auth.Token(raw_token), base_url=base_url)
     return github_client.get_user().login
 except GithubException as e:
-    logger.debug("get_authenticated_username GithubException status=%s data=%s headers=%s base_url=%s",
-                 e.status, e.data, extract_diagnostic_headers(e), base_url)
+    logger.debug("get_authenticated_username GithubException status=%s data=%s headers=%s base_url=%s token=%s",
+                 e.status, e.data, extract_diagnostic_headers(e), base_url,
+                 format_token_fingerprint(raw_token) if raw_token else "<none>")
     raise ValueError(f"Failed to authenticate with GitHub: {e}") from e
 except Exception as e:
     raise ValueError(f"Failed to authenticate with GitHub: {e}") from e
@@ -67,5 +70,6 @@ Set `caplog.set_level(logging.DEBUG, logger="mcp_workspace.github_operations.bas
 - `"Bad credentials" in caplog.text`
 - `"X-GitHub-Request-Id" in caplog.text`
 - `"base_url=" in caplog.text`
+- `"token=ghp_..." in caplog.text` (fingerprint of configured token, not raw)
 - Generic `RuntimeError("connection reset")` → `ValueError` raised with same message format; **no** rich DEBUG content emitted (the GithubException-only DEBUG line not present)
-- **Strict negative**: configured token `"ghp_RAW_SECRET_..."` not in `caplog.text` after 401
+- **Strict negative**: configured token `"ghp_RAW_SECRET_..."` not in `caplog.text` after 401 (the fingerprint `ghp_..._xyz` IS present, but the full raw middle is not).
