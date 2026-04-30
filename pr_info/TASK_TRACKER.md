@@ -59,9 +59,9 @@ See [step_5.md](./steps/step_5.md) for details.
 ### Step 6: `verify_github` bug fix — identifier-first order, `base_url` to auth probe, `api_base_url` result entry
 See [step_6.md](./steps/step_6.md) for details.
 
-- [ ] Implementation (tests + production code)
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
-- [ ] Commit message prepared
+- [x] Implementation (tests + production code)
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Commit message prepared
 
 ### Step 7: `verify_github` diagnostics — split-except, DEBUG, `token_fingerprint` field
 See [step_7.md](./steps/step_7.md) for details.

@@ -43,13 +43,41 @@ def verify_github(project_dir: Path) -> dict[str, object]:
     """
     result: dict[str, object] = {}
 
+    token, source = get_github_token_with_source()
+
+    # ------------------------------------------------------------------
+    # Resolve repository identifier first — auth probe needs api_base_url.
+    # ------------------------------------------------------------------
+    try:
+        identifier = get_repository_identifier(project_dir)
+    except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+        logger.debug("Repository identifier lookup failed: %s", exc)
+        identifier = None
+
+    api_base_url = (
+        identifier.api_base_url if identifier is not None else "https://api.github.com"
+    )
+
+    if identifier is not None:
+        result["api_base_url"] = CheckResult(
+            ok=True,
+            value=api_base_url,
+            severity="error",
+        )
+    else:
+        result["api_base_url"] = CheckResult(
+            ok=False,
+            value=f"{api_base_url} (fallback - identifier unresolved)",
+            severity="warning",
+            error="Could not determine repository URL from git remote",
+        )
+
     # ------------------------------------------------------------------
     # Checks 1 & 2: token configured + authenticated user
     # ------------------------------------------------------------------
-    token, source = get_github_token_with_source()
     scope_str: str | None = None
     try:
-        github_client = Github(auth=Auth.Token(token))  # type: ignore[arg-type]
+        github_client = Github(auth=Auth.Token(token), base_url=api_base_url)  # type: ignore[arg-type]
         user = github_client.get_user()
         result["authenticated_user"] = CheckResult(
             ok=True,
@@ -92,12 +120,6 @@ def verify_github(project_dir: Path) -> dict[str, object]:
     # ------------------------------------------------------------------
     # Check 3: repository URL resolvable
     # ------------------------------------------------------------------
-    try:
-        identifier = get_repository_identifier(project_dir)
-    except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
-        logger.debug("Repository identifier lookup failed: %s", exc)
-        identifier = None
-
     if identifier is not None:
         result["repo_url"] = CheckResult(
             ok=True,

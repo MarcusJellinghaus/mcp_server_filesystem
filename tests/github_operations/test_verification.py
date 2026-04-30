@@ -11,6 +11,19 @@ from mcp_workspace.github_operations.verification import CheckResult, verify_git
 MODULE = "mcp_workspace.github_operations.verification"
 
 
+def _make_identifier(
+    hostname: str = "github.com",
+    full_name: str = "owner/repo",
+    api_base_url: str = "https://api.github.com",
+) -> Mock:
+    """Build a mock RepositoryIdentifier with explicit api_base_url."""
+    m = Mock()
+    m.https_url = f"https://{hostname}/{full_name}"
+    m.api_base_url = api_base_url
+    m.full_name = full_name
+    return m
+
+
 def _make_mock_protection(
     *,
     strict: bool = True,
@@ -67,8 +80,7 @@ def _patch_all_ok(
     mock_branch.get_protection.return_value = protection
     mock_repo.get_branch.return_value = mock_branch
 
-    identifier = Mock()
-    identifier.https_url = f"https://github.com/{repo_full_name}"
+    identifier = _make_identifier(full_name=repo_full_name)
 
     with (
         patch(
@@ -183,8 +195,7 @@ class TestAuthFailure:
         mock_github_client.get_user.side_effect = Exception("auth failed")
         mock_github_client.oauth_scopes = None
 
-        identifier = Mock()
-        identifier.https_url = "https://github.com/owner/repo"
+        identifier = _make_identifier()
 
         mock_repo = Mock()
         mock_repo.full_name = "owner/repo"
@@ -331,8 +342,7 @@ class TestRepoNotAccessible:
         mock_github_client.get_user.return_value = mock_user
         mock_github_client.oauth_scopes = ["repo"]
 
-        identifier = Mock()
-        identifier.https_url = "https://github.com/owner/repo"
+        identifier = _make_identifier()
 
         with (
             patch(
@@ -386,8 +396,7 @@ class TestChecksIndependence:
         mock_github_client.get_user.side_effect = Exception("auth failed")
         mock_github_client.oauth_scopes = None
 
-        identifier = Mock()
-        identifier.https_url = "https://github.com/owner/repo"
+        identifier = _make_identifier()
 
         mock_repo = Mock()
         mock_repo.full_name = "owner/repo"
@@ -470,8 +479,7 @@ class TestNoBranchProtection404:
         mock_repo.full_name = "owner/repo"
         mock_repo.get_branch.return_value = mock_branch
 
-        identifier = Mock()
-        identifier.https_url = "https://github.com/owner/repo"
+        identifier = _make_identifier()
 
         with (
             patch(
@@ -558,8 +566,7 @@ class TestBranchProtectionWhenRepoNotAccessible:
         mock_github_client.get_user.return_value = mock_user
         mock_github_client.oauth_scopes = ["repo"]
 
-        identifier = Mock()
-        identifier.https_url = "https://github.com/owner/repo"
+        identifier = _make_identifier()
 
         with (
             patch(
@@ -630,8 +637,7 @@ class TestAutoDeleteBranches:
         mock_repo.get_branch.return_value = mock_branch
         mock_repo.delete_branch_on_merge = True
 
-        identifier = Mock()
-        identifier.https_url = "https://github.com/owner/repo"
+        identifier = _make_identifier()
 
         with (
             patch(
@@ -660,8 +666,7 @@ class TestAutoDeleteBranches:
         mock_github_client.get_user.return_value = mock_user
         mock_github_client.oauth_scopes = ["repo"]
 
-        identifier = Mock()
-        identifier.https_url = "https://github.com/owner/repo"
+        identifier = _make_identifier()
 
         with (
             patch(
@@ -696,3 +701,152 @@ class TestOverallOkTrueWhenOnlyWarningsFail:
         result = _patch_all_ok(tmp_path, protection=protection)
         # Branch protection found but all sub-checks fail
         assert result["overall_ok"] is True
+
+
+
+# ===================================================================
+# Step 6: api_base_url result entry + auth probe base_url kwarg
+# ===================================================================
+
+
+def _patch_for_auth_probe(
+    project_dir: Path,
+    *,
+    identifier: Mock | None,
+) -> tuple[dict[str, object], Mock]:
+    """Run verify_github and return (result, mock_github_class) for auth-probe assertions."""
+    mock_user = Mock()
+    mock_user.login = "testuser"
+
+    mock_github_client = Mock()
+    mock_github_client.get_user.return_value = mock_user
+    mock_github_client.oauth_scopes = ["repo"]
+
+    mock_repo = Mock()
+    mock_repo.full_name = "owner/repo"
+    mock_repo.delete_branch_on_merge = True
+    mock_branch = Mock()
+    mock_branch.get_protection.return_value = _make_mock_protection()
+    mock_repo.get_branch.return_value = mock_branch
+
+    with (
+        patch(
+            f"{MODULE}.get_github_token_with_source",
+            return_value=("ghp_test", "env"),
+        ),
+        patch(f"{MODULE}.Github", return_value=mock_github_client) as mock_github_class,
+        patch(f"{MODULE}.get_repository_identifier", return_value=identifier),
+        patch(f"{MODULE}.BaseGitHubManager") as mock_mgr_cls,
+    ):
+        mock_manager = Mock()
+        mock_manager._get_repository.return_value = mock_repo
+        mock_manager.get_default_branch.return_value = "main"
+        mock_mgr_cls.return_value = mock_manager
+        result = verify_github(project_dir)
+
+    return result, mock_github_class
+
+
+class TestAuthProbeBaseUrlGithubCom:
+    """Auth-probe Github(...) is called with base_url=https://api.github.com for github.com."""
+
+    def test_base_url_is_github_com_api(self, tmp_path: Path) -> None:
+        identifier = _make_identifier(
+            hostname="github.com", api_base_url="https://api.github.com"
+        )
+        _, mock_github_class = _patch_for_auth_probe(tmp_path, identifier=identifier)
+        assert mock_github_class.call_args.kwargs["base_url"] == "https://api.github.com"
+
+
+class TestAuthProbeBaseUrlGhe:
+    """Auth-probe is called with the GHE-tenant API URL when identifier is GHE."""
+
+    def test_base_url_is_ghe_tenant(self, tmp_path: Path) -> None:
+        identifier = _make_identifier(
+            hostname="tenant.ghe.com",
+            api_base_url="https://api.tenant.ghe.com",
+        )
+        _, mock_github_class = _patch_for_auth_probe(tmp_path, identifier=identifier)
+        assert (
+            mock_github_class.call_args.kwargs["base_url"]
+            == "https://api.tenant.ghe.com"
+        )
+
+    def test_base_url_is_ghes(self, tmp_path: Path) -> None:
+        identifier = _make_identifier(
+            hostname="ghe.example.com",
+            api_base_url="https://ghe.example.com/api/v3",
+        )
+        _, mock_github_class = _patch_for_auth_probe(tmp_path, identifier=identifier)
+        assert (
+            mock_github_class.call_args.kwargs["base_url"]
+            == "https://ghe.example.com/api/v3"
+        )
+
+
+class TestAuthProbeBaseUrlFallback:
+    """When identifier is None, auth probe falls back to api.github.com."""
+
+    def test_base_url_fallback(self, tmp_path: Path) -> None:
+        _, mock_github_class = _patch_for_auth_probe(tmp_path, identifier=None)
+        assert mock_github_class.call_args.kwargs["base_url"] == "https://api.github.com"
+
+
+class TestApiBaseUrlResultEntrySuccess:
+    """result['api_base_url'] is ok=True with the identifier's API URL on success."""
+
+    def test_success_shape(self, tmp_path: Path) -> None:
+        identifier = _make_identifier(
+            hostname="tenant.ghe.com",
+            api_base_url="https://api.tenant.ghe.com",
+        )
+        result, _ = _patch_for_auth_probe(tmp_path, identifier=identifier)
+        check: CheckResult = result["api_base_url"]  # type: ignore[assignment]
+        assert check["ok"] is True
+        assert check["value"] == "https://api.tenant.ghe.com"
+        assert check["severity"] == "error"
+
+
+class TestApiBaseUrlResultEntryFallback:
+    """When identifier is None, api_base_url is a fallback warning entry."""
+
+    def test_fallback_shape(self, tmp_path: Path) -> None:
+        result, _ = _patch_for_auth_probe(tmp_path, identifier=None)
+        check: CheckResult = result["api_base_url"]  # type: ignore[assignment]
+        assert check["ok"] is False
+        assert "fallback" in check["value"].lower()
+        assert check["severity"] == "warning"
+        assert "error" in check
+        assert check["error"]
+
+
+class TestApiBaseUrlIsFirstKey:
+    """api_base_url must be the first key in the result dict."""
+
+    def test_first_key_success(self, tmp_path: Path) -> None:
+        identifier = _make_identifier()
+        result, _ = _patch_for_auth_probe(tmp_path, identifier=identifier)
+        assert next(iter(result.keys())) == "api_base_url"
+
+    def test_first_key_fallback(self, tmp_path: Path) -> None:
+        result, _ = _patch_for_auth_probe(tmp_path, identifier=None)
+        assert next(iter(result.keys())) == "api_base_url"
+
+
+class TestOverallOkNotPoisonedByFallback:
+    """The api_base_url fallback (severity=warning) must NOT poison overall_ok by itself."""
+
+    def test_fallback_alone_does_not_poison(self, tmp_path: Path) -> None:
+        result, _ = _patch_for_auth_probe(tmp_path, identifier=None)
+
+        # overall_ok IS False here, but the failure source is repo_url (severity=error),
+        # not the api_base_url warning entry.
+        assert result["overall_ok"] is False
+
+        repo_url: CheckResult = result["repo_url"]  # type: ignore[assignment]
+        assert repo_url["ok"] is False
+        assert repo_url["severity"] == "error"
+
+        api_base: CheckResult = result["api_base_url"]  # type: ignore[assignment]
+        assert api_base["ok"] is False
+        assert api_base["severity"] == "warning"
