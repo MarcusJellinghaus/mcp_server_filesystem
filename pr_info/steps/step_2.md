@@ -151,7 +151,26 @@ Each fixture builds a `PRFeedback` via `_empty_feedback()` and sets `feedback["u
    assert "[unavailable] threads: GithubException 500 — boom second line" in result
    ```
 
-7. **Truncation at 200 chars**
+7. **`GithubException` with whitespace-only `message` value** — message segment omitted
+
+   > Why this matters: this exercises the algorithmic path where `raw` is
+   > truthy (`"   "`), so `re.sub` runs and `.strip()` produces an empty
+   > string, then the `if msg:` guard correctly omits the message segment.
+   > Other tests cover `raw` falsy (empty dict, non-dict `data`); this one
+   > covers `raw` truthy but `msg` empty post-normalization.
+
+   ```python
+   feedback["unavailable"] = {
+       "threads": GithubException(500, {"message": "   "}, None)
+   }
+   # Assert the line is exactly "[unavailable] threads: GithubException 500"
+   # with no " — " suffix and no "(no message)" placeholder.
+   assert "[unavailable] threads: GithubException 500" in result
+   assert "GithubException 500 —" not in result
+   assert "(no message)" not in result
+   ```
+
+8. **Truncation at 200 chars**
    ```python
    feedback["unavailable"] = {
        "threads": GithubException(500, {"message": "x" * 500}, None)
@@ -162,7 +181,7 @@ Each fixture builds a `PRFeedback` via `_empty_feedback()` and sets `feedback["u
    assert len(payload) == 203  # 200 chars + "..."
    ```
 
-8. **Multiple sections preserved in insertion order (threads → comments → alerts)**
+9. **Multiple sections preserved in insertion order (threads → comments → alerts)**
    ```python
    feedback["unavailable"] = {
        "threads": GithubException(500, {"message": "a"}, None),
