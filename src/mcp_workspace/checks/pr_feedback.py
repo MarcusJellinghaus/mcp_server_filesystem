@@ -6,7 +6,10 @@ threshold. The functions here render `PRFeedback` dicts as text and wrap
 """
 
 import logging
+import re
 from typing import List, Optional, Tuple
+
+from github.GithubException import GithubException
 
 from mcp_workspace.github_operations.pr_manager import PRFeedback, PullRequestManager
 
@@ -22,6 +25,23 @@ def _truncate_body(body: str) -> str:
     if len(lines) <= _MAX_LINES_PER_COMMENT:
         return body
     return "\n".join(lines[:_MAX_LINES_PER_COMMENT]) + "\n... (truncated)"
+
+
+def _render_exception(exc: Exception) -> str:
+    """Render an exception as a single-line string for the [unavailable] section.
+
+    Returns the portion that follows '<section>: '. Truncated at 200 chars
+    with '...' appended if exceeded.
+    """
+    type_name = type(exc).__name__
+    if isinstance(exc, GithubException):
+        raw = exc.data.get("message") if isinstance(exc.data, dict) else None
+        msg = re.sub(r"\s+", " ", raw).strip() if raw else ""
+        rendered = f"{type_name} {exc.status}" + (f" — {msg}" if msg else "")
+    else:
+        msg = re.sub(r"\s+", " ", str(exc)).strip()
+        rendered = f"{type_name} — {msg or '(no message)'}"
+    return (rendered[:200] + "...") if len(rendered) > 200 else rendered
 
 
 def format_pr_feedback(feedback: PRFeedback) -> str:
@@ -84,8 +104,8 @@ def format_pr_feedback(feedback: PRFeedback) -> str:
     lines: List[str] = ["PR Reviews:"]
     lines.extend(rendered)
 
-    for section in unavailable:
-        lines.append(f"[unavailable] {section}: API error")
+    for section, exc in unavailable.items():
+        lines.append(f"[unavailable] {section}: {_render_exception(exc)}")
 
     if resolved_count > 0:
         lines.append(f"{resolved_count} resolved threads")
