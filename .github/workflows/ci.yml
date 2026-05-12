@@ -217,10 +217,19 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Check file sizes
-        # mcp-coder is run via uvx in an isolated environment.
-        # --with . ensures uvx uses THIS branch's mcp_workspace instead of
-        # whatever version mcp_coder would resolve as a transitive dependency.
-        run: uvx --from "git+https://github.com/MarcusJellinghaus/mcp_coder.git" --with . mcp-coder check file-size --max-lines 750 --allowlist-file .large-files-allowlist
+        # mcp-coder is installed in an isolated venv. We install mcp-coder
+        # from its git URL first (which would pull mcp-workspace from git as
+        # a transitive dep), then force-reinstall mcp-workspace from THIS
+        # branch (.) so the file-size check exercises this branch's code.
+        # Note: the previous `uvx --with .` pattern is no longer viable
+        # because uv now reports "conflicting URLs for package mcp-workspace"
+        # when mcp-coder declares mcp-workspace as a git URL dependency.
+        run: |
+          uv venv --python 3.11
+          source .venv/bin/activate
+          uv pip install "git+https://github.com/MarcusJellinghaus/mcp_coder.git"
+          uv pip install --force-reinstall --no-deps .
+          mcp-coder check file-size --max-lines 750 --allowlist-file .large-files-allowlist
 
   architecture:
     runs-on: ubuntu-latest
