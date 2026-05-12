@@ -34,6 +34,9 @@ def edit_file(
         ValueError: If old_string is not found or matches multiple locations
             (when replace_all is False).
     """
+    # Normalize backslashes so Windows-style paths resolve on POSIX too
+    file_path = file_path.replace("\\", "/")
+
     # Resolve file path
     if project_dir:
         abs_path, _ = normalize_path(file_path, project_dir)
