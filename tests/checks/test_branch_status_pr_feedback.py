@@ -256,9 +256,7 @@ class TestUnavailableSection:
             "threads": GithubException(500, {"message": "boom\nsecond line"}, None)
         }
         result = format_pr_feedback(feedback)
-        assert (
-            "[unavailable] threads: GithubException 500 — boom second line" in result
-        )
+        assert "[unavailable] threads: GithubException 500 — boom second line" in result
 
     def test_github_exception_whitespace_only_message_omits_segment(self) -> None:
         feedback = _empty_feedback()
@@ -295,10 +293,14 @@ class TestUnavailableSection:
         result = format_pr_feedback(feedback)
         lines = result.split("\n")
         t_idx = next(
-            i for i, line in enumerate(lines) if line.startswith("[unavailable] threads")
+            i
+            for i, line in enumerate(lines)
+            if line.startswith("[unavailable] threads")
         )
         c_idx = next(
-            i for i, line in enumerate(lines) if line.startswith("[unavailable] comments")
+            i
+            for i, line in enumerate(lines)
+            if line.startswith("[unavailable] comments")
         )
         a_idx = next(
             i for i, line in enumerate(lines) if line.startswith("[unavailable] alerts")
