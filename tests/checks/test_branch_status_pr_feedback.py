@@ -212,9 +212,13 @@ class TestItemCap:
 
 
 class TestUnavailableSection:
-    """Unavailable sections render rich error detail per exception."""
+    """End-to-end coverage of the `[unavailable]` block in `format_pr_feedback`.
 
-    def test_github_exception_with_message(self) -> None:
+    Detailed exception-rendering behavior lives in
+    `tests/github_operations/test_exception_renderer.py`.
+    """
+
+    def test_github_exception_rendered_in_unavailable_line(self) -> None:
         feedback = _empty_feedback()
         feedback["unavailable"] = {
             "threads": GithubException(500, {"message": "Server Error"}, None)
@@ -222,66 +226,11 @@ class TestUnavailableSection:
         result = format_pr_feedback(feedback)
         assert "[unavailable] threads: GithubException 500 — Server Error" in result
 
-    def test_github_exception_empty_data_omits_message_segment(self) -> None:
-        feedback = _empty_feedback()
-        feedback["unavailable"] = {"threads": GithubException(500, {}, None)}
-        result = format_pr_feedback(feedback)
-        assert "[unavailable] threads: GithubException 500" in result
-        assert "GithubException 500 —" not in result
-        assert "(no message)" not in result
-
-    def test_github_exception_non_dict_data_omits_message_segment(self) -> None:
-        feedback = _empty_feedback()
-        feedback["unavailable"] = {"threads": GithubException(500, "raw text", None)}
-        result = format_pr_feedback(feedback)
-        assert "[unavailable] threads: GithubException 500" in result
-        assert "GithubException 500 —" not in result
-        assert "(no message)" not in result
-
-    def test_generic_exception_with_message(self) -> None:
+    def test_generic_exception_rendered_in_unavailable_line(self) -> None:
         feedback = _empty_feedback()
         feedback["unavailable"] = {"comments": ConnectionError("getaddrinfo failed")}
         result = format_pr_feedback(feedback)
         assert "[unavailable] comments: ConnectionError — getaddrinfo failed" in result
-
-    def test_generic_exception_whitespace_message_renders_no_message(self) -> None:
-        feedback = _empty_feedback()
-        feedback["unavailable"] = {"alerts": RuntimeError("   ")}
-        result = format_pr_feedback(feedback)
-        assert "[unavailable] alerts: RuntimeError — (no message)" in result
-
-    def test_multi_line_message_collapsed_to_single_spaces(self) -> None:
-        feedback = _empty_feedback()
-        feedback["unavailable"] = {
-            "threads": GithubException(500, {"message": "boom\nsecond line"}, None)
-        }
-        result = format_pr_feedback(feedback)
-        assert "[unavailable] threads: GithubException 500 — boom second line" in result
-
-    def test_github_exception_whitespace_only_message_omits_segment(self) -> None:
-        feedback = _empty_feedback()
-        feedback["unavailable"] = {
-            "threads": GithubException(500, {"message": "   "}, None)
-        }
-        result = format_pr_feedback(feedback)
-        assert "[unavailable] threads: GithubException 500" in result
-        assert "GithubException 500 —" not in result
-        assert "(no message)" not in result
-
-    def test_truncation_at_200_chars(self) -> None:
-        feedback = _empty_feedback()
-        feedback["unavailable"] = {
-            "threads": GithubException(500, {"message": "x" * 500}, None)
-        }
-        result = format_pr_feedback(feedback)
-        line = next(
-            line
-            for line in result.split("\n")
-            if line.startswith("[unavailable] threads: ")
-        )
-        payload = line[len("[unavailable] threads: ") :]
-        assert payload.endswith("...")
-        assert len(payload) == 203
 
     def test_multiple_sections_preserve_insertion_order(self) -> None:
         feedback = _empty_feedback()
