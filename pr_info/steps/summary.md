@@ -5,7 +5,8 @@
 `mcp__mcp-workspace__edit_file` returns a malformed unified diff string. The
 file edits apply correctly; only the returned diff text is wrong.
 
-**Two independent defects in `src/mcp_workspace/file_tools/edit_file.py`:**
+**Two intertwined defects, both inside `_create_diff` in
+`src/mcp_workspace/file_tools/edit_file.py`:**
 
 1. **Headers lack newlines.** `_create_diff` passes `lineterm=""` to
    `difflib.unified_diff`. difflib only appends `lineterm` to its synthetic
@@ -18,6 +19,10 @@ file edits apply correctly; only the returned diff text is wrong.
    `str(abs_path)`. On POSIX this is `/Users/.../file.txt`, which then gets
    prefixed `a/` → `a//Users/.../file.txt`. Git convention is repo-relative
    paths with forward slashes.
+
+Both defects share a single root cause — the `_create_diff` helper — so they
+are addressed in one step / one commit per `planning_principles.md`
+("Merge tiny or intertwined steps").
 
 ## Fix overview (KISS)
 
@@ -39,11 +44,11 @@ private `_create_diff` helper keeps the same signature (`original`, `modified`,
 Behavioral notes:
 
 - The `project_dir=None` branch (direct Python callers only — not reachable
-  via MCP per `server.py` line ~417 which raises `ValueError`) now receives
-  whatever path the caller provided. If a test passes an absolute path it will
-  still appear in the diff, but without the doubled slash (because `a/` + path
-  no longer combines into `a//` once we stop forcing absolute paths via
-  `abs_path`).
+  via MCP per `server.py` which raises `ValueError` when `_project_dir` is
+  unset) now receives whatever path the caller provided. If a test passes an
+  absolute path it will still appear in the diff, but without the doubled
+  slash (because `a/` + path no longer combines into `a//` once we stop
+  forcing absolute paths via `abs_path`).
 - No new modules, no new dependencies, no signature changes on public
   functions.
 
@@ -52,28 +57,26 @@ Behavioral notes:
 | File | Change |
 |---|---|
 | `src/mcp_workspace/file_tools/edit_file.py` | `_create_diff` internals + 3 call sites |
-| `tests/file_tools/test_edit_file.py` | +2 regression tests (one per defect) |
+| `tests/file_tools/test_edit_file.py` | +2 regression tests (one parametrized over 2 cases) |
 
 No files created, no files deleted, no folders restructured.
 
 ## Implementation steps
 
-Each step is one commit, follows TDD (failing test first, then minimal fix),
-and addresses exactly one of the two defects.
+A single step, one commit, TDD ordering (failing tests first, then the
+helper + call-site changes).
 
-- **[Step 1](step_1.md)** — Fix header newlines (`lineterm`).
-- **[Step 2](step_2.md)** — Fix relative + forward-slash path.
-
-Steps are independent and could be reordered, but Step 1 is presented first
-because it is the smaller, more localized change.
+- **[Step 1](step_1.md)** — Fix `_create_diff`: drop `lineterm=""`, normalize
+  backslashes to forward slashes, and switch the three call sites to pass
+  the relative `file_path`. Adds two regression tests (one parametrized over
+  a flat filename and a Windows-style backslash relative path).
 
 ## Validation
 
-After each step:
+After the step:
 
-- `mcp__tools-py__run_pylint_check`
-- `mcp__tools-py__run_pytest_check` with the fast-unit-test marker exclusion
-  per `.claude/CLAUDE.md`
-- `mcp__tools-py__run_mypy_check`
+- `mcp__mcp-tools-py__run_pylint_check`
+- `mcp__mcp-tools-py__run_pytest_check` with `extra_args: ["-n", "auto"]`
+- `mcp__mcp-tools-py__run_mypy_check`
 
 All three must pass before the commit.
