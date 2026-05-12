@@ -200,7 +200,7 @@ class TestGetPRFeedback:
         assert result["alerts"][0]["message"] == "potential SQLi"
         assert result["alerts"][0]["path"] == "src/foo.py"
         assert result["alerts"][0]["line"] == 42
-        assert result["unavailable"] == []
+        assert result["unavailable"] == {}
 
     def test_clean_state(self, mock_manager: PullRequestManager) -> None:
         """All sources return empty — empty PRFeedback, no unavailable entries."""
@@ -228,7 +228,7 @@ class TestGetPRFeedback:
         assert result["changes_requested"] == []
         assert result["conversation_comments"] == []
         assert result["alerts"] == []
-        assert result["unavailable"] == []
+        assert result["unavailable"] == {}
 
     def test_code_scanning_403_silent_skip(
         self, mock_manager: PullRequestManager
@@ -281,6 +281,7 @@ class TestGetPRFeedback:
 
         assert result["alerts"] == []
         assert "alerts" in result["unavailable"]
+        assert isinstance(result["unavailable"]["alerts"], GithubException)
 
     def test_graphql_failure(self, mock_manager: PullRequestManager) -> None:
         """GraphQL raises → 'threads' in unavailable, threads/changes_requested empty."""
@@ -297,6 +298,7 @@ class TestGetPRFeedback:
         assert result["resolved_thread_count"] == 0
         assert result["changes_requested"] == []
         assert "threads" in result["unavailable"]
+        assert isinstance(result["unavailable"]["threads"], GithubException)
 
     def test_conversation_comments_failure(
         self, mock_manager: PullRequestManager
@@ -323,6 +325,7 @@ class TestGetPRFeedback:
 
         assert result["conversation_comments"] == []
         assert "comments" in result["unavailable"]
+        assert isinstance(result["unavailable"]["comments"], GithubException)
 
     def test_invalid_pr_number(self, mock_manager: PullRequestManager) -> None:
         """pr_number=0 → empty PRFeedback."""
@@ -333,7 +336,7 @@ class TestGetPRFeedback:
         assert result["changes_requested"] == []
         assert result["conversation_comments"] == []
         assert result["alerts"] == []
-        assert result["unavailable"] == []
+        assert result["unavailable"] == {}
 
 
 @pytest.mark.git_integration

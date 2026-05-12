@@ -13,7 +13,7 @@ def _empty_feedback() -> PRFeedback:
         "changes_requested": [],
         "conversation_comments": [],
         "alerts": [],
-        "unavailable": [],
+        "unavailable": {},
     }
 
 
@@ -214,13 +214,16 @@ class TestUnavailableSection:
 
     def test_unavailable_threads_placeholder(self) -> None:
         feedback = _empty_feedback()
-        feedback["unavailable"] = ["threads"]
+        feedback["unavailable"] = {"threads": Exception("boom")}
         result = format_pr_feedback(feedback)
         assert "[unavailable] threads: API error" in result
 
     def test_unavailable_multiple_sections(self) -> None:
         feedback = _empty_feedback()
-        feedback["unavailable"] = ["threads", "comments"]
+        feedback["unavailable"] = {
+            "threads": Exception("a"),
+            "comments": Exception("b"),
+        }
         result = format_pr_feedback(feedback)
         assert "[unavailable] threads: API error" in result
         assert "[unavailable] comments: API error" in result
