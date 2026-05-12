@@ -6,7 +6,7 @@
 > Implement Step 1 (the only step). Follow TDD: add the two regression tests
 > first, confirm they fail against the current code, then apply the source
 > changes (drop `lineterm=""`, add backslash-to-forward-slash normalization,
-> and update the three `_create_diff` call sites to pass the relative
+> and update the two `_create_diff` call sites to pass the relative
 > `file_path` instead of `str(abs_path)`), then confirm the tests pass. Run
 > `mcp__mcp-tools-py__run_pylint_check`,
 > `mcp__mcp-tools-py__run_pytest_check` with
@@ -21,11 +21,13 @@
   - Function `_create_diff` — drop `lineterm=""` from the
     `difflib.unified_diff(...)` call and add a forward-slash normalization
     for the `filename` parameter.
-  - Function `edit_file` — the three `_create_diff` call sites (the
-    empty-old-string return, the position-aware return, and the
-    normal-replace return). Each currently passes `str(abs_path)`; switch to
-    passing the relative `file_path` (or `file_path` as-given when
-    `project_dir` is `None`).
+  - Function `edit_file` — the two `_create_diff` call sites (the
+    empty-old-string prepend return and the normal-replace return). Each
+    currently passes `str(abs_path)`; switch to passing the relative
+    `file_path` (or `file_path` as-given when `project_dir` is `None`).
+    Note: the position-aware already-applied branch returns the literal
+    string `"No changes needed - edit already applied"` and does not call
+    `_create_diff`, so it is unaffected.
 - **Modify:** `tests/file_tools/test_edit_file.py` — add two new tests to
   `TestEditFile` (one of them parametrized).
 
@@ -81,11 +83,12 @@ The second case literally exercises the `.replace("\\", "/")` normalization.
    ```python
    filename = filename.replace("\\", "/")
    ```
-3. At each of the three `_create_diff` call sites inside `edit_file` (the
-   empty-old-string return, the position-aware return, and the normal-replace
-   return — identified by behavior, not line number), replace
-   `str(abs_path)` with the function parameter `file_path` (relative when
-   `project_dir` is set; passed through as-is otherwise).
+3. At each of the two `_create_diff` call sites inside `edit_file` (the
+   empty-old-string prepend return and the normal-replace return —
+   identified by behavior, not line number), replace `str(abs_path)` with
+   the function parameter `file_path` (relative when `project_dir` is set;
+   passed through as-is otherwise). The position-aware already-applied
+   branch returns a literal string and does not call `_create_diff`.
 
 ## HOW
 
@@ -110,7 +113,7 @@ _create_diff(original, modified, filename):
         original_lines, modified_lines,
         fromfile=f"a/{filename}", tofile=f"b/{filename}"))   # lineterm omitted
 
-# In edit_file: three return sites become
+# In edit_file: two return sites become
 return _create_diff(original_content, modified_content, file_path)
 ```
 

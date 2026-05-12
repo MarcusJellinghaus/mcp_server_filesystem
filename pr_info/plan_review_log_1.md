@@ -30,3 +30,20 @@ This log tracks plan review rounds for issue #197. Each round appends a `## Roun
 - Updated `pr_info/steps/summary.md`: 2 steps → 1 step; pytest phrasing corrected to `mcp__mcp-tools-py__run_pytest_check` with `extra_args: ["-n", "auto"]`; rationale citing `planning_principles.md` added.
 
 **Status:** plan changes applied — committing this round, then re-reviewing.
+
+## Round 2 — 2026-05-12
+
+**Findings:**
+- (Critical) Factual error: plan claimed `_create_diff` has three call sites, including a non-existent "position-aware return". Source verification shows only two call sites — line 60 (empty-old-string prepend return) and line 84 (normal-replace return). The position-aware already-applied branch returns the literal string `"No changes needed - edit already applied"` and does NOT call `_create_diff`.
+
+**Decisions:**
+- Critical finding: accepted.
+
+**User decisions:** none.
+
+**Changes:**
+- `step_1.md`: corrected LLM Prompt, WHERE section, Source-changes item 3, and ALGORITHM comment from "three" to "two"; added clarifying note that the position-aware already-applied branch returns a literal string and does not call `_create_diff`.
+- `summary.md`: corrected Fix-overview prose (~5 lines → ~4 lines), table row (added behavior labels and position-aware clarification), Files-modified table ("+ 3 call sites" → "+ 2 call sites"), and Implementation-steps bullet.
+- Verified remaining "three" occurrences (the three diff header lines and the three quality checks) are unrelated and correct — left alone.
+
+**Status:** plan changes applied — committing this round, then re-reviewing.

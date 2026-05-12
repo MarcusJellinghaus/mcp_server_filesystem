@@ -26,14 +26,14 @@ are addressed in one step / one commit per `planning_principles.md`
 
 ## Fix overview (KISS)
 
-Two narrow changes inside `_create_diff` plus updates to its three call
-sites — total ~5 source lines touched.
+Two narrow changes inside `_create_diff` plus updates to its two call
+sites — total ~4 source lines touched.
 
 | Change | Why |
 |---|---|
 | Drop `lineterm=""` (use difflib default `"\n"`) | Restores header newlines. |
 | `filename = filename.replace("\\", "/")` inside helper | Forward slashes on all OSes (git convention). |
-| Call sites pass `file_path` (relative) instead of `str(abs_path)` | Eliminates `a//...` and matches git-style output. |
+| Two call sites (empty-old-string prepend, normal-replace) pass `file_path` (relative) instead of `str(abs_path)` | Eliminates `a//...` and matches git-style output. The position-aware already-applied branch returns a literal string and does not call `_create_diff`. |
 
 ## Architectural / design changes
 
@@ -56,7 +56,7 @@ Behavioral notes:
 
 | File | Change |
 |---|---|
-| `src/mcp_workspace/file_tools/edit_file.py` | `_create_diff` internals + 3 call sites |
+| `src/mcp_workspace/file_tools/edit_file.py` | `_create_diff` internals + 2 call sites |
 | `tests/file_tools/test_edit_file.py` | +2 regression tests (one parametrized over 2 cases) |
 
 No files created, no files deleted, no folders restructured.
@@ -67,9 +67,10 @@ A single step, one commit, TDD ordering (failing tests first, then the
 helper + call-site changes).
 
 - **[Step 1](step_1.md)** — Fix `_create_diff`: drop `lineterm=""`, normalize
-  backslashes to forward slashes, and switch the three call sites to pass
-  the relative `file_path`. Adds two regression tests (one parametrized over
-  a flat filename and a Windows-style backslash relative path).
+  backslashes to forward slashes, and switch the two call sites (empty-old-
+  string prepend and normal-replace) to pass the relative `file_path`. Adds
+  two regression tests (one parametrized over a flat filename and a
+  Windows-style backslash relative path).
 
 ## Validation
 
