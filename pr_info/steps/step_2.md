@@ -68,7 +68,7 @@ def _render_exception(exc):
     else:
         msg = re.sub(r"\s+", " ", str(exc)).strip()
         rendered = f"{type_name} — {msg or '(no message)'}"
-    return rendered[:200] + "..." if len(rendered) > 200 else rendered
+    return (rendered[:200] + "...") if len(rendered) > 200 else rendered
 ```
 
 Notes:
@@ -120,19 +120,30 @@ Each fixture builds a `PRFeedback` via `_empty_feedback()` and sets `feedback["u
    assert "(no message)" not in result
    ```
 
-3. **Generic exception with message**
+3. **`GithubException` with non-dict `data`** — `isinstance(exc.data, dict)` guard
+   ```python
+   feedback["unavailable"] = {"threads": GithubException(500, "raw text", None)}
+   # The data attribute is a string (not a dict), so the isinstance guard
+   # in _render_exception falls through to the empty-message branch:
+   # the message segment is omitted entirely.
+   assert "[unavailable] threads: GithubException 500" in result
+   assert "GithubException 500 —" not in result
+   assert "(no message)" not in result
+   ```
+
+4. **Generic exception with message**
    ```python
    feedback["unavailable"] = {"comments": ConnectionError("getaddrinfo failed")}
    assert "[unavailable] comments: ConnectionError — getaddrinfo failed" in result
    ```
 
-4. **Generic exception with whitespace-only message → `(no message)`**
+5. **Generic exception with whitespace-only message → `(no message)`**
    ```python
    feedback["unavailable"] = {"alerts": RuntimeError("   ")}
    assert "[unavailable] alerts: RuntimeError — (no message)" in result
    ```
 
-5. **Multi-line message collapsed to single spaces**
+6. **Multi-line message collapsed to single spaces**
    ```python
    feedback["unavailable"] = {
        "threads": GithubException(500, {"message": "boom\nsecond line"}, None)
@@ -140,7 +151,7 @@ Each fixture builds a `PRFeedback` via `_empty_feedback()` and sets `feedback["u
    assert "[unavailable] threads: GithubException 500 — boom second line" in result
    ```
 
-6. **Truncation at 200 chars**
+7. **Truncation at 200 chars**
    ```python
    feedback["unavailable"] = {
        "threads": GithubException(500, {"message": "x" * 500}, None)
@@ -151,7 +162,7 @@ Each fixture builds a `PRFeedback` via `_empty_feedback()` and sets `feedback["u
    assert len(payload) == 203  # 200 chars + "..."
    ```
 
-7. **Multiple sections preserved in insertion order (threads → comments → alerts)**
+8. **Multiple sections preserved in insertion order (threads → comments → alerts)**
    ```python
    feedback["unavailable"] = {
        "threads": GithubException(500, {"message": "a"}, None),
@@ -173,9 +184,9 @@ Each fixture builds a `PRFeedback` via `_empty_feedback()` and sets `feedback["u
 
 Run via MCP tools (see `.claude/CLAUDE.md` for required flags):
 
-- `mcp__tools-py__run_pylint_check`
-- `mcp__tools-py__run_pytest_check` with `extra_args: ["-n", "auto", "-m", "not git_integration and not claude_cli_integration and not claude_api_integration and not formatter_integration and not github_integration and not langchain_integration"]`
-- `mcp__tools-py__run_mypy_check`
+- `mcp__mcp-tools-py__run_pylint_check`
+- `mcp__mcp-tools-py__run_pytest_check` with `extra_args: ["-n", "auto", "-m", "not git_integration and not claude_cli_integration and not claude_api_integration and not formatter_integration and not github_integration and not langchain_integration"]`
+- `mcp__mcp-tools-py__run_mypy_check`
 
 All three must pass before committing.
 

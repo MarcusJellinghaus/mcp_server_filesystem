@@ -56,6 +56,7 @@ def _empty_pr_feedback() -> PRFeedback:
   - comments section: `unavailable["comments"] = e`
   - alerts section: `unavailable["alerts"] = e`
 - `logger.warning(...)` calls remain unchanged.
+- Update `get_pr_feedback`'s docstring (line ~535): the current text says the returned `unavailable` is `"a list of section names that failed to fetch"`. Replace with a description of the new return shape — a dict mapping failed section names to the raised exception, with the same exclusion of 403-on-alerts (still silently skipped, not recorded as unavailable).
 
 ## HOW
 
@@ -102,9 +103,9 @@ Examples:
 
 Run via MCP tools (see `.claude/CLAUDE.md` for required flags):
 
-- `mcp__tools-py__run_pylint_check`
-- `mcp__tools-py__run_pytest_check` with `extra_args: ["-n", "auto", "-m", "not git_integration and not claude_cli_integration and not claude_api_integration and not formatter_integration and not github_integration and not langchain_integration"]`
-- `mcp__tools-py__run_mypy_check`
+- `mcp__mcp-tools-py__run_pylint_check`
+- `mcp__mcp-tools-py__run_pytest_check` with `extra_args: ["-n", "auto", "-m", "not git_integration and not claude_cli_integration and not claude_api_integration and not formatter_integration and not github_integration and not langchain_integration"]`
+- `mcp__mcp-tools-py__run_mypy_check`
 
 All three must pass before committing.
 
