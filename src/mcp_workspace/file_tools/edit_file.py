@@ -34,6 +34,9 @@ def edit_file(
         ValueError: If old_string is not found or matches multiple locations
             (when replace_all is False).
     """
+    # Normalize backslashes so Windows-style paths resolve on POSIX too
+    file_path = file_path.replace("\\", "/")
+
     # Resolve file path
     if project_dir:
         abs_path, _ = normalize_path(file_path, project_dir)
@@ -57,7 +60,7 @@ def edit_file(
     if not old_string:
         modified_content = new_string + original_content
         _write_file(abs_path, modified_content)
-        return _create_diff(original_content, modified_content, str(abs_path))
+        return _create_diff(original_content, modified_content, file_path)
 
     # Check if old_string exists in content
     if old_string in original_content:
@@ -81,7 +84,7 @@ def edit_file(
             modified_content = original_content.replace(old_string, new_string, 1)
 
         _write_file(abs_path, modified_content)
-        return _create_diff(original_content, modified_content, str(abs_path))
+        return _create_diff(original_content, modified_content, file_path)
 
     # old_string not found — check contextual already-applied
     if _is_edit_already_applied(original_content, old_string, new_string):
@@ -131,6 +134,7 @@ def _truncate(text: str, max_len: int = 50) -> str:
 
 def _create_diff(original: str, modified: str, filename: str) -> str:
     """Create unified diff between original and modified content."""
+    filename = filename.replace("\\", "/")
     original_lines = original.splitlines(keepends=True)
     modified_lines = modified.splitlines(keepends=True)
 
@@ -140,7 +144,6 @@ def _create_diff(original: str, modified: str, filename: str) -> str:
             modified_lines,
             fromfile=f"a/{filename}",
             tofile=f"b/{filename}",
-            lineterm="",
         )
     )
 
