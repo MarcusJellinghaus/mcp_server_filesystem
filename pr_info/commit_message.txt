@@ -1,0 +1,1 @@
+fix(edit_file): produce well-formed unified diff (newline-terminated headers, forward-slash relative paths)

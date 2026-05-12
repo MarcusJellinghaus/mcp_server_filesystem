@@ -234,3 +234,53 @@ class TestEditFile(unittest.TestCase):
         with open(self.test_file, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertEqual(content, "line1\nline3\n")
+
+    def test_diff_headers_have_newlines(self) -> None:
+        """Header lines and hunk marker are separated by `\\n`, not run together."""
+        result = edit_file(
+            "test_file.py",
+            old_string="test_function",
+            new_string="modified_function",
+            project_dir=self.project_dir,
+        )
+
+        self.assertIn("\n+++ ", result)
+        self.assertIn("\n@@ ", result)
+
+    def _assert_diff_uses_relative_forward_slash_path(
+        self, file_path: str, expected_from: str, expected_to: str
+    ) -> None:
+        """Diff header paths are relative and use forward slashes (no `a//...`, no backslashes)."""
+        # Set up a file at the corresponding relative location.
+        target = self.project_dir / file_path.replace("\\", "/")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("def test_function():\n    return 'test'\n", encoding="utf-8")
+
+        result = edit_file(
+            file_path,
+            old_string="test_function",
+            new_string="modified_function",
+            project_dir=self.project_dir,
+        )
+
+        self.assertIn(expected_from, result)
+        self.assertIn(expected_to, result)
+        self.assertNotIn("a//", result)
+
+        for line in result.splitlines():
+            if line.startswith("--- ") or line.startswith("+++ "):
+                self.assertNotIn("\\", line)
+
+    def test_diff_uses_relative_forward_slash_path_flat(self) -> None:
+        """Flat relative file path produces forward-slash header paths."""
+        self._assert_diff_uses_relative_forward_slash_path(
+            "test_file.py", "--- a/test_file.py", "+++ b/test_file.py"
+        )
+
+    def test_diff_uses_relative_forward_slash_path_backslash(self) -> None:
+        """Windows-style backslash relative path is normalized to forward slashes."""
+        self._assert_diff_uses_relative_forward_slash_path(
+            "sub\\dir\\test_file.py",
+            "--- a/sub/dir/test_file.py",
+            "+++ b/sub/dir/test_file.py",
+        )
