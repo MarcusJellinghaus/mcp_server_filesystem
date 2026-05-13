@@ -3,7 +3,7 @@
 Thin wrappers around GitPython that validate arguments against
 security allowlists, inject safety flags, and apply output
 filtering/truncation.  The unified :func:`git` dispatcher routes
-to all 11 supported sub-commands.
+to all 12 supported sub-commands.
 """
 
 import logging
@@ -462,6 +462,58 @@ def git_branch(
     return truncate_output(output, max_lines)
 
 
+def git_check_ignore(
+    project_dir: Path,
+    args: Optional[list[str]] = None,
+    pathspec: Optional[list[str]] = None,
+    max_lines: int = 50,
+) -> str:
+    """Run ``git check-ignore`` with validated arguments.
+
+    Reports which of the given paths are excluded by gitignore rules.
+
+    Note: With ``--no-index``, tracked files are still checked against
+    ignore rules (without it, tracked files always report as "not ignored").
+
+    Args:
+        project_dir: Path to the git repository.
+        args: Optional CLI flags (validated against allowlist).
+        pathspec: File paths to test (required — must be non-empty).
+        max_lines: Maximum output lines before truncation.
+
+    Returns:
+        Newline-separated matching paths (or rule sources when ``-v``),
+        or ``"No paths are ignored."`` when none match.
+
+    Raises:
+        ValueError: If ``pathspec`` is empty/None, or any flag in
+            ``args`` is not in the allowlist.
+    """
+    if not pathspec:
+        raise ValueError(
+            "git check_ignore requires at least one path in 'pathspec'"
+        )
+    safe_args, split_pathspec = split_args_pathspec(
+        "check_ignore", args or [], pathspec
+    )
+    validate_args("check_ignore", safe_args)
+
+    cmd_args = safe_args + ["--"] + (split_pathspec or [])
+
+    with safe_repo_context(project_dir) as repo:
+        try:
+            output: str = repo.git.check_ignore(*cmd_args)
+        except GitCommandError as exc:
+            if exc.status == 1:
+                return "No paths are ignored."
+            raise
+
+    if not output:
+        return "No paths are ignored."
+
+    return truncate_output(output, max_lines)
+
+
 # ---------------------------------------------------------------------------
 # Unified git() dispatcher
 # ---------------------------------------------------------------------------
@@ -470,6 +522,7 @@ _DEFAULT_MAX_LINES: dict[str, int] = {
     "log": 50,
     "diff": 100,
     "status": 200,
+    "check_ignore": 50,
 }
 
 _SUPPORTS_SEARCH: frozenset[str] = frozenset({"log", "diff", "show"})
@@ -608,6 +661,9 @@ def git(
             None,
             resolved_max_lines,
             use_safety_flags=False,
+        ),
+        "check_ignore": lambda: git_check_ignore(
+            project_dir, safe_args, pathspec, resolved_max_lines
         ),
     }
 
