@@ -25,3 +25,29 @@ Base: main
 - `pr_info/steps/step_3.md` — fixed 3 tool-prefix occurrences; added inline note to test 11 about pretty/format flag routing.
 
 **Status**: committed (pending commit agent dispatch).
+
+
+## Round 2 — 2026-05-13
+
+**Findings**:
+- Critical issues: none
+- Improvements: none
+- Design / requirements questions: none
+- Verification of round 1 changes:
+  - Tool prefix fix: clean — zero remaining `mcp__tools-py__` occurrences across `pr_info/steps/`; nine correct `mcp__mcp-tools-py__` references (3 per step file).
+  - Step 2 test 8 clarification: reads well — setup unambiguously frames the empty `git diff --no-patch` precondition.
+  - Step 3 test 11 inline note: reads well — clearly states `--pretty`/`--format` route through split-and-preserve, not bypass.
+
+**Decisions**: terminate loop — round produced zero changes.
+
+**User decisions**: none.
+
+**Changes**: none.
+
+**Status**: no changes needed.
+
+## Final Status
+
+**Rounds run**: 2
+**Plan files committed this run**: 1 (commit `65c9b35` — `plan(#198): apply review polish — fix tool prefix, clarify test 8 setup, note pretty/format flag routing`)
+**Plan is ready for implementation approval.** Plan faithfully matches the current code at `src/mcp_workspace/git_operations/{arg_validation,read_operations}.py`. All 22 planned tests (1 allowlist + 10 diff + 11 show) cover every loss case described in issue #198. No design or scope questions outstanding.
