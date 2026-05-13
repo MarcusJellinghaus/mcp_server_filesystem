@@ -42,7 +42,7 @@ git(
 ### Untouched (intentional)
 | File | Reason |
 |------|--------|
-| `src/mcp_workspace/git_operations/__init__.py` | Sibling handlers (`git_merge_base` etc.) are not exported; matching actual convention. |
+| `src/mcp_workspace/git_operations/__init__.py` | Sibling handlers (`git_merge_base`, `git_log`, etc.) are **not** currently exported. The issue's Decision #7 claims they are — verified against the codebase, they aren't. Following the *actual* convention; project-wide harmonisation is a separate refactor. |
 | `tests/git_operations/test_init_exports.py` | Not modified — no `__all__` change. |
 
 ## Step Plan

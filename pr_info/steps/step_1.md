@@ -98,7 +98,19 @@ class TestSupportsPathspecCheckIgnore:
     def test_check_ignore_in_supports_pathspec(self) -> None:
         from mcp_workspace.git_operations.arg_validation import _SUPPORTS_PATHSPEC
         assert "check_ignore" in _SUPPORTS_PATHSPEC
+
+
+class TestAllowlistsCheckIgnore:
+    def test_check_ignore_in_allowlists(self) -> None:
+        from mcp_workspace.git_operations.arg_validation import (
+            _ALLOWLISTS,
+            CHECK_IGNORE_ALLOWED_FLAGS,
+        )
+        assert "check_ignore" in _ALLOWLISTS
+        assert _ALLOWLISTS["check_ignore"] == CHECK_IGNORE_ALLOWED_FLAGS
 ```
+
+A direct membership assertion gives clearer failure messages than relying solely on `validate_args` accepting flags — if the allowlist key is missing or pointed at the wrong frozenset, this test pinpoints the cause immediately.
 
 Confirm all new tests pass and no existing tests regress.
 
