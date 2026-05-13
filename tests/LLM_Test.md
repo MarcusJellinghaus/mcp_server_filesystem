@@ -95,15 +95,15 @@ If you find any issues — wrong results, confusing errors, broken output format
 3. `search_files(pattern="def main", glob="**/*.py")` — expect content matches with file paths and line numbers
 4. `search_files(pattern="[unclosed")` — invalid regex; expect literal-text fallback with note containing `"Pattern treated as literal text (invalid regex)"`
 5. `save_file("_slice.txt", "line one\nline two\nline three\nline four\nline five\n")`
-6. `read_file("_slice.txt", start_line=2, end_line=4)` — expect lines 2-4 with line-number prefixes (e.g. `"2→line two\n3→line three\n4→line four\n"`)
+6. `read_file("_slice.txt", start_line=2, end_line=4)` — expect lines 2-4 with line-number prefixes using the Unicode arrow `→` (U+2192), not `:` or `|` (e.g. `"2→line two\n3→line three\n4→line four\n"`)
 7. `delete_this_file("_slice.txt")`
-8. `check_file_size(max_lines=10000)` — expect output starting with `"File size check passed"` and mentioning the total file count
+8. `check_file_size(max_lines=10000)` — expect output starting with `"File size check passed"` and mentioning the total file count. May also surface a `"Stale allowlist entries"` section — both are normal.
 
 ### Test 1.12: Reference-project tools
 
 Skip the whole test if `get_reference_projects()` returns `count: 0`.
 
-1. `get_reference_projects()` — expect dict with `count`, `projects` (list), `usage`
+1. `get_reference_projects()` — expect dict with `count` (int), `projects` (list of `{name, url}` objects), `usage` (str)
 2. Pick a project name from step 1's output.
 3. `list_reference_directory(reference_name=<name>)` — expect file/dir listing
 4. Pick a known file from step 3 (e.g. `README.md`).
@@ -124,7 +124,7 @@ Skip the whole test if `get_reference_projects()` returns `count: 0`.
 4. `git(command="branch", args=["--show-current"])` — expect current branch name (non-empty)
 5. `git(command="rev_parse", args=["HEAD"])` — expect a 40-char SHA
 6. `git(command="ls_files", args=["src/"])` — expect tracked files under `src/`
-7. `git(command="diff", args=["HEAD", "--stat"], compact=False)` — expect either empty (clean tree) or a file-change summary
+7. `git(command="diff", args=["HEAD", "--stat"], compact=False)` — on a clean tree expect literal `"No changes found"`; otherwise expect a file-change summary
 8. `git(command="diff", args=["HEAD~1..HEAD", "--stat"], compact=False)` — expect file-change summary for the latest commit (**requires ≥2 commits**)
 
 ---
