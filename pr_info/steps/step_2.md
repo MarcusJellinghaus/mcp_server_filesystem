@@ -58,15 +58,25 @@ Pseudocode for the rewritten `if compact:` block inside `git_diff()`:
    plain = repo.git.diff(_SAFETY_FLAGS + final_args + pathspec_tail)
    if not plain: return "No changes found"
 3. idx = plain.find("diff --git")
-   prefix, patch_portion = (plain[:idx], plain[idx:]) if idx >= 0 else (plain, "")
+   prefix, patch_portion = (plain[:idx].rstrip("\n"), plain[idx:]) if idx >= 0 else (plain, "")
 4. if not patch_portion:
        output = prefix            # nothing to compact (rare; non-patch fallback)
    else:
        ansi      = repo.git.diff("--color=always", "--color-moved=dimmed-zebra", _SAFETY_FLAGS + final_args + pathspec_tail)
        compacted = render_compact_diff(patch_portion, ansi)
        if not compacted: compacted = patch_portion
-       optionally prepend the "# Compact diff: ..." header based on patch_portion line counts
-       output = prefix + compacted
+       # IMPORTANT: the "# Compact diff: orig_n → new_n" header (when compaction
+       # reduced the line count) is prepended to the COMPACTED PATCH PORTION
+       # ONLY — never to the whole output. The line counts reflect only the
+       # patch portion, so the header must sit between the preserved prefix
+       # and the compacted diff body, not at the very top.
+       if compaction reduced patch line count:
+           compacted = f"# Compact diff: {orig_n} → {new_n} lines …\n" + compacted
+       # Final ordering:
+       #   <preserved prefix lines>
+       #   <# Compact diff header, if any>
+       #   <compacted diff body>
+       output = prefix + "\n" + compacted if prefix else compacted
 ```
 
 The post-block `if not output: return "No changes found"`, `search`, and `truncate_output()` calls remain unchanged.
@@ -85,8 +95,12 @@ In `tests/git_operations/test_read_operations.py`, inside `TestGitDiff`, add (al
 3. `test_diff_compact_numstat_returns_output` — similar with `--numstat`; assert digits and `"README.md"` present.
 4. `test_diff_compact_name_only_returns_output` — similar with `--name-only`; assert `"README.md"` in result.
 5. `test_diff_compact_name_status_returns_output` — similar with `--name-status`; assert a status letter (e.g. `"M"`) and `"README.md"`.
-6. `test_diff_compact_stat_and_patch_preserves_prefix` — call with `args=["--stat", "-p"]`; assert both the stat summary (e.g. `"|"`) and a `"diff --git"` line are present.
-7. `test_diff_compact_regression_plain_patch` — modify a file with several lines; call with default args; assert `"diff --git"` in result (existing compact behaviour still works).
+6. `test_diff_compact_stat_and_patch_preserves_prefix` — call with `args=["--stat", "-p"]`; assert both the stat summary (e.g. `"|"`) and a `"diff --git"` line are present, AND assert **ordering**: `result.index("|") < result.index("diff --git")` (the `|` is the stat-row separator and must appear before the patch body). Add a brief test comment: the prefix-before-patch invariant is what the split-and-preserve logic guarantees.
+7. `test_diff_compact_regression_plain_patch` — create a commit, then stage a *multi-line* change in a working file so the compact algorithm has something to compact (e.g. add ~5 unchanged context lines surrounded by 2 changed lines). Call with default args. Assert `"diff --git" in result` (patch survived) **and** `"# Compact diff:" in result` (proves the compactor actually ran on the patch portion) **and** that a changed line (e.g. `"+new line"`) is present (proves the patch wasn't dropped by the rebuild).
+8. `test_diff_compact_no_patch_returns_no_changes_marker` — stage changes in a working file, then call `git_diff(project_dir, args=["--no-patch"], compact=True)`. Assert the result is exactly `"No changes found"` because `--no-patch` suppresses the diff payload (non-patch-only flag → bypass branch → empty plain output → descriptive marker).
+9. `test_diff_compact_stat_with_width_argument` — call `git_diff(project_dir, args=["--stat=80"], compact=True)` against a repo with staged changes. Assert the result is **not** `"No changes found"` and contains `"|"`. This exercises the `a.split("=", 1)[0] in _NON_PATCH_FLAGS` membership check (proves that flags with `=<value>` such as `--stat=80` are still recognised as non-patch flags and routed through the bypass).
+
+Brief note for the implementer: the `a.split("=", 1)[0]` membership check exists specifically because git accepts `--stat=<width>`, `--stat=<width>,<name>`, and similar parameterised forms — bare-string membership against `_NON_PATCH_FLAGS` would otherwise miss them.
 
 Write tests first, see them fail (or skip), implement, see them pass.
 
@@ -110,4 +124,4 @@ One commit: new tests + `_NON_PATCH_FLAGS` constant + rewritten `if compact:` bl
 
 ## LLM prompt
 
-> Implement Step 2 as specified in `pr_info/steps/step_2.md`. Use `pr_info/steps/summary.md` as context for the overall fix and the rationale behind `_NON_PATCH_FLAGS`. Follow TDD: write the seven `TestGitDiff` integration tests first, confirm they fail, then add the `_NON_PATCH_FLAGS` frozenset and rewrite the `if compact:` block of `git_diff()` in `src/mcp_workspace/git_operations/read_operations.py`. Do not modify `compact_diffs.py`. Do not introduce helper functions — keep the flag check inline. Run all three MCP code-quality checks (pytest with the recommended exclusions plus a follow-up `markers=["git_integration"]` run, pylint, mypy) and ensure they pass before producing exactly one commit. Use only MCP tools as required by `.claude/CLAUDE.md`.
+> Implement Step 2 as specified in `pr_info/steps/step_2.md`. Use `pr_info/steps/summary.md` as context for the overall fix and the rationale behind `_NON_PATCH_FLAGS`. Follow TDD: write the nine `TestGitDiff` integration tests first, confirm they fail, then add the `_NON_PATCH_FLAGS` frozenset and rewrite the `if compact:` block of `git_diff()` in `src/mcp_workspace/git_operations/read_operations.py`. Do not modify `compact_diffs.py`. Do not introduce helper functions — keep the flag check inline. Run all three MCP code-quality checks (pytest with the recommended exclusions plus a follow-up `markers=["git_integration"]` run, pylint, mypy) and ensure they pass before producing exactly one commit. Use only MCP tools as required by `.claude/CLAUDE.md`.
