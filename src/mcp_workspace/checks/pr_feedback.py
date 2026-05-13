@@ -8,6 +8,9 @@ threshold. The functions here render `PRFeedback` dicts as text and wrap
 import logging
 from typing import List, Optional, Tuple
 
+from mcp_workspace.github_operations.exception_renderer import (
+    render_exception_for_display,
+)
 from mcp_workspace.github_operations.pr_manager import PRFeedback, PullRequestManager
 
 logger = logging.getLogger(__name__)
@@ -84,8 +87,8 @@ def format_pr_feedback(feedback: PRFeedback) -> str:
     lines: List[str] = ["PR Reviews:"]
     lines.extend(rendered)
 
-    for section in unavailable:
-        lines.append(f"[unavailable] {section}: API error")
+    for section, exc in unavailable.items():
+        lines.append(f"[unavailable] {section}: {render_exception_for_display(exc)}")
 
     if resolved_count > 0:
         lines.append(f"{resolved_count} resolved threads")

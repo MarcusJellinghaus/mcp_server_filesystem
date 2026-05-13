@@ -47,7 +47,7 @@ class PRFeedback(TypedDict):
     changes_requested: list[dict[str, Any]]
     conversation_comments: list[dict[str, Any]]
     alerts: list[dict[str, Any]]
-    unavailable: list[str]
+    unavailable: dict[str, Exception]
 
 
 def _empty_pr_feedback() -> PRFeedback:
@@ -58,7 +58,7 @@ def _empty_pr_feedback() -> PRFeedback:
         "changes_requested": [],
         "conversation_comments": [],
         "alerts": [],
-        "unavailable": [],
+        "unavailable": {},
     }
 
 
@@ -532,12 +532,13 @@ class PullRequestManager(BaseGitHubManager):
         Returns:
             PRFeedback dict containing unresolved threads, resolved thread count,
             CHANGES_REQUESTED reviews, conversation comments, code-scanning alerts,
-            and a list of section names that failed to fetch (excluding 403 on alerts).
+            and a dict mapping failed section names to the raised exception
+            (excluding 403 on alerts, which is silently skipped).
         """
         if not self._validate_pr_number(pr_number):
             return _empty_pr_feedback()
 
-        unavailable: list[str] = []
+        unavailable: dict[str, Exception] = {}
 
         try:
             threads, resolved_count, changes_requested = (
@@ -548,7 +549,7 @@ class PullRequestManager(BaseGitHubManager):
         ) as e:  # pylint: disable=broad-exception-caught  # one section failure must not abort
             logger.warning(f"Failed to fetch review data for PR #{pr_number}: {e}")
             threads, resolved_count, changes_requested = ([], 0, [])
-            unavailable.append("threads")
+            unavailable["threads"] = e
 
         try:
             comments = _pr_feedback_sources.fetch_conversation_comments(self, pr_number)
@@ -559,7 +560,7 @@ class PullRequestManager(BaseGitHubManager):
                 f"Failed to fetch conversation comments for PR #{pr_number}: {e}"
             )
             comments = []
-            unavailable.append("comments")
+            unavailable["comments"] = e
 
         try:
             alerts_or_none = _pr_feedback_sources.fetch_code_scanning_alerts(
@@ -573,7 +574,7 @@ class PullRequestManager(BaseGitHubManager):
                 f"Failed to fetch code-scanning alerts for PR #{pr_number}: {e}"
             )
             alerts = []
-            unavailable.append("alerts")
+            unavailable["alerts"] = e
 
         return {
             "unresolved_threads": threads,

@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from github.GithubException import GithubException
+
 from mcp_workspace.checks.pr_feedback import format_pr_feedback
 from mcp_workspace.github_operations.pr_manager import PRFeedback
 
@@ -13,7 +15,7 @@ def _empty_feedback() -> PRFeedback:
         "changes_requested": [],
         "conversation_comments": [],
         "alerts": [],
-        "unavailable": [],
+        "unavailable": {},
     }
 
 
@@ -210,20 +212,49 @@ class TestItemCap:
 
 
 class TestUnavailableSection:
-    """Unavailable sections render placeholder lines."""
+    """End-to-end coverage of the `[unavailable]` block in `format_pr_feedback`.
 
-    def test_unavailable_threads_placeholder(self) -> None:
-        feedback = _empty_feedback()
-        feedback["unavailable"] = ["threads"]
-        result = format_pr_feedback(feedback)
-        assert "[unavailable] threads: API error" in result
+    Detailed exception-rendering behavior lives in
+    `tests/github_operations/test_exception_renderer.py`.
+    """
 
-    def test_unavailable_multiple_sections(self) -> None:
+    def test_github_exception_rendered_in_unavailable_line(self) -> None:
         feedback = _empty_feedback()
-        feedback["unavailable"] = ["threads", "comments"]
+        feedback["unavailable"] = {
+            "threads": GithubException(500, {"message": "Server Error"}, None)
+        }
         result = format_pr_feedback(feedback)
-        assert "[unavailable] threads: API error" in result
-        assert "[unavailable] comments: API error" in result
+        assert "[unavailable] threads: GithubException 500 — Server Error" in result
+
+    def test_generic_exception_rendered_in_unavailable_line(self) -> None:
+        feedback = _empty_feedback()
+        feedback["unavailable"] = {"comments": ConnectionError("getaddrinfo failed")}
+        result = format_pr_feedback(feedback)
+        assert "[unavailable] comments: ConnectionError — getaddrinfo failed" in result
+
+    def test_multiple_sections_preserve_insertion_order(self) -> None:
+        feedback = _empty_feedback()
+        feedback["unavailable"] = {
+            "threads": GithubException(500, {"message": "a"}, None),
+            "comments": GithubException(502, {"message": "b"}, None),
+            "alerts": GithubException(503, {"message": "c"}, None),
+        }
+        result = format_pr_feedback(feedback)
+        lines = result.split("\n")
+        t_idx = next(
+            i
+            for i, line in enumerate(lines)
+            if line.startswith("[unavailable] threads")
+        )
+        c_idx = next(
+            i
+            for i, line in enumerate(lines)
+            if line.startswith("[unavailable] comments")
+        )
+        a_idx = next(
+            i for i, line in enumerate(lines) if line.startswith("[unavailable] alerts")
+        )
+        assert t_idx < c_idx < a_idx
 
 
 class TestMixedFullExample:
