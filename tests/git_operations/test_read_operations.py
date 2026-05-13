@@ -1,5 +1,6 @@
 """Integration tests for read-only git operations."""
 
+import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -224,6 +225,122 @@ class TestGitDiff:
             call_args = mock_repo.git.diff.call_args[0]
             assert "--no-ext-diff" in call_args
             assert "--no-textconv" in call_args
+
+    def test_diff_compact_stat_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        (project_dir / "README.md").write_text("# Changed stat\n")
+        result = git_diff(project_dir, args=["--stat"])
+        assert result != "No changes found"
+        assert "README.md" in result
+        assert "|" in result
+
+    def test_diff_compact_shortstat_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        (project_dir / "README.md").write_text("# Changed shortstat\n")
+        result = git_diff(project_dir, args=["--shortstat"])
+        assert result != "No changes found"
+        assert "changed" in result or "insertion" in result
+
+    def test_diff_compact_numstat_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        (project_dir / "README.md").write_text("# Changed numstat\n")
+        result = git_diff(project_dir, args=["--numstat"])
+        assert result != "No changes found"
+        assert "README.md" in result
+        assert any(ch.isdigit() for ch in result)
+
+    def test_diff_compact_name_only_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        (project_dir / "README.md").write_text("# Changed name-only\n")
+        result = git_diff(project_dir, args=["--name-only"])
+        assert result != "No changes found"
+        assert "README.md" in result
+
+    def test_diff_compact_name_status_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        (project_dir / "README.md").write_text("# Changed name-status\n")
+        result = git_diff(project_dir, args=["--name-status"])
+        assert result != "No changes found"
+        assert "README.md" in result
+        assert "M" in result
+
+    def test_diff_compact_stat_and_patch_preserves_prefix(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        # The prefix-before-patch invariant is what the split-and-preserve
+        # logic guarantees: the stat block must appear before the diff body.
+        _, project_dir = git_repo_with_commit
+        (project_dir / "README.md").write_text("# Changed stat-p\n")
+        result = git_diff(project_dir, args=["--stat", "-p"])
+        assert "|" in result
+        assert "diff --git" in result
+        assert result.index("|") < result.index("diff --git")
+
+    def test_diff_compact_regression_plain_patch(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        repo, project_dir = git_repo_with_commit
+        # BLOCK A originally lives in source.txt. Each line is
+        # >= MIN_CONTENT_LENGTH chars so the compactor classifies them as
+        # significant when matching moves across files.
+        block_a_lines = [
+            "BLOCK A line one of content here",
+            "BLOCK A line two of content here",
+            "BLOCK A line three of content here",
+            "BLOCK A line four of content here",
+            "BLOCK A line five of content here",
+            "BLOCK A line six of content here",
+        ]
+        (project_dir / "source.txt").write_text("\n".join(block_a_lines) + "\n")
+        (project_dir / "target.txt").write_text("placeholder content here\n")
+        repo.index.add(["source.txt", "target.txt"])
+        repo.index.commit("baseline")
+
+        # Delete BLOCK A from source.txt and prepend "new line" before adding
+        # BLOCK A to target.txt.  Putting "new line" first ensures it lands in
+        # the compactor's 3-line preview window rather than the summarised
+        # remainder.  This forces >= MIN_BLOCK_LINES moved lines so the
+        # compactor produces a "# Compact diff:" header.
+        (project_dir / "source.txt").write_text("placeholder content here\n")
+        (project_dir / "target.txt").write_text(
+            "new line\n" + "\n".join(block_a_lines) + "\n"
+        )
+
+        result = git_diff(project_dir, max_lines=500)
+        assert "diff --git" in result
+        assert "# Compact diff:" in result
+        assert "+new line" in result
+
+    def test_diff_compact_no_patch_returns_no_changes_marker(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        # Leave working tree clean — `git diff --no-patch` yields empty output,
+        # which routes through the bypass branch.
+        _, project_dir = git_repo_with_commit
+        result = git_diff(project_dir, args=["--no-patch"], compact=True)
+        assert result == "No changes found"
+
+    def test_diff_compact_stat_with_width_argument(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        # Exercises the `a.split("=", 1)[0] in _NON_PATCH_FLAGS` membership
+        # check: --stat=80 must still be recognised as a non-patch flag.
+        repo, project_dir = git_repo_with_commit
+        (project_dir / "README.md").write_text("# Changed stat width\n")
+        repo.index.add(["README.md"])
+        result = git_diff(project_dir, args=["--stat=80", "--staged"], compact=True)
+        assert result != "No changes found"
+        assert "|" in result
 
 
 @pytest.mark.git_integration
@@ -509,6 +626,106 @@ class TestGitShow:
         _, project_dir = git_repo_with_commit
         with pytest.raises(ValueError, match="not in the security allowlist"):
             git_show(project_dir, args=["--exec=evil"])
+
+    def test_show_compact_preserves_commit_header(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        # The prefix-before-patch invariant: the commit header (Author / Date
+        # lines) must appear before the diff body in the compacted output.
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD"])
+        assert "Author:" in result
+        assert "Date:" in result
+        assert "diff --git" in result
+        assert result.index("Author:") < result.index("diff --git")
+
+    def test_show_compact_oneline_preserved(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["--oneline", "HEAD"])
+        assert "Initial commit" in result
+
+    def test_show_compact_format_preserved(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["--format=%H", "HEAD"])
+        assert re.search(r"\b[0-9a-f]{40}\b", result) is not None
+
+    def test_show_compact_stat_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--stat"])
+        assert result != "No output."
+        assert "|" in result
+
+    def test_show_compact_shortstat_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--shortstat"])
+        assert result != "No output."
+        assert "changed" in result or "insertion" in result
+
+    def test_show_compact_numstat_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--numstat"])
+        assert result != "No output."
+        assert "README.md" in result
+        assert any(ch.isdigit() for ch in result)
+
+    def test_show_compact_name_only_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--name-only"])
+        assert result != "No output."
+        assert "README.md" in result
+
+    def test_show_compact_name_status_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--name-status"])
+        assert result != "No output."
+        assert "README.md" in result
+        assert "A" in result
+
+    def test_show_compact_stat_and_patch_preserves_prefix(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        # The prefix-before-patch invariant: when --stat is combined with -p,
+        # the stat block must appear before the patch body.
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--stat", "-p"])
+        assert "|" in result
+        assert "diff --git" in result
+        assert result.index("|") < result.index("diff --git")
+
+    def test_show_compact_no_patch_preserves_commit_header(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--no-patch"], compact=True)
+        assert "Author:" in result
+        assert "Date:" in result
+        assert "diff --git" not in result
+
+    def test_show_compact_pretty_preserved(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        # --pretty=<format> is NOT in _NON_PATCH_FLAGS — it customises the
+        # header but still emits a patch — so this exercises the
+        # split-and-preserve branch, not the non-patch bypass.
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--pretty=fuller"], compact=True)
+        assert "AuthorDate:" in result
+        assert "diff --git" in result
+        assert result.index("AuthorDate:") < result.index("diff --git")
 
 
 @pytest.mark.git_integration

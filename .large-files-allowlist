@@ -20,3 +20,6 @@ tests/github_operations/test_base_manager.py
 tests/github_operations/test_github_utils.py
 tests/github_operations/test_verification.py
 tests/github_operations/issues/test_get_branch_with_pr_fallback.py
+
+# Git operations test file - comprehensive integration coverage for all read-only git operations
+tests/git_operations/test_read_operations.py

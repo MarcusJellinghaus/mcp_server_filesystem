@@ -150,6 +150,9 @@ class TestValidateArgsShowAllowed:
     def test_patch(self) -> None:
         validate_args("show", ["-p"])
 
+    def test_numstat(self) -> None:
+        validate_args("show", ["--numstat"])
+
 
 class TestValidateArgsBranchAllowed:
     """Allowed branch flags pass through silently."""

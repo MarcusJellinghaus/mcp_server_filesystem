@@ -159,6 +159,7 @@ SHOW_ALLOWED_FLAGS: frozenset[str] = frozenset(
         "--date",
         "--stat",
         "--shortstat",
+        "--numstat",
         "--name-only",
         "--name-status",
         "--no-patch",
