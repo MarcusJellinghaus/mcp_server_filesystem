@@ -36,3 +36,26 @@
 - `pr_info/steps/summary.md`: untouched.
 
 **Status**: Changes applied — pending commit.
+
+## Round 2 — 2026-05-13
+
+**Findings**:
+- No critical issues. Round 1 fixes landed correctly: split-and-preserve pseudocode now places the `# Compact diff:` header between prefix and compacted body; ordering assertions are added; new `--no-patch`, `--pretty=fuller`, `--stat=80` tests are well-placed and consistent with actual git behavior and the existing `validate_args` `split("=", 1)[0]` handling.
+- Spot-checked source confirms plan accuracy: `SHOW_ALLOWED_FLAGS` does NOT contain `--numstat` (step 1 change is necessary); dead `if not output: output = plain` rescue in `git_show()` exists and is correctly slated for removal in step 3; `parse_diff()` confirms the silent-drop root cause; test classes `TestGitDiff` / `TestGitShow` and `TestValidateArgsShowAllowed` exist at the expected locations.
+- Minor cosmetic nit (skip-worthy): Verification sections in step_1, step_2, step_3 refer to `mcp__tools-py__*` instead of the correct `mcp__mcp-tools-py__*`. An implementer reading CLAUDE.md will substitute automatically; not worth a round of edits.
+
+**Decisions**:
+- All findings skipped — no plan changes this round.
+
+**User decisions**: None — no design or scope questions raised.
+
+**Changes**: None.
+
+**Status**: Plan is ready for implementation. No commit produced this round.
+
+## Final Status
+
+**Rounds run**: 2
+**Commits produced**: 1 (`1de72a1` — plan(#198): tighten compact-diff plan with ordering tests and header placement)
+**Plan files**: `pr_info/steps/summary.md`, `step_1.md`, `step_2.md`, `step_3.md` — verified consistent with the source code, the issue requirements, and the project's planning/SE principles.
+**Outcome**: Plan is approved by review and ready to move to implementation. The branch is up-to-date with `main` and CI is passing.
