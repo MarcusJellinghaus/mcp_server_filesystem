@@ -1,352 +1,151 @@
-## Test instructions for the LLM to verify the functionality
+# MCP Workspace — LLM Test Plan
 
-I want you to test the different mcp tools.
+Each test below is self-contained and can be run independently. Execute the steps by calling the MCP tools listed.
 
-- Can you please get a list of all files. How many files do you see? (If it is more than 150, I think there is an issue.)
-- Can you please check if any of these files should be ignored according to gitignore?
-- Please create / save a file
-- Read the file and check whether the content is the same
-- Append content to the file
-- Read the file again and verify the combined content
-- Check with list files whether it shows up there
-- Delete the file
-- List all files and check whether it disappeared
+If you find any issues — wrong results, confusing errors, broken output formatting — report them.
 
-Please let me know whether you find any issues.
+---
 
-## Edit File Functionality Test Plan
+## Section 1: Local file & search tools
 
-Each test below is self-contained and should be run independently. All commands shown are meant to be executed using the MCP tools interface.
+### Test 1.1: Save / read / append / search / delete
 
-Please execute each of the steps by calling the MCP tools.
+1. `save_file("_test.txt", "line one\nline two\n")`
+2. `read_file("_test.txt")` — expect `"line one\nline two\n"`
+3. `append_file("_test.txt", "line three\n")`
+4. `read_file("_test.txt")` — expect all three lines
+5. `search_files(glob="_test.txt")` — expect one match
+6. `delete_this_file("_test.txt")`
+7. `search_files(glob="_test.txt")` — expect zero matches
 
-### Test 1: Basic Text Replacement
-**Goal**: Verify basic text replacement functionality
+### Test 1.2: Basic text replacement + already-applied path
 
-**Step 1**: Create a test file
-```
-save_file(
-    file_path="test_basic.txt", 
-    content="Hello world\nThis is a test file\nEnd of file"
-)
-```
+1. `save_file("_test.txt", "Hello world\nThis is a test\n")`
+2. `edit_file("_test.txt", old_string="Hello world", new_string="Greetings earth")`
+3. `read_file("_test.txt")` — expect `"Greetings earth\nThis is a test\n"`
+4. `edit_file("_test.txt", old_string="Hello world", new_string="Greetings earth")` — expect `"No changes needed - edit already applied"`
+5. `delete_this_file("_test.txt")`
 
-**Step 2**: Verify file was created
-```
-read_file(file_path="test_basic.txt")
-```
+### Test 1.3: Two sequential edits
 
-**Step 3**: Perform a basic text replacement
-```
-edit_file(
-    file_path="test_basic.txt",
-    edits=[{"old_text": "Hello world", "new_text": "Greetings earth"}]
-)
-```
+1. `save_file("_test.txt", "First section\nSecond section\nThird section\nFourth section\n")`
+2. `edit_file("_test.txt", old_string="First section", new_string="Section one")`
+3. `edit_file("_test.txt", old_string="Third section", new_string="Section three")`
+4. `read_file("_test.txt")` — expect both replacements present
+5. `delete_this_file("_test.txt")`
 
-**Step 4**: Verify changes were applied correctly
-```
-read_file(file_path="test_basic.txt")
-# Expected: "Greetings earth" should appear in the file
-```
+### Test 1.4: Indentation preserved
 
-**Step 5**: Clean up after test
-```
-delete_this_file(file_path="test_basic.txt")
-```
+1. `save_file("_test.py", "def example():\n    # comment\n    x = 5\n    return x\n")`
+2. `edit_file("_test.py", old_string="# comment", new_string="# returns five")`
+3. `read_file("_test.py")` — expect 4-space indentation preserved
+4. `delete_this_file("_test.py")`
 
-### Test 2: Multiple Simultaneous Edits
-**Goal**: Verify ability to make multiple edits in a single operation
+### Test 1.5: Failed match
 
-**Step 1**: Create a test file with multiple distinct sections
-```
-save_file(
-    file_path="test_multiple.txt",
-    content="First section\nSecond section\nThird section\nFourth section"
-)
-```
+1. `save_file("_test.txt", "Some content\n")`
+2. `edit_file("_test.txt", old_string="does not exist", new_string="x")` — expect clean error
+3. `read_file("_test.txt")` — expect unchanged
+4. `delete_this_file("_test.txt")`
 
-**Step 2**: Verify file was created
-```
-read_file(file_path="test_multiple.txt")
-```
+### Test 1.6: Regex special chars treated as literal
 
-**Step 3**: Perform multiple edits simultaneously
-```
-edit_file(
-    file_path="test_multiple.txt",
-    edits=[
-        {"old_text": "First section", "new_text": "Section one"},
-        {"old_text": "Third section", "new_text": "Section three"}
-    ]
-)
-```
+1. `save_file("_test.txt", "(parens) [brackets] *stars* ^anchors$\n")`
+2. `edit_file("_test.txt", old_string="(parens) [brackets]", new_string="<angle>")`
+3. `read_file("_test.txt")` — expect literal replacement (no regex interpretation)
+4. `delete_this_file("_test.txt")`
 
-**Step 4**: Verify all changes were applied correctly
-```
-read_file(file_path="test_multiple.txt")
-# Expected: Both "Section one" and "Section three" should appear in the file
-```
+### Test 1.7: Multi-line edit
 
-**Step 5**: Clean up after test
-```
-delete_this_file(file_path="test_multiple.txt")
-```
+1. `save_file("_test.txt", "L1\nL2\nL3\nL4\nL5\n")`
+2. `edit_file("_test.txt", old_string="L2\nL3\nL4", new_string="X\nY\nZ")`
+3. `read_file("_test.txt")` — expect `"L1\nX\nY\nZ\nL5\n"`
+4. `delete_this_file("_test.txt")`
 
-### Test 3: Whitespace and Indentation Preservation
-**Goal**: Verify that code indentation and formatting is preserved
+### Test 1.8: Markdown bullet indentation
 
-**Step 1**: Create a test file with structured Python code
-```
-save_file(
-    file_path="test_indentation.py",
-    content="""def example():
-    # This is a comment
-    x = 5
-    if x > 3:
-        print("Greater than 3")
-    return x
-"""
-)
-```
+1. `save_file("_test.md", "- top\n- options:\n- a: 1\n- b: 2\n")`
+2. `edit_file("_test.md", old_string="- options:\n- a: 1\n- b: 2", new_string="- options:\n  - a: 1\n  - b: 2")`
+3. `read_file("_test.md")` — expect nested bullets indented
+4. `delete_this_file("_test.md")`
 
-**Step 2**: Verify file was created with proper formatting
-```
-read_file(file_path="test_indentation.py")
-```
+### Test 1.9: Multi-match safety + replace_all
 
-**Step 3**: Edit the file while preserving indentation
-```
-edit_file(
-    file_path="test_indentation.py",
-    edits=[
-        {"old_text": "# This is a comment", "new_text": "# This function returns a value"},
-        {"old_text": "Greater than 3", "new_text": "Value exceeds threshold"}
-    ],
-    options={"preserve_indentation": True}
-)
-```
+1. `save_file("_test.txt", "foo bar foo baz foo\n")`
+2. `edit_file("_test.txt", old_string="foo", new_string="FOO")` — expect error containing `"Multiple matches (3) found for foo"` and the hint `"Use replace_all=True"`
+3. `edit_file("_test.txt", old_string="foo", new_string="FOO", replace_all=True)`
+4. `read_file("_test.txt")` — expect `"FOO bar FOO baz FOO\n"`
+5. `delete_this_file("_test.txt")`
 
-**Step 4**: Verify changes were applied with indentation preserved
-```
-read_file(file_path="test_indentation.py")
-# Expected: Changes made with proper indentation intact
-```
+### Test 1.10: move_file
 
-**Step 5**: Clean up after test
-```
-delete_this_file(file_path="test_indentation.py")
-```
+1. `save_file("_a.txt", "content\n")`
+2. `move_file("_a.txt", "_b.txt")`
+3. `read_file("_b.txt")` — expect `"content\n"`
+4. `search_files(glob="_a.txt")` — expect zero matches
+5. `save_file("_target.txt", "exists\n")`
+6. `move_file("_b.txt", "_target.txt")` — expect error message exactly `"Destination already exists"`
+7. `move_file("_does_not_exist.txt", "_x.txt")` — expect error message exactly `"File not found"`
+8. Cleanup both remaining files
 
-### Test 4: Dry Run Mode
-**Goal**: Verify preview functionality without applying changes
+### Test 1.11: Search, listing, sliced reads, file-size check
 
-**Step 1**: Create a test file
-```
-save_file(
-    file_path="test_dryrun.txt",
-    content="This is line one\nThis is line two\nThis is line three"
-)
-```
+1. `list_directory()` — expect file list scoped to project, gitignored paths excluded
+2. `list_directory(dirs_only=True)` — expect only directory entries, each with trailing `/`
+3. `search_files(pattern="def main", glob="**/*.py")` — expect content matches with file paths and line numbers
+4. `search_files(pattern="[unclosed")` — invalid regex; expect literal-text fallback with note containing `"Pattern treated as literal text (invalid regex)"`
+5. `save_file("_slice.txt", "line one\nline two\nline three\nline four\nline five\n")`
+6. `read_file("_slice.txt", start_line=2, end_line=4)` — expect lines 2-4 with line-number prefixes (e.g. `"2→line two\n3→line three\n4→line four\n"`)
+7. `delete_this_file("_slice.txt")`
+8. `check_file_size(max_lines=10000)` — expect output starting with `"File size check passed"` and mentioning the total file count
 
-**Step 2**: Verify file was created
-```
-read_file(file_path="test_dryrun.txt")
-```
+### Test 1.12: Reference-project tools
 
-**Step 3**: Run edit in dry run mode
-```
-edit_file(
-    file_path="test_dryrun.txt",
-    edits=[{"old_text": "line two", "new_text": "second line"}],
-    dry_run=True
-)
-# Expected: Result should show diff but not apply changes
-```
+Skip the whole test if `get_reference_projects()` returns `count: 0`.
 
-**Step 4**: Verify original file wasn't changed
-```
-read_file(file_path="test_dryrun.txt")
-# Expected: "This is line two" should still be in the file
-```
+1. `get_reference_projects()` — expect dict with `count`, `projects` (list), `usage`
+2. Pick a project name from step 1's output.
+3. `list_reference_directory(reference_name=<name>)` — expect file/dir listing
+4. Pick a known file from step 3 (e.g. `README.md`).
+5. `read_reference_file(reference_name=<name>, file_path=<file>)` — expect file content
+6. `search_reference_files(reference_name=<name>, glob="**/*.py")` — expect matches (skip step if project has no Python)
 
-**Step 5**: Run the same edit without dry_run
-```
-edit_file(
-    file_path="test_dryrun.txt",
-    edits=[{"old_text": "line two", "new_text": "second line"}]
-)
-```
+---
 
-**Step 6**: Verify changes were applied this time
-```
-read_file(file_path="test_dryrun.txt")
-# Expected: "This is second line" should be in the file
-```
+## Section 2: Local git tools
 
-**Step 7**: Clean up after test
-```
-delete_this_file(file_path="test_dryrun.txt")
-```
+(No network. Read-only. **Skip Test 2.1 step 8 if the repo has fewer than 2 commits.**)
 
-### Test 5: Failed Match Handling
-**Goal**: Verify behavior when requested text is not found
+### Test 2.1
 
-**Step 1**: Create a test file
-```
-save_file(
-    file_path="test_failed_match.txt",
-    content="This is some sample content"
-)
-```
+1. `get_base_branch()` — expect a non-empty string (may be the parent branch, not necessarily `"main"`)
+2. `git(command="status")` — expect output containing `"On branch"` and a working-tree state line
+3. `git(command="log", max_lines=100)` — expect output starting with `"commit "` and containing `"Author:"`
+4. `git(command="branch", args=["--show-current"])` — expect current branch name (non-empty)
+5. `git(command="rev_parse", args=["HEAD"])` — expect a 40-char SHA
+6. `git(command="ls_files", args=["src/"])` — expect tracked files under `src/`
+7. `git(command="diff", args=["HEAD", "--stat"], compact=False)` — expect either empty (clean tree) or a file-change summary
+8. `git(command="diff", args=["HEAD~1..HEAD", "--stat"], compact=False)` — expect file-change summary for the latest commit (**requires ≥2 commits**)
 
-**Step 2**: Verify file was created
-```
-read_file(file_path="test_failed_match.txt")
-```
+---
 
-**Step 3**: Attempt to edit with non-existent text
-```
-edit_file(
-    file_path="test_failed_match.txt",
-    edits=[{"old_text": "text that doesn't exist", "new_text": "replacement text"}]
-)
-# Expected: Should return information about failed match
-```
+## Section 3: Network-bound tools (slow, rate-limited)
 
-**Step 4**: Verify file content was not changed
-```
-read_file(file_path="test_failed_match.txt")
-# Expected: Original content should be unchanged
-```
+These hit live APIs. Run only when needed.
 
-**Step 5**: Clean up after test
-```
-delete_this_file(file_path="test_failed_match.txt")
-```
+### Test 3.1
 
-### Test 6: Edge Cases
-**Goal**: Test behavior with complex patterns
+1. `github_issue_list(state="open", max_results=3)` — expect lines starting with `#` (e.g. `"#200 [open] ..."`)
+2. `github_search(query="bug", max_results=3)` — expect results plus auto-filter note `"(auto-added: is:issue is:pull-request)"`
+3. Pick an issue number from step 1.
+4. `github_issue_view(number=<from step 1>)` — expect formatted issue body
+5. Pick a closed PR number from step 2 (or skip if none).
+6. `github_pr_view(number=<from step 2>)` — expect formatted PR body
 
-**Step 1**: Create file with special regex characters
-```
-save_file(
-    file_path="test_special_chars.txt",
-    content="This has (parentheses) and [brackets] and {braces} and other *special* ^characters$ like + and ."
-)
-```
+### Test 3.2
 
-**Step 2**: Verify file was created
-```
-read_file(file_path="test_special_chars.txt")
-```
-
-**Step 3**: Edit content with regex special characters
-```
-edit_file(
-    file_path="test_special_chars.txt",
-    edits=[{"old_text": "(parentheses) and [brackets]", "new_text": "<angle brackets> and |pipes|"}]
-)
-```
-
-**Step 4**: Verify changes were applied correctly
-```
-read_file(file_path="test_special_chars.txt")
-# Expected: "This has <angle brackets> and |pipes| and {braces}"
-```
-
-**Step 5**: Clean up after test
-```
-delete_this_file(file_path="test_special_chars.txt")
-```
-
-### Test 7: Multi-line Content Editing
-**Goal**: Verify editing across multiple lines
-
-**Step 1**: Create a file with multi-line structures
-```
-save_file(
-    file_path="test_multiline.txt",
-    content="""This is the first line.
-This is the second line.
-This is the third line.
-This is the fourth line.
-This is the fifth line."""
-)
-```
-
-**Step 2**: Verify file was created
-```
-read_file(file_path="test_multiline.txt")
-```
-
-**Step 3**: Edit content spanning multiple lines
-```
-edit_file(
-    file_path="test_multiline.txt",
-    edits=[{
-        "old_text": "This is the second line.\nThis is the third line.\nThis is the fourth line.",
-        "new_text": "These are\nthe middle\nlines of the text."
-    }]
-)
-```
-
-**Step 4**: Verify multi-line edit was applied correctly
-```
-read_file(file_path="test_multiline.txt")
-# Expected: Multi-line replacement should be visible
-```
-
-**Step 5**: Clean up after test
-```
-delete_this_file(file_path="test_multiline.txt")
-```
-
-### Test 8: Markdown Bullet Point Indentation
-**Goal**: Verify proper handling of markdown bullet point indentation
-
-**Step 1**: Create a markdown file with nested bullet points
-```
-save_file(
-file_path="test_markdown.md",
-content="# Documentation
-
-## Features
-
-- Top level feature
-- Available options:
-- option1: description
-- option2: description
-- Another top level feature"
-)
-```
-
-**Step 2**: Verify file was created
-```
-read_file(file_path="test_markdown.md")
-```
-
-**Step 3**: Correct bullet point indentation
-```
-edit_file(
-file_path="test_markdown.md",
-edits=[{
-"old_text": "- Available options:\n- option1: description\n- option2: description",
-"new_text": "- Available options:\n  - option1: description\n  - option2: description"
-}],
-options={
-"preserve_indentation": True
-}
-)
-```
-
-**Step 4**: Verify indentation was applied correctly
-```
-read_file(file_path="test_markdown.md")
-# Expected: Nested bullet points should be properly indented with 2 spaces
-```
-
-**Step 5**: Clean up after test
-```
-delete_this_file(file_path="test_markdown.md")
-```
+1. `check_branch_status(ci_timeout=0, pr_timeout=0)` — with polling disabled, returns immediately. Expect output containing each of these line prefixes:
+   - `"Branch:"`
+   - `"Branch Status:"`
+   - `"GitHub Label:"`
+   - `"Recommendations:"`
