@@ -442,7 +442,7 @@ async def git(
 
     Args:
         command: Git subcommand (log, diff, status, merge_base, fetch,
-            show, branch, rev_parse, ls_tree, ls_files, ls_remote).
+            show, branch, rev_parse, ls_tree, ls_files, ls_remote, check_ignore).
         args: Optional CLI flags (validated against per-command security allowlists).
         pathspec: Optional file paths appended after --.
         search: Optional regex to filter output (log, diff, show only).
