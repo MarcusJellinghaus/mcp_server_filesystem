@@ -60,9 +60,9 @@ Write the test first, see it fail, then edit `SHOW_ALLOWED_FLAGS` to make it pas
 
 Run all three MCP checks after the change:
 
-- `mcp__tools-py__run_pytest_check` (with `-n auto -m "not git_integration and not claude_cli_integration and not claude_api_integration and not formatter_integration and not github_integration and not langchain_integration"`)
-- `mcp__tools-py__run_pylint_check`
-- `mcp__tools-py__run_mypy_check`
+- `mcp__mcp-tools-py__run_pytest_check` (with `-n auto -m "not git_integration and not claude_cli_integration and not claude_api_integration and not formatter_integration and not github_integration and not langchain_integration"`)
+- `mcp__mcp-tools-py__run_pylint_check`
+- `mcp__mcp-tools-py__run_mypy_check`
 
 All must pass before commit.
 

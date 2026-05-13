@@ -93,7 +93,7 @@ In `tests/git_operations/test_read_operations.py`, inside `TestGitShow`, add (al
 8. `test_show_compact_name_status_returns_output` — analogous, `--name-status`.
 9. `test_show_compact_stat_and_patch_preserves_prefix` — call with `args=["HEAD", "--stat", "-p"]`; assert both `"|"` (stat) and `"diff --git"` are present, AND assert **ordering**: `result.index("|") < result.index("diff --git")` (stat block must appear before the patch body). Comment the test to make the prefix-before-patch invariant explicit.
 10. `test_show_compact_no_patch_preserves_commit_header` — call `git_show(project_dir, args=["HEAD", "--no-patch"], compact=True)`. Assert the commit header lines (`"Author:"` and `"Date:"`, plus a subject/SHA line) are present in the result, **and** that `"diff --git"` is NOT in the result (the `--no-patch` flag suppresses the diff payload; the bypass branch preserves the commit header as the entire output).
-11. `test_show_compact_pretty_preserved` — call `git_show(project_dir, args=["HEAD", "--pretty=fuller"], compact=True)`. Assert a fuller-format-only field is present in the prefix (e.g. `"AuthorDate:"` or `"CommitDate:"`) **and** that `"diff --git"` still appears after the prefix in the result (assert ordering: `result.index("AuthorDate:") < result.index("diff --git")`).
+11. `test_show_compact_pretty_preserved` — call `git_show(project_dir, args=["HEAD", "--pretty=fuller"], compact=True)`. Assert a fuller-format-only field is present in the prefix (e.g. `"AuthorDate:"` or `"CommitDate:"`) **and** that `"diff --git"` still appears after the prefix in the result (assert ordering: `result.index("AuthorDate:") < result.index("diff --git")`). Note: `--pretty=<format>` and `--format=<...>` are **not** in `_NON_PATCH_FLAGS` — they customise the header but still emit a patch — so this test exercises the split-and-preserve branch (NOT the non-patch bypass), confirming that pretty/format prefixes are preserved alongside the compacted patch body.
 
 The existing `test_show_compact_default` and `test_show_head_commit` tests should continue to pass (regression).
 
@@ -103,9 +103,9 @@ Write tests first, see them fail, implement, see them pass.
 
 After implementation, run all three MCP checks:
 
-- `mcp__tools-py__run_pytest_check` with `-n auto` and the standard "not …_integration" exclusions, followed by `markers=["git_integration"]` to confirm new tests pass.
-- `mcp__tools-py__run_pylint_check`
-- `mcp__tools-py__run_mypy_check`
+- `mcp__mcp-tools-py__run_pytest_check` with `-n auto` and the standard "not …_integration" exclusions, followed by `markers=["git_integration"]` to confirm new tests pass.
+- `mcp__mcp-tools-py__run_pylint_check`
+- `mcp__mcp-tools-py__run_mypy_check`
 
 All must pass.
 

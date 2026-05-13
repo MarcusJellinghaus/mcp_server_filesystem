@@ -97,7 +97,7 @@ In `tests/git_operations/test_read_operations.py`, inside `TestGitDiff`, add (al
 5. `test_diff_compact_name_status_returns_output` — similar with `--name-status`; assert a status letter (e.g. `"M"`) and `"README.md"`.
 6. `test_diff_compact_stat_and_patch_preserves_prefix` — call with `args=["--stat", "-p"]`; assert both the stat summary (e.g. `"|"`) and a `"diff --git"` line are present, AND assert **ordering**: `result.index("|") < result.index("diff --git")` (the `|` is the stat-row separator and must appear before the patch body). Add a brief test comment: the prefix-before-patch invariant is what the split-and-preserve logic guarantees.
 7. `test_diff_compact_regression_plain_patch` — create a commit, then stage a *multi-line* change in a working file so the compact algorithm has something to compact (e.g. add ~5 unchanged context lines surrounded by 2 changed lines). Call with default args. Assert `"diff --git" in result` (patch survived) **and** `"# Compact diff:" in result` (proves the compactor actually ran on the patch portion) **and** that a changed line (e.g. `"+new line"`) is present (proves the patch wasn't dropped by the rebuild).
-8. `test_diff_compact_no_patch_returns_no_changes_marker` — stage changes in a working file, then call `git_diff(project_dir, args=["--no-patch"], compact=True)`. Assert the result is exactly `"No changes found"` because `--no-patch` suppresses the diff payload (non-patch-only flag → bypass branch → empty plain output → descriptive marker).
+8. `test_diff_compact_no_patch_returns_no_changes_marker` — Setup: leave the working tree clean (or only stage changes so the unstaged `git diff` view is empty) so that `git diff --no-patch` produces empty output. Then call `git_diff(project_dir, args=["--no-patch"], compact=True)`. Assert the result is exactly `"No changes found"`. Rationale: `--no-patch` suppresses the diff payload and any remaining `git diff` view is empty, so the non-patch-only flag routes through the bypass branch → empty plain output → descriptive marker. (Do **not** also stage and leave unstaged edits on the same file at once — that would make `git diff` non-empty and confuse the setup.)
 9. `test_diff_compact_stat_with_width_argument` — call `git_diff(project_dir, args=["--stat=80"], compact=True)` against a repo with staged changes. Assert the result is **not** `"No changes found"` and contains `"|"`. This exercises the `a.split("=", 1)[0] in _NON_PATCH_FLAGS` membership check (proves that flags with `=<value>` such as `--stat=80` are still recognised as non-patch flags and routed through the bypass).
 
 Brief note for the implementer: the `a.split("=", 1)[0]` membership check exists specifically because git accepts `--stat=<width>`, `--stat=<width>,<name>`, and similar parameterised forms — bare-string membership against `_NON_PATCH_FLAGS` would otherwise miss them.
@@ -112,9 +112,9 @@ Rather than duplicating the else-branch logic, set a local `compact = False` (or
 
 After implementation, run all three MCP checks:
 
-- `mcp__tools-py__run_pytest_check` with `-n auto` and the standard "not …_integration" exclusion (the new tests are `git_integration`-marked; run those separately with `markers=["git_integration"]` to confirm).
-- `mcp__tools-py__run_pylint_check`
-- `mcp__tools-py__run_mypy_check`
+- `mcp__mcp-tools-py__run_pytest_check` with `-n auto` and the standard "not …_integration" exclusion (the new tests are `git_integration`-marked; run those separately with `markers=["git_integration"]` to confirm).
+- `mcp__mcp-tools-py__run_pylint_check`
+- `mcp__mcp-tools-py__run_mypy_check`
 
 All must pass.
 
