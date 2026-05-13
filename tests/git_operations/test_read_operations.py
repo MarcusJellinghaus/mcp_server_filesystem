@@ -1,5 +1,6 @@
 """Integration tests for read-only git operations."""
 
+import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -625,6 +626,106 @@ class TestGitShow:
         _, project_dir = git_repo_with_commit
         with pytest.raises(ValueError, match="not in the security allowlist"):
             git_show(project_dir, args=["--exec=evil"])
+
+    def test_show_compact_preserves_commit_header(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        # The prefix-before-patch invariant: the commit header (Author / Date
+        # lines) must appear before the diff body in the compacted output.
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD"])
+        assert "Author:" in result
+        assert "Date:" in result
+        assert "diff --git" in result
+        assert result.index("Author:") < result.index("diff --git")
+
+    def test_show_compact_oneline_preserved(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["--oneline", "HEAD"])
+        assert "Initial commit" in result
+
+    def test_show_compact_format_preserved(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["--format=%H", "HEAD"])
+        assert re.search(r"\b[0-9a-f]{40}\b", result) is not None
+
+    def test_show_compact_stat_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--stat"])
+        assert result != "No output."
+        assert "|" in result
+
+    def test_show_compact_shortstat_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--shortstat"])
+        assert result != "No output."
+        assert "changed" in result or "insertion" in result
+
+    def test_show_compact_numstat_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--numstat"])
+        assert result != "No output."
+        assert "README.md" in result
+        assert any(ch.isdigit() for ch in result)
+
+    def test_show_compact_name_only_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--name-only"])
+        assert result != "No output."
+        assert "README.md" in result
+
+    def test_show_compact_name_status_returns_output(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--name-status"])
+        assert result != "No output."
+        assert "README.md" in result
+        assert "A" in result
+
+    def test_show_compact_stat_and_patch_preserves_prefix(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        # The prefix-before-patch invariant: when --stat is combined with -p,
+        # the stat block must appear before the patch body.
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--stat", "-p"])
+        assert "|" in result
+        assert "diff --git" in result
+        assert result.index("|") < result.index("diff --git")
+
+    def test_show_compact_no_patch_preserves_commit_header(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--no-patch"], compact=True)
+        assert "Author:" in result
+        assert "Date:" in result
+        assert "diff --git" not in result
+
+    def test_show_compact_pretty_preserved(
+        self, git_repo_with_commit: tuple[Repo, Path]
+    ) -> None:
+        # --pretty=<format> is NOT in _NON_PATCH_FLAGS — it customises the
+        # header but still emits a patch — so this exercises the
+        # split-and-preserve branch, not the non-patch bypass.
+        _, project_dir = git_repo_with_commit
+        result = git_show(project_dir, args=["HEAD", "--pretty=fuller"], compact=True)
+        assert "AuthorDate:" in result
+        assert "diff --git" in result
+        assert result.index("AuthorDate:") < result.index("diff --git")
 
 
 @pytest.mark.git_integration

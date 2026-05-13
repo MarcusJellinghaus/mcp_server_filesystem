@@ -354,6 +354,17 @@ def git_show(
     # Detect colon pattern (e.g. HEAD:README.md) — file content, not diff
     has_colon = any(":" in a and not a.startswith("-") for a in user_args)
 
+    # When non-patch-only flags (e.g. --stat, --no-patch) are present without
+    # -p/--patch, bypass the compact path: parse_diff() returns [] for such
+    # output and the patch-portion split would discard everything.
+    has_non_patch = any(
+        a in _NON_PATCH_FLAGS or a.split("=", 1)[0] in _NON_PATCH_FLAGS
+        for a in user_args
+    )
+    has_patch = "-p" in user_args or "--patch" in user_args
+    if has_non_patch and not has_patch:
+        compact = False
+
     with safe_repo_context(project_dir) as repo:
         if compact and not has_colon:
             final_args = [a for a in user_args if not a.startswith("--color")]
@@ -366,23 +377,42 @@ def git_show(
             if not plain:
                 return "No output."
 
-            ansi: str = repo.git.show(
-                "--color=always", "--color-moved=dimmed-zebra", *base_args
-            )
-            output = render_compact_diff(plain, ansi)
-            if not output:
-                output = plain  # Fall back when no diff hunks (e.g. --no-patch)
+            # Split the raw output at the first "diff --git" marker so that
+            # any prefix (commit header, --stat block, --oneline/--format
+            # output) is preserved unchanged and only the patch portion is
+            # fed to the compactor.
+            idx = plain.find("diff --git")
+            if idx >= 0:
+                prefix = plain[:idx].rstrip("\n")
+                patch_portion = plain[idx:]
+            else:
+                prefix = plain
+                patch_portion = ""
 
-            plain_count = len(plain.splitlines())
-            compact_count = len(output.splitlines()) if output else 0
-            if output and compact_count < plain_count:
-                pct = round((1 - compact_count / plain_count) * 100)
-                suppressed = plain_count - compact_count
-                header = (
-                    f"# Compact diff: {plain_count} → {compact_count} lines "
-                    f"({pct}% reduction, {suppressed} lines suppressed)"
+            if not patch_portion:
+                output = prefix
+            else:
+                ansi: str = repo.git.show(
+                    "--color=always", "--color-moved=dimmed-zebra", *base_args
                 )
-                output = header + "\n" + output
+                compacted = render_compact_diff(patch_portion, ansi)
+                if not compacted:
+                    compacted = patch_portion
+
+                # Header reflects only the patch portion's line counts; it
+                # sits between the preserved prefix and the compacted body.
+                patch_count = len(patch_portion.splitlines())
+                compact_count = len(compacted.splitlines())
+                if compact_count < patch_count:
+                    pct = round((1 - compact_count / patch_count) * 100)
+                    suppressed = patch_count - compact_count
+                    header = (
+                        f"# Compact diff: {patch_count} → {compact_count} lines "
+                        f"({pct}% reduction, {suppressed} lines suppressed)"
+                    )
+                    compacted = header + "\n" + compacted
+
+                output = prefix + "\n" + compacted if prefix else compacted
         else:
             cmd_args = list(_SAFETY_FLAGS) + user_args
             if pathspec:
