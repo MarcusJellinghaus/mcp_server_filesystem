@@ -1,4 +1,0 @@
-style: apply black formatting to test_branch_status_pr_feedback.py
-
-Wrap two over-length generator expressions (89 and 90 chars) across
-multiple lines so `black --check src tests` passes in CI.
