@@ -490,9 +490,7 @@ def git_check_ignore(
             ``args`` is not in the allowlist.
     """
     if not pathspec:
-        raise ValueError(
-            "git check_ignore requires at least one path in 'pathspec'"
-        )
+        raise ValueError("git check_ignore requires at least one path in 'pathspec'")
     safe_args, split_pathspec = split_args_pathspec(
         "check_ignore", args or [], pathspec
     )
