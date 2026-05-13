@@ -34,7 +34,7 @@ Detail: [steps/step_1.md](./steps/step_1.md)
 Detail: [steps/step_2.md](./steps/step_2.md)
 
 - [x] Implementation (tests + production code)
-- [ ] Quality checks: pylint, pytest, mypy — fix all issues
+- [x] Quality checks: pylint, pytest, mypy — fix all issues
 - [ ] Commit message prepared
 
 ## Pull Request
