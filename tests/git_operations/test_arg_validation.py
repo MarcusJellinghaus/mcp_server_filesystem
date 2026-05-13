@@ -225,6 +225,62 @@ class TestValidateArgsLsRemoteAllowed:
         validate_args("ls_remote", ["--get-url"])
 
 
+class TestValidateArgsCheckIgnoreAllowed:
+    """Allowed check-ignore flags pass through silently."""
+
+    def test_verbose_short(self) -> None:
+        validate_args("check_ignore", ["-v"])
+
+    def test_verbose_long(self) -> None:
+        validate_args("check_ignore", ["--verbose"])
+
+    def test_non_matching_short(self) -> None:
+        validate_args("check_ignore", ["-n"])
+
+    def test_non_matching_long(self) -> None:
+        validate_args("check_ignore", ["--non-matching"])
+
+    def test_no_index(self) -> None:
+        validate_args("check_ignore", ["--no-index"])
+
+    def test_combined_verbose_non_matching(self) -> None:
+        validate_args("check_ignore", ["-v", "-n"])
+
+
+class TestValidateArgsCheckIgnoreRejected:
+    """Disallowed check-ignore flags raise ValueError."""
+
+    def test_unknown_flag_raises(self) -> None:
+        with pytest.raises(ValueError, match="not in the security allowlist"):
+            validate_args("check_ignore", ["--stdin"])
+
+    def test_quiet_rejected(self) -> None:
+        with pytest.raises(ValueError, match="not in the security allowlist"):
+            validate_args("check_ignore", ["-q"])
+
+
+class TestSupportsPathspecCheckIgnore:
+    """check_ignore is registered as a pathspec-supporting command."""
+
+    def test_check_ignore_in_supports_pathspec(self) -> None:
+        from mcp_workspace.git_operations.arg_validation import _SUPPORTS_PATHSPEC
+
+        assert "check_ignore" in _SUPPORTS_PATHSPEC
+
+
+class TestAllowlistsCheckIgnore:
+    """check_ignore is registered in the per-command allowlist registry."""
+
+    def test_check_ignore_in_allowlists(self) -> None:
+        from mcp_workspace.git_operations.arg_validation import (
+            _ALLOWLISTS,
+            CHECK_IGNORE_ALLOWED_FLAGS,
+        )
+
+        assert "check_ignore" in _ALLOWLISTS
+        assert _ALLOWLISTS["check_ignore"] == CHECK_IGNORE_ALLOWED_FLAGS
+
+
 class TestValidateArgsCrossCommandIsolation:
     """Flags valid for one command must not work in another."""
 

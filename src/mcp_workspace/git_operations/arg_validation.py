@@ -264,6 +264,10 @@ LS_REMOTE_ALLOWED_FLAGS: frozenset[str] = frozenset(
     }
 )
 
+CHECK_IGNORE_ALLOWED_FLAGS: frozenset[str] = frozenset(
+    {"-v", "--verbose", "-n", "--non-matching", "--no-index"}
+)
+
 _ALLOWLISTS: dict[str, frozenset[str]] = {
     "log": LOG_ALLOWED_FLAGS,
     "diff": DIFF_ALLOWED_FLAGS,
@@ -276,10 +280,11 @@ _ALLOWLISTS: dict[str, frozenset[str]] = {
     "ls_tree": LS_TREE_ALLOWED_FLAGS,
     "ls_files": LS_FILES_ALLOWED_FLAGS,
     "ls_remote": LS_REMOTE_ALLOWED_FLAGS,
+    "check_ignore": CHECK_IGNORE_ALLOWED_FLAGS,
 }
 
 _SUPPORTS_PATHSPEC: frozenset[str] = frozenset(
-    {"log", "diff", "show", "status", "ls_tree", "ls_files"}
+    {"log", "diff", "show", "status", "ls_tree", "ls_files", "check_ignore"}
 )
 
 
