@@ -40,6 +40,9 @@ logger = logging.getLogger(__name__)
 DEFAULT_LABEL = "unknown"
 EMPTY_RECOMMENDATIONS: List[str] = []
 
+_JOB_FAIL_CONCLUSIONS: frozenset[str] = frozenset({"failure", "cancelled", "timed_out"})
+_BLOCKING_MERGE_STATES: frozenset[str] = frozenset({"unstable", "blocked", "dirty"})
+
 
 class CIStatus(str, Enum):
     """CI pipeline status."""
@@ -362,11 +365,11 @@ def get_failed_jobs_summary(
 
 def _collect_ci_status(
     project_dir: Path, branch_name: str, max_log_lines: int
-) -> tuple[CIStatus, Optional[str]]:
+) -> tuple[CIStatus, Optional[str], List[str]]:
     """Collect CI status and details.
 
     Returns:
-        Tuple of (CIStatus, optional details string).
+        Tuple of (CIStatus, optional details string, failing job names).
     """
     try:
         ci_manager = CIResultsManager(project_dir=project_dir)
@@ -374,28 +377,42 @@ def _collect_ci_status(
         run_data = status_result.get("run")
 
         if run_data is None or len(run_data) == 0:
-            return CIStatus.NOT_CONFIGURED, None
+            return CIStatus.NOT_CONFIGURED, None, []
 
-        ci_state = run_data.get("conclusion") or run_data.get("status", "")
+        jobs_data = status_result.get("jobs", [])
+        failing_names = [
+            j["name"] for j in jobs_data if j.get("conclusion") in _JOB_FAIL_CONCLUSIONS
+        ]
+        conclusion = run_data.get("conclusion")
+        status = run_data.get("status", "")
 
-        if ci_state == "success":
-            return CIStatus.PASSED, None
-        elif ci_state == "failure":
+        if conclusion == "success":
+            if failing_names:
+                try:
+                    details = build_ci_error_details(
+                        ci_manager, status_result, max_lines=max_log_lines
+                    )
+                except Exception:  # pylint: disable=broad-exception-caught
+                    details = None
+                return CIStatus.FAILED, details, failing_names
+            if run_data.get("jobs_fetch_warning"):
+                return CIStatus.PENDING, None, []
+            return CIStatus.PASSED, None, []
+        if conclusion == "failure":
             try:
                 details = build_ci_error_details(
                     ci_manager, status_result, max_lines=max_log_lines
                 )
             except Exception:  # pylint: disable=broad-exception-caught
                 details = None
-            return CIStatus.FAILED, details
-        elif ci_state in ("in_progress", "queued", "pending"):
-            return CIStatus.PENDING, None
-        else:
-            return CIStatus.NOT_CONFIGURED, None
+            return CIStatus.FAILED, details, failing_names
+        if status in ("in_progress", "queued", "pending"):
+            return CIStatus.PENDING, None, []
+        return CIStatus.NOT_CONFIGURED, None, []
 
     except Exception:  # pylint: disable=broad-exception-caught
         logger.debug("CI status collection failed", exc_info=True)
-        return CIStatus.NOT_CONFIGURED, None
+        return CIStatus.NOT_CONFIGURED, None, []
 
 
 def _collect_rebase_status(project_dir: Path, base_branch: str) -> tuple[bool, str]:
@@ -547,9 +564,17 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
     tasks_ok = not tasks_is_blocking
     pr_mergeable = report_data.get("pr_mergeable")
     pr_blocks = report_data.get("pr_feedback_blocks_merge", False)
+    ci_failing_job_names = report_data.get("ci_failing_job_names", [])
+    pr_mergeable_state = report_data.get("pr_mergeable_state")
+    merge_state_blocked = pr_mergeable_state in _BLOCKING_MERGE_STATES
 
     if ci_status == CIStatus.FAILED:
-        recommendations.append("Fix CI test failures")
+        if ci_failing_job_names:
+            recommendations.append(
+                f"Fix failing job(s): {', '.join(ci_failing_job_names)}"
+            )
+        else:
+            recommendations.append("Fix CI test failures")
         if report_data.get("ci_details"):
             recommendations.append("Check CI error details above")
     elif ci_status == CIStatus.PENDING:
@@ -567,15 +592,25 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
     if rebase_needed and tasks_ok and ci_status != CIStatus.FAILED:
         recommendations.append("Rebase onto origin/main")
 
+    if pr_blocks:
+        recommendations.append("Address review comments")
+    if merge_state_blocked:
+        recommendations.append(
+            f"Not ready to merge (GitHub mergeable_state: {pr_mergeable_state})"
+        )
+
     ci_ok = ci_status in (CIStatus.PASSED, CIStatus.NOT_CONFIGURED)
-    if ci_ok and tasks_ok:
-        if pr_blocks:
-            recommendations.append("Address review comments")
-        elif not rebase_needed:
-            if pr_mergeable is True:
-                recommendations.append("Ready to merge (squash-merge safe)")
-            else:
-                recommendations.append("Ready to merge")
+    if (
+        ci_ok
+        and tasks_ok
+        and not pr_blocks
+        and not merge_state_blocked
+        and not rebase_needed
+    ):
+        if pr_mergeable is True:
+            recommendations.append("Ready to merge (squash-merge safe)")
+        else:
+            recommendations.append("Ready to merge")
 
     if not recommendations:
         recommendations.append("Continue with current work")
@@ -632,7 +667,7 @@ def collect_branch_status(
         base_branch = base_branch_result if base_branch_result else "unknown"
 
         # 4. Collect CI status
-        ci_status, ci_details = _collect_ci_status(
+        ci_status, ci_details, ci_failing_job_names = _collect_ci_status(
             project_dir, branch_name, max_log_lines
         )
 
@@ -671,11 +706,13 @@ def collect_branch_status(
         report_data: Dict[str, Any] = {
             "ci_status": ci_status,
             "ci_details": ci_details,
+            "ci_failing_job_names": ci_failing_job_names,
             "rebase_needed": rebase_needed,
             "tasks_status": tasks_status,
             "tasks_reason": tasks_reason,
             "tasks_is_blocking": tasks_is_blocking,
             "pr_mergeable": pr_mergeable,
+            "pr_mergeable_state": pr_mergeable_state,
             "pr_feedback_blocks_merge": pr_feedback_blocks_merge,
         }
         recommendations = _generate_recommendations(report_data)
