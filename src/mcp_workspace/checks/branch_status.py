@@ -380,9 +380,7 @@ def _collect_ci_status(
 
         jobs_data = status_result.get("jobs", [])
         failing_names = [
-            j["name"]
-            for j in jobs_data
-            if j.get("conclusion") in _JOB_FAIL_CONCLUSIONS
+            j["name"] for j in jobs_data if j.get("conclusion") in _JOB_FAIL_CONCLUSIONS
         ]
         conclusion = run_data.get("conclusion")
         status = run_data.get("status", "")
