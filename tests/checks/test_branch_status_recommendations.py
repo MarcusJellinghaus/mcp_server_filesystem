@@ -182,6 +182,36 @@ class TestGenerateRecommendations:
         assert "Fix CI test failures" in recs
         assert any("remaining tasks" in r.lower() for r in recs)
 
+    def test_failing_job_names_replace_generic_ci_message(self) -> None:
+        """ci_failing_job_names populated → specific message replaces generic."""
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.FAILED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "ci_failing_job_names": ["mssql-integration"],
+            }
+        )
+        assert "Fix failing job(s): mssql-integration" in recs
+        assert "Fix CI test failures" not in recs
+
+    def test_no_failing_job_names_keeps_generic_message(self) -> None:
+        """No / empty ci_failing_job_names → generic message preserved."""
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.FAILED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "ci_failing_job_names": [],
+            }
+        )
+        assert "Fix CI test failures" in recs
+        assert not any(r.startswith("Fix failing job(s):") for r in recs)
+
 
 class TestApplyPrMergeOverride:
     """Tests for _apply_pr_merge_override."""
