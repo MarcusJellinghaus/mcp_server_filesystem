@@ -15,7 +15,7 @@ Make the verdict consult job-level conclusions, gate "Ready to merge" on `mergea
 - **One function, one place.** All verdict policy stays in `_collect_ci_status` (`branch_status.py`). No new `_derive_ci_verdict` helper — the existing function is already small and tested; we just extend it.
 - **`CIResultsManager` untouched.** `run_data["conclusion"]` must continue to mirror GitHub's workflow-run conclusion verbatim because `branch_status_polling.py:53` polls it to decide when to stop. Verdict logic is *policy*; raw conclusion is *fact*.
 - **Tuple expansion, not new dataclass.** `_collect_ci_status` returns `(CIStatus, Optional[str], list[str])` — the third slot is `failing_job_names`, threaded into `report_data` for the recommender. No `BranchStatusReport` field changes; no formatter changes.
-- **Recommendation guard is additive.** Failing jobs + blocking review + `mergeable_state=unstable` all emit their own lines; no priority filter.
+- **Recommendation guard is fully additive.** All blocker lines (failing jobs, "Address review comments", "Not ready to merge (...)", rebase) emit independently whenever their respective conditions hold. The "Ready to merge" / "Ready to merge (squash-merge safe)" line emits only when *no* blocker fires.
 
 ## Architectural / Design Changes
 
@@ -23,7 +23,9 @@ Make the verdict consult job-level conclusions, gate "Ready to merge" on `mergea
 |---|---|
 | `_collect_ci_status` return type | `tuple[CIStatus, Optional[str]]` → `tuple[CIStatus, Optional[str], list[str]]` |
 | Verdict rules added | (a) workflow=success + any job in `{failure, cancelled, timed_out}` → `FAILED`; (b) workflow=success + `jobs_fetch_warning` set → `PENDING` |
-| `_generate_recommendations` new gate | `pr_mergeable_state ∈ {"unstable", "blocked", "dirty"}` blocks "Ready to merge" and emits a new line. `behind` is deliberately excluded (already handled by `_apply_pr_merge_override`). |
+| `_generate_recommendations` new gate | `pr_mergeable_state ∈ {"unstable", "blocked", "dirty"}` blocks "Ready to merge" and emits a new line *independently* of CI/tasks state. `behind` is deliberately excluded (already handled by `_apply_pr_merge_override`). |
+| `_generate_recommendations` lifted lines | Both `"Address review comments"` and `"Not ready to merge (GitHub mergeable_state: <state>)"` move *out* of the `if ci_ok and tasks_ok:` branch — they emit whenever their conditions hold, alongside any CI/task blockers. |
+| `_generate_recommendations` "Ready to merge" gate | Emits only when `ci_ok and tasks_ok and not rebase_needed and not pr_blocks and not merge_state_blocked` — i.e., no blocker fires. |
 | `_generate_recommendations` new wording | When `ci_failing_job_names` is non-empty: `"Fix failing job(s): n1, n2"` replaces `"Fix CI test failures"`. |
 | `report_data` payload | Two new keys: `ci_failing_job_names`, `pr_mergeable_state`. |
 | `CIResultsManager` | **No change** (preserves polling contract). |
@@ -32,8 +34,8 @@ Make the verdict consult job-level conclusions, gate "Ready to merge" on `mergea
 
 ## Constants Introduced
 
-- `BLOCKING_MERGE_STATES = {"unstable", "blocked", "dirty"}` (module-level in `branch_status.py`).
-- Failing job-conclusion set `{"failure", "cancelled", "timed_out"}` — mirrors `aggregate_conclusion` (`ci_results_manager.py:115`) for consistency.
+- `_BLOCKING_MERGE_STATES: frozenset[str] = frozenset({"unstable", "blocked", "dirty"})` (private, module-level in `branch_status.py`; introduced in Step 2).
+- `_JOB_FAIL_CONCLUSIONS: frozenset[str] = frozenset({"failure", "cancelled", "timed_out"})` (private, module-level in `branch_status.py`; introduced in Step 1) — mirrors `aggregate_conclusion` (`ci_results_manager.py:115`) for consistency.
 
 ## Files / Modules Touched
 

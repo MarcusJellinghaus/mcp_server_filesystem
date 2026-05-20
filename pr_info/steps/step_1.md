@@ -44,11 +44,17 @@ def _collect_ci_status(
 ## ALGORITHM (core logic in `_collect_ci_status`)
 
 ```
-JOB_FAIL_SET = {"failure", "cancelled", "timed_out"}
+# NOTE: This intentionally drops the existing `conclusion or status` fallback.
+# `conclusion` is the authoritative completion field; `status` is only
+# meaningful while the run is in flight. Branching explicitly on `conclusion`
+# first (then on `status` for the in-flight cases) is clearer than the
+# `or`-fallback expression. No behavior change for any valid GitHub payload.
+
+_JOB_FAIL_CONCLUSIONS = frozenset({"failure", "cancelled", "timed_out"})
 run_data = status_result["run"]
 jobs_data = status_result["jobs"]
 if not run_data: return (NOT_CONFIGURED, None, [])
-failing_names = [j["name"] for j in jobs_data if j.get("conclusion") in JOB_FAIL_SET]
+failing_names = [j["name"] for j in jobs_data if j.get("conclusion") in _JOB_FAIL_CONCLUSIONS]
 conclusion = run_data.get("conclusion")
 status     = run_data.get("status", "")
 if conclusion == "success":
@@ -79,7 +85,16 @@ In `tests/checks/test_branch_status.py` (`TestCollectCIStatus`):
 3. `test_workflow_success_with_timed_out_job_returns_failed` — same shape, `conclusion="timed_out"`.
 4. `test_workflow_success_clean_returns_passed_with_empty_names` — asserts `(PASSED, None, [])`.
 5. `test_workflow_success_with_jobs_fetch_warning_returns_pending` — `run.jobs_fetch_warning` set, no jobs → `(PENDING, None, [])`.
-6. Update existing `test_passed`, `test_failed`, `test_pending`, `test_not_configured`, `test_failed_with_details_exception`, `test_exception_returns_not_configured` to unpack the 3-tuple.
+6. Update every existing test method in `TestCollectCIStatus` (in `tests/checks/test_branch_status.py`) that calls `_collect_ci_status` to unpack the new 3-tuple. The complete list as of today:
+   - `test_passed`
+   - `test_failed`
+   - `test_pending`
+   - `test_not_configured`
+   - `test_failed_with_details_exception`
+   - `test_pending_via_status_fallback`
+   - `test_exception_returns_not_configured`
+
+   For each, change the unpack from `status, details = _collect_ci_status(...)` (or `status, _ = ...`) to `status, details, failing_names = _collect_ci_status(...)` (or `status, _, _ = ...`) and, where relevant, assert `failing_names == []`.
 
 In `tests/checks/test_branch_status_recommendations.py` (`TestGenerateRecommendations`):
 
@@ -90,5 +105,5 @@ In `tests/checks/test_branch_status_recommendations.py` (`TestGenerateRecommenda
 
 - All new tests pass.
 - All existing tests still pass.
-- `mcp__tools-py__run_pylint_check`, `mcp__tools-py__run_pytest_check` (with the recommended `-m "not …"` exclusions and `-n auto`), `mcp__tools-py__run_mypy_check` all clean.
+- `mcp__mcp-tools-py__run_pylint_check`, `mcp__mcp-tools-py__run_pytest_check` (with the recommended `-m "not …"` exclusions and `-n auto`), `mcp__mcp-tools-py__run_mypy_check` all clean.
 - One commit named e.g. `feat(check): derive CI verdict from job-level conclusions (#207)`.
