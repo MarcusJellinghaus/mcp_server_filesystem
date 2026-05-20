@@ -31,3 +31,26 @@ Started: 2026-05-20
 - `pr_info/steps/step_2.md` — ALGORITHM rewritten for fully-additive structure; `test_co_occurrence_additive` now asserts all three lines; added `test_unstable_emits_even_when_ci_failed` and `test_address_review_emits_even_when_ci_failed`; new "Existing tests to update" subsection (lists `test_no_review_rec_when_ci_failed`, `test_no_review_rec_when_tasks_blocking` for inversion); regression test rewritten to patch `_collect_*` helpers instead of managers; tool-prefix typo fixed.
 
 **Status:** plan changed — committing and looping for round 2.
+
+
+## Round 2 — 2026-05-20
+
+**Findings:**
+- *Critical:* Step 1's "update existing tests" list was scoped to `TestCollectCIStatus` and missed 3 tests in `TestCollectBranchStatus` (`test_full_collection`, `test_github_init_failure`, `test_rebase_behind_but_mergeable_squash_safe`) that mock `_collect_ci_status.return_value` as 2-tuples. After the signature change these will raise `ValueError: not enough values to unpack`.
+- *Suggestion:* Note that the rebase recommendation is deliberately NOT lifted out of its `tasks_ok and ci_status != FAILED` gate under the fully-additive design — only merge-readiness blockers go additive.
+- *Suggestion (skipped):* Make algorithm reference dict-key names explicitly — trivial.
+- *Suggestion (skipped):* Add a "rebase alone suppresses Ready to merge" test — already implied by existing tests.
+- *Round 1 fixes verified:* constants renamed consistently, fully-additive algorithm correctly described, `test_co_occurrence_additive` updated, new tests listed, "Existing tests to update" identifies the right suppression tests, Step 1 item 6 covers all `TestCollectCIStatus` callers, tool-prefix fixed, regression test uses `_collect_*` helper-patch pattern, fallback-drop comment added.
+
+**Decisions:**
+- Accept critical finding — apply.
+- Accept first suggestion — apply.
+- Skip the two trivial/redundant suggestions.
+
+**User decisions:** None — autonomous round.
+
+**Changes:**
+- `pr_info/steps/step_1.md` — added item 6b listing the three `TestCollectBranchStatus` tests with 2-tuple mocks plus a re-grep instruction.
+- `pr_info/steps/summary.md` — added a one-line note under "Design Approach (KISS)" clarifying the rebase recommendation stays gated behind `tasks_ok and ci_status != FAILED`; only merge-readiness blockers become fully additive.
+
+**Status:** plan changed — committing and looping for round 3.

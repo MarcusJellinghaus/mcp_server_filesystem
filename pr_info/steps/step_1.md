@@ -96,6 +96,13 @@ In `tests/checks/test_branch_status.py` (`TestCollectCIStatus`):
 
    For each, change the unpack from `status, details = _collect_ci_status(...)` (or `status, _ = ...`) to `status, details, failing_names = _collect_ci_status(...)` (or `status, _, _ = ...`) and, where relevant, assert `failing_names == []`.
 
+6b. Update existing tests in `TestCollectBranchStatus` (in `tests/checks/test_branch_status.py`) that mock `_collect_ci_status.return_value` as a 2-tuple — change to a 3-tuple `(CIStatus.X, None, [])`:
+   - `test_full_collection`
+   - `test_github_init_failure`
+   - `test_rebase_behind_but_mergeable_squash_safe`
+
+   Implementer should also re-grep `tests/` for any other `_collect_ci_status.return_value = (` pattern in case more callers exist.
+
 In `tests/checks/test_branch_status_recommendations.py` (`TestGenerateRecommendations`):
 
 7. `test_failing_job_names_replace_generic_ci_message` — `ci_status=FAILED`, `ci_failing_job_names=["mssql-integration"]` → recs contain `"Fix failing job(s): mssql-integration"` and NOT `"Fix CI test failures"`.

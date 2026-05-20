@@ -16,6 +16,7 @@ Make the verdict consult job-level conclusions, gate "Ready to merge" on `mergea
 - **`CIResultsManager` untouched.** `run_data["conclusion"]` must continue to mirror GitHub's workflow-run conclusion verbatim because `branch_status_polling.py:53` polls it to decide when to stop. Verdict logic is *policy*; raw conclusion is *fact*.
 - **Tuple expansion, not new dataclass.** `_collect_ci_status` returns `(CIStatus, Optional[str], list[str])` — the third slot is `failing_job_names`, threaded into `report_data` for the recommender. No `BranchStatusReport` field changes; no formatter changes.
 - **Recommendation guard is fully additive.** All blocker lines (failing jobs, "Address review comments", "Not ready to merge (...)", rebase) emit independently whenever their respective conditions hold. The "Ready to merge" / "Ready to merge (squash-merge safe)" line emits only when *no* blocker fires.
+- **Note on rebase recommendation:** `"Rebase onto <base>"` remains gated behind `tasks_ok and ci_status != FAILED` as today — only the *merge-readiness* blocker lines (failing jobs, review comments, mergeable_state) become fully additive. Rebasing a still-broken branch isn't useful guidance.
 
 ## Architectural / Design Changes
 
