@@ -41,6 +41,7 @@ DEFAULT_LABEL = "unknown"
 EMPTY_RECOMMENDATIONS: List[str] = []
 
 _JOB_FAIL_CONCLUSIONS: frozenset[str] = frozenset({"failure", "cancelled", "timed_out"})
+_BLOCKING_MERGE_STATES: frozenset[str] = frozenset({"unstable", "blocked", "dirty"})
 
 
 class CIStatus(str, Enum):
@@ -564,6 +565,8 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
     pr_mergeable = report_data.get("pr_mergeable")
     pr_blocks = report_data.get("pr_feedback_blocks_merge", False)
     ci_failing_job_names = report_data.get("ci_failing_job_names", [])
+    pr_mergeable_state = report_data.get("pr_mergeable_state")
+    merge_state_blocked = pr_mergeable_state in _BLOCKING_MERGE_STATES
 
     if ci_status == CIStatus.FAILED:
         if ci_failing_job_names:
@@ -589,15 +592,25 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> List[str]:
     if rebase_needed and tasks_ok and ci_status != CIStatus.FAILED:
         recommendations.append("Rebase onto origin/main")
 
+    if pr_blocks:
+        recommendations.append("Address review comments")
+    if merge_state_blocked:
+        recommendations.append(
+            f"Not ready to merge (GitHub mergeable_state: {pr_mergeable_state})"
+        )
+
     ci_ok = ci_status in (CIStatus.PASSED, CIStatus.NOT_CONFIGURED)
-    if ci_ok and tasks_ok:
-        if pr_blocks:
-            recommendations.append("Address review comments")
-        elif not rebase_needed:
-            if pr_mergeable is True:
-                recommendations.append("Ready to merge (squash-merge safe)")
-            else:
-                recommendations.append("Ready to merge")
+    if (
+        ci_ok
+        and tasks_ok
+        and not pr_blocks
+        and not merge_state_blocked
+        and not rebase_needed
+    ):
+        if pr_mergeable is True:
+            recommendations.append("Ready to merge (squash-merge safe)")
+        else:
+            recommendations.append("Ready to merge")
 
     if not recommendations:
         recommendations.append("Continue with current work")
@@ -699,6 +712,7 @@ def collect_branch_status(
             "tasks_reason": tasks_reason,
             "tasks_is_blocking": tasks_is_blocking,
             "pr_mergeable": pr_mergeable,
+            "pr_mergeable_state": pr_mergeable_state,
             "pr_feedback_blocks_merge": pr_feedback_blocks_merge,
         }
         recommendations = _generate_recommendations(report_data)

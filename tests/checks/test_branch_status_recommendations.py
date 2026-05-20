@@ -274,7 +274,8 @@ class TestPRFeedbackBlockingRecommendations:
         assert "Ready to merge" not in recs
         assert "Ready to merge (squash-merge safe)" not in recs
 
-    def test_no_review_rec_when_ci_failed(self) -> None:
+    def test_review_rec_emits_alongside_ci_failure(self) -> None:
+        """`Address review comments` emits independently of CI state."""
         recs = _generate_recommendations(
             {
                 "ci_status": CIStatus.FAILED,
@@ -286,9 +287,10 @@ class TestPRFeedbackBlockingRecommendations:
             }
         )
         assert "Fix CI test failures" in recs
-        assert "Address review comments" not in recs
+        assert "Address review comments" in recs
 
-    def test_no_review_rec_when_tasks_blocking(self) -> None:
+    def test_review_rec_emits_alongside_blocking_tasks(self) -> None:
+        """`Address review comments` emits independently of task state."""
         recs = _generate_recommendations(
             {
                 "ci_status": CIStatus.PASSED,
@@ -300,7 +302,7 @@ class TestPRFeedbackBlockingRecommendations:
             }
         )
         assert any("remaining tasks" in r.lower() for r in recs)
-        assert "Address review comments" not in recs
+        assert "Address review comments" in recs
 
     def test_ready_to_merge_when_feedback_clean(self) -> None:
         recs = _generate_recommendations(
@@ -330,3 +332,147 @@ class TestPRFeedbackBlockingRecommendations:
         assert "Address review comments" in recs
         assert "Ready to merge" not in recs
         assert "Ready to merge (squash-merge safe)" not in recs
+
+
+class TestMergeableStateGuard:
+    """Tests for `pr_mergeable_state` blocker in `_generate_recommendations`."""
+
+    def test_unstable_blocks_ready_to_merge(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_mergeable": True,
+                "pr_mergeable_state": "unstable",
+            }
+        )
+        assert "Not ready to merge (GitHub mergeable_state: unstable)" in recs
+        assert "Ready to merge" not in recs
+        assert "Ready to merge (squash-merge safe)" not in recs
+
+    def test_blocked_blocks_ready_to_merge(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_mergeable": True,
+                "pr_mergeable_state": "blocked",
+            }
+        )
+        assert "Not ready to merge (GitHub mergeable_state: blocked)" in recs
+        assert "Ready to merge" not in recs
+        assert "Ready to merge (squash-merge safe)" not in recs
+
+    def test_dirty_blocks_ready_to_merge(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_mergeable": True,
+                "pr_mergeable_state": "dirty",
+            }
+        )
+        assert "Not ready to merge (GitHub mergeable_state: dirty)" in recs
+        assert "Ready to merge" not in recs
+        assert "Ready to merge (squash-merge safe)" not in recs
+
+    def test_behind_does_not_block(self) -> None:
+        """`behind` is not in the blocker set — already handled elsewhere."""
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_mergeable": True,
+                "pr_mergeable_state": "behind",
+            }
+        )
+        assert "Ready to merge (squash-merge safe)" in recs
+        assert not any(r.startswith("Not ready to merge") for r in recs)
+
+    def test_none_does_not_block(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_mergeable_state": None,
+            }
+        )
+        assert "Ready to merge" in recs
+        assert not any(r.startswith("Not ready to merge") for r in recs)
+
+    def test_clean_does_not_block(self) -> None:
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.PASSED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_mergeable_state": "clean",
+            }
+        )
+        assert "Ready to merge" in recs
+        assert not any(r.startswith("Not ready to merge") for r in recs)
+
+    def test_co_occurrence_additive(self) -> None:
+        """All three blocker lines emit together when all three conditions hold."""
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.FAILED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "ci_failing_job_names": ["mssql-integration"],
+                "pr_feedback_blocks_merge": True,
+                "pr_mergeable_state": "unstable",
+            }
+        )
+        assert "Fix failing job(s): mssql-integration" in recs
+        assert "Address review comments" in recs
+        assert "Not ready to merge (GitHub mergeable_state: unstable)" in recs
+        assert "Ready to merge" not in recs
+        assert "Ready to merge (squash-merge safe)" not in recs
+
+    def test_unstable_emits_even_when_ci_failed(self) -> None:
+        """`Not ready to merge` lifts out of the ci_ok branch."""
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.FAILED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_mergeable_state": "unstable",
+            }
+        )
+        assert "Not ready to merge (GitHub mergeable_state: unstable)" in recs
+
+    def test_address_review_emits_even_when_ci_failed(self) -> None:
+        """Regression: `Address review comments` lifts out of the ci_ok branch."""
+        recs = _generate_recommendations(
+            {
+                "ci_status": CIStatus.FAILED,
+                "rebase_needed": False,
+                "tasks_status": TaskTrackerStatus.COMPLETE,
+                "tasks_reason": "All done",
+                "tasks_is_blocking": False,
+                "pr_feedback_blocks_merge": True,
+            }
+        )
+        assert "Address review comments" in recs

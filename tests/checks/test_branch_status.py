@@ -609,3 +609,71 @@ class TestCollectBranchStatus:
         assert report.rebase_reason == "Unknown"
         assert report.tasks_reason == "Unknown"
         assert report.recommendations == []
+
+
+class TestCollectBranchStatusRegressions:
+    """End-to-end regression tests through `collect_branch_status`."""
+
+    @patch("mcp_workspace.checks.branch_status._collect_pr_info")
+    @patch("mcp_workspace.checks.branch_status._collect_github_label")
+    @patch("mcp_workspace.checks.branch_status._collect_task_status")
+    @patch("mcp_workspace.checks.branch_status._collect_rebase_status")
+    @patch("mcp_workspace.checks.branch_status._collect_ci_status")
+    @patch("mcp_workspace.checks.branch_status.detect_base_branch")
+    @patch("mcp_workspace.checks.branch_status.PullRequestManager")
+    @patch("mcp_workspace.checks.branch_status.IssueManager")
+    @patch("mcp_workspace.checks.branch_status.extract_issue_number_from_branch")
+    @patch("mcp_workspace.checks.branch_status.get_current_branch_name")
+    def test_issue_207_continue_on_error_scenario(
+        self,
+        mock_branch: MagicMock,
+        mock_extract: MagicMock,
+        mock_issue_mgr_cls: MagicMock,
+        mock_pr_mgr_cls: MagicMock,
+        mock_detect: MagicMock,
+        mock_ci: MagicMock,
+        mock_rebase: MagicMock,
+        mock_tasks: MagicMock,
+        mock_label: MagicMock,
+        mock_pr_info: MagicMock,
+    ) -> None:
+        """Issue #207: continue-on-error job failure + unstable mergeable_state.
+
+        Workflow=success but a job has conclusion=failure. mergeable_state
+        is `unstable`. The recommender must surface both blockers and must
+        NOT recommend `Ready to merge`.
+        """
+        mock_branch.return_value = "7-ms-sql-server-backend-pyodbc"
+        mock_extract.return_value = 7
+        mock_issue_mgr = MagicMock()
+        mock_issue_mgr.get_issue.return_value = {"number": 7, "labels": []}
+        mock_issue_mgr_cls.return_value = mock_issue_mgr
+        mock_pr_mgr_cls.return_value = MagicMock()
+        mock_detect.return_value = "main"
+        mock_ci.return_value = (CIStatus.FAILED, "<job details>", ["mssql-integration"])
+        mock_rebase.return_value = (False, "up-to-date")
+        mock_tasks.return_value = (
+            TaskTrackerStatus.N_A,
+            "No pr_info folder found",
+            False,
+        )
+        mock_label.return_value = "unknown"
+        mock_pr_info.return_value = (45, "https://url", True, True, "unstable")
+
+        report = collect_branch_status(Path("/tmp"))
+
+        assert report.ci_status == CIStatus.FAILED
+        assert "Ready to merge" not in report.recommendations
+        assert "Ready to merge (squash-merge safe)" not in report.recommendations
+        assert any(
+            "Fix failing job(s): mssql-integration" in r for r in report.recommendations
+        )
+        assert any(
+            "Not ready to merge (GitHub mergeable_state: unstable)" in r
+            for r in report.recommendations
+        )
+
+        llm_output = report.format_for_llm()
+        assert "CI=FAILED" in llm_output
+        assert "Mergeable_State=unstable" in llm_output
+        assert "Fix failing job(s): mssql-integration" in llm_output
